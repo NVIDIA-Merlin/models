@@ -1,0 +1,134 @@
+﻿merlin.models.tf.DualEncoderBlock
+=================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: DualEncoderBlock
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DualEncoderBlock.__init__
+      ~DualEncoderBlock.add_branch
+      ~DualEncoderBlock.add_loss
+      ~DualEncoderBlock.add_metric
+      ~DualEncoderBlock.add_update
+      ~DualEncoderBlock.add_variable
+      ~DualEncoderBlock.add_weight
+      ~DualEncoderBlock.apply_to_all
+      ~DualEncoderBlock.apply_to_branch
+      ~DualEncoderBlock.as_tabular
+      ~DualEncoderBlock.build
+      ~DualEncoderBlock.calculate_batch_size_from_input_shapes
+      ~DualEncoderBlock.call
+      ~DualEncoderBlock.call_outputs
+      ~DualEncoderBlock.check_schema
+      ~DualEncoderBlock.compute_call_output_shape
+      ~DualEncoderBlock.compute_mask
+      ~DualEncoderBlock.compute_output_shape
+      ~DualEncoderBlock.compute_output_signature
+      ~DualEncoderBlock.connect
+      ~DualEncoderBlock.connect_branch
+      ~DualEncoderBlock.connect_debug_block
+      ~DualEncoderBlock.connect_with_residual
+      ~DualEncoderBlock.connect_with_shortcut
+      ~DualEncoderBlock.copy
+      ~DualEncoderBlock.count_params
+      ~DualEncoderBlock.finalize_state
+      ~DualEncoderBlock.from_config
+      ~DualEncoderBlock.from_features
+      ~DualEncoderBlock.from_layer
+      ~DualEncoderBlock.from_schema
+      ~DualEncoderBlock.get_config
+      ~DualEncoderBlock.get_input_at
+      ~DualEncoderBlock.get_input_mask_at
+      ~DualEncoderBlock.get_input_shape_at
+      ~DualEncoderBlock.get_item_ids_from_inputs
+      ~DualEncoderBlock.get_output_at
+      ~DualEncoderBlock.get_output_mask_at
+      ~DualEncoderBlock.get_output_shape_at
+      ~DualEncoderBlock.get_padding_mask_from_item_id
+      ~DualEncoderBlock.get_weights
+      ~DualEncoderBlock.item_block
+      ~DualEncoderBlock.parse
+      ~DualEncoderBlock.parse_block
+      ~DualEncoderBlock.parse_config
+      ~DualEncoderBlock.post_call
+      ~DualEncoderBlock.pre_call
+      ~DualEncoderBlock.prepare
+      ~DualEncoderBlock.query_block
+      ~DualEncoderBlock.register_features
+      ~DualEncoderBlock.repeat
+      ~DualEncoderBlock.repeat_in_parallel
+      ~DualEncoderBlock.repr_add
+      ~DualEncoderBlock.repr_extra
+      ~DualEncoderBlock.repr_ignore
+      ~DualEncoderBlock.select_by_name
+      ~DualEncoderBlock.select_by_names
+      ~DualEncoderBlock.select_by_tag
+      ~DualEncoderBlock.set_aggregation
+      ~DualEncoderBlock.set_post
+      ~DualEncoderBlock.set_pre
+      ~DualEncoderBlock.set_schema
+      ~DualEncoderBlock.set_weights
+      ~DualEncoderBlock.super
+      ~DualEncoderBlock.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~DualEncoderBlock.REQUIRES_SCHEMA
+      ~DualEncoderBlock.activity_regularizer
+      ~DualEncoderBlock.aggregation
+      ~DualEncoderBlock.compute_dtype
+      ~DualEncoderBlock.context
+      ~DualEncoderBlock.dtype
+      ~DualEncoderBlock.dtype_policy
+      ~DualEncoderBlock.dynamic
+      ~DualEncoderBlock.has_schema
+      ~DualEncoderBlock.inbound_nodes
+      ~DualEncoderBlock.input
+      ~DualEncoderBlock.input_mask
+      ~DualEncoderBlock.input_shape
+      ~DualEncoderBlock.input_spec
+      ~DualEncoderBlock.is_input
+      ~DualEncoderBlock.is_tabular
+      ~DualEncoderBlock.layers
+      ~DualEncoderBlock.losses
+      ~DualEncoderBlock.metrics
+      ~DualEncoderBlock.name
+      ~DualEncoderBlock.name_scope
+      ~DualEncoderBlock.non_trainable_variables
+      ~DualEncoderBlock.non_trainable_weights
+      ~DualEncoderBlock.outbound_nodes
+      ~DualEncoderBlock.output
+      ~DualEncoderBlock.output_mask
+      ~DualEncoderBlock.output_shape
+      ~DualEncoderBlock.parallel_dict
+      ~DualEncoderBlock.parallel_values
+      ~DualEncoderBlock.post
+      ~DualEncoderBlock.pre
+      ~DualEncoderBlock.registry
+      ~DualEncoderBlock.schema
+      ~DualEncoderBlock.stateful
+      ~DualEncoderBlock.submodules
+      ~DualEncoderBlock.supports_masking
+      ~DualEncoderBlock.trainable
+      ~DualEncoderBlock.trainable_variables
+      ~DualEncoderBlock.trainable_weights
+      ~DualEncoderBlock.updates
+      ~DualEncoderBlock.variable_dtype
+      ~DualEncoderBlock.variables
+      ~DualEncoderBlock.weights
+   
+   

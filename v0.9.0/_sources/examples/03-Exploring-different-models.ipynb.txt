@@ -1,0 +1,1183 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5f49a48e",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# Copyright 2021 NVIDIA Corporation. All Rights Reserved.\n",
+    "#\n",
+    "# Licensed under the Apache License, Version 2.0 (the \"License\");\n",
+    "# you may not use this file except in compliance with the License.\n",
+    "# You may obtain a copy of the License at\n",
+    "#\n",
+    "#     http://www.apache.org/licenses/LICENSE-2.0\n",
+    "#\n",
+    "# Unless required by applicable law or agreed to in writing, software\n",
+    "# distributed under the License is distributed on an \"AS IS\" BASIS,\n",
+    "# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n",
+    "# See the License for the specific language governing permissions and\n",
+    "# limitations under the License.\n",
+    "# ================================"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "30be5b7b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "<img src=\"https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_03-exploring-different-models/nvidia_logo.png\" style=\"width: 90px; float: right;\">\n",
+    "\n",
+    "# Iterating over Deep Learning Models using Merlin Models\n",
+    "\n",
+    "This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. \n",
+    "\n",
+    "In this example, we'll demonstrate how to build and train several popular deep learning-based ranking model architectures. Merlin Models provides a high-level API to define those architectures, but allows for customization  as they are composed by reusable building blocks.\n",
+    "\n",
+    "In this example notebook, we use for training and evaluation synthetic data that mimics the schema (features and cardinalities) of [Ali-CCP dataset](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1): Alibaba Click and Conversion Prediction dataset. The Ali-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit [tianchi.aliyun.com](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1). You can get the raw dataset via this [get_aliccp() function](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43) and generate the parquet files from it to be used in this example.\n",
+    "\n",
+    "### Learning objectives\n",
+    "- Preparing the data with NVTabular\n",
+    "- Training different deep learning-based ranking models with Merlin Models"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "eb81305c",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## Importing Libraries"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "56ecea23",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's start with importing the libraries that we'll use in this notebook."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "95f4dcdc",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import os\n",
+    "import numpy as np\n",
+    "\n",
+    "from nvtabular.loader.tf_utils import configure_tensorflow\n",
+    "\n",
+    "configure_tensorflow()\n",
+    "\n",
+    "import nvtabular as nvt\n",
+    "from nvtabular.ops import *\n",
+    "from merlin.models.utils.example_utils import workflow_fit_transform, save_results\n",
+    "\n",
+    "from merlin.schema.tags import Tags\n",
+    "\n",
+    "import merlin.models.tf as mm\n",
+    "from merlin.io.dataset import Dataset\n",
+    "\n",
+    "import tensorflow as tf"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2dd02301",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## Feature Engineering with NVTabular"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e75faa3b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "When we work on a new recommender systems, we explore the dataset, first. In doing so, we define our input and output paths. We will use the parquet files in the test folder to validate our trained model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "abdb2c78",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "from merlin.datasets.synthetic import generate_data\n",
+    "\n",
+    "DATA_FOLDER = os.environ.get(\"DATA_FOLDER\", \"/workspace/data/\")\n",
+    "\n",
+    "NUM_ROWS = os.environ.get(\"NUM_ROWS\", 1000000)\n",
+    "SYNTHETIC_DATA = eval(os.environ.get(\"SYNTHETIC_DATA\", \"True\"))\n",
+    "\n",
+    "if SYNTHETIC_DATA:\n",
+    "    train, valid = generate_data(\"aliccp-raw\", int(NUM_ROWS), set_sizes=(0.7, 0.3))\n",
+    "    # save the datasets as parquet files\n",
+    "    train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"train\"))\n",
+    "    valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"valid\"))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7f22aa9b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "train_path = os.path.join(DATA_FOLDER, \"train\", \"*.parquet\")\n",
+    "valid_path = os.path.join(DATA_FOLDER, \"valid\", \"*.parquet\")\n",
+    "output_path = os.path.join(DATA_FOLDER, \"processed\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a61c5349",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Our dataset has only categorical features. Below, we create continuous features using target encoding (TE) technique. Target Encoding calculates the statistics from a target variable grouped by the unique values of one or more categorical features. For example, in a binary classification problem, TE calculates the conditional probability that the target is true for each category value- a simple mean. To learn more about TE, visit this [medium blog](https://medium.com/rapids-ai/target-encoding-with-rapids-cuml-do-more-with-your-categorical-data-8c762c79e784).\n",
+    "\n",
+    "Note that the `Ali-CCP` dataset has `click` and `conversion` target columns (which could be used for Multi-Task Learning) but we only focus on building different ranking models with binary target column `click`."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e39f9e9a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We use a utility function, `workflow_fit_transform` perform to fit and transform steps on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, and also save our workflow model. After fit and transform, the processed parquet files are saved to `output_path`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b190b723",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "%%time\n",
+    "\n",
+    "user_id = [\"user_id\"] >> Categorify(freq_threshold=5) >> TagAsUserID()\n",
+    "item_id = [\"item_id\"] >> Categorify(freq_threshold=5) >> TagAsItemID()\n",
+    "add_feat = [\n",
+    "    \"user_item_categories\",\n",
+    "    \"user_item_shops\",\n",
+    "    \"user_item_brands\",\n",
+    "    \"user_item_intentions\",\n",
+    "    \"item_category\",\n",
+    "    \"item_shop\",\n",
+    "    \"item_brand\",\n",
+    "] >> Categorify()\n",
+    "\n",
+    "te_feat = (\n",
+    "    [\"user_id\", \"item_id\"] + add_feat\n",
+    "    >> TargetEncoding([\"click\"], kfold=1, p_smooth=20)\n",
+    "    >> Normalize()\n",
+    ")\n",
+    "\n",
+    "targets = [\"click\"] >> AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, \"target\"])\n",
+    "\n",
+    "outputs = user_id + item_id + targets + add_feat + te_feat\n",
+    "\n",
+    "# Remove rows where item_id==0 and user_id==0\n",
+    "outputs = outputs >> Filter(f=lambda df: (df[\"item_id\"] != 0) & (df[\"user_id\"] != 0))\n",
+    "\n",
+    "workflow_fit_transform(outputs, train_path, valid_path, output_path)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ac00906d",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## Training Recommender Models"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0c63e2eb",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "NVTabular exported the schema file of our processed dataset. The `schema.pbtxt` is a protobuf text file that contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to automatically build all necessary input and output layers."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c213255c",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "train = Dataset(os.path.join(output_path, \"train\", \"*.parquet\"), part_size=\"500MB\")\n",
+    "valid = Dataset(os.path.join(output_path, \"valid\", \"*.parquet\"), part_size=\"500MB\")\n",
+    "\n",
+    "# define schema object\n",
+    "schema = train.schema"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7fb592c6",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "target_column = schema.select_by_tag(Tags.TARGET).column_names[0]\n",
+    "target_column"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "154dea7d",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We can print out all the features that are included in the `schema.pbtxt` file."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "29b089c4",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "schema.column_names"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9d9ed24a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### Initialize Dataloaders"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "85b77e2c",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We're ready to start training, for that, we create our dataset objects, and under the hood we use Merlin `Loader` class for reading chunks of parquet files. `Loader` asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular `Dataset`. To read more about Merlin optimized dataloaders visit [here](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ce170487",
+   "metadata": {},
+   "source": [
+    "### Configures training for all models"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "76b87b6c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "batch_size = 16 * 1024\n",
+    "LR = 0.03"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ebcc0c2a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### NCF Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3218efcb",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering [(NCF)](https://arxiv.org/pdf/1708.05031.pdf) Model  architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.\n",
+    "\n",
+    "NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "912a1b0f",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "<img src=\"./images/ncf.png\"  width=\"30%\">\n",
+    "\n",
+    "<a href=\"https://arxiv.org/pdf/1708.05031.pdf\">Image Source: NCF paper</a>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2c69fb2e",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "With `schema` object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d50bc052",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "model = mm.benchmark.NCFModel(\n",
+    "    schema,\n",
+    "    embedding_dim=64,\n",
+    "    mlp_block=mm.MLPBlock([128, 64]),\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column),\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "8d3677b2",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "%%time\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\n",
+    "model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e76382f8",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's save our accuracy results"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "db4060c9",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "if os.path.isfile(\"results.txt\"):\n",
+    "    os.remove(\"results.txt\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9cf378fd",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "save_results(\"NCF\", model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "520a9098",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's check out the model evaluation scores"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "15d8180b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "metrics_ncf = model.evaluate(valid, batch_size=1024, return_dict=True)\n",
+    "metrics_ncf"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fb6fb9e5",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### MLP Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "bc8c1457",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f643a80b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "<img src=\"./images/mlp.png\"  width=\"30%\">\n",
+    "\n",
+    "Steps:\n",
+    "\n",
+    "- Change the model to MLP model\n",
+    "- Rerun the pipeline from there from model.fit"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "62af9c76",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# uses default embedding_dim = 64\n",
+    "model = mm.Model.from_block(mm.MLPBlock([64, 32]),\n",
+    "    schema, prediction_tasks=mm.BinaryClassificationTask(target_column)\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0de68a21",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "%%time\n",
+    "\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\n",
+    "model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "797b4623",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "save_results(\"MLP\", model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fb8c078e",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's check out the model evaluation scores"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1094c498",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "metrics_mlp = model.evaluate(valid, batch_size=1024, return_dict=True)\n",
+    "metrics_mlp"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3c5fc369",
+   "metadata": {},
+   "source": [
+    "### Wide&Deep model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0b8c82ab",
+   "metadata": {},
+   "source": [
+    "The [Wide&Deep architecture](https://arxiv.org/abs/1606.07792) was proposed by Google in 2016 to balance between the ability of neural networks to generalize and capacity of linear models to memorize relevant feature interactions. The deep part is an MLP model, with categorical features represented as embeddings, which are concatenated with continuous features and fed through multiple MLP layers. The wide part is a linear model takes a sparse representation of categorical features (i.e. one-hot or multi-hot representation). Both wide and deep sub-models output a logit, which is summed and followed by sigmoid for binary classification loss.\n",
+    "\n",
+    "<img src=\"./images/wide_and_deep.png\"  width=\"30%\">"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cdc5cc8d",
+   "metadata": {},
+   "source": [
+    "#### Wide part"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2575ed68",
+   "metadata": {},
+   "source": [
+    "Typically we feed only categorical features to the wide part. So we filter only categorical features from the schema for the wide part. The categorical features are encoded with one_hot representation, like commonly done for linear models. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4dd2ca01",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cat_schema = schema.select_by_tag(Tags.CATEGORICAL)\n",
+    "\n",
+    "one_hot_encoding = mm.CategoryEncoding(cat_schema, sparse=True, output_mode=\"one_hot\") # One-hot encoding"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "97a13c50",
+   "metadata": {},
+   "source": [
+    "Linear models are not able to compute feature interaction (like MLPs). So to give the wide part more power we perform feature interactions as a preprocessing step for wide part, so that every possible combination of the values of two categorical features is mapped to a single id. That way, the model is be able to pick paired feature relationships, e.g., a pattern between the a category of a product and the city of a user.   \n",
+    "Although, this approach leads to very high-cardinality resulting feature (product between the two features cardinalities). So typically we apply the *hashing trick* to limit the resulting cardinality. \n",
+    "In below example you can see how easily can compute crossed features with Merlin Models. We use `max_level=2` here for paired feature interactions. Typically maximum `max_level=3` (3rd level), as the higher the level the greater the combinatorial explosion.\n",
+    "\n",
+    "*Note*: some feature combinations might not add information to the model, for example, the feature cross between the item id and item category, as every item only maps to a single item category. You can explicitly ignore those combinations to reduce a bit the feature space."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "fab5cd2f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "features_crossing = mm.HashedCrossAll(\n",
+    "        cat_schema,\n",
+    "        num_bins=100, # The crossed features will be hashed to this number of bins\n",
+    "        max_level=2,\n",
+    "        output_mode=\"one_hot\",\n",
+    "        sparse=True,\n",
+    "        ignore_combinations=[[\"item_id\", \"item_category\"], \n",
+    "                             [\"item_id\", \"item_brand\"]]\n",
+    "    )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c67f5d58",
+   "metadata": {},
+   "source": [
+    "You might have noticed that we set output of the one-hot and crossed features to be a sparse tensor (`sparse=True`), as only a few values are 1s and the large majority of values are 0s. This saves a lot of memory and also speeds up the computation of the wide part.  \n",
+    "*Note*: If you have categorical features which have multiple values (multi-hot) for the same data sample, you can set `output_mode=\"multi_hot\"` for both `CategoryEncoding()` and `HashedCrossAll()`."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "36a18034",
+   "metadata": {},
+   "source": [
+    "Below, we create a list with the preprocessing transformations for the wide part, where we concatenate all sparse outputs to be used by the linear model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4863a47b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "wide_preprocessing_blocks = mm.ParallelBlock([\n",
+    "                                              one_hot_encoding, \n",
+    "                                              features_crossing\n",
+    "                                             ],\n",
+    "                                             aggregation=\"concat\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7ad75db6",
+   "metadata": {},
+   "source": [
+    "#### Deep part"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "244d3589",
+   "metadata": {},
+   "source": [
+    "The deep block is just an MLP model, which expects dense representation. \n",
+    "The input continuous features are used as they are loaded, but categorical features need to be embedded. The embedding tables are created automatically based on the `deep_schema`, and optionally you can provide the `deep_input_block` for custom representation of input features."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5db750ee",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "deep_part = mm.MLPBlock([128, 64, 32])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "694da73f",
+   "metadata": {},
+   "source": [
+    "#### Putting it all together"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c4700682",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model = mm.WideAndDeepModel(\n",
+    "        schema,\n",
+    "        wide_schema=cat_schema,\n",
+    "        deep_schema=schema,\n",
+    "        wide_preprocess=wide_preprocessing_blocks,\n",
+    "        deep_block=deep_part,\n",
+    "        prediction_tasks=mm.BinaryClassificationTask(target_column),\n",
+    "    )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b4623c52",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "%%time\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\n",
+    "model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a58ef69b",
+   "metadata": {},
+   "source": [
+    "*Note*: Here we use a single optimizer (Adagrad), but in the [Wide&Deep paper](https://arxiv.org/abs/1606.07792) the  authors describe to have used the Adagrad optimizer for the deep part and the FTRL optimizer for the wide part, which worked better with sparse inputs according to their experiments. With Merlin Models wou can use multiple optimizers for different sets of parameters, check the API documentation of `MultiOptimizer()` for more details."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9baa9ca5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "save_results(\"Wide&Deep\", model)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "fcdcb0dd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "metrics_wide_n_deep = model.evaluate(valid, batch_size=1024, return_dict=True)\n",
+    "metrics_wide_n_deep"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f33f805b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### DLRM Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "48ad2b5b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Deep Learning Recommendation Model [(DLRM)](https://arxiv.org/abs/1906.00091) architecture is a popular neural network model originally proposed by Facebook in 2019 as a personalization deep learning model.\n",
+    "\n",
+    "![DLRM](./images/DLRM.png)\n",
+    "\n",
+    "\n",
+    "DLRM accepts two types of features: categorical and numerical. \n",
+    "- For each categorical feature, an embedding table is used to provide dense representation to each unique value. \n",
+    "- For numerical features, they are fed to model as dense features, and then transformed by a simple neural network referred to as \"bottom MLP\". This part of the network consists of a series of linear layers with ReLU activations. \n",
+    "- The output of the bottom MLP and the embedding vectors are then fed into the dot product interaction operation (see Pairwise interaction step). The output of \"dot interaction\" is then concatenated with the features resulting from the bottom MLP (we apply a skip-connection there) and fed into the \"top MLP\" which is also a series of dense layers with activations ((a fully connected NN). \n",
+    "- The model outputs a single number (here we use sigmoid function to generate probabilities) which can be interpreted as a likelihood of a certain user clicking on an ad, watching a movie, or viewing a news page.\n",
+    "\n",
+    "\n",
+    "Steps:<br>\n",
+    "* Change the model to `DLRMModel`\n",
+    "* Rerun the pipeline from there from model.fit"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "96a323cc",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "model = mm.DLRMModel(\n",
+    "    schema,\n",
+    "    embedding_dim=64,\n",
+    "    bottom_block=mm.MLPBlock([128, 64]),\n",
+    "    top_block=mm.MLPBlock([128, 64, 32]),\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column),\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "31bfe2bb",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "%%time\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\n",
+    "model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4446b298",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "save_results(\"DLRM\", model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "bc3b740a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's check out the model evaluation scores"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f5b6716c",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "metrics_dlrm = model.evaluate(valid, batch_size=1024, return_dict=True)\n",
+    "metrics_dlrm"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "61bf5a09",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### DCN Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4bf3faae",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "DCN-V2 is an architecture proposed as an improvement upon the original [DCN model](https://arxiv.org/pdf/1708.05123.pdf). The explicit feature interactions of the inputs are learned through cross layers, and then combined with a deep network to learn complementary implicit interactions. The overall model architecture is depicted in Figure below, with two ways to combine the cross network with the deep network: (1) stacked and (2) parallel. The output of the embbedding layer is the concatenation of all the embedded vectors and the normalized dense features: x<sub>0</sub> = [x<sub>embed,1</sub>; . . . ; x<sub>embed,𝑛</sub>; 𝑥<sub>dense</sub>].\n",
+    "\n",
+    "![DCN](./images/DCN.png)\n",
+    "\n",
+    "<a href=\"https://arxiv.org/abs/2008.13535\">Image Source: DCN V2 paper</a>\n",
+    "\n",
+    "In this example, we build `DCN-v2 stacked` architecture. \n",
+    "\n",
+    "Steps:<br>\n",
+    "* Change the model to `DCNModel`\n",
+    "* Rerun the pipeline from there to model.fit"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d694b24f",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "model = mm.DCNModel(\n",
+    "    schema,\n",
+    "    depth=2,\n",
+    "    deep_block=mm.MLPBlock([64, 32]),\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column),\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "65365769",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "%%time\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\n",
+    "model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9844c3ff",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "save_results(\"DCN\", model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5b4a53f7",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's check out the model evaluation scores"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5996473e",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "metrics_dcn = model.evaluate(valid, batch_size=1024, return_dict=True)\n",
+    "metrics_dcn"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c745f556",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's visualize our model validation accuracy values. Since we did not do any hyper-parameter optimization or extensive feature engineering here, we do not come up with a final conclusion that one model is superior to another."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f7161b77",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "\n",
+    "def create_bar_chart(text_file_name, models_name):\n",
+    "    \"\"\"a func to plot barcharts via parsing the  accuracy results in a text file\"\"\"\n",
+    "    auc = []\n",
+    "    with open(text_file_name, \"r\") as infile:\n",
+    "        for line in infile:\n",
+    "            if \"auc\" in line:\n",
+    "                data = [line.rstrip().split(\":\")]\n",
+    "                key, value = zip(*data)\n",
+    "                auc.append(float(value[0]))\n",
+    "\n",
+    "    X_axis = np.arange(len(models_name))\n",
+    "\n",
+    "    plt.title(\"Models' accuracy metrics comparison\", pad=20)\n",
+    "    plt.bar(X_axis - 0.2, auc, 0.4, label=\"AUC\")\n",
+    "\n",
+    "    plt.xticks(X_axis, models_name)\n",
+    "    plt.xlabel(\"Models\")\n",
+    "    plt.ylabel(\"AUC\")\n",
+    "    plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "50c44d96",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "models_name = [\"NCF\", \"MLP\", \"Wide&Deep\", \"DLRM\", \"DCN\"]\n",
+    "create_bar_chart(\"results.txt\", models_name)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "23997fbd",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's remove the results file."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5e245a49",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "if os.path.isfile(\"results.txt\"):\n",
+    "    os.remove(\"results.txt\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.10"
+  },
+  "merlin": {
+   "containers": [
+    "nvcr.io/nvidia/merlin/merlin-tensorflow:latest"
+   ]
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

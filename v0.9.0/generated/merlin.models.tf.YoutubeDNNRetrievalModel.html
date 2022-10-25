@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>merlin.models.tf.YoutubeDNNRetrievalModel &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="merlin.models.tf.InputBlock" href="merlin.models.tf.InputBlock.html" />
+    <link rel="prev" title="merlin.models.tf.TwoTowerModel" href="merlin.models.tf.TwoTowerModel.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../api.html">API Documentation</a> &raquo;</li>
+      <li>merlin.models.tf.YoutubeDNNRetrievalModel</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="merlin-models-tf-youtubednnretrievalmodel">
+<h1>merlin.models.tf.YoutubeDNNRetrievalModel<a class="headerlink" href="#merlin-models-tf-youtubednnretrievalmodel" title="Permalink to this headline"></a></h1>
+<dl class="py function">
+<dt id="merlin.models.tf.YoutubeDNNRetrievalModel">
+<code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">YoutubeDNNRetrievalModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">schema:</span> <span class="pre">merlin.schema.schema.Schema</span></em>, <em class="sig-param"><span class="pre">aggregation:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'concat'</span></em>, <em class="sig-param"><span class="pre">top_block:</span> <span class="pre">merlin.models.tf.core.base.Block</span> <span class="pre">=</span> <span class="pre">MLPBlock(</span>&#160;&#160; <span class="pre">(layers):</span> <span class="pre">List(</span>&#160;&#160;&#160;&#160; <span class="pre">(0):</span> <span class="pre">_Dense(</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">(dense):</span> <span class="pre">Dense(64</span></em>, <em class="sig-param"><span class="pre">activation=relu</span></em>, <em class="sig-param"><span class="pre">use_bias=True)</span>&#160;&#160;&#160;&#160; <span class="pre">)</span>&#160;&#160; <span class="pre">)</span> <span class="pre">)</span></em>, <em class="sig-param"><span class="pre">l2_normalization:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">extra_pre_call:</span> <span class="pre">Optional[merlin.models.tf.core.base.Block]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">task_block:</span> <span class="pre">Optional[merlin.models.tf.core.base.Block]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">logits_temperature:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.0</span></em>, <em class="sig-param"><span class="pre">sampled_softmax:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">num_sampled:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">100</span></em>, <em class="sig-param"><span class="pre">min_sampled_id:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">0</span></em>, <em class="sig-param"><span class="pre">embedding_options:</span> <span class="pre">merlin.models.tf.inputs.embedding.EmbeddingOptions</span> <span class="pre">=</span> <span class="pre">EmbeddingOptions(embedding_dims=None</span></em>, <em class="sig-param"><span class="pre">embedding_dim_default=64</span></em>, <em class="sig-param"><span class="pre">infer_embedding_sizes=False</span></em>, <em class="sig-param"><span class="pre">infer_embedding_sizes_multiplier=2.0</span></em>, <em class="sig-param"><span class="pre">infer_embeddings_ensure_dim_multiple_of_8=False</span></em>, <em class="sig-param"><span class="pre">embeddings_initializers=None</span></em>, <em class="sig-param"><span class="pre">embeddings_l2_reg=0.0</span></em>, <em class="sig-param"><span class="pre">combiner='mean')</span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">merlin.models.tf.models.base.Model</span><a class="reference internal" href="../_modules/merlin/models/tf/models/retrieval.html#YoutubeDNNRetrievalModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.YoutubeDNNRetrievalModel" title="Permalink to this definition"></a></dt>
+<dd><p>Build the Youtube-DNN retrieval model.
+More details of the architecture can be found in <a class="footnote-reference brackets" href="#id5" id="id1">1</a>.
+The sampled_softmax is enabled by default <a class="footnote-reference brackets" href="#id6" id="id2">2</a> <a class="footnote-reference brackets" href="#id7" id="id3">3</a> <a class="footnote-reference brackets" href="#id8" id="id4">4</a>.</p>
+<dl class="simple">
+<dt>Example Usage::</dt><dd><p>model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
+model.compile(optimizer=”adam”)
+model.fit(train_data, epochs=10)</p>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<dl class="footnote brackets">
+<dt class="label" id="id5"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>Covington, Paul, Jay Adams, and Emre Sargin.
+“Deep neural networks for youtube recommendations.”
+Proceedings of the 10th ACM conference on recommender systems. 2016.</p>
+</dd>
+<dt class="label" id="id6"><span class="brackets"><a class="fn-backref" href="#id2">2</a></span></dt>
+<dd><p>Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
+Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial
+Intelligence and Statistics (AISTATS).</p>
+</dd>
+<dt class="label" id="id7"><span class="brackets"><a class="fn-backref" href="#id3">3</a></span></dt>
+<dd><p>Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
+Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
+2008), 713–722. <a class="reference external" href="https://doi.org/10.1109/TNN.2007.912312">https://doi.org/10.1109/TNN.2007.912312</a></p>
+</dd>
+<dt class="label" id="id8"><span class="brackets"><a class="fn-backref" href="#id4">4</a></span></dt>
+<dd><p>Jean, Sébastien, et al. “On using very large target vocabulary for neural
+machine translation.” arXiv preprint arXiv:1412.2007 (2014).</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
+<li><p><strong>aggregation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – The aggregation method to use for the sequence of features.
+Defaults to <cite>concat</cite>.</p></li>
+<li><p><strong>top_block</strong> (<em>Block</em>) – The <cite>Block</cite> that combines the top features</p></li>
+<li><p><strong>l2_normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to apply L2 normalization before computing dot interactions.
+Defaults to True.</p></li>
+<li><p><strong>extra_pre_call</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply before the model.</p></li>
+<li><p><strong>task_block</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply on the model.</p></li>
+<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
+Defaults to 1.</p></li>
+<li><p><strong>sampled_softmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Compute the logits scores over all items of the catalog or
+generate a subset of candidates
+Defaults to False</p></li>
+<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – When sampled_softmax is enabled, specify the number of
+negative candidates to generate for each batch.
+Defaults to 100</p></li>
+<li><p><strong>min_sampled_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The minimum id value to be sampled with sampled softmax.
+Useful to ignore the first categorical
+encoded ids, which are usually reserved for &lt;nulls&gt;,
+out-of-vocabulary or padding. Defaults to 0.</p></li>
+<li><p><strong>embedding_options</strong> (<em>EmbeddingOptions</em><em>, </em><em>optional</em>) – An EmbeddingOptions instance, which allows for a number of
+options for the embedding table, by default EmbeddingOptions()</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="merlin.models.tf.TwoTowerModel.html" class="btn btn-neutral float-left" title="merlin.models.tf.TwoTowerModel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.InputBlock.html" class="btn btn-neutral float-right" title="merlin.models.tf.InputBlock" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.9.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+      <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+      <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+      <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+      <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+      <dd><a href="merlin.models.tf.YoutubeDNNRetrievalModel.html">v0.9.0</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../main/index.html">main</a></dd>
+    </dl>
+  </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

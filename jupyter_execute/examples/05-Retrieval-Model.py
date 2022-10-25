@@ -56,7 +56,7 @@ from merlin.io.dataset import Dataset
 import tensorflow as tf
 
 
-# In[ ]:
+# In[3]:
 
 
 # disable INFO and DEBUG logging everywhere
@@ -69,7 +69,7 @@ logging.disable(logging.WARNING)
 
 # Let's generate synthetic train and validation dataset objects.
 
-# In[ ]:
+# In[4]:
 
 
 from merlin.datasets.synthetic import generate_data
@@ -85,7 +85,7 @@ else:
     valid = nvt.Dataset(DATA_FOLDER + "/valid/*.parquet")
 
 
-# In[ ]:
+# In[5]:
 
 
 # define output path for the processed parquet files
@@ -94,7 +94,7 @@ output_path = os.path.join(DATA_FOLDER, "processed")
 
 # We keep only positive interactions where clicks==1 in the dataset with `Filter()` op.
 
-# In[ ]:
+# In[6]:
 
 
 user_id = ["user_id"] >> Categorify() >> TagAsUserID()
@@ -127,7 +127,7 @@ outputs = inputs >> Filter(f=lambda df: df["click"] == 1)
 
 # With `transform_aliccp` function, we can execute fit() and transform() on the raw dataset applying the operators defined in the NVTabular workflow pipeline above. The processed parquet files are saved to output_path.
 
-# In[ ]:
+# In[7]:
 
 
 from merlin.datasets.ecommerce import transform_aliccp
@@ -147,30 +147,32 @@ transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 
 # We use the `schema` object to define our model.
 
-# In[ ]:
+# In[8]:
 
 
 output_path
 
 
-# In[ ]:
+# In[9]:
 
 
 train = Dataset(os.path.join(output_path, "train", "*.parquet"))
 valid = Dataset(os.path.join(output_path, "valid", "*.parquet"))
 
-schema = train.schema
+
+# Select features with user and item tags, and be sure to exclude target column.
+
+# In[10]:
 
 
-# In[ ]:
-
-
-schema = schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])
+schema = train.schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])
+train.schema = schema
+valid.schema = schema
 
 
 # We can print out the feature column names.
 
-# In[ ]:
+# In[11]:
 
 
 schema.column_names
@@ -178,7 +180,7 @@ schema.column_names
 
 # We expect the label names to be empty.
 
-# In[ ]:
+# In[12]:
 
 
 label_names = schema.select_by_tag(Tags.TARGET).column_names
@@ -193,7 +195,7 @@ label_names
 
 # Now, let's build our Two-Tower model. In a nutshell, we aggregate all user features to feed in user tower and feed the item features to the item tower. Then we compute the positive score by multiplying the user embedding with the item embedding and sample negative items (read more about negative sampling [here](https://openreview.net/pdf?id=824xC-SgWgU) and [here](https://medium.com/mlearning-ai/overview-negative-sampling-on-recommendation-systems-230a051c6cd7)), whose item embeddings are also multiplied by the user embedding. Then we apply the loss function on top of the positive and negative scores.
 
-# In[ ]:
+# In[13]:
 
 
 model = mm.TwoTowerModel(
@@ -218,7 +220,7 @@ model = mm.TwoTowerModel(
 
 # We need to initialize the dataloaders.
 
-# In[ ]:
+# In[14]:
 
 
 model.compile(optimizer="adam", run_eagerly=False, metrics=[mm.RecallAt(10), mm.NDCGAt(10)])
@@ -239,7 +241,7 @@ model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
 
 # We are able to save the user tower model as a TF model to disk. The user tower model is needed to generate a user embedding vector when a user feature vector <i>x</i> is fed into that model.
 
-# In[ ]:
+# In[15]:
 
 
 query_tower = model.retrieval_block.query_block()
@@ -250,7 +252,7 @@ query_tower.save("query_tower")
 
 # With `unique_rows_by_features` utility function we can easily extract both unique user and item features tables as cuDF dataframes. Note that for user features table, we use `USER` and `USER_ID` tags.
 
-# In[ ]:
+# In[16]:
 
 
 from merlin.models.utils.dataset import unique_rows_by_features
@@ -260,19 +262,19 @@ user_features = (
 )
 
 
-# In[ ]:
+# In[17]:
 
 
 user_features.head()
 
 
-# In[ ]:
+# In[18]:
 
 
 user_features.shape
 
 
-# In[ ]:
+# In[19]:
 
 
 # save to disk
@@ -281,7 +283,7 @@ user_features.to_parquet("user_features.parquet")
 
 # #### Extract and save Item features
 
-# In[ ]:
+# In[20]:
 
 
 item_features = (
@@ -289,13 +291,13 @@ item_features = (
 )
 
 
-# In[ ]:
+# In[21]:
 
 
 item_features.head()
 
 
-# In[ ]:
+# In[22]:
 
 
 # save to disk
@@ -304,33 +306,33 @@ item_features.to_parquet("item_features.parquet")
 
 # #### Extract and save Item embeddings
 
-# In[ ]:
+# In[23]:
 
 
 item_embs = model.item_embeddings(Dataset(item_features, schema=schema), batch_size=1024)
 item_embs_df = item_embs.compute(scheduler="synchronous")
 
 
-# In[ ]:
+# In[24]:
 
 
 item_embs_df
 
 
-# In[ ]:
+# In[25]:
 
 
 # select only embedding columns
 item_embeddings = item_embs_df.iloc[:, 4:]
 
 
-# In[ ]:
+# In[26]:
 
 
 item_embeddings.head()
 
 
-# In[ ]:
+# In[27]:
 
 
 # save to disk

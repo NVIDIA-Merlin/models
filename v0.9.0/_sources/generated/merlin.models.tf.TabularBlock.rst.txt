@@ -1,0 +1,125 @@
+﻿merlin.models.tf.TabularBlock
+=============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: TabularBlock
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~TabularBlock.__init__
+      ~TabularBlock.add_loss
+      ~TabularBlock.add_metric
+      ~TabularBlock.add_update
+      ~TabularBlock.add_variable
+      ~TabularBlock.add_weight
+      ~TabularBlock.apply_to_all
+      ~TabularBlock.as_tabular
+      ~TabularBlock.build
+      ~TabularBlock.calculate_batch_size_from_input_shapes
+      ~TabularBlock.call
+      ~TabularBlock.call_outputs
+      ~TabularBlock.check_schema
+      ~TabularBlock.compute_call_output_shape
+      ~TabularBlock.compute_mask
+      ~TabularBlock.compute_output_shape
+      ~TabularBlock.compute_output_signature
+      ~TabularBlock.connect
+      ~TabularBlock.connect_branch
+      ~TabularBlock.connect_debug_block
+      ~TabularBlock.connect_with_residual
+      ~TabularBlock.connect_with_shortcut
+      ~TabularBlock.copy
+      ~TabularBlock.count_params
+      ~TabularBlock.finalize_state
+      ~TabularBlock.from_config
+      ~TabularBlock.from_features
+      ~TabularBlock.from_layer
+      ~TabularBlock.from_schema
+      ~TabularBlock.get_config
+      ~TabularBlock.get_input_at
+      ~TabularBlock.get_input_mask_at
+      ~TabularBlock.get_input_shape_at
+      ~TabularBlock.get_item_ids_from_inputs
+      ~TabularBlock.get_output_at
+      ~TabularBlock.get_output_mask_at
+      ~TabularBlock.get_output_shape_at
+      ~TabularBlock.get_padding_mask_from_item_id
+      ~TabularBlock.get_weights
+      ~TabularBlock.parse
+      ~TabularBlock.parse_block
+      ~TabularBlock.post_call
+      ~TabularBlock.pre_call
+      ~TabularBlock.prepare
+      ~TabularBlock.register_features
+      ~TabularBlock.repeat
+      ~TabularBlock.repeat_in_parallel
+      ~TabularBlock.repr_add
+      ~TabularBlock.repr_extra
+      ~TabularBlock.repr_ignore
+      ~TabularBlock.select_by_name
+      ~TabularBlock.select_by_tag
+      ~TabularBlock.set_aggregation
+      ~TabularBlock.set_post
+      ~TabularBlock.set_pre
+      ~TabularBlock.set_schema
+      ~TabularBlock.set_weights
+      ~TabularBlock.super
+      ~TabularBlock.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~TabularBlock.REQUIRES_SCHEMA
+      ~TabularBlock.activity_regularizer
+      ~TabularBlock.aggregation
+      ~TabularBlock.compute_dtype
+      ~TabularBlock.context
+      ~TabularBlock.dtype
+      ~TabularBlock.dtype_policy
+      ~TabularBlock.dynamic
+      ~TabularBlock.has_schema
+      ~TabularBlock.inbound_nodes
+      ~TabularBlock.input
+      ~TabularBlock.input_mask
+      ~TabularBlock.input_shape
+      ~TabularBlock.input_spec
+      ~TabularBlock.is_input
+      ~TabularBlock.is_tabular
+      ~TabularBlock.losses
+      ~TabularBlock.metrics
+      ~TabularBlock.name
+      ~TabularBlock.name_scope
+      ~TabularBlock.non_trainable_variables
+      ~TabularBlock.non_trainable_weights
+      ~TabularBlock.outbound_nodes
+      ~TabularBlock.output
+      ~TabularBlock.output_mask
+      ~TabularBlock.output_shape
+      ~TabularBlock.post
+      ~TabularBlock.pre
+      ~TabularBlock.registry
+      ~TabularBlock.schema
+      ~TabularBlock.stateful
+      ~TabularBlock.submodules
+      ~TabularBlock.supports_masking
+      ~TabularBlock.trainable
+      ~TabularBlock.trainable_variables
+      ~TabularBlock.trainable_weights
+      ~TabularBlock.updates
+      ~TabularBlock.variable_dtype
+      ~TabularBlock.variables
+      ~TabularBlock.weights
+   
+   

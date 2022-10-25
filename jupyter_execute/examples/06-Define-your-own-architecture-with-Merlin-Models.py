@@ -246,7 +246,7 @@ deep_dlrm_interaction(batch)
 
 # We use the `BinaryClassificationTask` class and evaluate the performances using the `AUC` metric. We also use the `LogitsTemperatureScaler` block as a pre-transformation operation that scales the logits returned by the task before computing the loss and metrics:
 
-# In[ ]:
+# In[16]:
 
 
 from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
@@ -262,7 +262,7 @@ binary_task = mm.BinaryClassificationTask(
 # We connect the deep DLRM interaction to the binary task and the method automatically generates the `Model` class for us.
 # We note that the `Model` class inherits from [tf.keras.Model](https://keras.io/api/models/model/) class:
 
-# In[ ]:
+# In[17]:
 
 
 model = mm.Model(deep_dlrm_interaction, binary_task)
@@ -271,7 +271,7 @@ type(model)
 
 # We train the model using the built-in tf.keras `fit` method: 
 
-# In[ ]:
+# In[18]:
 
 
 model.compile(optimizer="adam", metrics=[tf.keras.metrics.AUC()])

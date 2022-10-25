@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Train traditional ML models using the Merlin Models API &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Train traditional ML models using the Merlin Models API</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2022 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions anda</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+</pre></div>
+</div>
+</div>
+</div>
+<img alt="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_07-train-traditional-ml-models-using-the-merlin-models-api/nvidia_logo.png" src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_07-train-traditional-ml-models-using-the-merlin-models-api/nvidia_logo.png" />
+<div class="tex2jax_ignore mathjax_ignore section" id="train-traditional-ml-models-using-the-merlin-models-api">
+<h1>Train traditional ML models using the Merlin Models API<a class="headerlink" href="#train-traditional-ml-models-using-the-merlin-models-api" title="Permalink to this headline"></a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
+<p>Merlin Models exposes a high-level API that can be used with models from other libraries. For the Merlin Models v0.6.0 release, some <code class="docutils literal notranslate"><span class="pre">XGBoost</span></code>, <code class="docutils literal notranslate"><span class="pre">implicit</span></code> and <code class="docutils literal notranslate"><span class="pre">lightFM</span></code> models are supported.</p>
+<p>Relying on this high level API enables you to iterate more effectively. You do not have to switch between various APIs as you evaluate additional models on your data.</p>
+<p>Furthermore, you can use your data represented as a <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> across all your models.</p>
+<p>We begin by training and <code class="docutils literal notranslate"><span class="pre">XGBoost</span></code> model. In this section we go into more details on some of the best practices around training <code class="docutils literal notranslate"><span class="pre">XGBoost</span></code> models and the technical aspects of training (using <code class="docutils literal notranslate"><span class="pre">DaskDeviceQuantileDMatrix</span></code> and the  <code class="docutils literal notranslate"><span class="pre">Distributed</span></code> context manager for efficient resource usage).</p>
+<p>Subsequently, we provide brief examples of using the Merlin Models high level API to train <code class="docutils literal notranslate"><span class="pre">lightFM</span></code> and <code class="docutils literal notranslate"><span class="pre">implicit</span></code> models on Merlin Datasets.</p>
+<div class="section" id="learning-objectives">
+<h3>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Training an <code class="docutils literal notranslate"><span class="pre">XGBoost</span></code> model with <code class="docutils literal notranslate"><span class="pre">DaskDeviceQuantileDMatrix</span></code> and early stopping evaluated on the validation set</p></li>
+<li><p>Starting a local dask cluster with the <code class="docutils literal notranslate"><span class="pre">Distributed</span></code> context manager</p></li>
+<li><p>Training <code class="docutils literal notranslate"><span class="pre">implicit</span></code> and <code class="docutils literal notranslate"><span class="pre">lightFM</span></code> models</p></li>
+<li><p>Understanding the interplay between column tagging and setting the objective for a model for target selection</p></li>
+<li><p>Using the Merlin Models high level API</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="preparing-the-dataset">
+<h2>Preparing the dataset<a class="headerlink" href="#preparing-the-dataset" title="Permalink to this headline"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.core.utils</span> <span class="kn">import</span> <span class="n">Distributed</span>
+<span class="kn">from</span> <span class="nn">merlin.models.xgb</span> <span class="kn">import</span> <span class="n">XGBoost</span>
+
+<span class="kn">from</span> <span class="nn">merlin.datasets.entertainment</span> <span class="kn">import</span> <span class="n">get_movielens</span>
+<span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We will use the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> dataset. The dataset consists of <code class="docutils literal notranslate"><span class="pre">userId</span></code> and <code class="docutils literal notranslate"><span class="pre">movieId</span></code> pairings. For each record, a user rates a movie and the record includes additional information such as genre of the movie, age of the user, and so on.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s1">&#39;ml-100k&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-08-11 01:12:41.702521: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-11 01:12:41.702986: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-11 01:12:41.703116: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+/usr/local/lib/python3.8/dist-packages/cudf/core/frame.py:384: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function downloads the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> data for us and returns it materialized as a Merlin <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&lt;merlin.io.dataset.Dataset at 0x7f3e0744e610&gt;,
+ &lt;merlin.io.dataset.Dataset at 0x7f3d8ecfc370&gt;)
+</pre></div>
+</div>
+</div>
+</div>
+<p>One of the features that the Merlin Models API supports is tagging. You can tag your data once, during preprocessing, and this information is picked up during later steps such as additional preprocessing steps, training your model, serving the model, and so on.</p>
+<p>Here, we will make use of the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> to identify the objective for our <code class="docutils literal notranslate"><span class="pre">XGBoost</span></code> model.</p>
+<p>During preprocessing that is performed by the <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function, two columns in the dataset are assigned the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> tag:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>name</th>
+      <th>tags</th>
+      <th>dtype</th>
+      <th>is_list</th>
+      <th>is_ragged</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>rating</td>
+      <td>(Tags.REGRESSION, Tags.TARGET)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>rating_binary</td>
+      <td>(Tags.BINARY_CLASSIFICATION, Tags.TARGET)</td>
+      <td>int32</td>
+      <td>False</td>
+      <td>False</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>You can specify the target to train by passing <code class="docutils literal notranslate"><span class="pre">target_columns</span></code> when you construct the model. We would like to use <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> as our target, so we could do the following:</p>
+<p><code class="docutils literal notranslate"><span class="pre">model</span> <span class="pre">=</span> <span class="pre">XGBoost(target_columns='rating_binary',</span> <span class="pre">...</span></code></p>
+<p>However, we can also do something better. Instead of providing this argument to the constructor of our model, we can instead specify the <code class="docutils literal notranslate"><span class="pre">objective</span></code> for our <code class="docutils literal notranslate"><span class="pre">XGBoost</span></code> model and have the Merlin Models API do the rest of the work for us.</p>
+<p>Later in this example, we will set our booster’s objective to <code class="docutils literal notranslate"><span class="pre">'binary:logistic'</span></code>. Given this piece of information, the Merlin Model code can infer that we want to train with a target that has the <code class="docutils literal notranslate"><span class="pre">Tags.BINARY_CLASSIFICATION</span></code> tag assigned to it and there will be nothing else we will need to do.</p>
+<p>Before we begin to train, let us remove the <code class="docutils literal notranslate"><span class="pre">title</span></code> column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it is not useful in training.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema_without_title</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>To summarize, we will train an <code class="docutils literal notranslate"><span class="pre">XGBoost</span></code> model that predicts the rating of a movie.</p>
+<p>For the <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> column, a value of <code class="docutils literal notranslate"><span class="pre">1</span></code> indicates that the user has given the movie a high rating, and a target of <code class="docutils literal notranslate"><span class="pre">0</span></code> indicates that the user has given the movie a low rating.</p>
+</div>
+<div class="section" id="training-an-xgboost-model">
+<h2>Training an XGBoost model<a class="headerlink" href="#training-an-xgboost-model" title="Permalink to this headline"></a></h2>
+<p>Before we begin training, let’s define a couple of custom parameters.</p>
+<p>Specifying <code class="docutils literal notranslate"><span class="pre">gpu_hist</span></code> as our <code class="docutils literal notranslate"><span class="pre">tree_method</span></code> will run the training on the GPU. Also, it will trigger representing our datasets as <code class="docutils literal notranslate"><span class="pre">DaskDeviceQuantileDMatrix</span></code> instead of the standard <code class="docutils literal notranslate"><span class="pre">DaskDMatrix</span></code>. This class is introduced in the XGBoost 1.1 release and this data format provides more efficient training with lower memory footprint. You can read more about it in this <a class="reference external" href="https://medium.com/rapids-ai/new-features-and-optimizations-for-gpus-in-xgboost-1-1-fc153dc029ce">article</a> from the RAPIDS AI channel.</p>
+<p>Additionally, we will train with early stopping and evaluate the stopping criteria on a validation set. If we were to train without early stopping, <code class="docutils literal notranslate"><span class="pre">XGboost</span></code> would continue to improve results on the train set until it would reach a perfect score. That would result in a low training loss but we would lose any ability to generalize to unseen data. Instead, by training with early stopping, the training ceases as soon as the model starts overfitting to the train set and the results on the validation set will start to deteriorate.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">verbose_eval</span></code> parameter specifies how often metrics are reported during training.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xgb_booster_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;objective&#39;</span><span class="p">:</span><span class="s1">&#39;binary:logistic&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;tree_method&#39;</span><span class="p">:</span><span class="s1">&#39;gpu_hist&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">xgb_train_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;num_boost_round&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="s1">&#39;verbose_eval&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s1">&#39;early_stopping_rounds&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We are now ready to train.</p>
+<p>In order to facilitate training on data larger than the available GPU memory, the training will leverage Dask. All the complexity of starting a local dask cluster is hidden in the <code class="docutils literal notranslate"><span class="pre">Distributed</span></code> context manager.</p>
+<p>Without further ado, let’s train.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">Distributed</span><span class="p">():</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">XGBoost</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">schema_without_title</span><span class="p">,</span> <span class="o">**</span><span class="n">xgb_booster_params</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+        <span class="n">train</span><span class="p">,</span>
+        <span class="n">evals</span><span class="o">=</span><span class="p">[(</span><span class="n">valid</span><span class="p">,</span> <span class="s1">&#39;validation_set&#39;</span><span class="p">),],</span>
+        <span class="o">**</span><span class="n">xgb_train_params</span>
+    <span class="p">)</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-08-11 01:12:43,386 - distributed.diskutils - INFO - Found stale lock file and directory &#39;/workspace/dask-worker-space/worker-c1y8_mp8&#39;, purging
+2022-08-11 01:12:43,387 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[0]	validation_set-logloss:0.65874
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[01:12:44] task [xgboost.dask]:tcp://127.0.0.1:37101 got new rank 0
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[20]	validation_set-logloss:0.61276
+[40]	validation_set-logloss:0.60799
+[60]	validation_set-logloss:0.60687
+[80]	validation_set-logloss:0.60615
+[86]	validation_set-logloss:0.60610
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="training-an-implicit-model">
+<h2>Training an implicit model<a class="headerlink" href="#training-an-implicit-model" title="Permalink to this headline"></a></h2>
+<p>There are two <code class="docutils literal notranslate"><span class="pre">implicit</span></code> models you can train. The <code class="docutils literal notranslate"><span class="pre">AlternatingLeastSquares</span></code> and <code class="docutils literal notranslate"><span class="pre">BayesianPersonalizedRanking</span></code> models. We will train a <code class="docutils literal notranslate"><span class="pre">BayesianPersonalizedRanking</span></code> model</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.implicit</span> <span class="kn">import</span> <span class="n">BayesianPersonalizedRanking</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/tqdm/auto.py:22: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+</pre></div>
+</div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">merlin.models.implicit</span></code> doesn’t have the same facility as <code class="docutils literal notranslate"><span class="pre">merlin.models.xgb.XGBoost</span></code> for identifying which target column it should use.</p>
+<p>Let’s remove the <code class="docutils literal notranslate"><span class="pre">rating</span></code> column from the schema so that only <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> is left.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema_without_title</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;rating&#39;</span><span class="p">)</span>
+<span class="n">valid</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema_without_title</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;rating&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">implicit</span> <span class="o">=</span> <span class="n">BayesianPersonalizedRanking</span><span class="p">()</span>
+<span class="n">implicit</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:00&lt;00:00, 902.22it/s, train_auc=85.25%, skipped=29.55%]
+</pre></div>
+</div>
+</div>
+</div>
+<p>Having trained the model, we can now evaluate it.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">implicit_metrics</span> <span class="o">=</span> <span class="n">implicit</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 943/943 [00:00&lt;00:00, 2723.72it/s]
+</pre></div>
+</div>
+</div>
+</div>
+<p>And last but not least, lets use our trained implicit model to output predictions.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">implicit_preds</span> <span class="o">=</span> <span class="n">implicit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="training-a-lightfm-model">
+<h2>Training a LightFM model<a class="headerlink" href="#training-a-lightfm-model" title="Permalink to this headline"></a></h2>
+<p><a class="reference external" href="https://github.com/lyst/lightfm">LightFM</a> implements of a number of popular recommendation algorithms for both implicit and explicit feedback, including efficient implementation of BPR and WARP ranking losses.</p>
+<p>You can specify what type of model to train on through the use of the <code class="docutils literal notranslate"><span class="pre">loss</span></code> argument. Here we will train with a <code class="docutils literal notranslate"><span class="pre">warp</span></code> loss (Weighted Approximate-Rank Pairwise loss). You can read more about available losses as well as the parameters that can be used for training <a class="reference external" href="https://making.lyst.com/lightfm/docs/lightfm.html">here</a>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.lightfm</span> <span class="kn">import</span> <span class="n">LightFM</span>
+
+<span class="n">lightfm</span> <span class="o">=</span> <span class="n">LightFM</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="s1">&#39;warp&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can now train our model.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lightfm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Now that the model is trained let’s validate its performance.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lightfm_metrics</span> <span class="o">=</span> <span class="n">lightfm</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can now use the model to predict on our data.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lightfm_preds</span> <span class="o">=</span> <span class="n">lightfm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.9.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+      <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+      <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+      <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+      <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+      <dd><a href="07-Train-traditional-ML-models-using-the-Merlin-Models-API.html">v0.9.0</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../main/index.html">main</a></dd>
+    </dl>
+  </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

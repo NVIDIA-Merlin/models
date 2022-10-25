@@ -1,0 +1,126 @@
+﻿merlin.models.tf.StochasticSwapNoise
+====================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: StochasticSwapNoise
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~StochasticSwapNoise.__init__
+      ~StochasticSwapNoise.add_loss
+      ~StochasticSwapNoise.add_metric
+      ~StochasticSwapNoise.add_update
+      ~StochasticSwapNoise.add_variable
+      ~StochasticSwapNoise.add_weight
+      ~StochasticSwapNoise.apply_to_all
+      ~StochasticSwapNoise.as_tabular
+      ~StochasticSwapNoise.augment
+      ~StochasticSwapNoise.build
+      ~StochasticSwapNoise.calculate_batch_size_from_input_shapes
+      ~StochasticSwapNoise.call
+      ~StochasticSwapNoise.call_outputs
+      ~StochasticSwapNoise.check_schema
+      ~StochasticSwapNoise.compute_call_output_shape
+      ~StochasticSwapNoise.compute_mask
+      ~StochasticSwapNoise.compute_output_shape
+      ~StochasticSwapNoise.compute_output_signature
+      ~StochasticSwapNoise.connect
+      ~StochasticSwapNoise.connect_branch
+      ~StochasticSwapNoise.connect_debug_block
+      ~StochasticSwapNoise.connect_with_residual
+      ~StochasticSwapNoise.connect_with_shortcut
+      ~StochasticSwapNoise.copy
+      ~StochasticSwapNoise.count_params
+      ~StochasticSwapNoise.finalize_state
+      ~StochasticSwapNoise.from_config
+      ~StochasticSwapNoise.from_features
+      ~StochasticSwapNoise.from_layer
+      ~StochasticSwapNoise.from_schema
+      ~StochasticSwapNoise.get_config
+      ~StochasticSwapNoise.get_input_at
+      ~StochasticSwapNoise.get_input_mask_at
+      ~StochasticSwapNoise.get_input_shape_at
+      ~StochasticSwapNoise.get_item_ids_from_inputs
+      ~StochasticSwapNoise.get_output_at
+      ~StochasticSwapNoise.get_output_mask_at
+      ~StochasticSwapNoise.get_output_shape_at
+      ~StochasticSwapNoise.get_padding_mask_from_item_id
+      ~StochasticSwapNoise.get_weights
+      ~StochasticSwapNoise.parse
+      ~StochasticSwapNoise.parse_block
+      ~StochasticSwapNoise.post_call
+      ~StochasticSwapNoise.pre_call
+      ~StochasticSwapNoise.prepare
+      ~StochasticSwapNoise.register_features
+      ~StochasticSwapNoise.repeat
+      ~StochasticSwapNoise.repeat_in_parallel
+      ~StochasticSwapNoise.repr_add
+      ~StochasticSwapNoise.repr_extra
+      ~StochasticSwapNoise.repr_ignore
+      ~StochasticSwapNoise.select_by_name
+      ~StochasticSwapNoise.select_by_tag
+      ~StochasticSwapNoise.set_aggregation
+      ~StochasticSwapNoise.set_post
+      ~StochasticSwapNoise.set_pre
+      ~StochasticSwapNoise.set_schema
+      ~StochasticSwapNoise.set_weights
+      ~StochasticSwapNoise.super
+      ~StochasticSwapNoise.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~StochasticSwapNoise.REQUIRES_SCHEMA
+      ~StochasticSwapNoise.activity_regularizer
+      ~StochasticSwapNoise.aggregation
+      ~StochasticSwapNoise.compute_dtype
+      ~StochasticSwapNoise.context
+      ~StochasticSwapNoise.dtype
+      ~StochasticSwapNoise.dtype_policy
+      ~StochasticSwapNoise.dynamic
+      ~StochasticSwapNoise.has_schema
+      ~StochasticSwapNoise.inbound_nodes
+      ~StochasticSwapNoise.input
+      ~StochasticSwapNoise.input_mask
+      ~StochasticSwapNoise.input_shape
+      ~StochasticSwapNoise.input_spec
+      ~StochasticSwapNoise.is_input
+      ~StochasticSwapNoise.is_tabular
+      ~StochasticSwapNoise.losses
+      ~StochasticSwapNoise.metrics
+      ~StochasticSwapNoise.name
+      ~StochasticSwapNoise.name_scope
+      ~StochasticSwapNoise.non_trainable_variables
+      ~StochasticSwapNoise.non_trainable_weights
+      ~StochasticSwapNoise.outbound_nodes
+      ~StochasticSwapNoise.output
+      ~StochasticSwapNoise.output_mask
+      ~StochasticSwapNoise.output_shape
+      ~StochasticSwapNoise.post
+      ~StochasticSwapNoise.pre
+      ~StochasticSwapNoise.registry
+      ~StochasticSwapNoise.schema
+      ~StochasticSwapNoise.stateful
+      ~StochasticSwapNoise.submodules
+      ~StochasticSwapNoise.supports_masking
+      ~StochasticSwapNoise.trainable
+      ~StochasticSwapNoise.trainable_variables
+      ~StochasticSwapNoise.trainable_weights
+      ~StochasticSwapNoise.updates
+      ~StochasticSwapNoise.variable_dtype
+      ~StochasticSwapNoise.variables
+      ~StochasticSwapNoise.weights
+   
+   

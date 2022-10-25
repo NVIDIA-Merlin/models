@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>merlin.models.tf.DCNModel &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="merlin.models.tf.DLRMModel" href="merlin.models.tf.DLRMModel.html" />
+    <link rel="prev" title="API Documentation" href="../api.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../api.html">API Documentation</a> &raquo;</li>
+      <li>merlin.models.tf.DCNModel</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="merlin-models-tf-dcnmodel">
+<h1>merlin.models.tf.DCNModel<a class="headerlink" href="#merlin-models-tf-dcnmodel" title="Permalink to this headline"></a></h1>
+<dl class="py function">
+<dt id="merlin.models.tf.DCNModel">
+<code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">DCNModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">schema:</span> <span class="pre">merlin.schema.schema.Schema,</span> <span class="pre">depth:</span> <span class="pre">int,</span> <span class="pre">deep_block:</span> <span class="pre">merlin.models.tf.core.base.Block</span> <span class="pre">=</span> <span class="pre">MLPBlock(</span>&#160;&#160; <span class="pre">(layers):</span> <span class="pre">List(</span>&#160;&#160;&#160;&#160; <span class="pre">(0):</span> <span class="pre">_Dense(</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">(dense):</span> <span class="pre">Dense(512,</span> <span class="pre">activation=relu,</span> <span class="pre">use_bias=True)</span>&#160;&#160;&#160;&#160; <span class="pre">)</span>&#160;&#160;&#160;&#160; <span class="pre">(1):</span> <span class="pre">_Dense(</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">(dense):</span> <span class="pre">Dense(256,</span> <span class="pre">activation=relu,</span> <span class="pre">use_bias=True)</span>&#160;&#160;&#160;&#160; <span class="pre">)</span>&#160;&#160; <span class="pre">)</span> <span class="pre">),</span> <span class="pre">stacked=True,</span> <span class="pre">input_block:</span> <span class="pre">Optional[merlin.models.tf.core.base.Block]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">prediction_tasks:</span> <span class="pre">Optional[Union[merlin.models.tf.prediction_tasks.base.PredictionTask,</span> <span class="pre">List[merlin.models.tf.prediction_tasks.base.PredictionTask],</span> <span class="pre">merlin.models.tf.prediction_tasks.base.ParallelPredictionBlock]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">merlin.models.tf.models.base.Model</span><a class="reference internal" href="../_modules/merlin/models/tf/models/ranking.html#DCNModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.DCNModel" title="Permalink to this definition"></a></dt>
+<dd><p>Create a model using the architecture proposed in DCN V2: Improved Deep &amp; Cross Network [1].
+See Eq. (1) for full-rank and Eq. (2) for low-rank version.</p>
+<dl class="simple">
+<dt>Example Usage::</dt><dd><p>dcn = DCNModel(schema, depth=2, deep_block=MLPBlock([256, 64]))
+dcn.compile(optimizer=”adam”)
+dcn.fit(train_data, epochs=10)</p>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<dl class="simple">
+<dt>[1]. Wang, Ruoxi, et al. “DCN V2: Improved deep &amp; cross network and</dt><dd><p>practical lessons for web-scale learning to rank systems.” Proceedings
+of the Web Conference 2021. 2021. <a class="reference external" href="https://arxiv.org/pdf/2008.13535.pdf">https://arxiv.org/pdf/2008.13535.pdf</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema</strong> (<a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html#merlin.schema.Schema" title="(in Merlin Core)"><em>Schema</em></a>) – The <cite>Schema</cite> with the input features</p></li>
+<li><p><strong>depth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>, </em><em>optional</em>) – Number of cross-layers to be stacked, by default 1</p></li>
+<li><p><strong>deep_block</strong> (<em>Block</em><em>, </em><em>optional</em>) – The <cite>Block</cite> to use as the deep part of the model (typically a <cite>MLPBlock</cite>)</p></li>
+<li><p><strong>stacked</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to use the stacked version of the model or the parallel version.</p></li>
+<li><p><strong>input_block</strong> (<em>Block</em><em>, </em><em>optional</em>) – The <cite>Block</cite> to use as the input layer. If None, a default <cite>InputBlockV2</cite> object
+is instantiated, that creates the embedding tables for the categorical features
+based on the schema. The embedding dimensions are inferred from the features
+cardinality. For a custom representation of input data you can instantiate
+and provide an <cite>InputBlockV2</cite> instance.</p></li>
+<li><p><strong>prediction_tasks</strong> (<em>optional</em>) – The prediction tasks to be used, by default this will be inferred from the Schema.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <cite>SequentialBlock</cite> with a number of stacked Cross layers</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock" title="merlin.models.tf.SequentialBlock">SequentialBlock</a></p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.10)"><strong>ValueError</strong></a> – Number of cross layers (depth) should be positive</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../api.html" class="btn btn-neutral float-left" title="API Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.DLRMModel.html" class="btn btn-neutral float-right" title="merlin.models.tf.DLRMModel" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.9.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+      <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+      <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+      <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+      <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+      <dd><a href="merlin.models.tf.DCNModel.html">v0.9.0</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../main/index.html">main</a></dd>
+    </dl>
+  </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

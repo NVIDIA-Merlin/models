@@ -1,0 +1,134 @@
+﻿merlin.models.tf.TwoTowerBlock
+==============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: TwoTowerBlock
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~TwoTowerBlock.__init__
+      ~TwoTowerBlock.add_branch
+      ~TwoTowerBlock.add_loss
+      ~TwoTowerBlock.add_metric
+      ~TwoTowerBlock.add_update
+      ~TwoTowerBlock.add_variable
+      ~TwoTowerBlock.add_weight
+      ~TwoTowerBlock.apply_to_all
+      ~TwoTowerBlock.apply_to_branch
+      ~TwoTowerBlock.as_tabular
+      ~TwoTowerBlock.build
+      ~TwoTowerBlock.calculate_batch_size_from_input_shapes
+      ~TwoTowerBlock.call
+      ~TwoTowerBlock.call_outputs
+      ~TwoTowerBlock.check_schema
+      ~TwoTowerBlock.compute_call_output_shape
+      ~TwoTowerBlock.compute_mask
+      ~TwoTowerBlock.compute_output_shape
+      ~TwoTowerBlock.compute_output_signature
+      ~TwoTowerBlock.connect
+      ~TwoTowerBlock.connect_branch
+      ~TwoTowerBlock.connect_debug_block
+      ~TwoTowerBlock.connect_with_residual
+      ~TwoTowerBlock.connect_with_shortcut
+      ~TwoTowerBlock.copy
+      ~TwoTowerBlock.count_params
+      ~TwoTowerBlock.finalize_state
+      ~TwoTowerBlock.from_config
+      ~TwoTowerBlock.from_features
+      ~TwoTowerBlock.from_layer
+      ~TwoTowerBlock.from_schema
+      ~TwoTowerBlock.get_config
+      ~TwoTowerBlock.get_input_at
+      ~TwoTowerBlock.get_input_mask_at
+      ~TwoTowerBlock.get_input_shape_at
+      ~TwoTowerBlock.get_item_ids_from_inputs
+      ~TwoTowerBlock.get_output_at
+      ~TwoTowerBlock.get_output_mask_at
+      ~TwoTowerBlock.get_output_shape_at
+      ~TwoTowerBlock.get_padding_mask_from_item_id
+      ~TwoTowerBlock.get_weights
+      ~TwoTowerBlock.item_block
+      ~TwoTowerBlock.parse
+      ~TwoTowerBlock.parse_block
+      ~TwoTowerBlock.parse_config
+      ~TwoTowerBlock.post_call
+      ~TwoTowerBlock.pre_call
+      ~TwoTowerBlock.prepare
+      ~TwoTowerBlock.query_block
+      ~TwoTowerBlock.register_features
+      ~TwoTowerBlock.repeat
+      ~TwoTowerBlock.repeat_in_parallel
+      ~TwoTowerBlock.repr_add
+      ~TwoTowerBlock.repr_extra
+      ~TwoTowerBlock.repr_ignore
+      ~TwoTowerBlock.select_by_name
+      ~TwoTowerBlock.select_by_names
+      ~TwoTowerBlock.select_by_tag
+      ~TwoTowerBlock.set_aggregation
+      ~TwoTowerBlock.set_post
+      ~TwoTowerBlock.set_pre
+      ~TwoTowerBlock.set_schema
+      ~TwoTowerBlock.set_weights
+      ~TwoTowerBlock.super
+      ~TwoTowerBlock.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~TwoTowerBlock.REQUIRES_SCHEMA
+      ~TwoTowerBlock.activity_regularizer
+      ~TwoTowerBlock.aggregation
+      ~TwoTowerBlock.compute_dtype
+      ~TwoTowerBlock.context
+      ~TwoTowerBlock.dtype
+      ~TwoTowerBlock.dtype_policy
+      ~TwoTowerBlock.dynamic
+      ~TwoTowerBlock.has_schema
+      ~TwoTowerBlock.inbound_nodes
+      ~TwoTowerBlock.input
+      ~TwoTowerBlock.input_mask
+      ~TwoTowerBlock.input_shape
+      ~TwoTowerBlock.input_spec
+      ~TwoTowerBlock.is_input
+      ~TwoTowerBlock.is_tabular
+      ~TwoTowerBlock.layers
+      ~TwoTowerBlock.losses
+      ~TwoTowerBlock.metrics
+      ~TwoTowerBlock.name
+      ~TwoTowerBlock.name_scope
+      ~TwoTowerBlock.non_trainable_variables
+      ~TwoTowerBlock.non_trainable_weights
+      ~TwoTowerBlock.outbound_nodes
+      ~TwoTowerBlock.output
+      ~TwoTowerBlock.output_mask
+      ~TwoTowerBlock.output_shape
+      ~TwoTowerBlock.parallel_dict
+      ~TwoTowerBlock.parallel_values
+      ~TwoTowerBlock.post
+      ~TwoTowerBlock.pre
+      ~TwoTowerBlock.registry
+      ~TwoTowerBlock.schema
+      ~TwoTowerBlock.stateful
+      ~TwoTowerBlock.submodules
+      ~TwoTowerBlock.supports_masking
+      ~TwoTowerBlock.trainable
+      ~TwoTowerBlock.trainable_variables
+      ~TwoTowerBlock.trainable_weights
+      ~TwoTowerBlock.updates
+      ~TwoTowerBlock.variable_dtype
+      ~TwoTowerBlock.variables
+      ~TwoTowerBlock.weights
+   
+   

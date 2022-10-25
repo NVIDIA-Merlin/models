@@ -1,0 +1,88 @@
+﻿merlin.models.tf.PredictionTask
+===============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: PredictionTask
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~PredictionTask.__init__
+      ~PredictionTask.add_loss
+      ~PredictionTask.add_metric
+      ~PredictionTask.add_update
+      ~PredictionTask.add_variable
+      ~PredictionTask.add_weight
+      ~PredictionTask.build
+      ~PredictionTask.build_task
+      ~PredictionTask.call
+      ~PredictionTask.child_name
+      ~PredictionTask.compute_mask
+      ~PredictionTask.compute_output_shape
+      ~PredictionTask.compute_output_signature
+      ~PredictionTask.count_params
+      ~PredictionTask.create_default_metrics
+      ~PredictionTask.finalize_state
+      ~PredictionTask.from_config
+      ~PredictionTask.get_config
+      ~PredictionTask.get_input_at
+      ~PredictionTask.get_input_mask_at
+      ~PredictionTask.get_input_shape_at
+      ~PredictionTask.get_output_at
+      ~PredictionTask.get_output_mask_at
+      ~PredictionTask.get_output_shape_at
+      ~PredictionTask.get_weights
+      ~PredictionTask.pre_call
+      ~PredictionTask.pre_loss
+      ~PredictionTask.set_weights
+      ~PredictionTask.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PredictionTask.activity_regularizer
+      ~PredictionTask.compute_dtype
+      ~PredictionTask.context
+      ~PredictionTask.dtype
+      ~PredictionTask.dtype_policy
+      ~PredictionTask.dynamic
+      ~PredictionTask.inbound_nodes
+      ~PredictionTask.input
+      ~PredictionTask.input_mask
+      ~PredictionTask.input_shape
+      ~PredictionTask.input_spec
+      ~PredictionTask.losses
+      ~PredictionTask.metrics
+      ~PredictionTask.name
+      ~PredictionTask.name_scope
+      ~PredictionTask.non_trainable_variables
+      ~PredictionTask.non_trainable_weights
+      ~PredictionTask.outbound_nodes
+      ~PredictionTask.output
+      ~PredictionTask.output_mask
+      ~PredictionTask.output_shape
+      ~PredictionTask.pre_eval_topk
+      ~PredictionTask.stateful
+      ~PredictionTask.submodules
+      ~PredictionTask.supports_masking
+      ~PredictionTask.task_name
+      ~PredictionTask.trainable
+      ~PredictionTask.trainable_variables
+      ~PredictionTask.trainable_weights
+      ~PredictionTask.updates
+      ~PredictionTask.variable_dtype
+      ~PredictionTask.variables
+      ~PredictionTask.weights
+   
+   

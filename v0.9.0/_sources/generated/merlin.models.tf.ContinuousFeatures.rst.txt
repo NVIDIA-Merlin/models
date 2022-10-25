@@ -1,0 +1,125 @@
+﻿merlin.models.tf.ContinuousFeatures
+===================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: ContinuousFeatures
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ContinuousFeatures.__init__
+      ~ContinuousFeatures.add_loss
+      ~ContinuousFeatures.add_metric
+      ~ContinuousFeatures.add_update
+      ~ContinuousFeatures.add_variable
+      ~ContinuousFeatures.add_weight
+      ~ContinuousFeatures.apply_to_all
+      ~ContinuousFeatures.as_tabular
+      ~ContinuousFeatures.build
+      ~ContinuousFeatures.calculate_batch_size_from_input_shapes
+      ~ContinuousFeatures.call
+      ~ContinuousFeatures.call_outputs
+      ~ContinuousFeatures.check_schema
+      ~ContinuousFeatures.compute_call_output_shape
+      ~ContinuousFeatures.compute_mask
+      ~ContinuousFeatures.compute_output_shape
+      ~ContinuousFeatures.compute_output_signature
+      ~ContinuousFeatures.connect
+      ~ContinuousFeatures.connect_branch
+      ~ContinuousFeatures.connect_debug_block
+      ~ContinuousFeatures.connect_with_residual
+      ~ContinuousFeatures.connect_with_shortcut
+      ~ContinuousFeatures.copy
+      ~ContinuousFeatures.count_params
+      ~ContinuousFeatures.finalize_state
+      ~ContinuousFeatures.from_config
+      ~ContinuousFeatures.from_features
+      ~ContinuousFeatures.from_layer
+      ~ContinuousFeatures.from_schema
+      ~ContinuousFeatures.get_config
+      ~ContinuousFeatures.get_input_at
+      ~ContinuousFeatures.get_input_mask_at
+      ~ContinuousFeatures.get_input_shape_at
+      ~ContinuousFeatures.get_item_ids_from_inputs
+      ~ContinuousFeatures.get_output_at
+      ~ContinuousFeatures.get_output_mask_at
+      ~ContinuousFeatures.get_output_shape_at
+      ~ContinuousFeatures.get_padding_mask_from_item_id
+      ~ContinuousFeatures.get_weights
+      ~ContinuousFeatures.parse
+      ~ContinuousFeatures.parse_block
+      ~ContinuousFeatures.post_call
+      ~ContinuousFeatures.pre_call
+      ~ContinuousFeatures.prepare
+      ~ContinuousFeatures.register_features
+      ~ContinuousFeatures.repeat
+      ~ContinuousFeatures.repeat_in_parallel
+      ~ContinuousFeatures.repr_add
+      ~ContinuousFeatures.repr_extra
+      ~ContinuousFeatures.repr_ignore
+      ~ContinuousFeatures.select_by_name
+      ~ContinuousFeatures.select_by_tag
+      ~ContinuousFeatures.set_aggregation
+      ~ContinuousFeatures.set_post
+      ~ContinuousFeatures.set_pre
+      ~ContinuousFeatures.set_schema
+      ~ContinuousFeatures.set_weights
+      ~ContinuousFeatures.super
+      ~ContinuousFeatures.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ContinuousFeatures.REQUIRES_SCHEMA
+      ~ContinuousFeatures.activity_regularizer
+      ~ContinuousFeatures.aggregation
+      ~ContinuousFeatures.compute_dtype
+      ~ContinuousFeatures.context
+      ~ContinuousFeatures.dtype
+      ~ContinuousFeatures.dtype_policy
+      ~ContinuousFeatures.dynamic
+      ~ContinuousFeatures.has_schema
+      ~ContinuousFeatures.inbound_nodes
+      ~ContinuousFeatures.input
+      ~ContinuousFeatures.input_mask
+      ~ContinuousFeatures.input_shape
+      ~ContinuousFeatures.input_spec
+      ~ContinuousFeatures.is_input
+      ~ContinuousFeatures.is_tabular
+      ~ContinuousFeatures.losses
+      ~ContinuousFeatures.metrics
+      ~ContinuousFeatures.name
+      ~ContinuousFeatures.name_scope
+      ~ContinuousFeatures.non_trainable_variables
+      ~ContinuousFeatures.non_trainable_weights
+      ~ContinuousFeatures.outbound_nodes
+      ~ContinuousFeatures.output
+      ~ContinuousFeatures.output_mask
+      ~ContinuousFeatures.output_shape
+      ~ContinuousFeatures.post
+      ~ContinuousFeatures.pre
+      ~ContinuousFeatures.registry
+      ~ContinuousFeatures.schema
+      ~ContinuousFeatures.stateful
+      ~ContinuousFeatures.submodules
+      ~ContinuousFeatures.supports_masking
+      ~ContinuousFeatures.trainable
+      ~ContinuousFeatures.trainable_variables
+      ~ContinuousFeatures.trainable_weights
+      ~ContinuousFeatures.updates
+      ~ContinuousFeatures.variable_dtype
+      ~ContinuousFeatures.variables
+      ~ContinuousFeatures.weights
+   
+   

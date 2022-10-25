@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Documentation &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="merlin.models.tf.DCNModel" href="generated/merlin.models.tf.DCNModel.html" />
+    <link rel="prev" title="Taking the Next Step with Merlin Models: Define Your Own Architecture" href="examples/06-Define-your-own-architecture-with-Merlin-Models.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Example Notebooks</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schema-functions">Schema Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#registry-functions">Registry Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>API Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="api-documentation">
+<h1>API Documentation<a class="headerlink" href="#api-documentation" title="Permalink to this headline"></a></h1>
+<div class="section" id="tensorflow-models">
+<h2>TensorFlow Models<a class="headerlink" href="#tensorflow-models" title="Permalink to this headline"></a></h2>
+<div class="section" id="ranking-model-constructors">
+<h3>Ranking Model Constructors<a class="headerlink" href="#ranking-model-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DCNModel.html#merlin.models.tf.DCNModel" title="merlin.models.tf.DCNModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DCNModel</span></code></a>(schema, depth[, deep_block, …])</p></td>
+<td><p>Create a model using the architecture proposed in DCN V2: Improved Deep &amp; Cross Network [1].</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMModel.html#merlin.models.tf.DLRMModel" title="merlin.models.tf.DLRMModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMModel</span></code></a>(schema, *[, embeddings, …])</p></td>
+<td><p>DLRM-model architecture.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="retrieval-model-constructors">
+<h3>Retrieval Model Constructors<a class="headerlink" href="#retrieval-model-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationModel.html#merlin.models.tf.MatrixFactorizationModel" title="merlin.models.tf.MatrixFactorizationModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MatrixFactorizationModel</span></code></a>(schema, dim[, …])</p></td>
+<td><p>Builds a matrix factorization model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.TwoTowerModel.html#merlin.models.tf.TwoTowerModel" title="merlin.models.tf.TwoTowerModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TwoTowerModel</span></code></a>(schema, query_tower[, …])</p></td>
+<td><p>Builds the Two-tower architecture, as proposed in [1].</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.YoutubeDNNRetrievalModel.html#merlin.models.tf.YoutubeDNNRetrievalModel" title="merlin.models.tf.YoutubeDNNRetrievalModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">YoutubeDNNRetrievalModel</span></code></a>(schema[, …])</p></td>
+<td><p>Build the Youtube-DNN retrieval model.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="input-block-constructors">
+<h3>Input Block Constructors<a class="headerlink" href="#input-block-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.InputBlock.html#merlin.models.tf.InputBlock" title="merlin.models.tf.InputBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputBlock</span></code></a>(schema[, branches, post, …])</p></td>
+<td><p>The entry block of the model to process input features from a schema.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures" title="merlin.models.tf.ContinuousFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuousFeatures</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Input block for continuous features.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ContinuousEmbedding.html#merlin.models.tf.ContinuousEmbedding" title="merlin.models.tf.ContinuousEmbedding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuousEmbedding</span></code></a>(inputs, embedding_block)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures" title="merlin.models.tf.EmbeddingFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EmbeddingFeatures</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Input block for embedding-lookups for categorical features.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.SequenceEmbeddingFeatures.html#merlin.models.tf.SequenceEmbeddingFeatures" title="merlin.models.tf.SequenceEmbeddingFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SequenceEmbeddingFeatures</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Input block for embedding-lookups for categorical features. This module produces 3-D tensors, this is useful for sequential models like transformers. :param feature_config: This specifies what TableConfig to use for each feature. For shared embeddings, the same                        TableConfig can be used for multiple features. :type feature_config: Dict[str, FeatureConfig] :param item_id: The name of the feature that’s used for the item_id. :type item_id: str, optional :param padding_idx: The symbol to use for padding. :type padding_idx: int :param pre: Transformations to apply on the inputs when the module is called (so <strong>before</strong> <cite>call</cite>). :type pre: Union[str, TabularTransformation, List[str], List[TabularTransformation]], optional :param post: Transformations to apply on the inputs after the module is called (so <strong>after</strong> <cite>call</cite>). :type post: Union[str, TabularTransformation, List[str], List[TabularTransformation]], optional :param aggregation: Aggregation to apply after processing the <cite>call</cite>-method to output a single Tensor.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="model-building-block-constructors">
+<h3>Model Building Block Constructors<a class="headerlink" href="#model-building-block-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock" title="merlin.models.tf.DLRMBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMBlock</span></code></a>(schema, *[, embedding_dim, …])</p></td>
+<td><p>Builds the DLRM architecture, as proposed in the following <a href="#id11"><span class="problematic" id="id12">`paper https://arxiv.org/pdf/1906.00091.pdf`_</span></a> <a href="#id13"><span class="problematic" id="id1">[1]_</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MLPBlock.html#merlin.models.tf.MLPBlock" title="merlin.models.tf.MLPBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MLPBlock</span></code></a>(dimensions[, activation, use_bias, …])</p></td>
+<td><p>A block that applies a multi-layer perceptron to the input.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.CrossBlock.html#merlin.models.tf.CrossBlock" title="merlin.models.tf.CrossBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CrossBlock</span></code></a>([depth, filter, low_rank_dim, …])</p></td>
+<td><p>This block provides a way to create high-order feature interactions</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.TwoTowerBlock.html#merlin.models.tf.TwoTowerBlock" title="merlin.models.tf.TwoTowerBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TwoTowerBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Builds the Two-tower architecture, as proposed in the following <a href="#id14"><span class="problematic" id="id15">`paper https://doi.org/10.1145/3298689.3346996`_</span></a> [Xinyang19].</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationBlock.html#merlin.models.tf.MatrixFactorizationBlock" title="merlin.models.tf.MatrixFactorizationBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MatrixFactorizationBlock</span></code></a>(schema, dim[, …])</p></td>
+<td><p>Returns a block for Matrix Factorization, which created the user and item embeddings based on the <cite>schema</cite> and computes the dot product between user and item L2-norm embeddings</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DotProductInteraction.html#merlin.models.tf.DotProductInteraction" title="merlin.models.tf.DotProductInteraction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DotProductInteraction</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="modeling-prediction-task-constructors">
+<h3>Modeling Prediction Task Constructors<a class="headerlink" href="#modeling-prediction-task-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.PredictionTasks.html#merlin.models.tf.PredictionTasks" title="merlin.models.tf.PredictionTasks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PredictionTasks</span></code></a>(schema[, task_blocks, …])</p></td>
+<td><p>Creates Multi-task prediction Blocks from schema</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask" title="merlin.models.tf.PredictionTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PredictionTask</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Base-class for prediction tasks.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.BinaryClassificationTask.html#merlin.models.tf.BinaryClassificationTask" title="merlin.models.tf.BinaryClassificationTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Prediction task for binary classification.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask" title="merlin.models.tf.MultiClassClassificationTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiClassClassificationTask</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Prediction task for multi-class classification.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.RegressionTask.html#merlin.models.tf.RegressionTask" title="merlin.models.tf.RegressionTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RegressionTask</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Prediction task for regression-task.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ItemRetrievalTask.html#merlin.models.tf.ItemRetrievalTask" title="merlin.models.tf.ItemRetrievalTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ItemRetrievalTask</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Prediction-task for item-retrieval.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="model-pipeline-constructors">
+<h3>Model Pipeline Constructors<a class="headerlink" href="#model-pipeline-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock" title="merlin.models.tf.SequentialBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SequentialBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>The SequentialLayer represents a sequence of Keras layers. It is a Keras Layer that can be used instead of tf.keras.layers.Sequential, which is actually a Keras Model. In contrast to keras Sequential, this layer can be used as a pure Layer in tf.functions and when exporting SavedModels, without having to pre-declare input and output shapes. In turn, this layer is usable as a preprocessing layer for TF Agents Networks, and can be exported via PolicySaver. Usage::.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock" title="merlin.models.tf.ParallelBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParallelBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Merge multiple layers or TabularModule’s into a single output of TabularData.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock" title="merlin.models.tf.ParallelPredictionBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParallelPredictionBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Multi-task prediction block.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DenseResidualBlock.html#merlin.models.tf.DenseResidualBlock" title="merlin.models.tf.DenseResidualBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DenseResidualBlock</span></code></a>([low_rank_dim, …])</p></td>
+<td><p>A block that applies a dense residual block to the input.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock" title="merlin.models.tf.DualEncoderBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoderBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ResidualBlock.html#merlin.models.tf.ResidualBlock" title="merlin.models.tf.ResidualBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResidualBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.TabularBlock.html#merlin.models.tf.TabularBlock" title="merlin.models.tf.TabularBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TabularBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Layer that’s specialized for tabular-data by integrating many often used operations.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.Filter.html#merlin.models.tf.Filter" title="merlin.models.tf.Filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Filter</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Transformation that filters out certain features from <cite>TabularData</cite>.”</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="masking-block-constructors">
+<h3>Masking Block Constructors<a class="headerlink" href="#masking-block-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+</tbody>
+</table>
+</div>
+<div class="section" id="transformation-block-constructors">
+<h3>Transformation Block Constructors<a class="headerlink" href="#transformation-block-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ExpandDims.html#merlin.models.tf.ExpandDims" title="merlin.models.tf.ExpandDims"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExpandDims</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Expand dims of selected input tensors. Example::     inputs = {         “cont_feat1”: tf.random.uniform((NUM_ROWS,)),         “cont_feat2”: tf.random.uniform((NUM_ROWS,)),         “multi_hot_categ_feat”: tf.random.uniform(             (NUM_ROWS, 4), minval=1, maxval=100, dtype=tf.int32         ),     }     expand_dims_op = tr.ExpandDims(expand_dims={“cont_feat2”: 0, “multi_hot_categ_feat”: 1})     expanded_inputs = expand_dims_op(inputs).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.StochasticSwapNoise.html#merlin.models.tf.StochasticSwapNoise" title="merlin.models.tf.StochasticSwapNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StochasticSwapNoise</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Applies Stochastic replacement of sequence features</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.AsTabular.html#merlin.models.tf.AsTabular" title="merlin.models.tf.AsTabular"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsTabular</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Converts a Tensor to TabularData by converting it to a dictionary.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="multi-task-block-constructors">
+<h3>Multi-Task Block Constructors<a class="headerlink" href="#multi-task-block-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MMOEBlock.html#merlin.models.tf.MMOEBlock" title="merlin.models.tf.MMOEBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MMOEBlock</span></code></a>(outputs, expert_block, num_experts)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.CGCBlock.html#merlin.models.tf.CGCBlock" title="merlin.models.tf.CGCBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CGCBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="data-loader-customization-constructor">
+<h3>Data Loader Customization Constructor<a class="headerlink" href="#data-loader-customization-constructor" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+</tbody>
+</table>
+</div>
+<div class="section" id="metrics">
+<h3>Metrics<a class="headerlink" href="#metrics" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.NDCGAt.html#merlin.models.tf.NDCGAt" title="merlin.models.tf.NDCGAt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NDCGAt</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.AvgPrecisionAt.html#merlin.models.tf.AvgPrecisionAt" title="merlin.models.tf.AvgPrecisionAt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AvgPrecisionAt</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.RecallAt.html#merlin.models.tf.RecallAt" title="merlin.models.tf.RecallAt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RecallAt</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="sampling">
+<h3>Sampling<a class="headerlink" href="#sampling" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler" title="merlin.models.tf.ItemSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ItemSampler</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.InBatchSampler.html#merlin.models.tf.InBatchSampler" title="merlin.models.tf.InBatchSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InBatchSampler</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Provides in-batch sampling <a href="#id16"><span class="problematic" id="id2">[1]_</span></a> for two-tower item retrieval models.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.PopularityBasedSampler.html#merlin.models.tf.PopularityBasedSampler" title="merlin.models.tf.PopularityBasedSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PopularityBasedSampler</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Provides a popularity-based negative sampling for the softmax layer to ensure training efficiency when the catalog of items is very large.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="losses">
+<h3>Losses<a class="headerlink" href="#losses" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.CategoricalCrossEntropy.html#merlin.models.tf.losses.CategoricalCrossEntropy" title="merlin.models.tf.losses.CategoricalCrossEntropy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CategoricalCrossEntropy</span></code></a>([from_logits])</p></td>
+<td><p>Extends <cite>tf.keras.losses.SparseCategoricalCrossentropy</cite> by making <cite>from_logits=True</cite> by default (in this case an optimized <cite>softmax</cite> activation is applied within this loss, you should not include <cite>softmax</cite> activation manually in the output layer).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.SparseCategoricalCrossEntropy.html#merlin.models.tf.losses.SparseCategoricalCrossEntropy" title="merlin.models.tf.losses.SparseCategoricalCrossEntropy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SparseCategoricalCrossEntropy</span></code></a>([from_logits])</p></td>
+<td><p>Extends <cite>tf.keras.losses.SparseCategoricalCrossentropy</cite> by making <cite>from_logits=True</cite> by default (in this case an optimized <cite>softmax</cite> activation is applied within this loss, you should not include <cite>softmax</cite> activation manually in the output layer).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.BPRLoss.html#merlin.models.tf.losses.BPRLoss" title="merlin.models.tf.losses.BPRLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BPRLoss</span></code></a>([reduction, name])</p></td>
+<td><p>The Bayesian Personalised Ranking (BPR) pairwise loss <a href="#id17"><span class="problematic" id="id3">[1]_</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.BPRmaxLoss.html#merlin.models.tf.losses.BPRmaxLoss" title="merlin.models.tf.losses.BPRmaxLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BPRmaxLoss</span></code></a>(reg_lambda, **kwargs)</p></td>
+<td><p>The BPR-max pairwise loss proposed in <a href="#id18"><span class="problematic" id="id4">[1]_</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.HingeLoss.html#merlin.models.tf.losses.HingeLoss" title="merlin.models.tf.losses.HingeLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HingeLoss</span></code></a>([reduction, name])</p></td>
+<td><p>Pairwise hinge loss, as described in <a href="#id19"><span class="problematic" id="id5">[1]_</span></a>: <cite>max(0, 1 + r_uj - r_ui))</cite>, where r_ui is the score of the positive item and r_uj the score of negative items.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.LogisticLoss.html#merlin.models.tf.losses.LogisticLoss" title="merlin.models.tf.losses.LogisticLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogisticLoss</span></code></a>([reduction, name])</p></td>
+<td><p>Pairwise log loss, as described in <a href="#id20"><span class="problematic" id="id6">[1]_</span></a>: <cite>log(1 + exp(r_uj - r_ui))</cite>, where r_ui is the score of the positive item and r_uj the score of negative items.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1Loss.html#merlin.models.tf.losses.TOP1Loss" title="merlin.models.tf.losses.TOP1Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1Loss</span></code></a>([reduction, name])</p></td>
+<td><p>The TOP pairwise loss proposed in <a href="#id21"><span class="problematic" id="id7">[1]_</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1maxLoss.html#merlin.models.tf.losses.TOP1maxLoss" title="merlin.models.tf.losses.TOP1maxLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1maxLoss</span></code></a>([reduction, name])</p></td>
+<td><p>The TOP1-max pairwise loss proposed in <a href="#id22"><span class="problematic" id="id8">[1]_</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1v2Loss.html#merlin.models.tf.losses.TOP1v2Loss" title="merlin.models.tf.losses.TOP1v2Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1v2Loss</span></code></a>([reduction, name])</p></td>
+<td><p>An adapted version of the TOP pairwise loss proposed in <a href="#id23"><span class="problematic" id="id9">[1]_</span></a>, but following the current GRU4Rec implementation <a href="#id24"><span class="problematic" id="id10">[2]_</span></a>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="schema-functions">
+<h2>Schema Functions<a class="headerlink" href="#schema-functions" title="Permalink to this headline"></a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html#merlin.models.utils.schema_utils.select_targets" title="merlin.models.utils.schema_utils.select_targets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.select_targets</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html#merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json" title="merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html#merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema" title="merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</span></code></a>(value)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html#merlin.models.utils.schema_utils.create_categorical_column" title="merlin.models.utils.schema_utils.create_categorical_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.create_categorical_column</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html#merlin.models.utils.schema_utils.create_continuous_column" title="merlin.models.utils.schema_utils.create_continuous_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.create_continuous_column</span></code></a>(name)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html#merlin.models.utils.schema_utils.filter_dict_by_schema" title="merlin.models.utils.schema_utils.filter_dict_by_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.filter_dict_by_schema</span></code></a>(…)</p></td>
+<td><p>Filters out entries from input_dict, returns a dictionary where every entry corresponds to a column in the schema</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html#merlin.models.utils.schema_utils.categorical_cardinalities" title="merlin.models.utils.schema_utils.categorical_cardinalities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.categorical_cardinalities</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html#merlin.models.utils.schema_utils.categorical_domains" title="merlin.models.utils.schema_utils.categorical_domains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.categorical_domains</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html#merlin.models.utils.schema_utils.get_embedding_sizes_from_schema" title="merlin.models.utils.schema_utils.get_embedding_sizes_from_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</span></code></a>(schema)</p></td>
+<td><p>Provides a heristic (from Google) that suggests the embedding sizes as a function (forth root) of categorical features cardinalities, obtained from the schema.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality" title="merlin.models.utils.schema_utils.get_embedding_size_from_cardinality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</span></code></a>(…)</p></td>
+<td><p>Provides a heuristic (from Google) that suggests the embedding dimension as a function (forth root) of the feature cardinality.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="utilities">
+<h2>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline"></a></h2>
+<div class="section" id="miscellaneous-utility-functions">
+<h3>Miscellaneous Utility Functions<a class="headerlink" href="#miscellaneous-utility-functions" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.filter_kwargs.html#merlin.models.utils.misc_utils.filter_kwargs" title="merlin.models.utils.misc_utils.filter_kwargs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.filter_kwargs</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.safe_json.html#merlin.models.utils.misc_utils.safe_json" title="merlin.models.utils.misc_utils.safe_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.safe_json</span></code></a>(data)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_filenames.html#merlin.models.utils.misc_utils.get_filenames" title="merlin.models.utils.misc_utils.get_filenames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.get_filenames</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_label_feature_name.html#merlin.models.utils.misc_utils.get_label_feature_name" title="merlin.models.utils.misc_utils.get_label_feature_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.get_label_feature_name</span></code></a>(…)</p></td>
+<td><p>Analyses the feature map config and returns the name of the label feature (e.g.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_timestamp_feature_name.html#merlin.models.utils.misc_utils.get_timestamp_feature_name" title="merlin.models.utils.misc_utils.get_timestamp_feature_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.get_timestamp_feature_name</span></code></a>(…)</p></td>
+<td><p>Analyses the feature map config and returns the name of the label feature (e.g.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_parquet_files_names.html#merlin.models.utils.misc_utils.get_parquet_files_names" title="merlin.models.utils.misc_utils.get_parquet_files_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.get_parquet_files_names</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.Timing.html#merlin.models.utils.misc_utils.Timing" title="merlin.models.utils.misc_utils.Timing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.Timing</span></code></a>(message)</p></td>
+<td><p>A context manager that prints the execution time of the block it manages</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_object_size.html#merlin.models.utils.misc_utils.get_object_size" title="merlin.models.utils.misc_utils.get_object_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.get_object_size</span></code></a>(obj)</p></td>
+<td><p>Recursively finds size of objects</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.misc_utils.validate_dataset.html#merlin.models.utils.misc_utils.validate_dataset" title="merlin.models.utils.misc_utils.validate_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.misc_utils.validate_dataset</span></code></a>(…)</p></td>
+<td><p>Util function to load NVTabular Dataset from disk</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="registry-functions">
+<h2>Registry Functions<a class="headerlink" href="#registry-functions" title="Permalink to this headline"></a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.registry.camelcase_to_snakecase.html#merlin.models.utils.registry.camelcase_to_snakecase" title="merlin.models.utils.registry.camelcase_to_snakecase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.registry.camelcase_to_snakecase</span></code></a>(name)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.registry.snakecase_to_camelcase.html#merlin.models.utils.registry.snakecase_to_camelcase" title="merlin.models.utils.registry.snakecase_to_camelcase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.registry.snakecase_to_camelcase</span></code></a>(name)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.registry.default_name.html#merlin.models.utils.registry.default_name" title="merlin.models.utils.registry.default_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.registry.default_name</span></code></a>(…)</p></td>
+<td><p>Default name for a class or function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.registry.default_object_name.html#merlin.models.utils.registry.default_object_name" title="merlin.models.utils.registry.default_object_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.registry.default_object_name</span></code></a>(obj)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.registry.Registry.html#merlin.models.utils.registry.Registry" title="merlin.models.utils.registry.Registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.registry.Registry</span></code></a>(…[, …])</p></td>
+<td><p>Dict-like class for managing function registrations.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.registry.RegistryMixin.html#merlin.models.utils.registry.RegistryMixin" title="merlin.models.utils.registry.RegistryMixin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.registry.RegistryMixin</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.registry.display_list_by_prefix.html#merlin.models.utils.registry.display_list_by_prefix" title="merlin.models.utils.registry.display_list_by_prefix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.registry.display_list_by_prefix</span></code></a>(…)</p></td>
+<td><p>Creates a help string for names_list grouped by prefix.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples/06-Define-your-own-architecture-with-Merlin-Models.html" class="btn btn-neutral float-left" title="Taking the Next Step with Merlin Models: Define Your Own Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="generated/merlin.models.tf.DCNModel.html" class="btn btn-neutral float-right" title="merlin.models.tf.DCNModel" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.9.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../v0.4.0/api.html">v0.4.0</a></dd>
+      <dd><a href="../v0.5.0/api.html">v0.5.0</a></dd>
+      <dd><a href="../v0.6.0/api.html">v0.6.0</a></dd>
+      <dd><a href="../v0.7.0/api.html">v0.7.0</a></dd>
+      <dd><a href="../v0.8.0/api.html">v0.8.0</a></dd>
+      <dd><a href="api.html">v0.9.0</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../main/api.html">main</a></dd>
+    </dl>
+  </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

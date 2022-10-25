@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Merlin Models &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Standard Models: Overview" href="models_overview.html" />
+    <link rel="prev" title="Merlin Models" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#benefits-of-merlin-models">Benefits of Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#notebook-examples-and-tutorials">Notebook Examples and Tutorials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#feedback-and-support">Feedback and Support</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Merlin Models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="merlin-models">
+<h1>Merlin Models<a class="headerlink" href="#merlin-models" title="Permalink to this headline"></a></h1>
+<p><a class="reference external" href="https://pypi.python.org/pypi/merlin-models/"><img alt="PyPI version shields.io" src="https://img.shields.io/pypi/v/merlin-models.svg" /></a>
+<img alt="GitHub License" src="https://img.shields.io/github/license/NVIDIA-Merlin/models" />
+<a class="reference external" href="https://nvidia-merlin.github.io/models/main/"><img alt="Documentation" src="https://img.shields.io/badge/documentation-blue.svg" /></a></p>
+<p>The Merlin Models library provides standard models for recommender systems with an aim for high-quality implementations
+that range from classic machine learning models to highly-advanced deep learning models.</p>
+<p>The goal of this library is to make it easy for users in the industry to train and deploy recommender models with the best
+practices that are already baked into the library. The library simplifies how users in the industry can train standard models against their dataset and put high-performance, GPU-accelerated models into production. The library also enables researchers to build custom
+models by incorporating standard components of deep learning recommender models and then researchers can benchmark the new models on
+example offline
+datasets.</p>
+<p>In our initial releases, Merlin Models features a TensorFlow API. The PyTorch API is initiated, but incomplete.</p>
+<div class="section" id="benefits-of-merlin-models">
+<h2>Benefits of Merlin Models<a class="headerlink" href="#benefits-of-merlin-models" title="Permalink to this headline"></a></h2>
+<p><strong><a class="reference external" href="https://nvidia-merlin.github.io/models/main/models_overview.html">RecSys model implementations</a></strong> - The library provides a high-level API for classic and state-of-the-art deep learning architectures for recommender models.
+These models include both retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, …) and ranking (e.g. DLRM, DCN-v2, DeepFM, …) models.</p>
+<p><strong>Building blocks</strong> - Within Merlin Models, recommender models are built on reusable building blocks.
+The design makes it easy to combine the blocks to define new architectures.
+The library provides model definition blocks (MLP layers, factorization layers, input blocks, negative samplers, loss functions), training models (data loaders from Parquet files), and evaluation (e.g. ranking metrics).</p>
+<p><strong>Integration with Merlin platform</strong> - Merlin Models is deeply integrated with the other Merlin components.
+For example, models depend on NVTabular for pre-processing and integrate easily with Merlin Systems for inference.
+The thoughtfully-designed integration makes it straightforward to build performant end-to-end RecSys pipelines.</p>
+<p><strong><a class="reference external" href="https://nvidia-merlin.github.io/models/main/api.html#loader-utility-functions">Merlin Models DataLoaders</a></strong> - Merlin provides seamless integration with common deep learning frameworks, such as TensorFlow, PyTorch, and HugeCTR.
+When training deep learning recommender system models, data loading can be a bottleneck.
+To address the challenge, Merlin has custom, highly-optimized dataloaders to accelerate existing TensorFlow and PyTorch training pipelines.
+The Merlin dataloaders can lead to a speedup that is nine times faster than the same training pipeline used with the GPU.</p>
+<p>With the Merlin dataloaders, you can:</p>
+<ul class="simple">
+<li><p>Remove bottlenecks from data loading by processing large chunks of data at a time instead of item by item.</p></li>
+<li><p>Process datasets that don’t fit within the GPU or CPU memory by streaming from the disk.</p></li>
+<li><p>Prepare batches asynchronously into the GPU to avoid CPU-to-GPU communication.</p></li>
+<li><p>Integrate easily into existing TensorFlow or PyTorch training pipelines by using a similar API.</p></li>
+</ul>
+<p>To learn about the core features of Merlin Models, see the <a class="reference external" href="https://nvidia-merlin.github.io/models/main/models_overview.html">Models Overview</a> page.</p>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h2>
+<div class="section" id="installing-merlin-models-using-pip">
+<h3>Installing Merlin Models Using Pip<a class="headerlink" href="#installing-merlin-models-using-pip" title="Permalink to this headline"></a></h3>
+<p>Merlin Models can be installed with <code class="docutils literal notranslate"><span class="pre">pip</span></code> by running the following command:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip install merlin-models
+</pre></div>
+</div>
+<blockquote>
+<div><p>Installing Merlin Models with <code class="docutils literal notranslate"><span class="pre">pip</span></code> does not install some additional GPU dependencies, such as the CUDA Toolkit.
+When you run Merlin Models in one of our Docker containers, the dependencies are already installed.</p>
+</div></blockquote>
+</div>
+<div class="section" id="docker-containers-that-include-merlin-models">
+<h3>Docker Containers that include Merlin Models<a class="headerlink" href="#docker-containers-that-include-merlin-models" title="Permalink to this headline"></a></h3>
+<p>Merlin Models is included in the Merlin Containers.</p>
+<p>Refer to the <a class="reference external" href="https://nvidia-merlin.github.io/Merlin/main/containers.html">Merlin Containers</a> documentation page for information about the Merlin container names, URLs to the container images on the NVIDIA GPU Cloud catalog, and key Merlin components.</p>
+</div>
+<div class="section" id="installing-merlin-models-from-source">
+<h3>Installing Merlin Models from Source<a class="headerlink" href="#installing-merlin-models-from-source" title="Permalink to this headline"></a></h3>
+<p>Merlin Models can be installed from source by running the following commands:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/NVIDIA-Merlin/models
+<span class="nb">cd</span> models <span class="o">&amp;&amp;</span> pip install -e .
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h2>
+<p>Merlin Models makes it straightforward to define architectures that adapt to different input features.
+This adaptability is provided by building on a core feature of the NVTabular library.
+When you use NVTabular for feature engineering, NVTabular creates a schema that identifies the input features.
+You can see the <code class="docutils literal notranslate"><span class="pre">Schema</span></code> object in action by looking at the <a class="reference external" href="https://nvidia-merlin.github.io/models/main/examples/02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a> example notebook.</p>
+<p>You can easily build popular RecSys architectures like <a class="reference external" href="http://arxiv.org/abs/1906.00091">DLRM</a>, as shown in the following code sample.
+After you define the model, you can train and evaluate it with a typical Keras model.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
+<span class="kn">from</span> <span class="nn">merlin.io.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
+
+<span class="n">train</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">PATH_TO_TRAIN_DATA</span><span class="p">)</span>
+<span class="n">valid</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">PATH_TO_VALID_DATA</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
+    <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>                                                   <span class="c1"># 1</span>
+    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>                            <span class="c1"># 2</span>
+    <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>      <span class="c1"># 3</span>
+<span class="p">)</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adagrad&quot;</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
+<span class="n">eval_metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="simple">
+<li><p>To build the internal input layer, the model identifies them from the schema object.
+The schema identifies the continuous features and categorical features, for which embedding tables are created.</p></li>
+<li><p>To define the body of the architecture, MLP layers are used with configurable dimensions.</p></li>
+<li><p>The head of the architecture is created from the chosen task, <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code> in this example.
+The target binary feature is also inferred from the schema (i.e., tagged as ‘TARGET’).</p></li>
+</ol>
+<p>You can find more details and information about a low-level API in our overview of the
+<a class="reference external" href="https://nvidia-merlin.github.io/models/main/models_overview.html#deep-learning-recommender-model">Deep Learning Recommender Model</a>.</p>
+</div>
+<div class="section" id="notebook-examples-and-tutorials">
+<h2>Notebook Examples and Tutorials<a class="headerlink" href="#notebook-examples-and-tutorials" title="Permalink to this headline"></a></h2>
+<p>View the example notebooks in the <a class="reference external" href="https://nvidia-merlin.github.io/models/main/examples/README.html">documentation</a> to help you become familiar with Merlin Models.</p>
+<p>The same notebooks are available in the <code class="docutils literal notranslate"><span class="pre">examples</span></code> directory from the <a class="reference external" href="https://github.com/NVIDIA-Merlin/models">Merlin Models</a> GitHub repostory.</p>
+</div>
+<div class="section" id="feedback-and-support">
+<h2>Feedback and Support<a class="headerlink" href="#feedback-and-support" title="Permalink to this headline"></a></h2>
+<p>If you’d like to contribute to the library directly, see the <a class="reference internal" href="CONTRIBUTING.html"><span class="doc std std-doc">CONTRIBUTING.md</span></a> file.
+We’re particularly interested in contributions or feature requests for our feature engineering and preprocessing operations.
+To further advance our Merlin Roadmap, we encourage you to share all the details regarding your recommender system pipeline in this <a class="reference external" href="https://developer.nvidia.com/merlin-devzone-survey">survey</a>.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Merlin Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="models_overview.html" class="btn btn-neutral float-right" title="Standard Models: Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.9.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../v0.4.0/index.html">v0.4.0</a></dd>
+      <dd><a href="../v0.5.0/index.html">v0.5.0</a></dd>
+      <dd><a href="../v0.6.0/index.html">v0.6.0</a></dd>
+      <dd><a href="../v0.7.0/index.html">v0.7.0</a></dd>
+      <dd><a href="../v0.8.0/index.html">v0.8.0</a></dd>
+      <dd><a href="README.html">v0.9.0</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../main/index.html">main</a></dd>
+    </dl>
+  </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

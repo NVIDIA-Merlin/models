@@ -1,0 +1,125 @@
+﻿merlin.models.tf.ExpandDims
+===========================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: ExpandDims
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ExpandDims.__init__
+      ~ExpandDims.add_loss
+      ~ExpandDims.add_metric
+      ~ExpandDims.add_update
+      ~ExpandDims.add_variable
+      ~ExpandDims.add_weight
+      ~ExpandDims.apply_to_all
+      ~ExpandDims.as_tabular
+      ~ExpandDims.build
+      ~ExpandDims.calculate_batch_size_from_input_shapes
+      ~ExpandDims.call
+      ~ExpandDims.call_outputs
+      ~ExpandDims.check_schema
+      ~ExpandDims.compute_call_output_shape
+      ~ExpandDims.compute_mask
+      ~ExpandDims.compute_output_shape
+      ~ExpandDims.compute_output_signature
+      ~ExpandDims.connect
+      ~ExpandDims.connect_branch
+      ~ExpandDims.connect_debug_block
+      ~ExpandDims.connect_with_residual
+      ~ExpandDims.connect_with_shortcut
+      ~ExpandDims.copy
+      ~ExpandDims.count_params
+      ~ExpandDims.finalize_state
+      ~ExpandDims.from_config
+      ~ExpandDims.from_features
+      ~ExpandDims.from_layer
+      ~ExpandDims.from_schema
+      ~ExpandDims.get_config
+      ~ExpandDims.get_input_at
+      ~ExpandDims.get_input_mask_at
+      ~ExpandDims.get_input_shape_at
+      ~ExpandDims.get_item_ids_from_inputs
+      ~ExpandDims.get_output_at
+      ~ExpandDims.get_output_mask_at
+      ~ExpandDims.get_output_shape_at
+      ~ExpandDims.get_padding_mask_from_item_id
+      ~ExpandDims.get_weights
+      ~ExpandDims.parse
+      ~ExpandDims.parse_block
+      ~ExpandDims.post_call
+      ~ExpandDims.pre_call
+      ~ExpandDims.prepare
+      ~ExpandDims.register_features
+      ~ExpandDims.repeat
+      ~ExpandDims.repeat_in_parallel
+      ~ExpandDims.repr_add
+      ~ExpandDims.repr_extra
+      ~ExpandDims.repr_ignore
+      ~ExpandDims.select_by_name
+      ~ExpandDims.select_by_tag
+      ~ExpandDims.set_aggregation
+      ~ExpandDims.set_post
+      ~ExpandDims.set_pre
+      ~ExpandDims.set_schema
+      ~ExpandDims.set_weights
+      ~ExpandDims.super
+      ~ExpandDims.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ExpandDims.REQUIRES_SCHEMA
+      ~ExpandDims.activity_regularizer
+      ~ExpandDims.aggregation
+      ~ExpandDims.compute_dtype
+      ~ExpandDims.context
+      ~ExpandDims.dtype
+      ~ExpandDims.dtype_policy
+      ~ExpandDims.dynamic
+      ~ExpandDims.has_schema
+      ~ExpandDims.inbound_nodes
+      ~ExpandDims.input
+      ~ExpandDims.input_mask
+      ~ExpandDims.input_shape
+      ~ExpandDims.input_spec
+      ~ExpandDims.is_input
+      ~ExpandDims.is_tabular
+      ~ExpandDims.losses
+      ~ExpandDims.metrics
+      ~ExpandDims.name
+      ~ExpandDims.name_scope
+      ~ExpandDims.non_trainable_variables
+      ~ExpandDims.non_trainable_weights
+      ~ExpandDims.outbound_nodes
+      ~ExpandDims.output
+      ~ExpandDims.output_mask
+      ~ExpandDims.output_shape
+      ~ExpandDims.post
+      ~ExpandDims.pre
+      ~ExpandDims.registry
+      ~ExpandDims.schema
+      ~ExpandDims.stateful
+      ~ExpandDims.submodules
+      ~ExpandDims.supports_masking
+      ~ExpandDims.trainable
+      ~ExpandDims.trainable_variables
+      ~ExpandDims.trainable_weights
+      ~ExpandDims.updates
+      ~ExpandDims.variable_dtype
+      ~ExpandDims.variables
+      ~ExpandDims.weights
+   
+   

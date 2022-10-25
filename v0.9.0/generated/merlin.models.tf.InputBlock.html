@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>merlin.models.tf.InputBlock &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="merlin.models.tf.ContinuousFeatures" href="merlin.models.tf.ContinuousFeatures.html" />
+    <link rel="prev" title="merlin.models.tf.YoutubeDNNRetrievalModel" href="merlin.models.tf.YoutubeDNNRetrievalModel.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../api.html">API Documentation</a> &raquo;</li>
+      <li>merlin.models.tf.InputBlock</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="merlin-models-tf-inputblock">
+<h1>merlin.models.tf.InputBlock<a class="headerlink" href="#merlin-models-tf-inputblock" title="Permalink to this headline"></a></h1>
+<dl class="py function">
+<dt id="merlin.models.tf.InputBlock">
+<code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">InputBlock</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">schema:</span> <span class="pre">merlin.schema.schema.Schema,</span> <span class="pre">branches:</span> <span class="pre">Optional[Dict[str,</span> <span class="pre">merlin.models.tf.core.base.Block]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">post:</span> <span class="pre">Optional[Union[merlin.models.tf.core.base.Block,</span> <span class="pre">str,</span> <span class="pre">Sequence[str]]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">aggregation:</span> <span class="pre">Optional[Union[str,</span> <span class="pre">merlin.models.tf.core.tabular.TabularAggregation]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">seq:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">max_seq_length:</span> <span class="pre">Optional[int]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">add_continuous_branch:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">continuous_tags:</span> <span class="pre">Optional[Union[merlin.schema.tags.TagSet,</span> <span class="pre">List[str],</span> <span class="pre">List[merlin.schema.tags.Tags],</span> <span class="pre">List[Union[str,</span> <span class="pre">merlin.schema.tags.Tags]],</span> <span class="pre">Tuple[merlin.schema.tags.Tags]]]</span> <span class="pre">=</span> <span class="pre">(&lt;Tags.CONTINUOUS:</span> <span class="pre">'continuous'&gt;,),</span> <span class="pre">continuous_projection:</span> <span class="pre">Optional[merlin.models.tf.core.base.Block]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">add_embedding_branch:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">embedding_options:</span> <span class="pre">merlin.models.tf.inputs.embedding.EmbeddingOptions</span> <span class="pre">=</span> <span class="pre">EmbeddingOptions(embedding_dims=None,</span> <span class="pre">embedding_dim_default=64,</span> <span class="pre">infer_embedding_sizes=False,</span> <span class="pre">infer_embedding_sizes_multiplier=2.0,</span> <span class="pre">infer_embeddings_ensure_dim_multiple_of_8=False,</span> <span class="pre">embeddings_initializers=None,</span> <span class="pre">embeddings_l2_reg=0.0,</span> <span class="pre">combiner='mean'),</span> <span class="pre">categorical_tags:</span> <span class="pre">Optional[Union[merlin.schema.tags.TagSet,</span> <span class="pre">List[str],</span> <span class="pre">List[merlin.schema.tags.Tags],</span> <span class="pre">List[Union[str,</span> <span class="pre">merlin.schema.tags.Tags]],</span> <span class="pre">Tuple[merlin.schema.tags.Tags]]]</span> <span class="pre">=</span> <span class="pre">(&lt;Tags.CATEGORICAL:</span> <span class="pre">'categorical'&gt;,),</span> <span class="pre">sequential_tags:</span> <span class="pre">Optional[Union[merlin.schema.tags.TagSet,</span> <span class="pre">List[str],</span> <span class="pre">List[merlin.schema.tags.Tags],</span> <span class="pre">List[Union[str,</span> <span class="pre">merlin.schema.tags.Tags]],</span> <span class="pre">Tuple[merlin.schema.tags.Tags]]]</span> <span class="pre">=</span> <span class="pre">(&lt;Tags.SEQUENCE:</span> <span class="pre">'sequence'&gt;,),</span> <span class="pre">split_sparse:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">seq_aggregator:</span> <span class="pre">merlin.models.tf.core.base.Block</span> <span class="pre">=</span> <span class="pre">SequenceAggregator(),</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">merlin.models.tf.core.base.Block</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/base.html#InputBlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.InputBlock" title="Permalink to this definition"></a></dt>
+<dd><p>The entry block of the model to process input features from a schema.</p>
+<dl class="simple">
+<dt>This function creates continuous and embedding layers, and connects them via <cite>ParallelBlock</cite>.</dt><dd><p>If aggregation argument is not set, it returns a dictionary of multiple tensors
+each corresponds to an input feature.
+Otherwise, it merges the tensors into one using the aggregation method.</p>
+</dd>
+</dl>
+<p>Example usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mlp</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]))</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>schema: Schema</dt><dd><p>Schema of the input data. This Schema object will be automatically generated using
+[NVTabular](<a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/main/Introduction.html">https://nvidia-merlin.github.io/NVTabular/main/Introduction.html</a>).
+Next to this, it’s also possible to construct it manually.</p>
+</dd>
+<dt>branches: Dict[str, Block], optional</dt><dd><p>Dictionary of branches to use inside the InputBlock.</p>
+</dd>
+<dt>post: Optional[BlockType]</dt><dd><p>Transformations to apply on the inputs after the module is
+called (so <strong>after</strong> <cite>forward</cite>).
+Defaults to None</p>
+</dd>
+<dt>aggregation: Optional[TabularAggregationType]</dt><dd><p>Aggregation to apply after processing the  <cite>forward</cite>-method to output a single Tensor.
+Defaults to None</p>
+</dd>
+<dt>seq: bool</dt><dd><p>Whether to process inputs for sequential model (returns 3-D tensor)
+or not (returns 2-D tensor). Use <cite>seq=True</cite> to treat the sparse (list) features
+as sequences (e.g. for sequential recommendation) and <cite>seq=False</cite> to treat sparse
+features as multi-hot categorical representations.
+Defaults to False</p>
+</dd>
+<dt>add_continuous_branch: bool</dt><dd><p>If set, add the branch to process continuous features
+Defaults to True</p>
+</dd>
+<dt>continuous_tags: Optional[Union[TagsType, Tuple[Tags]]]</dt><dd><p>Tags to filter the continuous features
+Defaults to  (Tags.CONTINUOUS,)</p>
+</dd>
+<dt>continuous_projection: Optional[Block]</dt><dd><p>If set, concatenate all numerical features and projet using the
+specified Block.
+Defaults to None</p>
+</dd>
+<dt>add_embedding_branch: bool</dt><dd><p>If set, add the branch to process categorical features
+Defaults to True</p>
+</dd>
+<dt>embedding_options<span class="classifier">EmbeddingOptions, optional</span></dt><dd><p>An EmbeddingOptions instance, which allows for a number of
+options for the embedding table, by default EmbeddingOptions()</p>
+</dd>
+<dt>categorical_tags: Optional[Union[TagsType, Tuple[Tags]]]</dt><dd><p>Tags to filter the continuous features
+Defaults to (Tags.CATEGORICAL,)</p>
+</dd>
+<dt>sequential_tags: Optional[Union[TagsType, Tuple[Tags]]]</dt><dd><p>Tags to filter the sparse features
+Defaults to (Tags.SEQUENCE,)</p>
+</dd>
+<dt>split_sparse: Optional[bool]</dt><dd><p>When True, separate the processing of context (2-D) and sparse features (3-D).
+Defaults to False</p>
+</dd>
+<dt>seq_aggregator: Block</dt><dd><p>If non-sequential model (seq=False):
+aggregate the sparse features tensor along the sequence axis.
+Defaults to SequenceAggregator(‘mean’)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="merlin.models.tf.YoutubeDNNRetrievalModel.html" class="btn btn-neutral float-left" title="merlin.models.tf.YoutubeDNNRetrievalModel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.ContinuousFeatures.html" class="btn btn-neutral float-right" title="merlin.models.tf.ContinuousFeatures" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.9.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+      <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+      <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+      <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+      <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+      <dd><a href="merlin.models.tf.InputBlock.html">v0.9.0</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../main/index.html">main</a></dd>
+    </dl>
+  </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1772 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "63959d5a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# Copyright 2021 NVIDIA Corporation. All Rights Reserved.\n",
+    "#\n",
+    "# Licensed under the Apache License, Version 2.0 (the \"License\");\n",
+    "# you may not use this file except in compliance with the License.\n",
+    "# You may obtain a copy of the License at\n",
+    "#\n",
+    "#     http://www.apache.org/licenses/LICENSE-2.0\n",
+    "#\n",
+    "# Unless required by applicable law or agreed to in writing, software\n",
+    "# distributed under the License is distributed on an \"AS IS\" BASIS,\n",
+    "# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n",
+    "# See the License for the specific language governing permissions and\n",
+    "# limitations under the License.\n",
+    "# ================================"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "906fc19a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "<img src=\"https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_05-retrieval-model/nvidia_logo.png\" style=\"width: 90px; float: right;\">\n",
+    "\n",
+    "# Two-Stage Recommender Systems\n",
+    "\n",
+    "This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. \n",
+    "\n",
+    "In large scale recommender systems pipelines, the size of the item catalog (number of unique items) might be in the order of millions. At such scale, a typical setup is having two-stage pipeline, where a faster candidate retrieval model quickly extracts thousands of relevant items and a then a more powerful ranking model (i.e. with more features and more powerful architecture) ranks the top-k items that are going to be displayed to the user. For ML-based candidate retrieval model, as it needs to quickly score millions of items for a given user, a popular choices are models that can produce recommendation scores by just computing the dot product the user embeddings and item embeddings. Popular choices of such models are **Matrix Factorization**, which learns low-rank user and item embeddings, and the **Two-Tower architecture**, which is a neural network with two MLP towers where both user and item features are fed to generate user and item embeddings in the output."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "401daa6d",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "\n",
+    "### Dataset\n",
+    "\n",
+    "In this notebook, we are building a Two-Tower model for Item Retrieval task using synthetic datasets that are mimicking the real [Ali-CCP: Alibaba Click and Conversion Prediction](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1) dataset.\n",
+    "### Learning objectives\n",
+    "- Preparing the data with NVTabular\n",
+    "- Training and evaluating Two-Tower model with Merlin Models\n",
+    "- Exporting the model for deployment"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cdac1fea",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### Importing Libraries"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "92aa8daa",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-09-14 20:25:46.371744: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX\n",
+      "To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
+      "2022-09-14 20:25:47.490333: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -> device: 0, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "\n",
+    "import nvtabular as nvt\n",
+    "from nvtabular.ops import *\n",
+    "from merlin.models.utils.example_utils import workflow_fit_transform\n",
+    "\n",
+    "from merlin.schema.tags import Tags\n",
+    "\n",
+    "import merlin.models.tf as mm\n",
+    "from merlin.io.dataset import Dataset\n",
+    "\n",
+    "import tensorflow as tf"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "126c8bb8",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# disable INFO and DEBUG logging everywhere\n",
+    "import logging\n",
+    "\n",
+    "logging.disable(logging.WARNING)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0ac0eef4",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### Feature Engineering with NVTabular"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d21e559b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's generate synthetic train and validation dataset objects."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "870acd78",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [<Tags.USER: 'user'>, <Tags.ID: 'id'>].\n",
+      "  warnings.warn(\n",
+      "/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [<Tags.ITEM: 'item'>, <Tags.ID: 'id'>].\n",
+      "  warnings.warn(\n"
+     ]
+    }
+   ],
+   "source": [
+    "from merlin.datasets.synthetic import generate_data\n",
+    "\n",
+    "DATA_FOLDER = os.environ.get(\"DATA_FOLDER\", \"/workspace/data/\")\n",
+    "NUM_ROWS = os.environ.get(\"NUM_ROWS\", 1000000)\n",
+    "SYNTHETIC_DATA = eval(os.environ.get(\"SYNTHETIC_DATA\", \"True\"))\n",
+    "\n",
+    "if SYNTHETIC_DATA:\n",
+    "    train, valid = generate_data(\"aliccp-raw\", int(NUM_ROWS), set_sizes=(0.7, 0.3))\n",
+    "else:\n",
+    "    train = nvt.Dataset(DATA_FOLDER + \"/train/*.parquet\")\n",
+    "    valid = nvt.Dataset(DATA_FOLDER + \"/valid/*.parquet\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "a47b29c6",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# define output path for the processed parquet files\n",
+    "output_path = os.path.join(DATA_FOLDER, \"processed\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ce1faddb",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We keep only positive interactions where clicks==1 in the dataset with `Filter()` op."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "078593b4",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "user_id = [\"user_id\"] >> Categorify() >> TagAsUserID()\n",
+    "item_id = [\"item_id\"] >> Categorify() >> TagAsItemID()\n",
+    "\n",
+    "item_features = [\"item_category\", \"item_shop\", \"item_brand\"] >> Categorify() >> TagAsItemFeatures()\n",
+    "\n",
+    "user_features = (\n",
+    "    [\n",
+    "        \"user_shops\",\n",
+    "        \"user_profile\",\n",
+    "        \"user_group\",\n",
+    "        \"user_gender\",\n",
+    "        \"user_age\",\n",
+    "        \"user_consumption_2\",\n",
+    "        \"user_is_occupied\",\n",
+    "        \"user_geography\",\n",
+    "        \"user_intentions\",\n",
+    "        \"user_brands\",\n",
+    "        \"user_categories\",\n",
+    "    ]\n",
+    "    >> Categorify()\n",
+    "    >> TagAsUserFeatures()\n",
+    ")\n",
+    "\n",
+    "inputs = user_id + item_id + item_features + user_features + [\"click\"]\n",
+    "\n",
+    "outputs = inputs >> Filter(f=lambda df: df[\"click\"] == 1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2aa99f0b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "With `transform_aliccp` function, we can execute fit() and transform() on the raw dataset applying the operators defined in the NVTabular workflow pipeline above. The processed parquet files are saved to output_path."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "07ab4edc",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/usr/local/lib/python3.8/dist-packages/cudf/core/frame.py:384: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.\n",
+      "  warnings.warn(\n"
+     ]
+    }
+   ],
+   "source": [
+    "from merlin.datasets.ecommerce import transform_aliccp\n",
+    "\n",
+    "transform_aliccp((train, valid), output_path, nvt_workflow=outputs)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "df7be4a6",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## Building a Two-Tower Model with Merlin Models"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7f7e4a6b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We will use Two-Tower Model for item retrieval task. Real-world large scale recommender systems have hundreds of millions of items (products) and users. Thus, these systems often composed of two stages: candidate generation (retrieval) and ranking (scoring the retrieved items). At candidate generation step, a subset of relevant items from large item corpus is retrieved. You can read more about two stage Recommender Systems here. In this example, we're going to focus on the retrieval stage.\n",
+    "\n",
+    "A Two-Tower Model consists of item (candidate) and user (query) encoder towers. With two towers, the model can learn representations (embeddings) for queries and candidates separately. \n",
+    "\n",
+    "<img src=\"./images/TwoTower.png\"  width=\"30%\">\n",
+    "\n",
+    "Image Adapted from: [Off-policy Learning in Two-stage Recommender Systems](https://dl.acm.org/doi/abs/10.1145/3366423.3380130)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "bb5f26a8",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We use the `schema` object to define our model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "298655b7",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'/workspace/data/processed'"
+      ]
+     },
+     "execution_count": 8,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "output_path"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "a7e0c257",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "train = Dataset(os.path.join(output_path, \"train\", \"*.parquet\"))\n",
+    "valid = Dataset(os.path.join(output_path, \"valid\", \"*.parquet\"))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fcdb2dbc-9bbd-46ad-aede-44c3ffbaac9d",
+   "metadata": {},
+   "source": [
+    "Select features with user and item tags, and be sure to exclude target column."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "94eb4048",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "schema = train.schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])\n",
+    "train.schema = schema\n",
+    "valid.schema = schema"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e3e3469c",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We can print out the feature column names."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "04449fe3",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['user_id',\n",
+       " 'item_id',\n",
+       " 'item_category',\n",
+       " 'item_shop',\n",
+       " 'item_brand',\n",
+       " 'user_shops',\n",
+       " 'user_profile',\n",
+       " 'user_group',\n",
+       " 'user_gender',\n",
+       " 'user_age',\n",
+       " 'user_consumption_2',\n",
+       " 'user_is_occupied',\n",
+       " 'user_geography',\n",
+       " 'user_intentions',\n",
+       " 'user_brands',\n",
+       " 'user_categories']"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "schema.column_names"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3095bd9b",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We expect the label names to be empty."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "68bf449f",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[]"
+      ]
+     },
+     "execution_count": 12,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "label_names = schema.select_by_tag(Tags.TARGET).column_names\n",
+    "label_names"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9aa725f3",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### Negative sampling\n",
+    "Many datasets for recommender systems contain implicit feedback with logs of user interactions like clicks, add-to-cart, purchases, music listening events, rather than explicit ratings that reflects user preferences over items. To be able to learn from implicit feedback, we use the general (and naive) assumption that the interacted items are more relevant for the user than the non-interacted ones.\n",
+    "In Merlin Models we provide some scalable negative sampling algorithms for the Item Retrieval Task. In particular, we use in this example the in-batch sampling algorithm which uses the items interacted by other users as negatives within the same mini-batch."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9ef77cd4",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### Building the Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "aaaba8c0",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Now, let's build our Two-Tower model. In a nutshell, we aggregate all user features to feed in user tower and feed the item features to the item tower. Then we compute the positive score by multiplying the user embedding with the item embedding and sample negative items (read more about negative sampling [here](https://openreview.net/pdf?id=824xC-SgWgU) and [here](https://medium.com/mlearning-ai/overview-negative-sampling-on-recommendation-systems-230a051c6cd7)), whose item embeddings are also multiplied by the user embedding. Then we apply the loss function on top of the positive and negative scores."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "ab01339f",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "model = mm.TwoTowerModel(\n",
+    "    schema,\n",
+    "    query_tower=mm.MLPBlock([128, 64], no_activation_last_layer=True),\n",
+    "    samplers=[mm.InBatchSampler()],\n",
+    "    embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "00108875",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's explain the parameters in the TwoTowerModel():\n",
+    "- no_activation_last_layer: when set True, no activation is used for top hidden layer. Learn more [here](https://storage.googleapis.com/pub-tools-public-publication-data/pdf/b9f4e78a8830fe5afcf2f0452862fb3c0d6584ea.pdf).\n",
+    "- infer_embedding_sizes: when set True, automatically defines the embedding dimension from the feature cardinality in the schema\n",
+    "\n",
+    "**Metrics:**\n",
+    "\n",
+    "The following information retrieval metrics are used to compute the Top-10 accuracy of recommendation lists containing all items:\n",
+    "\n",
+    "- **Normalized Discounted Cumulative Gain (NDCG@10)**: NDCG accounts for rank of the relevant item in the recommendation list and is a more fine-grained metric than HR, which only verifies whether the relevant item is among the top-k items.\n",
+    "\n",
+    "- **Recall@10**: Also known as HitRate@n when there is only one relevant item in the recommendation list. Recall just verifies whether the relevant item is among the top-n items."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3c7ec768",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We need to initialize the dataloaders."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "1280bb4f",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Epoch 1/3\n",
+      "86/86 [==============================] - 12s 46ms/step - loss: 8.2960 - recall_at_10: 0.0249 - ndcg_at_10: 0.0232 - regularization_loss: 0.0000e+00 - val_loss: 8.2910 - val_recall_at_10: 0.0287 - val_ndcg_at_10: 0.0286 - val_regularization_loss: 0.0000e+00\n",
+      "Epoch 2/3\n",
+      "86/86 [==============================] - 3s 32ms/step - loss: 8.2954 - recall_at_10: 0.0302 - ndcg_at_10: 0.0299 - regularization_loss: 0.0000e+00 - val_loss: 8.2914 - val_recall_at_10: 0.0249 - val_ndcg_at_10: 0.0234 - val_regularization_loss: 0.0000e+00\n",
+      "Epoch 3/3\n",
+      "86/86 [==============================] - 3s 32ms/step - loss: 8.2943 - recall_at_10: 0.0247 - ndcg_at_10: 0.0229 - regularization_loss: 0.0000e+00 - val_loss: 8.2922 - val_recall_at_10: 0.0166 - val_ndcg_at_10: 0.0135 - val_regularization_loss: 0.0000e+00\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<keras.callbacks.History at 0x7fbd6b8b71f0>"
+      ]
+     },
+     "execution_count": 14,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "model.compile(optimizer=\"adam\", run_eagerly=False, metrics=[mm.RecallAt(10), mm.NDCGAt(10)])\n",
+    "model.fit(train, validation_data=valid, batch_size=4096, epochs=3)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b19062ef",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## Exporting Retrieval Models"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "abf8cb35",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "So far we have trained and evaluated our Retrieval model. Now, the next step is to deploy our model and generate top-K recommendations given a user (query). We can efficiently serve our model by indexing the trained item embeddings into an **Approximate Nearest Neighbors (ANN)** engine. Basically, for a given user query vector, that is generated passing the user features into user tower of retrieval model, we do an ANN search query to find the ids of nearby item vectors, and at serve time, we score user embeddings over all indexed top-K item embeddings within the ANN engine.\n",
+    "\n",
+    "In doing so, we need to export\n",
+    " \n",
+    "- user (query) tower\n",
+    "- item and user features\n",
+    "- item embeddings"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a01df11e",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "#### Save User (query) tower"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f4dc5e2c",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We are able to save the user tower model as a TF model to disk. The user tower model is needed to generate a user embedding vector when a user feature vector <i>x</i> is fed into that model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "07c68eb4",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "query_tower = model.retrieval_block.query_block()\n",
+    "query_tower.save(\"query_tower\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e4c031f8",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "#### Extract and save User features"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9cdd88a9",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "With `unique_rows_by_features` utility function we can easily extract both unique user and item features tables as cuDF dataframes. Note that for user features table, we use `USER` and `USER_ID` tags."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "1f861ac4",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "from merlin.models.utils.dataset import unique_rows_by_features\n",
+    "\n",
+    "user_features = (\n",
+    "    unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "f88fcb3a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>user_id</th>\n",
+       "      <th>user_shops</th>\n",
+       "      <th>user_profile</th>\n",
+       "      <th>user_group</th>\n",
+       "      <th>user_gender</th>\n",
+       "      <th>user_age</th>\n",
+       "      <th>user_consumption_2</th>\n",
+       "      <th>user_is_occupied</th>\n",
+       "      <th>user_geography</th>\n",
+       "      <th>user_intentions</th>\n",
+       "      <th>user_brands</th>\n",
+       "      <th>user_categories</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   user_id  user_shops  user_profile  user_group  user_gender  user_age  \\\n",
+       "0        1           1             1           1            1         1   \n",
+       "1        2           2             1           1            1         1   \n",
+       "2        3           3             1           1            1         1   \n",
+       "3        4           4             1           1            1         1   \n",
+       "4        5           5             1           1            1         1   \n",
+       "\n",
+       "   user_consumption_2  user_is_occupied  user_geography  user_intentions  \\\n",
+       "0                   1                 1               1                1   \n",
+       "1                   1                 1               1                2   \n",
+       "2                   1                 1               1                3   \n",
+       "3                   1                 1               1                4   \n",
+       "4                   1                 1               1                5   \n",
+       "\n",
+       "   user_brands  user_categories  \n",
+       "0            1                1  \n",
+       "1            2                2  \n",
+       "2            3                3  \n",
+       "3            4                4  \n",
+       "4            5                5  "
+      ]
+     },
+     "execution_count": 17,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "user_features.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "7479f68a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(657, 12)"
+      ]
+     },
+     "execution_count": 18,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "user_features.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "33758417",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# save to disk\n",
+    "user_features.to_parquet(\"user_features.parquet\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "595b1578",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "#### Extract and save Item features"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "3ae320ec",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "item_features = (\n",
+    "    unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "8a24dcb8",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>item_id</th>\n",
+       "      <th>item_category</th>\n",
+       "      <th>item_shop</th>\n",
+       "      <th>item_brand</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   item_id  item_category  item_shop  item_brand\n",
+       "0        1              1          1           1\n",
+       "1        2              2          2           2\n",
+       "2        3              3          3           3\n",
+       "3        4              4          4           4\n",
+       "4        5              5          5           5"
+      ]
+     },
+     "execution_count": 21,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "item_features.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "40102380",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# save to disk\n",
+    "item_features.to_parquet(\"item_features.parquet\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f57f5a3e",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "#### Extract and save Item embeddings"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "id": "138678ae",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [<Tags.ITEM: 'item'>, <Tags.ID: 'id'>].\n",
+      "  warnings.warn(\n"
+     ]
+    }
+   ],
+   "source": [
+    "item_embs = model.item_embeddings(Dataset(item_features, schema=schema), batch_size=1024)\n",
+    "item_embs_df = item_embs.compute(scheduler=\"synchronous\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "id": "a69694b0",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>item_id</th>\n",
+       "      <th>item_category</th>\n",
+       "      <th>item_shop</th>\n",
+       "      <th>item_brand</th>\n",
+       "      <th>0</th>\n",
+       "      <th>1</th>\n",
+       "      <th>2</th>\n",
+       "      <th>3</th>\n",
+       "      <th>4</th>\n",
+       "      <th>5</th>\n",
+       "      <th>...</th>\n",
+       "      <th>54</th>\n",
+       "      <th>55</th>\n",
+       "      <th>56</th>\n",
+       "      <th>57</th>\n",
+       "      <th>58</th>\n",
+       "      <th>59</th>\n",
+       "      <th>60</th>\n",
+       "      <th>61</th>\n",
+       "      <th>62</th>\n",
+       "      <th>63</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>-0.000645</td>\n",
+       "      <td>-0.001204</td>\n",
+       "      <td>-0.041410</td>\n",
+       "      <td>0.089803</td>\n",
+       "      <td>0.058981</td>\n",
+       "      <td>0.041372</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.016396</td>\n",
+       "      <td>-0.032169</td>\n",
+       "      <td>0.071051</td>\n",
+       "      <td>0.050464</td>\n",
+       "      <td>0.025372</td>\n",
+       "      <td>0.045610</td>\n",
+       "      <td>-0.061057</td>\n",
+       "      <td>0.007790</td>\n",
+       "      <td>-0.167027</td>\n",
+       "      <td>-0.053427</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>0.108750</td>\n",
+       "      <td>0.058709</td>\n",
+       "      <td>-0.111856</td>\n",
+       "      <td>-0.067593</td>\n",
+       "      <td>0.015925</td>\n",
+       "      <td>-0.055041</td>\n",
+       "      <td>...</td>\n",
+       "      <td>-0.019538</td>\n",
+       "      <td>0.082256</td>\n",
+       "      <td>0.022989</td>\n",
+       "      <td>0.099734</td>\n",
+       "      <td>0.074534</td>\n",
+       "      <td>0.094016</td>\n",
+       "      <td>-0.008902</td>\n",
+       "      <td>-0.099134</td>\n",
+       "      <td>0.003340</td>\n",
+       "      <td>-0.147583</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>0.006825</td>\n",
+       "      <td>0.009164</td>\n",
+       "      <td>-0.114095</td>\n",
+       "      <td>0.076496</td>\n",
+       "      <td>-0.056996</td>\n",
+       "      <td>0.025556</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.062647</td>\n",
+       "      <td>0.113492</td>\n",
+       "      <td>0.035417</td>\n",
+       "      <td>0.046737</td>\n",
+       "      <td>-0.067891</td>\n",
+       "      <td>-0.111733</td>\n",
+       "      <td>-0.043777</td>\n",
+       "      <td>0.023095</td>\n",
+       "      <td>0.057462</td>\n",
+       "      <td>-0.114370</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "      <td>4</td>\n",
+       "      <td>0.029534</td>\n",
+       "      <td>0.041215</td>\n",
+       "      <td>-0.042976</td>\n",
+       "      <td>-0.005567</td>\n",
+       "      <td>0.043733</td>\n",
+       "      <td>0.091881</td>\n",
+       "      <td>...</td>\n",
+       "      <td>-0.078722</td>\n",
+       "      <td>0.064461</td>\n",
+       "      <td>0.059294</td>\n",
+       "      <td>0.054870</td>\n",
+       "      <td>0.067469</td>\n",
+       "      <td>-0.046624</td>\n",
+       "      <td>-0.075757</td>\n",
+       "      <td>-0.089032</td>\n",
+       "      <td>-0.085359</td>\n",
+       "      <td>-0.068102</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "      <td>0.035721</td>\n",
+       "      <td>-0.042282</td>\n",
+       "      <td>-0.167316</td>\n",
+       "      <td>-0.004608</td>\n",
+       "      <td>0.052254</td>\n",
+       "      <td>0.044603</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.000567</td>\n",
+       "      <td>-0.057452</td>\n",
+       "      <td>-0.001513</td>\n",
+       "      <td>0.101587</td>\n",
+       "      <td>0.032081</td>\n",
+       "      <td>-0.018756</td>\n",
+       "      <td>-0.062611</td>\n",
+       "      <td>-0.065444</td>\n",
+       "      <td>-0.031990</td>\n",
+       "      <td>-0.105818</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>658</th>\n",
+       "      <td>755</td>\n",
+       "      <td>755</td>\n",
+       "      <td>755</td>\n",
+       "      <td>755</td>\n",
+       "      <td>0.067260</td>\n",
+       "      <td>0.006107</td>\n",
+       "      <td>0.003706</td>\n",
+       "      <td>0.034731</td>\n",
+       "      <td>0.041444</td>\n",
+       "      <td>0.055807</td>\n",
+       "      <td>...</td>\n",
+       "      <td>-0.026011</td>\n",
+       "      <td>-0.042968</td>\n",
+       "      <td>0.027535</td>\n",
+       "      <td>0.012622</td>\n",
+       "      <td>-0.000667</td>\n",
+       "      <td>0.008178</td>\n",
+       "      <td>-0.105089</td>\n",
+       "      <td>0.026094</td>\n",
+       "      <td>-0.076065</td>\n",
+       "      <td>0.003433</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>659</th>\n",
+       "      <td>758</td>\n",
+       "      <td>758</td>\n",
+       "      <td>758</td>\n",
+       "      <td>758</td>\n",
+       "      <td>0.027046</td>\n",
+       "      <td>-0.053613</td>\n",
+       "      <td>-0.117797</td>\n",
+       "      <td>0.012776</td>\n",
+       "      <td>-0.002381</td>\n",
+       "      <td>-0.002983</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.066567</td>\n",
+       "      <td>0.000500</td>\n",
+       "      <td>0.047679</td>\n",
+       "      <td>0.049228</td>\n",
+       "      <td>0.055786</td>\n",
+       "      <td>-0.031709</td>\n",
+       "      <td>-0.063680</td>\n",
+       "      <td>-0.034298</td>\n",
+       "      <td>0.007169</td>\n",
+       "      <td>-0.063405</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>660</th>\n",
+       "      <td>759</td>\n",
+       "      <td>759</td>\n",
+       "      <td>759</td>\n",
+       "      <td>759</td>\n",
+       "      <td>0.013336</td>\n",
+       "      <td>0.043213</td>\n",
+       "      <td>0.013565</td>\n",
+       "      <td>0.041074</td>\n",
+       "      <td>0.110008</td>\n",
+       "      <td>0.056040</td>\n",
+       "      <td>...</td>\n",
+       "      <td>-0.038761</td>\n",
+       "      <td>-0.020616</td>\n",
+       "      <td>0.079571</td>\n",
+       "      <td>0.054057</td>\n",
+       "      <td>0.071308</td>\n",
+       "      <td>0.010730</td>\n",
+       "      <td>-0.041588</td>\n",
+       "      <td>-0.065301</td>\n",
+       "      <td>-0.081675</td>\n",
+       "      <td>-0.091705</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>661</th>\n",
+       "      <td>761</td>\n",
+       "      <td>761</td>\n",
+       "      <td>761</td>\n",
+       "      <td>761</td>\n",
+       "      <td>0.028308</td>\n",
+       "      <td>0.024164</td>\n",
+       "      <td>-0.032404</td>\n",
+       "      <td>0.068866</td>\n",
+       "      <td>-0.018572</td>\n",
+       "      <td>0.003615</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.036454</td>\n",
+       "      <td>0.021737</td>\n",
+       "      <td>0.059020</td>\n",
+       "      <td>-0.007279</td>\n",
+       "      <td>0.002234</td>\n",
+       "      <td>0.002154</td>\n",
+       "      <td>-0.122746</td>\n",
+       "      <td>0.007301</td>\n",
+       "      <td>0.080260</td>\n",
+       "      <td>-0.058809</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>662</th>\n",
+       "      <td>765</td>\n",
+       "      <td>765</td>\n",
+       "      <td>765</td>\n",
+       "      <td>765</td>\n",
+       "      <td>-0.007203</td>\n",
+       "      <td>-0.001262</td>\n",
+       "      <td>-0.044594</td>\n",
+       "      <td>0.073354</td>\n",
+       "      <td>-0.008520</td>\n",
+       "      <td>0.084151</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.050872</td>\n",
+       "      <td>0.028378</td>\n",
+       "      <td>0.101839</td>\n",
+       "      <td>0.061484</td>\n",
+       "      <td>0.000917</td>\n",
+       "      <td>-0.130745</td>\n",
+       "      <td>-0.048985</td>\n",
+       "      <td>-0.064347</td>\n",
+       "      <td>-0.012837</td>\n",
+       "      <td>-0.072822</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>663 rows × 68 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "     item_id  item_category  item_shop  item_brand         0         1  \\\n",
+       "0          1              1          1           1 -0.000645 -0.001204   \n",
+       "1          2              2          2           2  0.108750  0.058709   \n",
+       "2          3              3          3           3  0.006825  0.009164   \n",
+       "3          4              4          4           4  0.029534  0.041215   \n",
+       "4          5              5          5           5  0.035721 -0.042282   \n",
+       "..       ...            ...        ...         ...       ...       ...   \n",
+       "658      755            755        755         755  0.067260  0.006107   \n",
+       "659      758            758        758         758  0.027046 -0.053613   \n",
+       "660      759            759        759         759  0.013336  0.043213   \n",
+       "661      761            761        761         761  0.028308  0.024164   \n",
+       "662      765            765        765         765 -0.007203 -0.001262   \n",
+       "\n",
+       "            2         3         4         5  ...        54        55  \\\n",
+       "0   -0.041410  0.089803  0.058981  0.041372  ...  0.016396 -0.032169   \n",
+       "1   -0.111856 -0.067593  0.015925 -0.055041  ... -0.019538  0.082256   \n",
+       "2   -0.114095  0.076496 -0.056996  0.025556  ...  0.062647  0.113492   \n",
+       "3   -0.042976 -0.005567  0.043733  0.091881  ... -0.078722  0.064461   \n",
+       "4   -0.167316 -0.004608  0.052254  0.044603  ...  0.000567 -0.057452   \n",
+       "..        ...       ...       ...       ...  ...       ...       ...   \n",
+       "658  0.003706  0.034731  0.041444  0.055807  ... -0.026011 -0.042968   \n",
+       "659 -0.117797  0.012776 -0.002381 -0.002983  ...  0.066567  0.000500   \n",
+       "660  0.013565  0.041074  0.110008  0.056040  ... -0.038761 -0.020616   \n",
+       "661 -0.032404  0.068866 -0.018572  0.003615  ...  0.036454  0.021737   \n",
+       "662 -0.044594  0.073354 -0.008520  0.084151  ...  0.050872  0.028378   \n",
+       "\n",
+       "           56        57        58        59        60        61        62  \\\n",
+       "0    0.071051  0.050464  0.025372  0.045610 -0.061057  0.007790 -0.167027   \n",
+       "1    0.022989  0.099734  0.074534  0.094016 -0.008902 -0.099134  0.003340   \n",
+       "2    0.035417  0.046737 -0.067891 -0.111733 -0.043777  0.023095  0.057462   \n",
+       "3    0.059294  0.054870  0.067469 -0.046624 -0.075757 -0.089032 -0.085359   \n",
+       "4   -0.001513  0.101587  0.032081 -0.018756 -0.062611 -0.065444 -0.031990   \n",
+       "..        ...       ...       ...       ...       ...       ...       ...   \n",
+       "658  0.027535  0.012622 -0.000667  0.008178 -0.105089  0.026094 -0.076065   \n",
+       "659  0.047679  0.049228  0.055786 -0.031709 -0.063680 -0.034298  0.007169   \n",
+       "660  0.079571  0.054057  0.071308  0.010730 -0.041588 -0.065301 -0.081675   \n",
+       "661  0.059020 -0.007279  0.002234  0.002154 -0.122746  0.007301  0.080260   \n",
+       "662  0.101839  0.061484  0.000917 -0.130745 -0.048985 -0.064347 -0.012837   \n",
+       "\n",
+       "           63  \n",
+       "0   -0.053427  \n",
+       "1   -0.147583  \n",
+       "2   -0.114370  \n",
+       "3   -0.068102  \n",
+       "4   -0.105818  \n",
+       "..        ...  \n",
+       "658  0.003433  \n",
+       "659 -0.063405  \n",
+       "660 -0.091705  \n",
+       "661 -0.058809  \n",
+       "662 -0.072822  \n",
+       "\n",
+       "[663 rows x 68 columns]"
+      ]
+     },
+     "execution_count": 24,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "item_embs_df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "id": "2dd16723",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# select only embedding columns\n",
+    "item_embeddings = item_embs_df.iloc[:, 4:]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "id": "28687001",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>0</th>\n",
+       "      <th>1</th>\n",
+       "      <th>2</th>\n",
+       "      <th>3</th>\n",
+       "      <th>4</th>\n",
+       "      <th>5</th>\n",
+       "      <th>6</th>\n",
+       "      <th>7</th>\n",
+       "      <th>8</th>\n",
+       "      <th>9</th>\n",
+       "      <th>...</th>\n",
+       "      <th>54</th>\n",
+       "      <th>55</th>\n",
+       "      <th>56</th>\n",
+       "      <th>57</th>\n",
+       "      <th>58</th>\n",
+       "      <th>59</th>\n",
+       "      <th>60</th>\n",
+       "      <th>61</th>\n",
+       "      <th>62</th>\n",
+       "      <th>63</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>-0.000645</td>\n",
+       "      <td>-0.001204</td>\n",
+       "      <td>-0.041410</td>\n",
+       "      <td>0.089803</td>\n",
+       "      <td>0.058981</td>\n",
+       "      <td>0.041372</td>\n",
+       "      <td>0.085023</td>\n",
+       "      <td>0.005569</td>\n",
+       "      <td>0.044896</td>\n",
+       "      <td>-0.101422</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.016396</td>\n",
+       "      <td>-0.032169</td>\n",
+       "      <td>0.071051</td>\n",
+       "      <td>0.050464</td>\n",
+       "      <td>0.025372</td>\n",
+       "      <td>0.045610</td>\n",
+       "      <td>-0.061057</td>\n",
+       "      <td>0.007790</td>\n",
+       "      <td>-0.167027</td>\n",
+       "      <td>-0.053427</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>0.108750</td>\n",
+       "      <td>0.058709</td>\n",
+       "      <td>-0.111856</td>\n",
+       "      <td>-0.067593</td>\n",
+       "      <td>0.015925</td>\n",
+       "      <td>-0.055041</td>\n",
+       "      <td>0.013301</td>\n",
+       "      <td>0.015440</td>\n",
+       "      <td>0.042656</td>\n",
+       "      <td>-0.081866</td>\n",
+       "      <td>...</td>\n",
+       "      <td>-0.019538</td>\n",
+       "      <td>0.082256</td>\n",
+       "      <td>0.022989</td>\n",
+       "      <td>0.099734</td>\n",
+       "      <td>0.074534</td>\n",
+       "      <td>0.094016</td>\n",
+       "      <td>-0.008902</td>\n",
+       "      <td>-0.099134</td>\n",
+       "      <td>0.003340</td>\n",
+       "      <td>-0.147583</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>0.006825</td>\n",
+       "      <td>0.009164</td>\n",
+       "      <td>-0.114095</td>\n",
+       "      <td>0.076496</td>\n",
+       "      <td>-0.056996</td>\n",
+       "      <td>0.025556</td>\n",
+       "      <td>-0.000656</td>\n",
+       "      <td>0.027554</td>\n",
+       "      <td>-0.030654</td>\n",
+       "      <td>-0.160846</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.062647</td>\n",
+       "      <td>0.113492</td>\n",
+       "      <td>0.035417</td>\n",
+       "      <td>0.046737</td>\n",
+       "      <td>-0.067891</td>\n",
+       "      <td>-0.111733</td>\n",
+       "      <td>-0.043777</td>\n",
+       "      <td>0.023095</td>\n",
+       "      <td>0.057462</td>\n",
+       "      <td>-0.114370</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>0.029534</td>\n",
+       "      <td>0.041215</td>\n",
+       "      <td>-0.042976</td>\n",
+       "      <td>-0.005567</td>\n",
+       "      <td>0.043733</td>\n",
+       "      <td>0.091881</td>\n",
+       "      <td>-0.087923</td>\n",
+       "      <td>-0.019214</td>\n",
+       "      <td>0.012008</td>\n",
+       "      <td>0.004425</td>\n",
+       "      <td>...</td>\n",
+       "      <td>-0.078722</td>\n",
+       "      <td>0.064461</td>\n",
+       "      <td>0.059294</td>\n",
+       "      <td>0.054870</td>\n",
+       "      <td>0.067469</td>\n",
+       "      <td>-0.046624</td>\n",
+       "      <td>-0.075757</td>\n",
+       "      <td>-0.089032</td>\n",
+       "      <td>-0.085359</td>\n",
+       "      <td>-0.068102</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>0.035721</td>\n",
+       "      <td>-0.042282</td>\n",
+       "      <td>-0.167316</td>\n",
+       "      <td>-0.004608</td>\n",
+       "      <td>0.052254</td>\n",
+       "      <td>0.044603</td>\n",
+       "      <td>-0.090058</td>\n",
+       "      <td>-0.008549</td>\n",
+       "      <td>0.081712</td>\n",
+       "      <td>0.047568</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.000567</td>\n",
+       "      <td>-0.057452</td>\n",
+       "      <td>-0.001513</td>\n",
+       "      <td>0.101587</td>\n",
+       "      <td>0.032081</td>\n",
+       "      <td>-0.018756</td>\n",
+       "      <td>-0.062611</td>\n",
+       "      <td>-0.065444</td>\n",
+       "      <td>-0.031990</td>\n",
+       "      <td>-0.105818</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>5 rows × 64 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "          0         1         2         3         4         5         6  \\\n",
+       "0 -0.000645 -0.001204 -0.041410  0.089803  0.058981  0.041372  0.085023   \n",
+       "1  0.108750  0.058709 -0.111856 -0.067593  0.015925 -0.055041  0.013301   \n",
+       "2  0.006825  0.009164 -0.114095  0.076496 -0.056996  0.025556 -0.000656   \n",
+       "3  0.029534  0.041215 -0.042976 -0.005567  0.043733  0.091881 -0.087923   \n",
+       "4  0.035721 -0.042282 -0.167316 -0.004608  0.052254  0.044603 -0.090058   \n",
+       "\n",
+       "          7         8         9  ...        54        55        56        57  \\\n",
+       "0  0.005569  0.044896 -0.101422  ...  0.016396 -0.032169  0.071051  0.050464   \n",
+       "1  0.015440  0.042656 -0.081866  ... -0.019538  0.082256  0.022989  0.099734   \n",
+       "2  0.027554 -0.030654 -0.160846  ...  0.062647  0.113492  0.035417  0.046737   \n",
+       "3 -0.019214  0.012008  0.004425  ... -0.078722  0.064461  0.059294  0.054870   \n",
+       "4 -0.008549  0.081712  0.047568  ...  0.000567 -0.057452 -0.001513  0.101587   \n",
+       "\n",
+       "         58        59        60        61        62        63  \n",
+       "0  0.025372  0.045610 -0.061057  0.007790 -0.167027 -0.053427  \n",
+       "1  0.074534  0.094016 -0.008902 -0.099134  0.003340 -0.147583  \n",
+       "2 -0.067891 -0.111733 -0.043777  0.023095  0.057462 -0.114370  \n",
+       "3  0.067469 -0.046624 -0.075757 -0.089032 -0.085359 -0.068102  \n",
+       "4  0.032081 -0.018756 -0.062611 -0.065444 -0.031990 -0.105818  \n",
+       "\n",
+       "[5 rows x 64 columns]"
+      ]
+     },
+     "execution_count": 26,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "item_embeddings.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "id": "5d152e82",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# save to disk\n",
+    "item_embeddings.to_parquet(\"item_embeddings.parquet\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1eed43c3",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "That's it. You have learned how to train and evaluate your Two-Tower retrieval model, and then how to export the required components to be able to deploy this model to generate recommendations. In order to learn more on serving a model to [Triton Inference Server](https://github.com/triton-inference-server/server), please explore the examples in the [Merlin](https://github.com/NVIDIA-Merlin/Merlin) and [Merlin Systems](https://github.com/NVIDIA-Merlin/systems) repos."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.10"
+  },
+  "merlin": {
+   "containers": [
+    "nvcr.io/nvidia/merlin/merlin-tensorflow:latest"
+   ]
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

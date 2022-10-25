@@ -1,0 +1,131 @@
+﻿merlin.models.tf.EmbeddingFeatures
+==================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: EmbeddingFeatures
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~EmbeddingFeatures.__init__
+      ~EmbeddingFeatures.add_loss
+      ~EmbeddingFeatures.add_metric
+      ~EmbeddingFeatures.add_update
+      ~EmbeddingFeatures.add_variable
+      ~EmbeddingFeatures.add_weight
+      ~EmbeddingFeatures.apply_to_all
+      ~EmbeddingFeatures.as_tabular
+      ~EmbeddingFeatures.build
+      ~EmbeddingFeatures.calculate_batch_size_from_input_shapes
+      ~EmbeddingFeatures.call
+      ~EmbeddingFeatures.call_outputs
+      ~EmbeddingFeatures.check_schema
+      ~EmbeddingFeatures.compute_call_output_shape
+      ~EmbeddingFeatures.compute_mask
+      ~EmbeddingFeatures.compute_output_shape
+      ~EmbeddingFeatures.compute_output_signature
+      ~EmbeddingFeatures.connect
+      ~EmbeddingFeatures.connect_branch
+      ~EmbeddingFeatures.connect_debug_block
+      ~EmbeddingFeatures.connect_with_residual
+      ~EmbeddingFeatures.connect_with_shortcut
+      ~EmbeddingFeatures.copy
+      ~EmbeddingFeatures.count_params
+      ~EmbeddingFeatures.embedding_table_dataset
+      ~EmbeddingFeatures.embedding_table_df
+      ~EmbeddingFeatures.export_embedding_table
+      ~EmbeddingFeatures.finalize_state
+      ~EmbeddingFeatures.from_config
+      ~EmbeddingFeatures.from_features
+      ~EmbeddingFeatures.from_layer
+      ~EmbeddingFeatures.from_schema
+      ~EmbeddingFeatures.get_config
+      ~EmbeddingFeatures.get_embedding_table
+      ~EmbeddingFeatures.get_input_at
+      ~EmbeddingFeatures.get_input_mask_at
+      ~EmbeddingFeatures.get_input_shape_at
+      ~EmbeddingFeatures.get_item_ids_from_inputs
+      ~EmbeddingFeatures.get_output_at
+      ~EmbeddingFeatures.get_output_mask_at
+      ~EmbeddingFeatures.get_output_shape_at
+      ~EmbeddingFeatures.get_padding_mask_from_item_id
+      ~EmbeddingFeatures.get_weights
+      ~EmbeddingFeatures.lookup_feature
+      ~EmbeddingFeatures.parse
+      ~EmbeddingFeatures.parse_block
+      ~EmbeddingFeatures.post_call
+      ~EmbeddingFeatures.pre_call
+      ~EmbeddingFeatures.prepare
+      ~EmbeddingFeatures.register_features
+      ~EmbeddingFeatures.repeat
+      ~EmbeddingFeatures.repeat_in_parallel
+      ~EmbeddingFeatures.repr_add
+      ~EmbeddingFeatures.repr_extra
+      ~EmbeddingFeatures.repr_ignore
+      ~EmbeddingFeatures.select_by_name
+      ~EmbeddingFeatures.select_by_tag
+      ~EmbeddingFeatures.set_aggregation
+      ~EmbeddingFeatures.set_post
+      ~EmbeddingFeatures.set_pre
+      ~EmbeddingFeatures.set_schema
+      ~EmbeddingFeatures.set_weights
+      ~EmbeddingFeatures.super
+      ~EmbeddingFeatures.table_config
+      ~EmbeddingFeatures.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~EmbeddingFeatures.REQUIRES_SCHEMA
+      ~EmbeddingFeatures.activity_regularizer
+      ~EmbeddingFeatures.aggregation
+      ~EmbeddingFeatures.compute_dtype
+      ~EmbeddingFeatures.context
+      ~EmbeddingFeatures.dtype
+      ~EmbeddingFeatures.dtype_policy
+      ~EmbeddingFeatures.dynamic
+      ~EmbeddingFeatures.has_schema
+      ~EmbeddingFeatures.inbound_nodes
+      ~EmbeddingFeatures.input
+      ~EmbeddingFeatures.input_mask
+      ~EmbeddingFeatures.input_shape
+      ~EmbeddingFeatures.input_spec
+      ~EmbeddingFeatures.is_input
+      ~EmbeddingFeatures.is_tabular
+      ~EmbeddingFeatures.losses
+      ~EmbeddingFeatures.metrics
+      ~EmbeddingFeatures.name
+      ~EmbeddingFeatures.name_scope
+      ~EmbeddingFeatures.non_trainable_variables
+      ~EmbeddingFeatures.non_trainable_weights
+      ~EmbeddingFeatures.outbound_nodes
+      ~EmbeddingFeatures.output
+      ~EmbeddingFeatures.output_mask
+      ~EmbeddingFeatures.output_shape
+      ~EmbeddingFeatures.post
+      ~EmbeddingFeatures.pre
+      ~EmbeddingFeatures.registry
+      ~EmbeddingFeatures.schema
+      ~EmbeddingFeatures.stateful
+      ~EmbeddingFeatures.submodules
+      ~EmbeddingFeatures.supports_masking
+      ~EmbeddingFeatures.trainable
+      ~EmbeddingFeatures.trainable_variables
+      ~EmbeddingFeatures.trainable_weights
+      ~EmbeddingFeatures.updates
+      ~EmbeddingFeatures.variable_dtype
+      ~EmbeddingFeatures.variables
+      ~EmbeddingFeatures.weights
+   
+   

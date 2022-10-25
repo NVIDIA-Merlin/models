@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Standard Models: Overview &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Merlin Models Example Notebooks" href="examples/index.html" />
+    <link rel="prev" title="Merlin Models" href="README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Standard Models: Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#matrix-factorization">Matrix Factorization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#youtube-dnn">YouTube DNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#two-tower">Two Tower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ranking">Ranking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-task-learning">Multi-task Learning</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Standard Models: Overview</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="tex2jax_ignore mathjax_ignore section" id="standard-models-overview">
+<h1>Standard Models: Overview<a class="headerlink" href="#standard-models-overview" title="Permalink to this headline"></a></h1>
+<div class="section" id="matrix-factorization">
+<h2>Matrix Factorization<a class="headerlink" href="#matrix-factorization" title="Permalink to this headline"></a></h2>
+<p>Kumar, Saurav. (2021, July).
+<em>Fundamentals of Matrix Factorization For Recommender System</em> [Post].
+LinkedIn.
+<a class="reference external" href="https://www.linkedin.com/pulse/fundamental-matrix-factorization-recommender-system-saurav-kumar">https://www.linkedin.com/pulse/fundamental-matrix-factorization-recommender-system-saurav-kumar</a></p>
+<p><img alt="User-item matrix broken down into a user matrix and an item matrix." src="_images/mf.png" /></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+<span class="n">ml</span><span class="o">.</span><span class="n">MatrixFactorizationBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="youtube-dnn">
+<h2>YouTube DNN<a class="headerlink" href="#youtube-dnn" title="Permalink to this headline"></a></h2>
+<p>Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube
+Recommendations.” In Proceedings of the 10th ACM Conference on Recommender
+Systems, 191–98. Boston Massachusetts USA: ACM, 2016.
+<a class="reference external" href="https://doi.org/10.1145/2959100.2959190">https://doi.org/10.1145/2959100.2959190</a>.</p>
+<p><img alt="Sample network architecture for YouTube DNN." src="_images/youtube-dnn.png" /></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">YoutubeDNNRetrieval</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">top_layer</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="two-tower">
+<h2>Two Tower<a class="headerlink" href="#two-tower" title="Permalink to this headline"></a></h2>
+<p>Yi, Xinyang, Ji Yang, Lichan Hong, Derek Zhiyuan Cheng, Lukasz Heldt, Aditee
+Kumthekar, Zhe Zhao, Li Wei, and Ed Chi. “Sampling-Bias-Corrected Neural
+Modeling for Large Corpus Item Recommendations.” In Proceedings of the 13th ACM
+Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019.
+<a class="reference external" href="https://doi.org/10.1145/3298689.3346996">https://doi.org/10.1145/3298689.3346996</a>.</p>
+<p><img alt="Sample network architecture for two tower retrieval model." src="_images/two-tower.png" /></p>
+<p>High-level API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+<span class="n">block</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">TwoTowerBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]))</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Low-level API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Tags</span>
+
+<span class="n">user_tower</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">),</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]))</span>
+<span class="n">item_tower</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">),</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]))</span>
+<span class="n">two_tower</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">ParallelBlock</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_tower</span><span class="p">,</span> <span class="s2">&quot;item&quot;</span><span class="p">:</span> <span class="n">item_tower</span><span class="p">})</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">two_tower</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ranking">
+<h2>Ranking<a class="headerlink" href="#ranking" title="Permalink to this headline"></a></h2>
+<div class="section" id="deep-learning-recommender-model">
+<h3>Deep Learning Recommender Model<a class="headerlink" href="#deep-learning-recommender-model" title="Permalink to this headline"></a></h3>
+<p>Naumov, Maxim, Dheevatsa Mudigere, Hao-Jun Michael Shi, Jianyu Huang, Narayanan
+Sundaraman, Jongsoo Park, Xiaodong Wang, et al. “Deep Learning Recommendation
+Model for Personalization and Recommendation Systems.” ArXiv:1906.00091 [Cs],
+May 31, 2019. <a class="reference external" href="http://arxiv.org/abs/1906.00091">http://arxiv.org/abs/1906.00091</a>.</p>
+<p><img alt="Sample architecture for DLRM." src="_images/dlrm.png" /></p>
+<p>High-level API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+<span class="n">dlrm</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">DLRMBlock</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+    <span class="n">bottom_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="p">]),</span>
+    <span class="n">top_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">dlrm</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">schema</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Low-level API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+<span class="n">dlrm_inputs</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">ContinuousEmbedding</span><span class="p">(</span>
+    <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">embedding_dim_default</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+    <span class="n">embedding_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="p">]),</span>
+    <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;stack&quot;</span>
+<span class="p">)</span>
+<span class="n">dlrm</span> <span class="o">=</span> <span class="n">dlrm_inputs</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">DotProductInteraction</span><span class="p">(),</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="dcn-v2">
+<h3>DCN-V2<a class="headerlink" href="#dcn-v2" title="Permalink to this headline"></a></h3>
+<p>Wang, Ruoxi, Rakesh Shivanna, Derek Z. Cheng, Sagar Jain, Dong Lin, Lichan Hong,
+and Ed H. Chi. “DCN V2: Improved Deep &amp; Cross Network and Practical Lessons for
+Web-Scale Learning to Rank Systems.” ArXiv:2008.13535 [Cs, Stat], October
+20, 2020. <a class="reference external" href="http://arxiv.org/abs/2008.13535">http://arxiv.org/abs/2008.13535</a>.</p>
+<p><img alt="Visualization of DCN-V2." src="_images/dcn-v2.png" /></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+<span class="n">prediction_task</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+<span class="n">cross</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">CrossBlock</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">deep_cross_a</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+    <span class="n">cross</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]),</span> <span class="n">prediction_task</span>
+<span class="p">)</span>
+
+<span class="n">deep_cross_b</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="o">.</span><span class="n">branch</span><span class="p">(</span>
+    <span class="n">cross</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]),</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span>
+<span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">prediction_task</span><span class="p">)</span>
+
+<span class="n">b_with_shortcut</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">cross</span><span class="p">)</span><span class="o">.</span><span class="n">connect_with_shortcut</span><span class="p">(</span>
+    <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]),</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span>
+<span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">prediction_task</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="multi-task-learning">
+<h2>Multi-task Learning<a class="headerlink" href="#multi-task-learning" title="Permalink to this headline"></a></h2>
+<div class="section" id="mixture-of-experts">
+<h3>Mixture-of-experts<a class="headerlink" href="#mixture-of-experts" title="Permalink to this headline"></a></h3>
+<p>Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi.
+“Modeling Task Relationships in Multi-Task Learning with Multi-Gate
+Mixture-of-Experts,” 2018, 1930–39. <a class="reference external" href="https://doi.org/10.1145/3219819.3220007">https://doi.org/10.1145/3219819.3220007</a>.</p>
+<p><img alt="Sample architecture for a mixture-of-experts model." src="_images/mmoe.png" /></p>
+<p>High-level API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+<span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">PredictionTasks</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+<span class="n">block</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">])</span>
+<span class="n">mmoe</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">MMOEBlock</span><span class="p">(</span><span class="n">prediction_tasks</span><span class="p">,</span> <span class="n">expert_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span> <span class="n">num_experts</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">mmoe</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="progressive-layered-extraction">
+<h3>Progressive Layered Extraction<a class="headerlink" href="#progressive-layered-extraction" title="Permalink to this headline"></a></h3>
+<p>Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered
+Extraction (PLE): A Novel Multi-Task Learning (MTL) Model for Personalized
+Recommendations.” In Fourteenth ACM Conference on Recommender Systems, 269–78.
+Virtual Event Brazil: ACM, 2020. <a class="reference external" href="https://doi.org/10.1145/3383313.3412236">https://doi.org/10.1145/3383313.3412236</a>.</p>
+<p><img alt="Sample architecture for a progressive layered extraction model." src="_images/ple.png" /></p>
+<p>High-level API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+<span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">PredictionTasks</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+<span class="n">block</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">])</span>
+<span class="n">cgc</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">CGCBlock</span><span class="p">(</span>
+    <span class="n">prediction_tasks</span><span class="p">,</span> <span class="n">expert_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span> <span class="n">num_task_experts</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">num_shared_experts</span><span class="o">=</span><span class="mi">2</span>
+<span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span> <span class="n">cgc</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="README.html" class="btn btn-neutral float-left" title="Merlin Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples/index.html" class="btn btn-neutral float-right" title="Merlin Models Example Notebooks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.9.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../v0.4.0/models_overview.html">v0.4.0</a></dd>
+      <dd><a href="../v0.5.0/models_overview.html">v0.5.0</a></dd>
+      <dd><a href="../v0.6.0/models_overview.html">v0.6.0</a></dd>
+      <dd><a href="../v0.7.0/models_overview.html">v0.7.0</a></dd>
+      <dd><a href="../v0.8.0/models_overview.html">v0.8.0</a></dd>
+      <dd><a href="models_overview.html">v0.9.0</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../main/models_overview.html">main</a></dd>
+    </dl>
+  </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
