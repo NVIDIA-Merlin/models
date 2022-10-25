@@ -1030,24 +1030,19 @@ class EmbeddingFeatures(TabularBlock):
             feature_configs[key] = feature_config_dict
 
         config["feature_config"] = feature_configs
+        config["l2_reg"] = self.l2_reg
 
         return config
 
     @classmethod
     def from_config(cls, config):
         # Deserialize feature_config
-        feature_configs, table_configs = {}, {}
+        feature_configs = {}
         for key, val in config["feature_config"].items():
-            feature_params = deepcopy(val)
-            table_params = feature_params["table"]
-            if "name" in table_configs:
-                feature_params["table"] = table_configs["name"]
-            else:
-                table = deserialize_table_config(table_params)
-                if table.name:
-                    table_configs[table.name] = table
-                feature_params["table"] = table
-            feature_configs[key] = FeatureConfig(**feature_params)
+            table = deserialize_table_config(val["table"])
+            feature_config_params = {**val, "table": table}
+            feature_configs[key] = FeatureConfig(**feature_config_params)
+
         config["feature_config"] = feature_configs
 
         # Set `add_default_pre to False` since pre will be provided from the config
