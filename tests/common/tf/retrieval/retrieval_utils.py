@@ -768,8 +768,6 @@ class RetrievalTrainEvalRunnerV2:
                 train_metrics_steps=self.train_metrics_steps,
             )
 
-            # self.model.save(f"/home/srabhi/hackweek/retrieval_{self.model_type}_v2_ci")
-
             # get encoder for top-k evaluation
             max_cutoff = self.metrics[0].k
             item_features = self.schema.select_by_tag(Tags.ITEM).column_names
@@ -779,6 +777,8 @@ class RetrievalTrainEvalRunnerV2:
             recommender = self.model.to_top_k_encoder(
                 item_dataset, batch_size=self.train_batch_size, k=max_cutoff
             )
+            for metric in self.metrics:
+                metric.reset_states()
             recommender.compile(run_eagerly=False, metrics=self.metrics)
             item_id_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
