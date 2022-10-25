@@ -13,6 +13,7 @@ from merlin.models.tf.metrics.topk import (
     RecallAt,
     TopKMetricsAggregator,
 )
+from merlin.models.tf.outputs.base import DotProduct
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Tags
@@ -84,6 +85,23 @@ def test_matrix_factorization_topk_evaluation(music_streaming_data: Dataset, run
 
     metrics = topk_model.evaluate(loader, return_dict=True)
     assert all([metric >= 0 for metric in metrics.values()])
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize(
+    "task",
+    [
+        mm.BinaryOutput,
+        mm.RegressionOutput,
+    ],
+)
+def test_matrix_factorization_model_with_binary_task(ecommerce_data: Dataset, run_eagerly, task):
+    task = task("click", pre=DotProduct())
+    model = mm.MatrixFactorizationModelV2(ecommerce_data.schema, dim=4, outputs=task)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    losses = model.fit(ecommerce_data, batch_size=50, epochs=1, steps_per_epoch=1)
+    assert len(losses.epoch) == 1
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
 def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
@@ -169,6 +187,25 @@ def test_two_tower_model_v2(music_streaming_data: Dataset, run_eagerly, num_epoc
         music_streaming_data.schema.select_by_tag(Tags.ITEM),
     )
     testing_utils.test_model_signature(model.candidate_encoder, item_features, ["output_1"])
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize(
+    "task",
+    [
+        mm.BinaryOutput,
+        mm.RegressionOutput,
+    ],
+)
+def test_two_tower_model_with_different_tasks(ecommerce_data: Dataset, run_eagerly, task):
+    query = mm.Encoder(ecommerce_data.schema.select_by_tag(Tags.USER), mm.MLPBlock([2]))
+    candidate = mm.Encoder(ecommerce_data.schema.select_by_tag(Tags.ITEM), mm.MLPBlock([2]))
+    task = task("click", pre=DotProduct())
+    model = mm.TwoTowerModelV2(query, candidate, outputs=task)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    losses = model.fit(ecommerce_data, batch_size=50, epochs=1, steps_per_epoch=1)
+    assert len(losses.epoch) == 1
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
 def test_two_tower_model_save(tmpdir, ecommerce_data: Dataset):
