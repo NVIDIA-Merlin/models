@@ -45,7 +45,7 @@ def test_encoder_block(music_streaming_data: Dataset):
 
 
 def test_topk_encoder(music_streaming_data: Dataset):
-    TOP_K = 50
+    TOP_K = 5
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["user_id", "item_id", "country", "user_age"]
     )
