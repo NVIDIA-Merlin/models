@@ -22,12 +22,13 @@ def test_usecase_incremental_training_layer_freezing(tb):
     tb.execute()
     model = tb.ref("model")
     assert set(model.history.history.keys()) == set(
-        ['loss', 
-         'recall_at_10', 
-         'mrr_at_10', 
-         'ndcg_at_10', 
-         'map_at_10', 
-         'precision_at_10', 
-         'regularization_loss'
+        [
+            "loss",
+            "recall_at_10",
+            "mrr_at_10",
+            "ndcg_at_10",
+            "map_at_10",
+            "precision_at_10",
+            "regularization_loss",
         ]
     )
