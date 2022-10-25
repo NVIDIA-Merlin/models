@@ -55,3 +55,17 @@ def test_continuous_features_yoochoose_model(music_streaming_data: Dataset, run_
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_inputv2_without_categorical_features(music_streaming_data: Dataset, run_eagerly):
+    schema = music_streaming_data.schema.select_by_tag(Tags.CONTINUOUS)
+    music_streaming_data.schema = schema
+
+    inputs = ml.InputBlockV2(schema)
+
+    batch = ml.sample_batch(
+        music_streaming_data, batch_size=100, include_targets=False, to_ragged=True
+    )
+
+    assert inputs(batch).shape == (100, 3)
