@@ -1,25 +1,22 @@
-
-import argparse
 import os
+import importlib
+import subprocess
+import time
 import random
-from pathlib import Path
-
-# we can control how much memory to give tensorflow with this environment variable
-# IMPORTANT: make sure you do this before you initialize TF's runtime, otherwise
-# TF will have claimed all free GPU memory
-os.environ["TF_MEMORY_ALLOCATION"] = "0.3"  # fraction of free memory
 
 import cupy
-import horovod.tensorflow as hvd
+import pytest
 import numpy as np
 import tensorflow as tf
 
 import merlin.models.tf as mm
+from merlin.datasets.synthetic import generate_data
+from merlin.datasets.advertising.criteo.dataset import default_criteo_transform
+from merlin.models.utils.example_utils import workflow_fit_transform
 from merlin.io.dataset import Dataset
 from merlin.schema.tags import Tags
-#from merlin.models.tf.distributed.backend import hvd
+from merlin.models.tf.distributed.backend import hvd
 
-hvd.init()
 
 # Seed with system randomness (or a static seed)
 os.environ["TF_CUDNN_DETERMINISTIC"] = str(hvd.rank())
@@ -53,16 +50,40 @@ def seed_fn():
     return reduced_seed % max_rand
 
 
-def train():
-    base_dir = Path(args.base_dir)
-    train = Dataset(base_dir / "train" / "*.parquet")
+
+@pytest.mark.skipif(
+    importlib.util.find_spec("horovod") is None, reason="This unit test requires horovod"
+)
+def test_import():
+    from merlin.models.tf.distributed.backend import hvd
+
+    assert hvd is not None
+
+
+@pytest.mark.timeout(180)
+def test_horovod_multigpu(criteo_data, tmpdir, batch_size):
+    """
+    This test needs to be executed with `horovodrun`:
+    $ horovodrun -np 2 hvd_wrapper.sh python -m pytest tests/unit/tf/distributed/test_block.py
+    """
+    criteo_data.to_ddf().to_parquet(os.path.join(tmpdir, "train"))
+    criteo_data.to_ddf().to_parquet(os.path.join(tmpdir, "valid"))
+    workflow = default_criteo_transform()
+    workflow_fit_transform(
+        workflow,
+        os.path.join(tmpdir, "train", "*.parquet"),
+        os.path.join(tmpdir, "valid", "*.parquet"),
+        os.path.join(tmpdir, "processed"),
+    )
+
+    train = Dataset(os.path.join(tmpdir, "processed", "train", "*.parquet"))
     ddf = train.to_ddf().repartition(npartitions=hvd.size())
     train = Dataset(ddf, schema=train.schema)
 
     train_loader = mm.Loader(
         train,
         schema=train.schema,
-        batch_size=args.batch_size,
+        batch_size=batch_size,
         shuffle=True,
         drop_last=True,
         seed_fn=seed_fn,
@@ -72,36 +93,16 @@ def train():
 
     model = mm.DLRMModel(
         train.schema,
-        embedding_dim=args.embedding_dim,
-        bottom_block=mm.MLPBlock([128, 64]),
-        top_block=mm.MLPBlock([128, 64, 32]),
+        embedding_dim=16,
+        bottom_block=mm.MLPBlock([32, 16]),
+        top_block=mm.MLPBlock([32, 16]),
         prediction_tasks=mm.BinaryClassificationTask(target_column),
     )
 
-    opt = tf.keras.optimizers.Adagrad(learning_rate=args.learning_rate)
+    opt = tf.keras.optimizers.Adagrad(learning_rate=0.03)
     model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
-
     
     model.fit(
         train_loader,
-        batch_size=args.batch_size,
+        batch_size=batch_size,
     )
-
-    if hvd.rank() == 0:
-        model.save(base_dir)
-        print(f"Training complete. Model saved to {base_dir}")
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--base_dir", type=str, default="./data", help="Input directory")
-    parser.add_argument("--batch_size", type=int, default=16 * 1024)
-    parser.add_argument("--learning_rate", type=float, default=0.03)
-    parser.add_argument("--embedding_dim", type=int, default=64)
-    args = parser.parse_args()
-    return args
-
-
-if __name__ == "__main__":
-    args = parse_args()
-    train()
