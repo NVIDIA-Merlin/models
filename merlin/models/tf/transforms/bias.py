@@ -66,6 +66,11 @@ class LogitsTemperatureScaler(Block):
         predictions = predictions / self.temperature
         return predictions
 
+    def get_config(self):
+        config = super().get_config()
+        config["temperature"] = self.temperature
+        return config
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 @requires_schema
