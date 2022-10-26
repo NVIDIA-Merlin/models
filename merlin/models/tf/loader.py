@@ -23,6 +23,7 @@ import numpy as np
 import tensorflow as tf
 from packaging import version
 
+from merlin.core.dispatch import HAS_GPU
 from merlin.io import Dataset
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
@@ -632,25 +633,28 @@ def get_default_hvd_seed_fn(seed=None):
     Reseeds each worker's dataloader each epoch to get fresh a shuffle
     that's consistent across workers.
     """
-    try:
-        import cupy
-    except ImportError:
-        raise ImportError("'cupy' is required to use this function.")
+    if HAS_GPU:
+        try:
+            import cupy
+        except ImportError:
+            raise ImportError("'cupy' is required to use this function.")
+        cupy.random.seed(seed)
+    else:
+        np.random.seed(seed)
 
     try:
         import horovod
     except ImportError:
         raise ImportError("'horovod' is required to use this function.")
 
-    cupy.random.seed(seed)
-
     def _seed_fn():
         min_int, max_int = tf.int32.limits
         max_rand = max_int // horovod.tensorflow.keras.size()
-
         # Generate a seed fragment on each worker
-        seed_fragment = cupy.random.randint(0, max_rand).get()
-
+        if HAS_GPU:
+            seed_fragment = cupy.random.randint(0, max_rand).get()
+        else:
+            seed_fragment = np.random.randint(0, max_rand)
         # Aggregate seed fragments from all Horovod workers
         seed_tensor = tf.constant(seed_fragment)
         reduced_seed = hvd.allreduce(
