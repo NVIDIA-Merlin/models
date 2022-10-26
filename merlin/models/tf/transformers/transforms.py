@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from types import SimpleNamespace
 from typing import Dict
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from transformers.modeling_tf_outputs import TFBaseModelOutputWithPoolingAndCrossAttentions
+from transformers.modeling_tf_utils import TFSequenceSummary
 
 from merlin.models.tf.core.base import Block
 
@@ -116,3 +118,38 @@ class PrepareTransformerInputs(tf.keras.layers.Layer):
             # convert to a dense tensor as HF transformers do not support ragged tensors
             inputs = inputs.to_tensor()
         return {"inputs_embeds": inputs}
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceSummary(TFSequenceSummary):
+    def __init__(self, summary: str, initializer_range: float = 0.02, **kwargs):
+        config = SimpleNamespace(summary_type=summary)
+        super().__init__(config, initializer_range=initializer_range, **kwargs)
+
+
+@Block.registry.register("sequence_last")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceLast(SequenceSummary):
+    def __init__(self, initializer_range: float = 0.02, **kwargs):
+        super().__init__("last", initializer_range=initializer_range, **kwargs)
+
+
+@Block.registry.register("sequence_first")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceFirst(SequenceSummary):
+    def __init__(self, initializer_range: float = 0.02, **kwargs):
+        super().__init__("first", initializer_range=initializer_range, **kwargs)
+
+
+@Block.registry.register("sequence_mean")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceMean(SequenceSummary):
+    def __init__(self, initializer_range: float = 0.02, **kwargs):
+        super().__init__("mean", initializer_range=initializer_range, **kwargs)
+
+
+@Block.registry.register("sequence_cls_index")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceClsIndex(SequenceSummary):
+    def __init__(self, initializer_range: float = 0.02, **kwargs):
+        super().__init__("cls_index", initializer_range=initializer_range, **kwargs)
