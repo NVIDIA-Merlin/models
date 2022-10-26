@@ -18,6 +18,8 @@
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
+from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
+from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
 
 configure_tensorflow()
 
