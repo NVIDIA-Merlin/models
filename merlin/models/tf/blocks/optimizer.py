@@ -26,6 +26,7 @@ import merlin.models.tf as ml
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.distributed.backend import hvd
 
 Tensor = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]
@@ -435,5 +436,6 @@ def split_embeddings_on_size(
     return (large_embeddings, small_embeddings)
 
 
-class DistributedOptimizer:
-    pass
+class DistributedOptimizer(tf.keras.optimizers.Optimizer):
+    def __init__(self, optimizer, **kwargs):
+        return DistributedOptimizer(optimizer, **kwargs)

@@ -18,6 +18,7 @@ import logging
 import os
 from typing import Protocol
 
+import cupy
 import dask.dataframe as dd
 import numpy as np
 import tensorflow as tf
@@ -297,6 +298,7 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
             device = hvd.local_rank()
             global_size = global_size or hvd.size()
             global_rank = global_rank or hvd.rank()
+            seed_fn = seed_fn or get_default_hvd_seed_fn()
         else:
             device = "cpu"
         DataLoader.__init__(
@@ -623,3 +625,32 @@ def sample_batch(
     if not include_targets:
         return inputs
     return inputs, targets
+
+
+def get_default_hvd_seed_fn(seed=None):
+    """
+    Generate consistent dataloader shuffle seeds across workers
+    Reseeds each worker's dataloader each epoch to get fresh a shuffle
+    that's consistent across workers.
+    """
+    try:
+        import horovod
+    except:
+        raise RuntimeError("'horovod' is required to use this function.")
+
+    cupy.random.seed(seed)
+
+    def _seed_fn():
+        min_int, max_int = tf.int32.limits
+        max_rand = max_int // horovod.tensorflow.keras.size()
+
+        # Generate a seed fragment on each worker
+        seed_fragment = cupy.random.randint(0, max_rand).get()
+
+        # Aggregate seed fragments from all Horovod workers
+        seed_tensor = tf.constant(seed_fragment)
+        reduced_seed = hvd.allreduce(seed_tensor, name="shuffle_seed", op=horovod.tensorflow.mpi_ops.Sum)
+
+        return reduced_seed % max_rand
+
+    return _seed_fn

@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Get local process ID from OpenMPI or alternatively from SLURM

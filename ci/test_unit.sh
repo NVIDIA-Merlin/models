@@ -18,3 +18,6 @@
 set -e
 
 TF_GPU_ALLOCATOR=cuda_malloc_async python -m pytest -rxs tests/unit
+
+# Only run tests marked with `horovod` with `horovodrun` command
+horovodrun -np 2 sh ./examples/usecases/multi-gpu/hvd_wrapper.sh python -m pytest -rxs tests/unit -m horovod
