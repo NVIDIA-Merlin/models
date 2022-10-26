@@ -377,7 +377,7 @@ class BaseModel(tf.keras.Model):
         for metric in tf.nest.flatten(out):
             # We need to ensure metrics passed to `compile()` are reset
             if metric and metric.built:
-                metric.reset_states()
+                metric.reset_state()
         return out
 
     def _create_weighted_metrics(self, weighted_metrics=None):
@@ -405,7 +405,7 @@ class BaseModel(tf.keras.Model):
         for metric in tf.nest.flatten(out):
             # We need to ensure metrics passed to `compile()` are reset
             if metric and metric.built:
-                metric.reset_states()
+                metric.reset_state()
 
         return out
 
