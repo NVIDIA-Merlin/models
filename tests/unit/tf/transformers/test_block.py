@@ -277,7 +277,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
         run_eagerly=run_eagerly,
         reload_model=True,
         fit_kwargs={"pre": seq_mask_random},
-        metrics=[mm.RecallAt(5000), mm.NDCGAt(5000)],
+        metrics=[mm.RecallAt(5000, seed=42), mm.NDCGAt(5000, seed=42)],
     )
 
     # This transform only extracts targets, but without applying mask
