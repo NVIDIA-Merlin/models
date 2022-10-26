@@ -19,8 +19,10 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
+from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
 from merlin.models.tf.transforms.features import Rename
 from merlin.models.tf.utils import testing_utils
+from merlin.models.utils import schema_utils
 from merlin.schema import Tags
 
 
@@ -69,6 +71,33 @@ def test_two_tower_constrastive(ecommerce_data: Dataset):
     )
 
     testing_utils.model_test(model, ecommerce_data)
+
+
+def test_two_tower_constrastive_with_logq_correction(ecommerce_data: Dataset):
+    cardinalities = schema_utils.categorical_cardinalities(ecommerce_data.schema)
+    item_id_cardinalities = cardinalities[
+        ecommerce_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    ]
+    items_frequencies = tf.sort(
+        tf.random.uniform((item_id_cardinalities,), minval=0, maxval=1000, dtype=tf.int32)
+    )
+    post_logits = PopularityLogitsCorrection(
+        items_frequencies,
+        schema=ecommerce_data.schema,
+    )
+
+    model = mm.RetrievalModel(
+        mm.TwoTowerBlock(ecommerce_data.schema, query_tower=mm.MLPBlock([8])),
+        mm.ContrastiveOutput(
+            ecommerce_data.schema.select_by_tag(Tags.ITEM_ID),
+            negative_samplers="in-batch",
+            candidate_name="item",
+            store_negative_ids=True,
+            post=post_logits,
+        ),
+    )
+
+    testing_utils.model_test(model, ecommerce_data, reload_model=True)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -188,6 +217,21 @@ def test_contrastive_only_positive_when_not_training(ecommerce_data: Dataset):
     tf.assert_equal(
         (int(tf.shape(output_scores)[0]), int(tf.shape(output_scores)[1])), (batch_size, 1)
     )
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_contrastive_output_with_pairwise_loss(ecommerce_data: Dataset, run_eagerly):
+    model = mm.RetrievalModelV2(
+        query=mm.Encoder(ecommerce_data.schema.select_by_tag(Tags.USER), mm.MLPBlock([2])),
+        candidate=mm.Encoder(ecommerce_data.schema.select_by_tag(Tags.ITEM), mm.MLPBlock([2])),
+        output=mm.ContrastiveOutput(
+            ecommerce_data.schema.select_by_tag(Tags.ITEM_ID),
+            negative_samplers="in-batch",
+            candidate_name="item",
+        ),
+    )
+    model.compile(run_eagerly=run_eagerly, loss="bpr-max")
+    _ = model.fit(ecommerce_data, batch_size=50, epochs=1)
 
 
 def _retrieval_inputs_(batch_size):

@@ -19,6 +19,7 @@ from typing import List, Optional, Protocol, Union, runtime_checkable
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
+import merlin.io
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.embedding import EmbeddingTable
 from merlin.models.tf.outputs.base import DotProduct, MetricsFn, ModelOutput
@@ -73,6 +74,9 @@ class ContrastiveOutput(ModelOutput):
     get_default_metrics: Callable, optional
         A function returning the list of default metrics
         to use for categorical-classification
+    store_negative_ids: bool, optional
+        Whether to store negative ids for post-processing
+        by default False
 
     References:
     ----------
@@ -104,6 +108,7 @@ class ContrastiveOutput(ModelOutput):
         false_negative_score: float = MIN_FLOAT,
         query_name: str = "query",
         candidate_name: str = "candidate",
+        store_negative_ids: bool = False,
         **kwargs,
     ):
         self.col_schema = None
@@ -139,6 +144,7 @@ class ContrastiveOutput(ModelOutput):
         self.false_negative_score = false_negative_score
         self.query_name = query_name
         self.candidate_name = candidate_name
+        self.store_negative_ids = store_negative_ids
 
         self.target_name = kwargs.pop("target", target_name)
         super().__init__(
@@ -203,6 +209,24 @@ class ContrastiveOutput(ModelOutput):
     def outputs(
         self, query_embedding: tf.Tensor, positive: Candidate, negative: Candidate
     ) -> Prediction:
+        """Method to compute the dot product between the query embeddings and
+        positive/negative candidates
+
+        Parameters
+        ----------
+        query_embedding : tf.Tensor
+            tensor of query embeddings.
+        positive : Candidate
+            Store the ids and metadata (such as embeddings) of the positive candidates.
+        negative : Candidate
+            Store the ids and metadata (such as embeddings) of the sampled negative candidates.
+
+        Returns
+        -------
+        Prediction
+            a Prediction object with the prediction scores, the targets and
+            the negative candidates ids if specified.
+        """
         if not positive.has_embedding:
             raise ValueError("Positive candidate must have an embedding")
         if not negative.has_embedding:
@@ -225,7 +249,6 @@ class ContrastiveOutput(ModelOutput):
         # To ensure that the output is always fp32, avoiding numerical
         # instabilities with mixed_float16 policy
         outputs = tf.cast(outputs, tf.float32)
-        outputs = tf.squeeze(outputs)
 
         targets = tf.concat(
             [
@@ -237,7 +260,8 @@ class ContrastiveOutput(ModelOutput):
             ],
             axis=1,
         )
-
+        if self.store_negative_ids:
+            return Prediction(outputs, targets, negative_candidate_ids=negative.id)
         return Prediction(outputs, targets)
 
     def sample_negatives(
@@ -292,6 +316,9 @@ class ContrastiveOutput(ModelOutput):
     def embedding_lookup(self, ids: tf.Tensor):
         return self.to_call.embedding_lookup(tf.squeeze(ids))
 
+    def to_dataset(self, gpu=None) -> merlin.io.Dataset:
+        return merlin.io.Dataset(tf_utils.tensor_to_df(self.to_call.embeddings, gpu=gpu))
+
     @property
     def has_candidate_weights(self) -> bool:
         if isinstance(self.to_call, DotProduct):
@@ -318,6 +345,7 @@ class ContrastiveOutput(ModelOutput):
         config["false_negative_score"] = self.false_negative_score
         config["query_name"] = self.query_name
         config["candidate_name"] = self.candidate_name
+        config["store_negative_ids"] = self.store_negative_ids
 
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(
             Schema([self.col_schema])
@@ -337,6 +365,10 @@ class ContrastiveOutput(ModelOutput):
 @runtime_checkable
 class LookUpProtocol(Protocol):
     """Protocol for embedding lookup layers"""
+
+    @property
+    def embeddings(self):
+        pass
 
     def embedding_lookup(self, inputs, **kwargs):
         pass

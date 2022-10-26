@@ -42,7 +42,12 @@ from merlin.models.tf.transforms.tensor import ListToDense, ListToSparse
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, list_col_to_ragged
+from merlin.models.tf.utils.tf_utils import (
+    call_layer,
+    df_to_tensor,
+    list_col_to_ragged,
+    tensor_to_df,
+)
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
@@ -193,6 +198,9 @@ class EmbeddingTable(EmbeddingTableBase):
        for example, or generally for any layer that manipulates tensors
        using Python control flow. If `False`, we assume that the layer can
        safely be used to generate a static computation graph.
+    l2_batch_regularization_factor: float, optional
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        by default 0.0
     **kwargs: Forwarded Keras Layer parameters
     """
 
@@ -212,6 +220,7 @@ class EmbeddingTable(EmbeddingTableBase):
         dtype=None,
         dynamic=False,
         table=None,
+        l2_batch_regularization_factor=0.0,
         **kwargs,
     ):
         """Create an EmbeddingTable."""
@@ -244,6 +253,7 @@ class EmbeddingTable(EmbeddingTableBase):
             )
         self.sequence_combiner = sequence_combiner
         self.supports_masking = True
+        self.l2_batch_regularization_factor = l2_batch_regularization_factor
 
     def select_by_tag(self, tags: Union[Tags, Sequence[Tags]]) -> Optional["EmbeddingTable"]:
         """Select features in EmbeddingTable by tags.
@@ -281,9 +291,8 @@ class EmbeddingTable(EmbeddingTableBase):
         name=None,
         col_schema=None,
         **kwargs,
-    ):
+    ) -> "EmbeddingTable":
         """Create From pre-trained embeddings from a Dataset or DataFrame.
-
         Parameters
         ----------
         data : Union[Dataset, DataFrameType]
@@ -312,6 +321,35 @@ class EmbeddingTable(EmbeddingTableBase):
             trainable=trainable,
             **kwargs,
         )
+
+    @classmethod
+    def from_dataset(
+        cls,
+        data: Union[Dataset, DataFrameType],
+        trainable=True,
+        name=None,
+        col_schema=None,
+        **kwargs,
+    ) -> "EmbeddingTable":
+        """Create From pre-trained embeddings from a Dataset or DataFrame.
+        Parameters
+        ----------
+        data : Union[Dataset, DataFrameType]
+            A dataset containing the pre-trained embedding weights
+        trainable : bool
+            Whether the layer should be trained or not.
+        name : str
+            The name of the layer.
+        """
+        return cls.from_pretrained(
+            data, trainable=trainable, name=name, col_schema=col_schema, **kwargs
+        )
+
+    def to_dataset(self, gpu=None) -> merlin.io.Dataset:
+        return merlin.io.Dataset(self.to_df(gpu=gpu))
+
+    def to_df(self, gpu=None):
+        return tensor_to_df(self.table.embeddings, gpu=gpu)
 
     def _maybe_build(self, inputs):
         """Creates state between layer instantiation and layer call.
@@ -376,6 +414,9 @@ class EmbeddingTable(EmbeddingTableBase):
                     out = call_layer(self.sequence_combiner, out, **kwargs)
         else:
             out = call_layer(self.table, inputs, **kwargs)
+
+        if self.l2_batch_regularization_factor > 0:
+            self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
 
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
@@ -450,6 +491,7 @@ def Embeddings(
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     block_name: str = "embeddings",
+    l2_batch_regularization_factor: Optional[Union[float, Dict[str, float]]] = 0.0,
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
@@ -493,7 +535,10 @@ def Embeddings(
         Transformation block to apply for aggregating the inputs, by default None
     block_name: str, optional
         Name of the block, by default "embeddings"
-
+    l2_batch_regularization_factor: Optional[float, Dict[str, float]] = 0.0
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        If a dictionary is provided, the keys are feature names and the values are
+        regularization factors
     Returns
     -------
     ParallelBlock
@@ -509,6 +554,8 @@ def Embeddings(
         kwargs["activity_regularizer"] = activity_regularizer
     if sequence_combiner:
         kwargs["sequence_combiner"] = sequence_combiner
+    if l2_batch_regularization_factor:
+        kwargs["l2_batch_regularization_factor"] = l2_batch_regularization_factor
 
     tables = {}
 
@@ -519,7 +566,10 @@ def Embeddings(
             tables[table_name].add_feature(col)
         else:
             tables[table_name] = table_cls(
-                _get_dim(col, dim, infer_dim_fn), col, name=table_name, **table_kwargs
+                _get_dim(col, dim, infer_dim_fn),
+                col,
+                name=table_name,
+                **table_kwargs,
             )
 
     return ParallelBlock(
@@ -980,24 +1030,19 @@ class EmbeddingFeatures(TabularBlock):
             feature_configs[key] = feature_config_dict
 
         config["feature_config"] = feature_configs
+        config["l2_reg"] = self.l2_reg
 
         return config
 
     @classmethod
     def from_config(cls, config):
         # Deserialize feature_config
-        feature_configs, table_configs = {}, {}
+        feature_configs = {}
         for key, val in config["feature_config"].items():
-            feature_params = deepcopy(val)
-            table_params = feature_params["table"]
-            if "name" in table_configs:
-                feature_params["table"] = table_configs["name"]
-            else:
-                table = deserialize_table_config(table_params)
-                if table.name:
-                    table_configs[table.name] = table
-                feature_params["table"] = table
-            feature_configs[key] = FeatureConfig(**feature_params)
+            table = deserialize_table_config(val["table"])
+            feature_config_params = {**val, "table": table}
+            feature_configs[key] = FeatureConfig(**feature_config_params)
+
         config["feature_config"] = feature_configs
 
         # Set `add_default_pre to False` since pre will be provided from the config

@@ -217,3 +217,38 @@ def test_topk_reload(topk_metrics_test_data, metric_class):
     reloaded_result = reloaded_metric.result()
 
     tf.assert_equal(result, reloaded_result)
+
+
+def test_topk_metrics_sequential_3d_with_sample_weights():
+
+    labels = tf.convert_to_tensor(
+        [
+            [[0, 1, 0, 1, 0], [0, 0, 0, 1, 1], [0, 0, 0, 0, 1]],
+            [[0, 1, 0, 1, 0], [0, 0, 0, 1, 1], [0, 0, 0, 0, 1]],
+        ],
+        tf.float32,
+    )
+
+    predictions = tf.convert_to_tensor(
+        [
+            [[10, 9, 8, 7, 6], [5, 4, 3, 2, 1], [10, 9, 8, 7, 6]],
+            [[10, 9, 8, 7, 6], [5, 4, 3, 2, 1], [10, 9, 8, 7, 6]],
+        ],
+        tf.float32,
+    )
+    label_relevant_counts = tf.convert_to_tensor([[2, 2, 1], [2, 2, 1]], tf.float32)
+
+    metric = RecallAt(k=4)
+    metric.label_relevant_counts = label_relevant_counts
+
+    # No masking
+    metric.update_state(labels, predictions)
+    result = metric.result()
+    tf.debugging.assert_near(result, 0.5)
+
+    # Using sample weights to mask some positions
+    sample_weight = tf.convert_to_tensor([[0, 1, 0], [1, 0, 0]], tf.float32)
+    metric.reset_state()
+    metric.update_state(labels, predictions, sample_weight=sample_weight)
+    result = metric.result()
+    tf.debugging.assert_near(result, (1.0 + 0.5) / 2)

@@ -9,14 +9,15 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Unio
 
 import six
 import tensorflow as tf
+from keras.engine.compile_utils import MetricsContainer
 from keras.utils.losses_utils import cast_losses_to_common_dtype
 from packaging import version
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
-from merlin.models.tf.core.combinators import SequentialBlock
-from merlin.models.tf.core.prediction import Prediction, PredictionContext
+from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
+from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.distributed.backend import hvd
 from merlin.models.tf.inputs.base import InputBlock
@@ -25,6 +26,7 @@ from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
@@ -35,9 +37,10 @@ from merlin.models.tf.utils.tf_utils import (
     maybe_serialize_keras_objects,
 )
 from merlin.models.utils.dataset import unique_rows_by_features
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 if TYPE_CHECKING:
+    from merlin.models.tf.core.encoder import Encoder
     from merlin.models.tf.core.index import TopKIndexBlock
 
 
@@ -358,9 +361,12 @@ class BaseModel(tf.keras.Model):
         elif isinstance(metrics, (list, tuple)):
             # Retrieve top-k metrics & wrap them in TopKMetricsAggregator
             topk_metrics, topk_aggregators, other_metrics = split_metrics(metrics)
-            if len(topk_metrics) > 0:
-                topk_aggregators.append(TopKMetricsAggregator(*topk_metrics))
             metrics = other_metrics + topk_aggregators
+            if len(topk_metrics) > 0:
+                if len(topk_metrics) == 1:
+                    metrics.append(topk_metrics[0])
+                else:
+                    metrics.append(TopKMetricsAggregator(*topk_metrics))
 
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:
@@ -504,7 +510,8 @@ class BaseModel(tf.keras.Model):
         **kwargs,
     ) -> Union[Prediction, PredictionOutput]:
         """Apply the model's call method during Train or Test modes and prepare
-        Prediction (v2) or PredictionOutput (v1 - depreciated) objects
+        Prediction (v2) or PredictionOutput (v1 -
+        depreciated) objects
 
         Parameters
         ----------
@@ -557,6 +564,8 @@ class BaseModel(tf.keras.Model):
                 predictions[task.task_name] = task_x
                 sample_weights[task.task_name] = task_sample_weight
 
+            self.adjust_predictions_and_targets(predictions, targets)
+
             if len(predictions) == 1 and len(targets) == 1:
                 predictions = list(predictions.values())[0]
                 targets = list(targets.values())[0]
@@ -587,13 +596,78 @@ class BaseModel(tf.keras.Model):
             predictions[task.full_name] = task_x
             sample_weights[task.full_name] = task_sample_weight
 
+            self.adjust_predictions_and_targets(predictions, targets)
+
         return Prediction(predictions, targets, sample_weights)
+
+    def adjust_predictions_and_targets(
+        self,
+        predictions: Dict[str, TensorLike],
+        targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]],
+    ):
+        """Adjusts the predctions and targets, doing the following transformations
+        if the target is provided:
+        - Converts ragged targets (and their masks) to dense, so that they are compatible
+        with most losses and metrics
+        - Copies the targets mask to predictions mask, if defined
+        - One-hot encode targets if their tf.rank(targest) == tf.rank(predictions)-1
+        - Ensures targets has the same shape and dtype as predicitnos
+
+        Parameters
+        ----------
+        predictions : Dict[str, TensorLike]
+            A dict with predictions for the tasks
+        targets : Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]]
+            A dict with targets for the tasks
+        """
+        if targets is None:
+            return
+
+        for k in targets:
+            # Convert ragged targets (and ragged mask) to dense
+            if isinstance(targets[k], tf.RaggedTensor):
+                dense_target_mask = None
+                if getattr(targets[k], "_keras_mask", None) is not None:
+                    dense_target_mask = targets[k]._keras_mask.to_tensor()
+                targets[k] = targets[k].to_tensor()
+                if dense_target_mask is not None:
+                    targets[k]._keras_mask = dense_target_mask
+
+            if getattr(targets[k], "_keras_mask", None) is not None:
+                # Copies the mask from the targets to the predictions
+                # because Keras considers the prediction mask in loss
+                # and metrics computation
+                predictions[k]._keras_mask = targets[k]._keras_mask
+
+            # Ensuring targets and preds have the same dtype
+            targets[k] = tf.cast(targets[k], predictions[k].dtype)
+
+            # Ensuring targets are one-hot encoded if they are not
+            targets[k] = tf.cond(
+                tf.rank(targets[k]) == tf.rank(predictions[k]) - 1,
+                lambda: tf.one_hot(
+                    tf.cast(targets[k], tf.int32),
+                    tf.shape(predictions[k])[-1],
+                    dtype=predictions[k].dtype,
+                ),
+                lambda: targets[k],
+            )
+            # Makes target shape equal to the predictions tensor, as shape is lost after tf.cond
+            targets[k] = tf.reshape(targets[k], tf.shape(predictions[k]))
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
+
+            if getattr(self, "train_pre", None):
+                out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
+                if isinstance(out, Prediction):
+                    x, y = out.outputs, out.targets
+                else:
+                    x = out
+
             outputs = self.call_train_test(x, y, sample_weight=sample_weight, training=True)
             loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
@@ -602,7 +676,7 @@ class BaseModel(tf.keras.Model):
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        metrics = self.compute_metrics(outputs, training=True)
+        metrics = self.train_compute_metrics(outputs, self.compiled_metrics)
 
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
@@ -613,6 +687,14 @@ class BaseModel(tf.keras.Model):
         """Custom test step using the `compute_loss` method."""
 
         x, y, sample_weight = unpack_x_y_sample_weight(data)
+
+        if getattr(self, "test_pre", None):
+            out = call_layer(self.test_pre, x, targets=y, features=x, testing=True)
+            if isinstance(out, Prediction):
+                x, y = out.outputs, out.targets
+            else:
+                x = out
+
         outputs = self.call_train_test(x, y, sample_weight=sample_weight, testing=True)
 
         if getattr(self, "pre_eval_topk", None) is not None:
@@ -622,18 +704,42 @@ class BaseModel(tf.keras.Model):
 
         self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
-        metrics = self.compute_metrics(outputs, training=False)
+        metrics = self.compute_metrics(outputs)
 
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
 
+    def predict_step(self, data):
+        x, _, _ = unpack_x_y_sample_weight(data)
+
+        if getattr(self, "predict_pre", None):
+            out = call_layer(self.predict_pr, x, features=x, training=False)
+            if isinstance(out, Prediction):
+                x = out.outputs
+            else:
+                x = out
+
+        return self(x, training=False)
+
     @tf.function
+    def train_compute_metrics(self, outputs: PredictionOutput, compiled_metrics: MetricsContainer):
+        """Returns metrics for the outputs of this step.
+
+        Re-computing metrics every `train_metrics_steps` steps.
+        """
+        # Compiled_metrics as an argument here because it is re-defined by `model.compile()`
+        # And checking `self.compiled_metrics` inside this function results in a reference to
+        # a deleted version of `compiled_metrics` if the model is re-compiled.
+        if self._should_compute_train_metrics_for_batch:
+            return self.compute_metrics(outputs, compiled_metrics)
+        return self.metrics_results()
+
     def compute_metrics(
         self,
         prediction_outputs: PredictionOutput,
-        training: bool,
+        compiled_metrics: Optional[MetricsContainer] = None,
     ) -> Dict[str, tf.Tensor]:
         """Overrides Model.compute_metrics() for some custom behaviour
            like compute metrics each N steps during training
@@ -643,37 +749,36 @@ class BaseModel(tf.keras.Model):
         ----------
         prediction_outputs : PredictionOutput
             Contains properties with targets and predictions
-        training : bool
-            Flag that indicates if metrics are being computed during
-            training or evaluation
+        compiled_metrics : MetricsContainer
+            The metrics container to compute metrics on.
+            If not provided, uses self.compiled_metrics
 
         Returns
         -------
         Dict[str, tf.Tensor]
             Dict with the metrics values
         """
+        if compiled_metrics is None:
+            compiled_metrics = self.compiled_metrics
 
-        should_compute_metrics = self._should_compute_train_metrics_for_batch or not training
-        if should_compute_metrics:
-            # This ensures that compiled metrics are built
-            # to make self.compiled_metrics.metrics available
-            if not self.compiled_metrics.built:
-                self.compiled_metrics.build(
-                    prediction_outputs.predictions, prediction_outputs.targets
-                )
+        # This ensures that compiled metrics are built
+        # to make self.compiled_metrics.metrics available
+        if not compiled_metrics.built:
+            compiled_metrics.build(prediction_outputs.predictions, prediction_outputs.targets)
 
-            # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
-            # should have standard signature for better compatibility with Keras methods
-            # like self.compiled_metrics.update_state()
-            if hasattr(prediction_outputs, "label_relevant_counts"):
-                for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
-                    topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
+        # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
+        # should have standard signature for better compatibility with Keras methods
+        # like self.compiled_metrics.update_state()
+        if hasattr(prediction_outputs, "label_relevant_counts"):
+            for topk_metric in filter_topk_metrics(compiled_metrics.metrics):
+                topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 
-            self.compiled_metrics.update_state(
-                prediction_outputs.targets,
-                prediction_outputs.predictions,
-                prediction_outputs.sample_weight,
-            )
+        compiled_metrics.update_state(
+            prediction_outputs.targets,
+            prediction_outputs.predictions,
+            prediction_outputs.sample_weight,
+        )
+
         # Returns the current value of metrics
         metrics = self.metrics_results()
         return metrics
@@ -718,6 +823,7 @@ class BaseModel(tf.keras.Model):
         workers=1,
         use_multiprocessing=False,
         train_metrics_steps=1,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
@@ -744,10 +850,19 @@ class BaseModel(tf.keras.Model):
         fit_kwargs = {
             k: v
             for k, v in locals().items()
-            if k not in ["self", "kwargs", "train_metrics_steps", "__class__"]
+            if k not in ["self", "kwargs", "train_metrics_steps", "pre"] and not k.startswith("__")
         }
 
-        return super().fit(**fit_kwargs)
+        if pre:
+            self._reset_compile_cache()
+            self.train_pre = pre
+
+        out = super().fit(**fit_kwargs)
+
+        if pre:
+            del self.train_pre
+
+        return out
 
     def _add_metrics_callback(self, callbacks, train_metrics_steps):
         if callbacks is None:
@@ -778,11 +893,16 @@ class BaseModel(tf.keras.Model):
         workers=1,
         use_multiprocessing=False,
         return_dict=False,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
-        return super().evaluate(
+        if pre:
+            self._reset_compile_cache()
+            self.test_pre = pre
+
+        out = super().evaluate(
             x,
             y,
             batch_size,
@@ -797,6 +917,11 @@ class BaseModel(tf.keras.Model):
             **kwargs,
         )
 
+        if pre:
+            del self.test_pre
+
+        return out
+
     def predict(
         self,
         x,
@@ -807,11 +932,16 @@ class BaseModel(tf.keras.Model):
         max_queue_size=10,
         workers=1,
         use_multiprocessing=False,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
-        return super(BaseModel, self).predict(
+        if pre:
+            self._reset_compile_cache()
+            self.predict_pre = pre
+
+        out = super(BaseModel, self).predict(
             x,
             batch_size=batch_size,
             verbose=verbose,
@@ -821,6 +951,11 @@ class BaseModel(tf.keras.Model):
             workers=workers,
             use_multiprocessing=use_multiprocessing,
         )
+
+        if pre:
+            del self.predict_pre
+
+        return out
 
     def batch_predict(
         self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
@@ -1429,6 +1564,149 @@ class RetrievalModel(Model):
         recommender = ModelBlock(recommender_block)
         recommender.built = True
         return recommender
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class RetrievalModelV2(Model):
+    def __init__(
+        self,
+        *,
+        query: Union[Encoder, tf.keras.layers.Layer],
+        output: Union[ModelOutput, tf.keras.layers.Layer],
+        candidate: Optional[Union[Encoder, tf.keras.layers.Layer]] = None,
+        query_name="query",
+        candidate_name="candidate",
+        pre: Optional[tf.keras.layers.Layer] = None,
+        post: Optional[tf.keras.layers.Layer] = None,
+        **kwargs,
+    ):
+        if isinstance(output, ContrastiveOutput):
+            query_name = output.query_name
+            candidate_name = output.candidate_name
+
+        if query and candidate:
+            encoder = ParallelBlock({query_name: query, candidate_name: candidate})
+        else:
+            encoder = query
+
+        super().__init__(encoder, output, pre=pre, post=post, **kwargs)
+
+        self._query_name = query_name
+        self._candidate_name = candidate_name
+        self._encoder = encoder
+        self._output = output
+
+    def query_embeddings(
+        self,
+        dataset: Optional[merlin.io.Dataset] = None,
+        index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        **kwargs,
+    ) -> merlin.io.Dataset:
+        query = self.query_encoder if self.has_candidate_encoder else self.encoder
+
+        if dataset is not None and hasattr(query, "encode"):
+            return query.encode(dataset, index=index, **kwargs)
+
+        if hasattr(query, "to_dataset"):
+            return query.to_dataset(**kwargs)
+
+        return query.encode(dataset, index=index, **kwargs)
+
+    def candidate_embeddings(
+        self,
+        dataset: Optional[merlin.io.Dataset] = None,
+        index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        **kwargs,
+    ) -> merlin.io.Dataset:
+        if self.has_candidate_encoder:
+            candidate = self.candidate_encoder
+
+            if dataset is not None and hasattr(candidate, "encode"):
+                return candidate.encode(dataset, index=index, **kwargs)
+
+            if hasattr(candidate, "to_dataset"):
+                return candidate.to_dataset(**kwargs)
+
+            return candidate.encode(dataset, index=index, **kwargs)
+
+        if isinstance(self.last, ContrastiveOutput):
+            return self.last.to_dataset()
+
+        raise Exception(...)
+
+    @property
+    def encoder(self):
+        return self._encoder
+
+    @property
+    def has_candidate_encoder(self):
+        return (
+            isinstance(self.encoder, ParallelBlock)
+            and self._candidate_name in self.encoder.parallel_dict
+        )
+
+    @property
+    def query_encoder(self) -> Encoder:
+        if self.has_candidate_encoder:
+            output = self.encoder[self._query_name]
+        else:
+            output = self.encoder
+
+        output = self._check_encoder(output)
+
+        return output
+
+    @property
+    def candidate_encoder(self) -> Encoder:
+        output = None
+        if self.has_candidate_encoder:
+            output = self.encoder[self._candidate_name]
+
+        if output:
+            return self._check_encoder(output)
+
+        raise ValueError("No candidate encoder found.")
+
+    def _check_encoder(self, maybe_encoder):
+        output = maybe_encoder
+
+        from merlin.models.tf.core.encoder import Encoder
+
+        if isinstance(output, SequentialBlock):
+            output = Encoder(*maybe_encoder.layers)
+
+        if not isinstance(output, Encoder):
+            raise ValueError(f"Query encoder should be an Encoder, got {type(output)}")
+
+        return output
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        pre = config.pop("pre", None)
+        if pre is not None:
+            pre = tf.keras.layers.deserialize(pre, custom_objects=custom_objects)
+
+        post = config.pop("post", None)
+        if post is not None:
+            post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
+
+        encoder = config.pop("_encoder", None)
+        if encoder is not None:
+            encoder = tf.keras.layers.deserialize(encoder, custom_objects=custom_objects)
+
+        output = config.pop("_output", None)
+        if output is not None:
+            output = tf.keras.layers.deserialize(output, custom_objects=custom_objects)
+
+        output = RetrievalModelV2(query=encoder, output=output, pre=pre, post=post)
+        output.__class__ = cls
+
+        return output
+
+    def get_config(self):
+        config = maybe_serialize_keras_objects(self, {}, ["pre", "post", "_encoder", "_output"])
+
+        return config
 
 
 def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):

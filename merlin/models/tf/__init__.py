@@ -74,9 +74,7 @@ from merlin.models.tf.core.combinators import (
     ResidualBlock,
     SequentialBlock,
 )
-from merlin.models.tf.core.encoder import EncoderBlock
-from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
-from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
+from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder, TopKEncoder
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -101,7 +99,7 @@ from merlin.models.tf.metrics.topk import (
     TopKMetricsAggregator,
 )
 from merlin.models.tf.models import benchmark
-from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel
+from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel, RetrievalModelV2
 from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, WideAndDeepModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
@@ -115,6 +113,7 @@ from merlin.models.tf.outputs.regression import RegressionOutput
 from merlin.models.tf.outputs.sampling.base import Candidate, CandidateSampler
 from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
+from merlin.models.tf.outputs.topk import TopKOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.classification import (
     BinaryClassificationTask,
@@ -123,6 +122,24 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.utils.dependencies import is_transformers_available
+
+if is_transformers_available():
+    from merlin.models.tf.transformers.block import (
+        AlbertBlock,
+        BertBlock,
+        GPT2Block,
+        RobertaBlock,
+        TransformerBlock,
+        XLNetBlock,
+    )
+    from merlin.models.tf.transformers.transforms import (
+        AttentionWeights,
+        HiddenStates,
+        LastHiddenState,
+        LastHiddenStateAndAttention,
+    )
+
 from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
@@ -135,9 +152,13 @@ from merlin.models.tf.transforms.features import (
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.transforms.sequence import (
+    ReplaceMaskedEmbeddings,
+    SequenceMaskLast,
+    SequenceMaskRandom,
     SequencePredictLast,
     SequencePredictNext,
     SequencePredictRandom,
+    SequenceTargetAsInput,
 )
 from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToRagged, ListToSparse
 from merlin.models.tf.utils import repr_utils
@@ -161,7 +182,9 @@ __all__ = [
     "SequentialBlock",
     "ResidualBlock",
     "DualEncoderBlock",
-    "EncoderBlock",
+    "TopKEncoder",
+    "Encoder",
+    "EmbeddingEncoder",
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
@@ -193,6 +216,7 @@ __all__ = [
     "ListToSparse",
     "ToSparse",
     "ToDense",
+    "ToTarget",
     "CategoryEncoding",
     "HashedCross",
     "HashedCrossAll",
@@ -233,6 +257,7 @@ __all__ = [
     "TopKMetricsAggregator",
     "Model",
     "RetrievalModel",
+    "RetrievalModelV2",
     "InputBlock",
     "InputBlockV2",
     "PredictionTasks",
@@ -262,4 +287,8 @@ __all__ = [
     "SequencePredictNext",
     "SequencePredictLast",
     "SequencePredictRandom",
+    "SequenceTargetAsInput",
+    "SequenceMaskLast",
+    "SequenceMaskRandom",
+    "ReplaceMaskedEmbeddings",
 ]

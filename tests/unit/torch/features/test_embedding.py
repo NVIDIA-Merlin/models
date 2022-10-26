@@ -161,6 +161,7 @@ def test_soft_embedding_invalid_embeddings_dim():
 
 
 def test_soft_embedding():
+    torch.manual_seed(0)
     embeddings_dim = 16
     num_embeddings = 64
 
