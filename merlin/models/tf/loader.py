@@ -18,7 +18,6 @@ import logging
 import os
 from typing import Protocol
 
-import cupy
 import dask.dataframe as dd
 import numpy as np
 import tensorflow as tf
@@ -633,6 +632,11 @@ def get_default_hvd_seed_fn(seed=None):
     Reseeds each worker's dataloader each epoch to get fresh a shuffle
     that's consistent across workers.
     """
+    try:
+        import cupy
+    except ImportError:
+        raise ImportError("'cupy' is required to use this function.")
+
     try:
         import horovod
     except ImportError:
