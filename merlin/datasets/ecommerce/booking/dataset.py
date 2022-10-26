@@ -4,13 +4,14 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 from tqdm import tqdm
+from glob import glob
 
 import merlin.io
 from merlin.core.dispatch import get_lib
 from merlin.datasets import BASE_PATH
 from merlin.models.utils.example_utils import workflow_fit_transform
 from merlin.models.utils.nvt_utils import require_nvt
-from merlin.schema import Schema, Tags
+from merlin.schema import Tags
 
 try:
     import nvtabular as nvt
@@ -81,9 +82,9 @@ def download_booking(path: Path):
 
 
 def transform_booking(
-    raw_path: Path,
-    nvt_path: Path,
-    nvt_workflow: Optional[Workflow] = None,
+    data: Union[str, Path, Tuple[merlin.io.Dataset, merlin.io.Dataset]],
+    output_path: Union[str, Path],
+    nvt_workflow=None,
     **kwargs,
 ):
     nvt_workflow = nvt_workflow or default_booking_transformation(**locals())

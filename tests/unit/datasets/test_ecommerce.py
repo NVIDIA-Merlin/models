@@ -9,6 +9,9 @@ from merlin.datasets.synthetic import generate_data
 # This is the path to the raw ali-ccp dataset
 MAYBE_ALICCP_DATA = os.environ.get("DATA_PATH_ALICCP", None)
 
+MAYBE_DATA_DIR = os.environ.get("INPUT_DATA_DIR", None)
+MAYBE_DATA_DIR = "/home/marc/data"
+
 
 def test_synthetic_aliccp_data():
     dataset = generate_data("aliccp", 100)
@@ -100,3 +103,16 @@ def test_transform_alliccp(tmp_path):
     output_files = list(tmp_path.glob("*/*"))
 
     assert len(output_files) == 10
+
+    
+# @pytest.mark.skipif(
+#     MAYBE_DATA_DIR is None,
+#     reason="No data-dir available, pass it through env variable $INPUT_DATA_DIR",
+# )
+def test_get_booking():
+    data_path = os.path.join(MAYBE_DATA_DIR, "booking")
+
+    train, valid = ecommerce.get_booking(data_path, overwrite=True)
+
+    assert isinstance(train, merlin.io.Dataset)
+    assert isinstance(valid, merlin.io.Dataset)
