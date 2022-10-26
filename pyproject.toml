@@ -57,6 +57,7 @@ markers = [
     "implicit",
     "xgboost",
     "transformers",
+    "horovod",
     "example",
     "integration",
     "unit",

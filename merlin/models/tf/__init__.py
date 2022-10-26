@@ -18,8 +18,6 @@
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
-from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
-from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
 
 configure_tensorflow()
 
@@ -40,6 +38,7 @@ from merlin.models.tf.blocks.interaction import (
 )
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
 from merlin.models.tf.blocks.optimizer import (
+    DistributedOptimizer,
     LazyAdam,
     MultiOptimizer,
     OptimizerBlocks,
@@ -76,6 +75,8 @@ from merlin.models.tf.core.combinators import (
     SequentialBlock,
 )
 from merlin.models.tf.core.encoder import EncoderBlock
+from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
+from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -133,6 +134,11 @@ from merlin.models.tf.transforms.features import (
 )
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
+from merlin.models.tf.transforms.sequence import (
+    SequencePredictLast,
+    SequencePredictNext,
+    SequencePredictRandom,
+)
 from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToRagged, ListToSparse
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
@@ -210,6 +216,7 @@ __all__ = [
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
+    "DistributedOptimizer",
     "MultiOptimizer",
     "LazyAdam",
     "OptimizerBlocks",
@@ -252,4 +259,7 @@ __all__ = [
     "BroadcastToSequence",
     "Loader",
     "KerasSequenceValidator",
+    "SequencePredictNext",
+    "SequencePredictLast",
+    "SequencePredictRandom",
 ]

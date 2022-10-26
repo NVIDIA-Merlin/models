@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
 
-#!/bin/bash
-set -e
-
-TF_GPU_ALLOCATOR=cuda_malloc_async python -m pytest -rxs tests/unit
-horovodrun -np 2 sh ./examples/usecases/multi-gpu/hvd_wrapper.sh python -m pytest -rxs tests/unit -m horovod
+pytest.importorskip("horovod")
