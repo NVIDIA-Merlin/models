@@ -5,7 +5,7 @@ from transformers import BertConfig
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.loader import Loader
+from merlin.models.tf.loader import Loader, sample_batch
 from merlin.models.tf.transformers.block import (
     AlbertBlock,
     BertBlock,
@@ -195,9 +195,11 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     assert predictions.shape == (8, 3, 51997)
 
 
+@pytest.mark.parametrize("transformer_cls", [BertBlock, GPT2Block, XLNetBlock, RobertaBlock])
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_transformer_with_masked_language_modeling(sequence_testing_data: Dataset, run_eagerly):
-
+def test_transformer_with_masked_language_modeling(
+    sequence_testing_data: Dataset, transformer_cls, run_eagerly
+):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
     )
@@ -211,8 +213,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
-        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        transformer_cls(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
@@ -220,7 +221,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
     )
     seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    inputs, targets = next(iter(loader))
+    inputs, targets = sample_batch(sequence_testing_data, batch_size=8, to_ragged=True)
     outputs = model(inputs, targets=targets, training=True)
     assert list(outputs.shape) == [8, 4, 51997]
     testing_utils.model_test(
@@ -245,7 +246,6 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
 def test_transformer_with_masked_language_modeling_check_eval_masked(
     sequence_testing_data: Dataset, run_eagerly
 ):
-
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
     )
@@ -259,7 +259,6 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
         GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),

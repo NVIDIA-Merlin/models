@@ -2,6 +2,7 @@ import pytest
 import tensorflow as tf
 from transformers.modeling_tf_outputs import TFBaseModelOutputWithPoolingAndCrossAttentions
 
+from merlin.models.tf.core.base import block_registry
 from merlin.models.tf.transformers import transforms
 
 TRANSFORMER_IN = tf.random.uniform((1, 1, 8))
@@ -51,3 +52,10 @@ def test_transformer_post(in_out):
             tf.assert_equal(out_element, expected_output_element)
     else:
         tf.assert_equal(out, expected_output)
+
+
+@pytest.mark.parametrize("post", ["first", "last", "mean", "cls_index"])
+def test_post(post):
+    transformer_post = block_registry.parse("sequence_" + post)
+
+    assert transformer_post(TRANSFORMER_IN) is not None
