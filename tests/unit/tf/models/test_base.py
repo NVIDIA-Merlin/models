@@ -125,14 +125,14 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
 
     def __init__(self, name="update_count_metric", **kwargs):
         super().__init__(name=name, **kwargs)
-        self._built = False
+        self.built = False
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        if not self._built:
+        if not self.built:
             self.call_count = self.add_weight(
                 "call_count", shape=tf.TensorShape([1]), initializer="zeros"
             )
-            self._built = True
+            self.built = True
 
         self.call_count.assign(self.call_count + tf.constant([1.0]))
 
