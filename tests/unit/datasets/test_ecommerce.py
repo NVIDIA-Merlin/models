@@ -10,7 +10,6 @@ from merlin.datasets.synthetic import generate_data
 MAYBE_ALICCP_DATA = os.environ.get("DATA_PATH_ALICCP", None)
 
 MAYBE_DATA_DIR = os.environ.get("INPUT_DATA_DIR", None)
-MAYBE_DATA_DIR = "/home/marc/data"
 
 
 def test_synthetic_aliccp_data():
@@ -104,13 +103,13 @@ def test_transform_alliccp(tmp_path):
 
     assert len(output_files) == 10
 
-    
-# @pytest.mark.skipif(
-#     MAYBE_DATA_DIR is None,
-#     reason="No data-dir available, pass it through env variable $INPUT_DATA_DIR",
-# )
+
+@pytest.mark.skipif(
+    MAYBE_DATA_DIR is None,
+    reason="No data-dir available, pass it through env variable $INPUT_DATA_DIR",
+)
 def test_get_booking():
-    data_path = os.path.join(MAYBE_DATA_DIR, "booking")
+    data_path = os.path.join(MAYBE_DATA_DIR, "booking_test")
 
     train, valid = ecommerce.get_booking(data_path, overwrite=True)
 

@@ -1,10 +1,10 @@
 import os
 import urllib
+from glob import glob
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
 from tqdm import tqdm
-from glob import glob
 
 import merlin.io
 from merlin.core.dispatch import get_lib
@@ -22,7 +22,7 @@ except ImportError:
 
 
 _FILES = ["ground_truth.csv", "test_set.csv", "train_set.csv"]
-_DATA_URL = f"https://raw.githubusercontent.com/bookingcom/ml-dataset-mdt/main/"
+_DATA_URL = "https://raw.githubusercontent.com/bookingcom/ml-dataset-mdt/main/"
 
 
 def get_booking(
@@ -32,10 +32,21 @@ def get_booking(
     nvt_workflow: Optional[Workflow] = None,
     **kwargs,
 ) -> Tuple[merlin.io.Dataset, merlin.io.Dataset]:
+    """_summary_
+
+    Args:
+        path (Union[str, Path]): _description_
+        overwrite (bool, optional): _description_. Defaults to False.
+        transformed_name (str, optional): _description_. Defaults to "transformed".
+        nvt_workflow (Optional[Workflow], optional): _description_. Defaults to None.
+
+    Returns:
+        Tuple[merlin.io.Dataset, merlin.io.Dataset]: _description_
+    """
     require_nvt()
 
     if path is None:
-        p = Path(BASE_PATH) / "movielens"
+        p = Path(BASE_PATH) / "booking"
     else:
         p = Path(path)
 
@@ -56,6 +67,13 @@ def get_booking(
 
 
 def download_booking(path: Path):
+    """_summary_
+
+    Args:
+        path (Path): _description_
+    """
+    path.mkdir(parents=True, exist_ok=True)
+
     for file in _FILES:
         local_filename = str(path / file)
         url = os.path.join(_DATA_URL, file)
@@ -77,6 +95,9 @@ def download_booking(path: Path):
     test["checkin"] = get_lib().to_datetime(test["checkin"], format="%Y-%m-%d")
     test["checkout"] = get_lib().to_datetime(test["checkout"], format="%Y-%m-%d")
 
+    (path / "train").mkdir(exist_ok=True)
+    (path / "test").mkdir(exist_ok=True)
+
     train.to_parquet(path / "train/data.parquet")
     test.to_parquet(path / "test/data.parquet")
 
@@ -87,6 +108,16 @@ def transform_booking(
     nvt_workflow=None,
     **kwargs,
 ):
+    """_summary_
+
+    Args:
+        data (Union[str, Path, Tuple[merlin.io.Dataset, merlin.io.Dataset]]): _description_
+        output_path (Union[str, Path]): _description_
+        nvt_workflow (_type_, optional): _description_. Defaults to None.
+
+    Raises:
+        ValueError: _description_
+    """
     nvt_workflow = nvt_workflow or default_booking_transformation(**locals())
 
     if isinstance(data, (str, Path)):
