@@ -1,22 +1,18 @@
-import os
 import importlib
-import subprocess
-import time
+import os
 import random
 
 import cupy
-import pytest
 import numpy as np
+import pytest
 import tensorflow as tf
 
 import merlin.models.tf as mm
-from merlin.datasets.synthetic import generate_data
 from merlin.datasets.advertising.criteo.dataset import default_criteo_transform
-from merlin.models.utils.example_utils import workflow_fit_transform
 from merlin.io.dataset import Dataset
-from merlin.schema.tags import Tags
 from merlin.models.tf.distributed.backend import hvd
-
+from merlin.models.utils.example_utils import workflow_fit_transform
+from merlin.schema.tags import Tags
 
 # Seed with system randomness (or a static seed)
 os.environ["TF_CUDNN_DETERMINISTIC"] = str(hvd.rank())
@@ -48,7 +44,6 @@ def seed_fn():
     )
 
     return reduced_seed % max_rand
-
 
 
 @pytest.mark.skipif(
@@ -101,7 +96,7 @@ def test_horovod_multigpu(criteo_data, tmpdir, batch_size):
 
     opt = tf.keras.optimizers.Adagrad(learning_rate=0.03)
     model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
-    
+
     model.fit(
         train_loader,
         batch_size=batch_size,

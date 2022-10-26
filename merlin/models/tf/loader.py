@@ -635,8 +635,8 @@ def get_default_hvd_seed_fn(seed=None):
     """
     try:
         import horovod
-    except:
-        raise RuntimeError("'horovod' is required to use this function.")
+    except ImportError:
+        raise ImportError("'horovod' is required to use this function.")
 
     cupy.random.seed(seed)
 
@@ -649,7 +649,9 @@ def get_default_hvd_seed_fn(seed=None):
 
         # Aggregate seed fragments from all Horovod workers
         seed_tensor = tf.constant(seed_fragment)
-        reduced_seed = hvd.allreduce(seed_tensor, name="shuffle_seed", op=horovod.tensorflow.mpi_ops.Sum)
+        reduced_seed = hvd.allreduce(
+            seed_tensor, name="shuffle_seed", op=horovod.tensorflow.mpi_ops.Sum
+        )
 
         return reduced_seed % max_rand
 

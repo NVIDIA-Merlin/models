@@ -1,25 +1,20 @@
-import os
 import importlib
-import subprocess
-import time
-import random
+import os
 
-import cupy
-import numpy as np
 import pytest
 import tensorflow as tf
 
 import merlin.models.tf as mm
-from merlin.datasets.synthetic import generate_data
 from merlin.datasets.advertising.criteo.dataset import default_criteo_transform
-from merlin.models.utils.example_utils import workflow_fit_transform
 from merlin.io.dataset import Dataset
-from merlin.schema.tags import Tags
 from merlin.models.tf.distributed.backend import hvd
+from merlin.models.utils.example_utils import workflow_fit_transform
+from merlin.schema.tags import Tags
 
 
 def test_import():
     from merlin.models.tf.distributed.backend import hvd
+
     horovod_found = importlib.util.find_spec("horovod")
 
     assert (horovod_found and hvd is not None) or (not horovod_found and hvd is None)
@@ -65,7 +60,7 @@ def test_horovod_multigpu(criteo_data, tmpdir, batch_size=11, learning_rate=0.03
 
     opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
     model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
-    
+
     model.fit(
         train_loader,
         batch_size=batch_size,
