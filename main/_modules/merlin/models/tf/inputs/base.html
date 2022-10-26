@@ -380,7 +380,8 @@
             <span class="k">if</span> <span class="n">branch</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tag_to_block</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No default-block provided for </span><span class="si">{</span><span class="n">branch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">branch_schema</span><span class="p">:</span> <span class="n">Schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">branch</span><span class="p">)</span>
-            <span class="n">parsed</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tag_to_block</span><span class="p">[</span><span class="n">branch</span><span class="p">](</span><span class="n">branch_schema</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">branch_schema</span><span class="p">:</span>
+                <span class="n">parsed</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tag_to_block</span><span class="p">[</span><span class="n">branch</span><span class="p">](</span><span class="n">branch_schema</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">parsed</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No columns selected for the input block&quot;</span><span class="p">)</span>
