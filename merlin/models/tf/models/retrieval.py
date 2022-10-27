@@ -1,4 +1,3 @@
-import warnings
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import tensorflow as tf
@@ -21,6 +20,7 @@ from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.schema import Schema, Tags
 
 
@@ -356,6 +356,8 @@ def MatrixFactorizationModelV2(
         The optional `ModelOutput` or list of `ModelOutput` to apply on the MF model.
     negative_samplers: List[ItemSampler]
         List of samplers for negative sampling, by default None
+        If the `outputs` and `negative_samplers` are not specified the Matrix Factorization model
+        is trained with contrastive learning and `in-batch` negative sampling strategy.
     logits_temperature: float
         Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
@@ -386,10 +388,6 @@ def MatrixFactorizationModelV2(
 
     if not outputs:
         if not negative_samplers:
-            warnings.warn(
-                "By default, the MatrixFactorization model is trained using constrastive learning."
-                "When `negative_samplers` is not specified, `in-batch` negative sampling is used."
-            )
             negative_samplers = ["in-batch"]
         outputs = ContrastiveOutput(
             to_call=DotProduct(),
@@ -450,6 +448,8 @@ def TwoTowerModelV2(
         Defaults to 1.
     negative_samplers: List[ItemSampler]
         List of samplers for negative sampling, by default None
+        If the `outputs` and `negative_samplers` are not specified the two tower model
+        is trained with contrastive learning and `in-batch` negative sampling strategy.
 
     Returns
     -------
@@ -464,10 +464,6 @@ def TwoTowerModelV2(
 
     if not outputs:
         if not negative_samplers:
-            warnings.warn(
-                "By default, the TwoTower model is trained using constrastive learning."
-                "When `negative_samplers` is not specified, `in-batch` negative sampling is used."
-            )
             negative_samplers = ["in-batch"]
         outputs = ContrastiveOutput(
             to_call=DotProduct(),
@@ -563,16 +559,15 @@ def YoutubeDNNRetrievalModelV2(
     candidate = schema.select_by_tag(candidate_id_tag)
     if not candidate:
         raise ValueError(f"The schema should contain a feature tagged as `{candidate_id_tag}`")
-    candidate = candidate.first
-    num_classes = candidate.int_domain.max + 1
 
     query = Encoder(inputs, top_block, post=post)
 
     if not outputs:
-        warnings.warn(
-            "By default, the YoutubeDNN model is trained using popularity-bases sampled softmax."
-        )
+        cardinalities = categorical_cardinalities(candidate)
+        candidate = candidate.first
         candidate_table = query.first["categorical"][candidate.name]
+        num_classes = cardinalities[candidate.name]
+
         outputs = ContrastiveOutput(
             to_call=candidate_table,
             logits_temperature=logits_temperature,
