@@ -20,8 +20,8 @@ from merlin.datasets.ecommerce.aliccp.dataset import (
     prepare_alliccp,
     transform_aliccp,
 )
-from merlin.datasets.ecommerce.dressipi.dataset import get_dressipi2022
 from merlin.datasets.ecommerce.booking.dataset import get_booking, transform_booking
+from merlin.datasets.ecommerce.dressipi.dataset import get_dressipi2022
 
 __all__ = [
     "prepare_alliccp",
@@ -30,5 +30,5 @@ __all__ = [
     "default_aliccp_transformation",
     "get_dressipi2022",
     "get_booking",
-    "transform_booking"
+    "transform_booking",
 ]
