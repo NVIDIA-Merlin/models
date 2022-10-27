@@ -87,6 +87,12 @@ def download_booking(path: Path):
 
             urllib.request.urlretrieve(url, local_filename, reporthook=report)
 
+    preprocess_booking(path)
+
+
+def preprocess_booking(
+    path: Path,
+):
     train = get_lib().read_csv(path / "train_set.csv")
     test = get_lib().read_csv(path / "test_set.csv")
 
