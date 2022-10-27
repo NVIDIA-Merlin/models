@@ -78,34 +78,6 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     np.testing.assert_allclose(predictions, predicitons_2, atol=1e-7)
 
 
-def test_retrieval(sequence_testing_data: Dataset):
-    dataset = sequence_testing_data
-
-    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
-        Tags.CATEGORICAL
-    )
-
-    transformer_block = GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings())
-    input_block = mm.InputBlockV2(
-        seq_schema, categorical=mm.Embeddings(seq_schema, sequence_combiner=None)
-    )
-    candidate = dataset.schema.select_by_tag(Tags.ITEM_ID)
-    query = mm.SequentialBlock(
-        [
-            input_block,
-            transformer_block,
-        ]
-    )
-    output = mm.ContrastiveOutput(candidate, "in-batch")
-    model = mm.RetrievalModelV2(query=query, output=output)
-
-    model.compile()
-
-    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    pre = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
-    model.fit(dataset, batch_size=10, pre=pre)
-
-
 def test_transformer_encoder():
     NUM_ROWS = 100
     SEQ_LENGTH = 10
