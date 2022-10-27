@@ -749,7 +749,8 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly):
+@pytest.mark.parametrize("target_augmentation", [mm.SequencePredictLast, mm.SequencePredictRandom])
+def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly, target_augmentation):
     # remove sequential continuous features because second dimension (=[None]) is raising an error
     # in the `compute_output_shape` of  `ConcatFeatures`)
     to_remove = (
@@ -761,13 +762,13 @@ def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly):
 
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_next = mm.SequencePredictLast(schema=seq_schema, target=target)
+    target_augmentation = target_augmentation(schema=seq_schema, target=target)
 
     model = mm.YoutubeDNNRetrievalModelV2(
         schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
     )
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=predict_next)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=target_augmentation)
 
     _, losses = testing_utils.model_test(
         model, dataloader, reload_model=True, run_eagerly=run_eagerly
