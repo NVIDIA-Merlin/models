@@ -462,4 +462,9 @@ def list_col_to_ragged(col: Tuple[tf.Tensor, tf.Tensor]):
     if row_lengths.dtype.is_floating:
         row_lengths = tf.cast(row_lengths, tf.int32)
 
-    return tf.RaggedTensor.from_row_lengths(values, row_lengths)
+    ragged = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+
+    if len(ragged.shape) == 2:
+        ragged = tf.expand_dims(ragged, axis=-1)
+
+    return ragged
