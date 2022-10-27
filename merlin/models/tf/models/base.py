@@ -19,7 +19,7 @@ from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
 from merlin.models.tf.core.tabular import TabularBlock
-from merlin.models.tf.distributed.backend import hvd
+from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
@@ -319,7 +319,7 @@ class BaseModel(tf.keras.Model):
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
 
-        if hvd:
+        if hvd_installed:
             # Horovod: Specify `experimental_run_tf_function=False` to ensure TensorFlow
             # uses hvd.DistributedOptimizer() to compute gradients.
             kwargs.update({"experimental_run_tf_function": False})
@@ -338,16 +338,30 @@ class BaseModel(tf.keras.Model):
         )
 
     def _create_optimizer(self, optimizer):
-        if hvd:
-            if isinstance(optimizer, merlin.models.tf.MultiOptimizer):
-                # TODO
-                pass
+        def _create_single_distributed_optimizer(opt):
+            opt = tf.keras.optimizers.get(opt)
+
+            opt_config = opt.get_config()
+
+            if isinstance(opt.learning_rate, tf.keras.optimizers.schedules.LearningRateSchedule):
+                lr_config = opt.learning_rate.get_config()
+                lr_config["initial_learning_rate"] *= hvd.size()
+                opt_config["lr"] = opt.learning_rate.__class__.from_config(lr_config)
             else:
-                if isinstance(optimizer, str):
-                    optimizer = tf.keras.optimizers.get(optimizer)
-                scaled_lr = optimizer.learning_rate * hvd.size()
-                tf.keras.backend.set_value(optimizer.learning_rate, scaled_lr)
-                optimizer = hvd.DistributedOptimizer(optimizer)
+                opt_config["lr"] = opt.learning_rate * hvd.size()
+
+            opt = opt.__class__.from_config(opt_config)
+
+            return hvd.DistributedOptimizer(opt)
+
+        if hvd_installed:
+            if isinstance(optimizer, merlin.models.tf.MultiOptimizer):
+                for pair in (
+                    optimizer.optimizers_and_blocks + optimizer.update_optimizers_and_blocks
+                ):
+                    pair.optimizer = _create_single_distributed_optimizer(pair.optimizer)
+            else:
+                optimizer = _create_single_distributed_optimizer(optimizer)
 
         return optimizer
 
@@ -836,7 +850,7 @@ class BaseModel(tf.keras.Model):
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
-        if hvd:
+        if hvd_installed:
             # Horovod: broadcast initial variable states from rank 0 to all other processes.
             # This is necessary to ensure consistent initialization of all workers when
             # training is started with random weights or restored from a checkpoint.
@@ -845,7 +859,7 @@ class BaseModel(tf.keras.Model):
             callbacks.append(hvd.callbacks.MetricAverageCallback())
 
         # Horovod: write logs on worker 0.
-        verbose = verbose if hvd and hvd.rank() == 0 else 0
+        verbose = verbose if hvd_installed and hvd.rank() == 0 else 0
 
         fit_kwargs = {
             k: v
@@ -989,7 +1003,7 @@ class BaseModel(tf.keras.Model):
         return merlin.io.Dataset(predictions)
 
     def save(self, *args, **kwargs):
-        if hvd or hvd.rank() != 0:
+        if hvd_installed and hvd.rank() != 0:
             return
         super().save(*args, **kwargs)
 

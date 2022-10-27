@@ -127,11 +127,11 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             self._track_trackable(pair.optimizer, name=f"Optimizer{i}")
             pair.blocks = [pair.blocks] if isinstance(pair.blocks, Block) else pair.blocks
             self.optimizers_and_blocks.append(pair)
-        if "update_optimzier_and_block" in kwargs:
-            # only for from_config, where there is already self.update_optimzier_and_block
-            self.update_optimzier_and_block = kwargs.get("update_optimzier_and_block")
+        if "update_optimizers_and_blocks" in kwargs:
+            # only for from_config, where there is already self.update_optimizers_and_blocks
+            self.update_optimizers_and_blocks = kwargs.get("update_optimizers_and_blocks")
         else:
-            self.update_optimzier_and_block = []
+            self.update_optimizers_and_blocks = []
 
     def _get_trainable_variables_optimizer_dict(self, optimizers_and_blocks, require_disjoint=True):
         attribute = "_trainable_weights"
@@ -178,9 +178,9 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         self._get_trainable_variables_optimizer_dict(
             self.optimizers_and_blocks, require_disjoint=True
         )
-        if len(self.update_optimzier_and_block) > 0:
+        if len(self.update_optimizers_and_blocks) > 0:
             self._get_trainable_variables_optimizer_dict(
-                self.update_optimzier_and_block, require_disjoint=False
+                self.update_optimizers_and_blocks, require_disjoint=False
             )
         optimizer_grads_and_vars = collections.defaultdict(list)
         # Category variables by the optimizer
@@ -226,7 +226,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         what optimizer it used to utilize. If the block is not specified with an optimizer before,
         this functions would have the same functionality as self.add()
 
-        Note: the optimizer_blocks would be kept in self.update_optimzier_and_blocks, instead of
+        Note: the optimizer_blocks would be kept in self.update_optimizers_and_blockss, instead of
         self.optimizers_and_blocks"""
         len_exist_optimizers = len(self.optimizers_and_blocks)
         optimizer = optimizer_blocks.optimizer
@@ -238,7 +238,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
                 optimizer_not_exists = False
         if optimizer_not_exists:
             self._track_trackable(optimizer, name=f"Optimizer{1+len_exist_optimizers}")
-        self.update_optimzier_and_block.append(optimizer_blocks)
+        self.update_optimizers_and_blocks.append(optimizer_blocks)
         return
 
     def get_config(self):
@@ -248,7 +248,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         config["optimizers_and_blocks"] = []
         for optimizer_blocks in self.optimizers_and_blocks:
             config["optimizers_and_blocks"].append(optimizer_blocks.get_config())
-        for optimizer_blocks in self.update_optimzier_and_block:
+        for optimizer_blocks in self.update_optimizers_and_blocks:
             config["update_optimizers_and_blocks"].append(optimizer_blocks.get_config())
         return config
 
@@ -433,8 +433,3 @@ def split_embeddings_on_size(
             f"input dim than threshold {threshold}, thus return empty list."
         )
     return (large_embeddings, small_embeddings)
-
-
-class DistributedOptimizer(tf.keras.optimizers.Optimizer):
-    def __init__(self, optimizer, **kwargs):
-        return DistributedOptimizer(optimizer, **kwargs)

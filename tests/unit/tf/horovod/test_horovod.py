@@ -1,30 +1,30 @@
-import importlib
 import os
 
-import pytest
 import tensorflow as tf
+from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
 from merlin.datasets.advertising.criteo.dataset import default_criteo_transform
 from merlin.io.dataset import Dataset
-from merlin.models.tf.distributed.backend import hvd
+from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.utils.example_utils import workflow_fit_transform
 from merlin.schema.tags import Tags
 
-
-def test_import():
-    from merlin.models.tf.distributed.backend import hvd
-
-    horovod_found = importlib.util.find_spec("horovod")
-
-    assert (horovod_found and hvd is not None) or (not horovod_found and hvd is None)
+# Set seed to make tests deterministic. In real training, it is not
+# necessary to set the random seed.
+set_random_seed(42)
 
 
-@pytest.mark.timeout(180)
-def test_horovod_multigpu(criteo_data, tmpdir, batch_size=11, learning_rate=0.03):
+def test_horovod_multigpu_dlrm(criteo_data, tmpdir, batch_size=11, learning_rate=0.03):
     """
-    This test needs to be executed with `horovodrun`:
+    This test should work on CPU, single GPU, and multiple GPUs.
+    However, for distributed training on multiple GPUs, it needs to be
+    executed with `horovodrun`:
+
     $ horovodrun -np 2 hvd_wrapper.sh python -m pytest tests/unit/tf/horovod/test_horovod.py
+
+    Even with multiple GPUs, if you simply run pytest without horovodrun, it
+    will use only one GPU.
     """
     criteo_data.to_ddf().to_parquet(os.path.join(tmpdir, "train"))
     criteo_data.to_ddf().to_parquet(os.path.join(tmpdir, "valid"))
@@ -36,8 +36,11 @@ def test_horovod_multigpu(criteo_data, tmpdir, batch_size=11, learning_rate=0.03
         os.path.join(tmpdir, "processed"),
     )
 
+    # As a workaround for nvtabular producing different numbers of batches in
+    # workers, we repartition the dataset in multiples of hvd.size().
+    # https://github.com/NVIDIA-Merlin/models/issues/765
     train = Dataset(os.path.join(tmpdir, "processed", "train", "*.parquet"))
-    ddf = train.to_ddf().repartition(npartitions=hvd.size())
+    ddf = train.to_ddf().repartition(npartitions=2)
     train = Dataset(ddf, schema=train.schema)
 
     train_loader = mm.Loader(
@@ -61,7 +64,70 @@ def test_horovod_multigpu(criteo_data, tmpdir, batch_size=11, learning_rate=0.03
     opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
     model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
 
-    model.fit(
+    if hvd_installed:
+        assert model.optimizer.learning_rate == learning_rate * hvd.size()
+    else:
+        assert model.optimizer.learning_rate == learning_rate
+
+    # model.fit() will hang or terminate with error if all workers don't have
+    # the same number of batches.
+    losses = model.fit(
         train_loader,
         batch_size=batch_size,
     )
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+    model.save(tmpdir)
+
+    saved_model = "saved_model.pb"
+    if hvd_installed and hvd.rank() == 0:
+        assert saved_model in os.listdir(tmpdir)
+    if hvd_installed and hvd.rank() != 0:
+        assert saved_model not in os.listdir(tmpdir)
+
+
+def test_horovod_multigpu_two_tower(
+    music_streaming_data, tmpdir, batch_size=11, learning_rate=0.03
+):
+    """
+    This test should work on CPU, single GPU, and multiple GPUs.
+    However, for distributed training on multiple GPUs, it needs to be
+    executed with `horovodrun`:
+
+    $ horovodrun -np 2 hvd_wrapper.sh python -m pytest tests/unit/tf/horovod/test_horovod.py
+
+    Even with multiple GPUs, if you simply run pytest without horovodrun, it
+    will use only one GPU.
+    """
+    # As a workaround for nvtabular producing different numbers of batches in
+    # workers, we repartition the dataset in multiples of hvd.size().
+    # https://github.com/NVIDIA-Merlin/models/issues/765
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "user_genres"]
+    )
+    ddf = music_streaming_data.to_ddf().repartition(npartitions=2)
+    train = Dataset(ddf, schema=music_streaming_data.schema)
+
+    train_loader = mm.Loader(
+        train,
+        schema=train.schema,
+        batch_size=batch_size,
+        shuffle=True,
+        drop_last=True,
+    )
+
+    model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([2]))
+    model.compile(optimizer="adam", run_eagerly=False)
+
+    # model.fit() will hang or terminate with error if all workers don't have
+    # the same number of batches.
+    losses = model.fit(train_loader, batch_size=50, epochs=2)
+
+    model.save(tmpdir)
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+    saved_model = "saved_model.pb"
+    if hvd_installed and hvd.rank() != 0:
+        assert saved_model not in os.listdir(tmpdir)
+    else:
+        assert saved_model in os.listdir(tmpdir)

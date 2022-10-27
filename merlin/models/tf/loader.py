@@ -27,7 +27,7 @@ from merlin.core.dispatch import HAS_GPU
 from merlin.io import Dataset
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
-from merlin.models.tf.distributed.backend import hvd
+from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Schema, Tags
 
@@ -293,14 +293,12 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
             feature_columns, cat_names, cont_names, label_names, schema=dataset.schema
         )
 
-        device = device or 0
-        if hvd:
+        device = "cpu" if not HAS_GPU else device
+        if hvd_installed and hvd.size() > 1:
             device = hvd.local_rank()
             global_size = global_size or hvd.size()
             global_rank = global_rank or hvd.rank()
             seed_fn = seed_fn or get_default_hvd_seed_fn()
-        else:
-            device = "cpu"
         DataLoader.__init__(
             self,
             dataset,
@@ -634,17 +632,14 @@ def get_default_hvd_seed_fn(seed=None):
     that's consistent across workers.
     """
     if HAS_GPU:
-        try:
-            import cupy
-        except ImportError:
-            raise ImportError("'cupy' is required to use this function.")
+        import cupy
         cupy.random.seed(seed)
     else:
         np.random.seed(seed)
 
-    try:
+    if hvd_installed:
         import horovod
-    except ImportError:
+    else:
         raise ImportError("'horovod' is required to use this function.")
 
     def _seed_fn():

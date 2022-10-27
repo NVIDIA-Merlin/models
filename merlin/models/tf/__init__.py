@@ -40,7 +40,6 @@ from merlin.models.tf.blocks.interaction import (
 )
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
 from merlin.models.tf.blocks.optimizer import (
-    DistributedOptimizer,
     LazyAdam,
     MultiOptimizer,
     OptimizerBlocks,
@@ -242,7 +241,6 @@ __all__ = [
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
-    "DistributedOptimizer",
     "MultiOptimizer",
     "LazyAdam",
     "OptimizerBlocks",
