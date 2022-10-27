@@ -140,7 +140,8 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
         return self.call_count[0]
 
     def reset_state(self):
-        self.call_count.assign(tf.constant([0.0]))
+        if self.built:
+            self.call_count.assign(tf.constant([0.0]))
 
 
 @pytest.mark.parametrize(

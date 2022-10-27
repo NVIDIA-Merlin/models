@@ -375,8 +375,8 @@ class BaseModel(tf.keras.Model):
             out = metrics
 
         for metric in tf.nest.flatten(out):
-            # We need to ensure metrics passed to `compile()` are reset
-            if metric and metric.built:
+            # We ensure metrics passed to `compile()` are reset
+            if metric:
                 metric.reset_state()
         return out
 
@@ -403,8 +403,7 @@ class BaseModel(tf.keras.Model):
                         out[block.full_name] = weighted_metrics[i]
 
         for metric in tf.nest.flatten(out):
-            # We need to ensure metrics passed to `compile()` are reset
-            if metric and metric.built:
+            if metric:
                 metric.reset_state()
 
         return out
