@@ -219,7 +219,7 @@ class SequencePredictNext(SequenceTransform):
         self._check_seq_inputs_targets(inputs)
 
         # Shifts the target column to be the next item of corresponding input column
-        new_target = inputs[self.target_name][:, 1:]
+        new_target = inputs[self.target_name][:, -1:]
         if targets is None:
             targets = dict({self.target_name: new_target})
         elif isinstance(targets, dict):
