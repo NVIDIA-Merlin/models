@@ -32,6 +32,8 @@ from merlin.schema import Schema
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Continuous(Filter):
+    """Continuous features block."""
+
     ...
 
 
@@ -39,6 +41,7 @@ def ContinuousProjection(
     schema: Schema,
     projection: tf.keras.layers.Layer,
 ) -> SequentialBlock:
+    """Project continuous features to a lower dimension."""
     return SequentialBlock(Continuous(schema, aggregation="concat"), projection)
 
 
@@ -81,10 +84,16 @@ class ContinuousFeatures(TabularBlock):
 
     def call(self, inputs, *args, **kwargs):
         cont_features = self.filter_features(inputs)
-        cont_features = {
-            k: tf.expand_dims(v, -1) if len(v.shape) == 1 else v for k, v in cont_features.items()
-        }
-        return cont_features
+        outputs = {}
+        for name, tensor in cont_features.items():
+            if isinstance(tensor, tf.RaggedTensor) and len(tensor.shape) == 2:
+                tensor = tf.expand_dims(tensor, axis=-1)
+            if len(tensor.shape) == 1:
+                tensor = tf.expand_dims(tensor, -1)
+
+            outputs[name] = tensor
+
+        return outputs
 
     def compute_call_output_shape(self, input_shapes):
         cont_features_sizes = self.filter_features.compute_output_shape(input_shapes)

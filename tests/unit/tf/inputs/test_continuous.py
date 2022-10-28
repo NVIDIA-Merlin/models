@@ -57,6 +57,21 @@ def test_continuous_features_yoochoose_model(music_streaming_data: Dataset, run_
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
 
 
+def test_continuous_features_ragged(sequence_testing_data: Dataset):
+    schema = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS)
+
+    seq_schema = schema.select_by_tag(Tags.SEQUENCE)
+    context_schema = schema.remove_by_tag(Tags.SEQUENCE)
+
+    inputs = ml.ContinuousFeatures.from_schema(
+        schema, post=ml.BroadcastToSequence(context_schema, seq_schema), aggregation="concat"
+    )
+    features, _ = ml.sample_batch(sequence_testing_data, batch_size=100, to_ragged=True)
+    outputs = inputs(features)
+
+    assert outputs.to_tensor().shape == (100, 4, 6)
+
+
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_inputv2_without_categorical_features(music_streaming_data: Dataset, run_eagerly):
     schema = music_streaming_data.schema.select_by_tag(Tags.CONTINUOUS)
