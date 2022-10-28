@@ -823,8 +823,20 @@ class BroadcastToSequence(tf.keras.layers.Layer):
         self.sequence_schema = sequence_schema
 
     def call(self, inputs: TabularData) -> TabularData:
+        inputs = self._process_ragged_seq_features(inputs)
         inputs = self._broadcast(inputs, inputs)
         return inputs
+
+    def _process_ragged_seq_features(self, inputs):
+        outputs = {}
+
+        for name, val in inputs.items():
+            if isinstance(val, tf.RaggedTensor):
+                if len(val.shape) == 2:
+                    val = tf.expand_dims(val, axis=-1)
+            outputs[name] = val
+
+        return outputs
 
     def _get_seq_features_shapes(self, inputs: TabularData):
         inputs_sizes = {k: v.shape for k, v in inputs.items()}
@@ -843,12 +855,12 @@ class BroadcastToSequence(tf.keras.layers.Layer):
                     "(batch_size, seq_length): {}".format(seq_features_shapes)
                 )
 
-            sequence_length = list(seq_features_shapes.values())[0][1]
-            if sequence_length is None:
-                for k, v in inputs.items():
-                    if k in self.sequence_schema.column_names:
-                        if isinstance(v, tf.RaggedTensor):
-                            sequence_length = v.row_lengths()
+            first = inputs[list(seq_features_shapes.keys())[0]]
+
+            if isinstance(first, tf.RaggedTensor):
+                sequence_length = first.row_lengths()
+            else:
+                sequence_length = first.shape[1]
 
         return seq_features_shapes, sequence_length
 
@@ -862,14 +874,9 @@ class BroadcastToSequence(tf.keras.layers.Layer):
                     if target[fname] is None:
                         continue
                     if isinstance(sequence_length, tf.Tensor):
-                        rows = []
-                        for row, row_sequence_length in zip(target[fname], sequence_length):
-                            rows.append(
-                                tf.RaggedTensor.from_tensor(
-                                    tf.repeat(tf.expand_dims(row, 1), row_sequence_length, axis=0)
-                                )
-                            )
-                        non_seq_target[fname] = tf.stack(rows)
+                        values = tf.repeat(target[fname], sequence_length)
+                        ragged = tf.RaggedTensor.from_row_lengths(values, sequence_length)
+                        non_seq_target[fname] = tf.expand_dims(ragged, -1)
                     else:
                         shape = target[fname].shape
                         target_shape = shape[:1] + sequence_length + shape[1:]

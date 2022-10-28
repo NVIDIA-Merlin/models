@@ -100,7 +100,6 @@ class StackFeatures(TabularAggregation):
         self.output_dtype = output_dtype
 
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        self._expand_non_sequential_features(inputs)
         self._check_concat_shapes(inputs)
 
         tensors = []
@@ -227,7 +226,6 @@ class ElementwiseSum(ElementwiseFeatureAggregation):
         self.stack = StackFeatures(axis=0)
 
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        self._expand_non_sequential_features(inputs)
         self._check_input_shapes_equal(inputs)
 
         return tf.reduce_sum(self.stack(inputs), axis=0)

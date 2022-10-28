@@ -84,16 +84,10 @@ class ContinuousFeatures(TabularBlock):
 
     def call(self, inputs, *args, **kwargs):
         cont_features = self.filter_features(inputs)
-        outputs = {}
-        for name, tensor in cont_features.items():
-            if isinstance(tensor, tf.RaggedTensor) and len(tensor.shape) == 2:
-                tensor = tf.expand_dims(tensor, axis=-1)
-            if len(tensor.shape) == 1:
-                tensor = tf.expand_dims(tensor, -1)
-
-            outputs[name] = tensor
-
-        return outputs
+        cont_features = {
+            k: tf.expand_dims(v, -1) if len(v.shape) == 1 else v for k, v in cont_features.items()
+        }
+        return cont_features
 
     def compute_call_output_shape(self, input_shapes):
         cont_features_sizes = self.filter_features.compute_output_shape(input_shapes)
