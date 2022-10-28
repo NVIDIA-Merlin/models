@@ -71,7 +71,7 @@ class Encoder(tf.keras.Model):
         elif isinstance(index, Tags):
             output_schema = self.schema.select_by_tag(index)
         else:
-            raise ValueError(f"Invalid index: {index}")
+            output_schema = None
 
         return self.batch_predict(
             dataset,
