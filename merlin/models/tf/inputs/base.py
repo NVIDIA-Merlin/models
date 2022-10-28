@@ -136,7 +136,7 @@ def InputBlock(
         sparse_interactions = InputBlock(
             sparse_schema,
             branches,
-            post,
+            post=kwargs.get("post_sparse", None),
             aggregation=agg,
             seq=True,
             max_seq_length=max_seq_length,
@@ -159,7 +159,7 @@ def InputBlock(
         return InputBlock(
             context_schema,
             branches,
-            post,
+            post=kwargs.get("post_context", None),
             aggregation=agg,
             seq=False,
             add_continuous_branch=add_continuous_branch,
@@ -200,7 +200,6 @@ def InputBlock(
             ParallelBlock(branches),
             continuous_projection,
             aggregation=aggregation,
-            post=post,
             name="continuous_projection",
         )
 
