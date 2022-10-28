@@ -102,20 +102,20 @@ Proceedings of the 10th ACM conference on recommender systems. 2016.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
-<li><p><strong>aggregation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – The aggregation method to use for the sequence of features.
+<li><p><strong>aggregation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – The aggregation method to use for the sequence of features.
 Defaults to <cite>concat</cite>.</p></li>
 <li><p><strong>top_block</strong> (<em>Block</em>) – The <cite>Block</cite> that combines the top features</p></li>
-<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of negative samples to use in the sampled-softmax.
+<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – The number of negative samples to use in the sampled-softmax.
 Defaults to 100.</p></li>
 <li><p><strong>loss</strong> (<em>Optional</em><em>[</em><em>LossType</em><em>]</em>) – Loss function.
 Defaults to <cite>categorical_crossentropy</cite>.</p></li>
 <li><p><strong>metrics</strong> (<em>List</em><em>[</em><em>Metric</em><em>]</em>) – List of metrics to use.
 Defaults to <cite>ranking_metrics(top_ks=[10])</cite></p></li>
-<li><p><strong>l2_normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to apply L2 normalization before computing dot interactions.
+<li><p><strong>l2_normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Whether to apply L2 normalization before computing dot interactions.
 Defaults to True.</p></li>
 <li><p><strong>extra_pre_call</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply before the model.</p></li>
 <li><p><strong>task_block</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply on the model.</p></li>
-<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
+<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
 Defaults to 1.</p></li>
 <li><p><strong>seq_aggregator</strong> (<em>Block</em>) – The <cite>Block</cite> to aggregate the sequence of features.</p></li>
 </ul>

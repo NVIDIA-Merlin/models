@@ -96,15 +96,15 @@ mf.fit(train_data, epochs=10)</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
-<li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The dimension of the embeddings.</p></li>
+<li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – The dimension of the embeddings.</p></li>
 <li><p><strong>query_id_tag</strong> (<em>Tag</em>) – The tag to select query features, by default <cite>Tags.USER</cite></p></li>
 <li><p><strong>item_id_tag</strong> (<em>Tag</em>) – The tag to select item features, by default <cite>Tags.ITEM</cite></p></li>
-<li><p><strong>embeddings_initializers</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>Callable</em><em>[</em><em>[</em><em>Any</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a><em>]</em><em>]</em><em>] </em><em>= None</em>) – An initializer function or a dict where keys are feature names and values are
+<li><p><strong>embeddings_initializers</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>Callable</em><em>[</em><em>[</em><em>Any</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><em>None</em></a><em>]</em><em>]</em><em>] </em><em>= None</em>) – An initializer function or a dict where keys are feature names and values are
 callable to initialize embedding tables</p></li>
 <li><p><strong>embeddings_l2_reg</strong> (<em>float = 0.0</em>) – Factor for L2 regularization of the embeddings vectors (from the current batch only)</p></li>
 <li><p><strong>post</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em><em>, </em><em>optional</em>) – The optional <cite>Block</cite> to apply on both outputs of Two-tower model</p></li>
 <li><p><strong>prediction_tasks</strong> (<em>optional</em>) – The optional <cite>PredictionTask</cite> or list of <cite>PredictionTask</cite> to apply on the model.</p></li>
-<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
+<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
 Defaults to 1.</p></li>
 <li><p><strong>loss</strong> (<em>Optional</em><em>[</em><em>LossType</em><em>]</em>) – Loss function.
 Defaults to <cite>bpr</cite>.</p></li>

@@ -85,7 +85,7 @@
 <dl class="py class">
 <dt id="merlin.models.utils.registry.Registry">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">merlin.models.utils.registry.</span></code><code class="sig-name descname"><span class="pre">Registry</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">registry_name</span></em>, <em class="sig-param"><span class="pre">default_key_fn=&lt;function</span> <span class="pre">default_name&gt;</span></em>, <em class="sig-param"><span class="pre">validator=None</span></em>, <em class="sig-param"><span class="pre">on_set=None</span></em>, <em class="sig-param"><span class="pre">value_transformer=&lt;function</span> <span class="pre">Registry.&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/utils/registry.html#Registry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.utils.registry.Registry" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Dict-like class for managing function registrations.</p>
 <p>Example usage:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="s2">&quot;custom_name&quot;</span><span class="p">)</span>
@@ -116,7 +116,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>registry_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – identifier for the given registry. Used in error msgs.</p></li>
+<li><p><strong>registry_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – identifier for the given registry. Used in error msgs.</p></li>
 <li><p><strong>default_key_fn</strong> (<em>callable</em><em>, </em><em>optional</em>) – function mapping value -&gt; key for registration when a key is not provided</p></li>
 <li><p><strong>validator</strong> (<em>callable</em><em>, </em><em>optional</em>) – if given, this is run before setting a given (key, value) pair. Accepts (key, value)
 and should raise if there is a problem. Overwriting existing keys is not allowed and is

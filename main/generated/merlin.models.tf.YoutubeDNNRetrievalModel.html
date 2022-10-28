@@ -120,22 +120,22 @@ machine translation.” arXiv preprint arXiv:1412.2007 (2014).</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
-<li><p><strong>aggregation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – The aggregation method to use for the sequence of features.
+<li><p><strong>aggregation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – The aggregation method to use for the sequence of features.
 Defaults to <cite>concat</cite>.</p></li>
 <li><p><strong>top_block</strong> (<em>Block</em>) – The <cite>Block</cite> that combines the top features</p></li>
-<li><p><strong>l2_normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to apply L2 normalization before computing dot interactions.
+<li><p><strong>l2_normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Whether to apply L2 normalization before computing dot interactions.
 Defaults to True.</p></li>
 <li><p><strong>extra_pre_call</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply before the model.</p></li>
 <li><p><strong>task_block</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply on the model.</p></li>
-<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
+<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
 Defaults to 1.</p></li>
-<li><p><strong>sampled_softmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Compute the logits scores over all items of the catalog or
+<li><p><strong>sampled_softmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Compute the logits scores over all items of the catalog or
 generate a subset of candidates
 Defaults to False</p></li>
-<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – When sampled_softmax is enabled, specify the number of
+<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – When sampled_softmax is enabled, specify the number of
 negative candidates to generate for each batch.
 Defaults to 100</p></li>
-<li><p><strong>min_sampled_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The minimum id value to be sampled with sampled softmax.
+<li><p><strong>min_sampled_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – The minimum id value to be sampled with sampled softmax.
 Useful to ignore the first categorical
 encoded ids, which are usually reserved for &lt;nulls&gt;,
 out-of-vocabulary or padding. Defaults to 0.</p></li>

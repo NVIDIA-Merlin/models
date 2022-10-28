@@ -97,28 +97,28 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>metrics</strong> (<em>MetricOrMetrics</em>) – List of top-k ranking metrics.
 Defaults to ranking_metrics(top_ks=[10]).</p></li>
-<li><p><strong>weight_tying</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – The item_id embedding weights are shared with the prediction network layer.
+<li><p><strong>weight_tying</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – The item_id embedding weights are shared with the prediction network layer.
 Defaults to True</p></li>
-<li><p><strong>masking</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether masking is used to transform inputs and targets or not
+<li><p><strong>masking</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Whether masking is used to transform inputs and targets or not
 Defaults to True</p></li>
 <li><p><strong>extra_pre_call</strong> (<em>Optional</em><em>[</em><em>PredictionBlock</em><em>]</em>) – Optional extra pre-call block. Defaults to None.</p></li>
-<li><p><strong>target_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – If specified, name of the target tensor to retrieve from dataloader.
+<li><p><strong>target_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>]</em>) – If specified, name of the target tensor to retrieve from dataloader.
 Defaults to None.</p></li>
-<li><p><strong>task_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – name of the task.
+<li><p><strong>task_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>]</em>) – name of the task.
 Defaults to None.</p></li>
 <li><p><strong>task_block</strong> (<em>Block</em>) – The <cite>Block</cite> that applies additional layers op to inputs.
 Defaults to None.</p></li>
-<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Parameter used to reduce the model overconfidence, so that logits / T.
+<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) – Parameter used to reduce the model overconfidence, so that logits / T.
 Defaults to 1.</p></li>
-<li><p><strong>l2_normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Apply L2 normalization before computing dot interactions.
+<li><p><strong>l2_normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Apply L2 normalization before computing dot interactions.
 Defaults to False.</p></li>
-<li><p><strong>sampled_softmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Compute the logits scores over all items of the catalog or
+<li><p><strong>sampled_softmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Compute the logits scores over all items of the catalog or
 generate a subset of candidates
 Defaults to False</p></li>
-<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – When sampled_softmax is enabled, specify the number of
+<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – When sampled_softmax is enabled, specify the number of
 negative candidates to generate for each batch
 Defaults to 100</p></li>
-<li><p><strong>min_sampled_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The minimum id value to be sampled. Useful to ignore the first categorical
+<li><p><strong>min_sampled_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – The minimum id value to be sampled. Useful to ignore the first categorical
 encoded ids, which are usually reserved for &lt;nulls&gt;, out-of-vocabulary or padding.
 Defaults to 0.</p></li>
 </ul>

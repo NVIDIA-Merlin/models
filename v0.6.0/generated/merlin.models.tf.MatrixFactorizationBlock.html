@@ -92,10 +92,10 @@ between user and item L2-norm embeddings</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
-<li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Dimension of the user and item embeddings</p></li>
+<li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Dimension of the user and item embeddings</p></li>
 <li><p><strong>query_id_tag</strong> (<em>_type_</em><em>, </em><em>optional</em>) – The tag to select the user id feature, by default <cite>Tags.USER_ID</cite></p></li>
 <li><p><strong>item_id_tag</strong> (<em>_type_</em><em>, </em><em>optional</em>) – The tag to select the item id feature, by default <cite>Tags.ITEM_ID</cite></p></li>
-<li><p><strong>embeddings_initializers</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>Callable</em><em>[</em><em>[</em><em>Any</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a><em>]</em><em>]</em><em>] </em><em>= None</em>) – An initializer function or a dict where keys are feature names and values are
+<li><p><strong>embeddings_initializers</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>Callable</em><em>[</em><em>[</em><em>Any</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><em>None</em></a><em>]</em><em>]</em><em>] </em><em>= None</em>) – An initializer function or a dict where keys are feature names and values are
 callable to initialize embedding tables</p></li>
 <li><p><strong>embeddings_l2_reg</strong> (<em>float = 0.0</em>) – Factor for L2 regularization of the embeddings vectors (from the current batch only)</p></li>
 <li><p><strong>aggregation</strong> (<em>_type_</em><em>, </em><em>optional</em>) – Aggregation of the user and item embeddings, by default CosineSimilarity()</p></li>
