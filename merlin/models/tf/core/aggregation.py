@@ -253,7 +253,6 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
         schema: Schema = self.schema  # type: ignore
         item_id_inputs = self.get_item_ids_from_inputs(inputs)
-        self._expand_non_sequential_features(inputs)
         self._check_input_shapes_equal(inputs)
 
         item_id_column = schema.select_by_tag(Tags.ITEM_ID).first.name
