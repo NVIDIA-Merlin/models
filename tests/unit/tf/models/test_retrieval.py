@@ -1,9 +1,11 @@
 from pathlib import Path
 
+import nvtabular as nvt
 import pytest
 import tensorflow as tf
 
 import merlin.models.tf as mm
+from merlin.core.dispatch import make_df
 from merlin.io import Dataset
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
@@ -18,6 +20,64 @@ from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Tags
 from tests.common.tf.retrieval import retrieval_tests_common
+
+
+def test_two_tower_shared_embeddings():
+    train = make_df(
+        {
+            "user_id": [1, 3, 3, 4, 3, 1, 2, 4, 6, 7, 8, 9] * 100,
+            "item_id": [1, 2, 3, 4, 11, 12, 5, 1, 1, 3, 5, 11] * 100,
+            "item_id_hist": [
+                [1, 3, 10],
+                [1, 5],
+                [4, 2, 1],
+                [1, 2, 3],
+                [1],
+                [3, 4],
+                [1, 3, 10],
+                [11, 3, 10],
+                [3, 4],
+                [1, 3, 10],
+                [11, 3, 10],
+                [1, 11],
+            ]
+            * 100,
+        }
+    )
+
+    user_id = ["user_id"] >> nvt.ops.Categorify() >> nvt.ops.TagAsUserID()
+
+    joint_feats = [["item_id_hist", "item_id"]] >> nvt.ops.Categorify()
+
+    item_id = joint_feats["item_id"] >> nvt.ops.TagAsItemID()
+    user_feat = joint_feats["item_id_hist"] >> nvt.ops.TagAsUserFeatures()
+    outputs = user_id + item_id + user_feat
+
+    train_dataset = Dataset(train)
+
+    workflow = nvt.Workflow(outputs)
+    workflow.fit(train_dataset)
+    train = workflow.transform(train_dataset)
+    schema = train.schema
+
+    embeddings = mm.Embeddings(schema)
+    emd_item = embeddings.select_by_tag(Tags.ITEM)
+    emd_user = embeddings.select_by_tag(Tags.USER)
+
+    item_tower = mm.InputBlockV2(schema.select_by_tag(Tags.ITEM), categorical=emd_item)
+
+    query_tower = mm.InputBlockV2(schema.select_by_tag(Tags.USER), categorical=emd_user)
+
+    model = mm.TwoTowerModel(
+        schema,
+        query_tower=query_tower.connect(mm.MLPBlock([256, 128], no_activation_last_layer=True)),
+        item_tower=item_tower.connect(mm.MLPBlock([256, 128], no_activation_last_layer=True)),
+        samplers=[mm.InBatchSampler()],
+    )
+
+    model.compile(optimizer="adam", run_eagerly=False, metrics=[])
+
+    model.fit(train, batch_size=128, epochs=5)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
