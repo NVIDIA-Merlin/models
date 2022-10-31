@@ -737,7 +737,7 @@ class BaseModel(tf.keras.Model):
         x, _, _ = unpack_x_y_sample_weight(data)
 
         if getattr(self, "predict_pre", None):
-            out = call_layer(self.predict_pr, x, features=x, training=False)
+            out = call_layer(self.predict_pre, x, features=x, training=False)
             if isinstance(out, Prediction):
                 x = out.outputs
             else:

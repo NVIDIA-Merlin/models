@@ -209,13 +209,31 @@ class TopkMetricWithLabelRelevantCountsMixin:
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
-    def __init__(self, fn, k=5, pre_sorted=True, name=None, log_base=None, **kwargs):
+    def __init__(self, fn, k=5, pre_sorted=True, name=None, log_base=None, seed=None, **kwargs):
+        """Create instance of a TopKMetric.
+
+        Parameters
+        ----------
+        fn : function
+            Aggregtation function to use to compute metric passed y_true, y_pred
+        k : int, optional
+            Top k to compute metrics for, by default 5
+        pre_sorted : bool, optional
+            Whether or not the data passed to the metric is already sorted, by default True
+        name : str, optional
+            Name of the metric, by default None
+        log_base : int, optional
+            Base of the log discount where relevant items are ranked, by default None
+        seed : int, optional
+            Random seed to use for the shuffling in case of ties, by default None
+        """
         self.name_orig = name
         if name is not None:
             name = f"{name}_{k}"
         super().__init__(name=name, **kwargs)
         self._fn = fn
         self.k = k
+        self.seed = seed
         self._pre_sorted = pre_sorted
         self._fn_kwargs = {}
         if log_base is not None:
@@ -289,7 +307,7 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
     def _maybe_sort_top_k(self, y_pred, y_true, label_relevant_counts: tf.Tensor = None):
         if not self.pre_sorted:
             y_pred, y_true, label_relevant_counts = extract_topk(
-                self.k, y_pred, y_true, shuffle_ties=True
+                self.k, y_pred, y_true, shuffle_ties=True, seed=self.seed
             )
         else:
             if label_relevant_counts is None:
@@ -310,6 +328,7 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         config = {
             "name": self.name_orig,
             "k": self.k,
+            "seed": self.seed,
             "pre_sorted": self._pre_sorted,
         }
 
@@ -329,7 +348,8 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
             fn = config.pop("fn", None)
             k = config.pop("k", None)
             pre_sorted = config.pop("pre_sorted", None)
-            return cls(get_metric(fn), k=k, pre_sorted=pre_sorted, **config)
+            seed = config.pop("seed", None)
+            return cls(get_metric(fn), k=k, pre_sorted=pre_sorted, seed=seed, **config)
         return super(TopkMetric, cls).from_config(config)
 
 
