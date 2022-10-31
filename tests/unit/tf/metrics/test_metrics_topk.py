@@ -37,6 +37,17 @@ from merlin.models.tf.metrics.topk import (
 from merlin.models.tf.utils.tf_utils import extract_topk
 
 
+def test_ndcg_with_ties_seed():
+    y_true = tf.constant([1, 1, 1, 2])
+    y_pred = tf.constant([1, 2, 1, 2])
+    results = []
+    for _ in range(10):
+        metric = NDCGAt(4, seed=44)
+        metric.update_state(y_true, y_pred)
+        results.append(metric.result().numpy())
+    assert len(set(results)) == 1
+
+
 @pytest.fixture
 def topk_metrics_test_data():
     labels = tf.convert_to_tensor([[0, 1, 0, 1, 0], [1, 0, 0, 1, 0], [0, 0, 0, 0, 1]], tf.float32)
