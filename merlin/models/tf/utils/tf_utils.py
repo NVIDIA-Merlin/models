@@ -453,13 +453,3 @@ def get_sub_blocks(blocks: Sequence[Block]) -> List[Block]:
                 if type(sub_module) != ModelContext:
                     deque.append(sub_module)
     return list(result_blocks)
-
-
-def list_col_to_ragged(col: Tuple[tf.Tensor, tf.Tensor]):
-    values = col[0][:, 0]
-    row_lengths = col[1][:, 0]
-
-    if row_lengths.dtype.is_floating:
-        row_lengths = tf.cast(row_lengths, tf.int32)
-
-    return tf.RaggedTensor.from_row_lengths(values, row_lengths)
