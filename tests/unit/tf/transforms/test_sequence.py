@@ -28,7 +28,7 @@ from merlin.schema import Tags
 def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target, pre=mm.ListToRagged())
+    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
 
     batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
     if use_loader:
@@ -40,9 +40,6 @@ def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
         output = predict_next(batch)
     output_x, output_y = output
     output_y = output_y[target]
-
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
 
     # Checks if sequential input features were truncated in the last position
     for k, v in batch.items():
@@ -74,9 +71,6 @@ def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
         output = predict_last(batch)
     output_x, output_y = output
     output_y = output_y[target]
-
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
 
     # Checks if sequential input features were truncated in the last position
     for k, v in batch.items():
@@ -110,8 +104,6 @@ def test_seq_predict_random(sequence_testing_data: Dataset, use_loader: bool):
     output_x, output_y = output
     output_y = output_y[target]
 
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
     batch_size = batch[target].shape[0]
 
     for k, v in batch.items():
@@ -193,9 +185,6 @@ def test_seq_random_masking(sequence_testing_data: Dataset):
     target_mask = output_y._keras_mask
 
     asserts_mlm_target_mask(target_mask)
-
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
 
     for k, v in batch.items():
         # Checking if inputs values didn't change

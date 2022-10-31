@@ -161,7 +161,7 @@ from merlin.models.tf.transforms.sequence import (
     SequencePredictRandom,
     SequenceTargetAsInput,
 )
-from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToRagged, ListToSparse
+from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToSparse
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
@@ -213,7 +213,6 @@ __all__ = [
     "MatrixFactorizationBlock",
     "QueryItemIdsEmbeddingsBlock",
     "ListToDense",
-    "ListToRagged",
     "ListToSparse",
     "ToSparse",
     "ToDense",

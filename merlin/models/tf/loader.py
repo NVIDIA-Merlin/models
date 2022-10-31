@@ -496,6 +496,10 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
         )
         return sparse_tensor
 
+    def _get_ragged_tensor(self, values, offsets, diff_offsets, num_rows):
+        ragged = tf.RaggedTensor.from_row_lengths(values=values, row_lengths=diff_offsets)
+        return ragged
+
     def _build_sparse_tensor(self, values, offsets, diff_offsets, num_rows, seq_limit):
         ragged = tf.RaggedTensor.from_row_lengths(values=values, row_lengths=diff_offsets)
         tensor = tf.RaggedTensor.from_tensor(ragged.to_tensor(shape=[None, seq_limit])).to_sparse()

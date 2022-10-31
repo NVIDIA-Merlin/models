@@ -92,7 +92,6 @@ def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
 
 def _next_item_loader(sequence_testing_data: Dataset):
     def _last_interaction_as_target(inputs, targets):
-        inputs = mm.ListToRagged()(inputs)
         items = inputs["item_id_seq"]
         _items = items[:, :-1]
         targets = tf.one_hot(items[:, -1:].flat_values, 51997)

@@ -633,8 +633,14 @@ class DataLoader:
                     )
                 X[column_name] = self._to_sparse_tensor(X[column_name], column_name)
 
+        for col_name in X:
+            if isinstance(X[col_name], tuple):
+                values, offsets, diff_offsets, num_rows = self._pull_values_offsets(X[col_name])
+                X[col_name] = self._get_ragged_tensor(values, offsets, diff_offsets, num_rows)
+
         # TODO: use dict for labels as well?
         # would require output layers to match naming
         if len(self.label_names) > 1:
             labels = self._tensor_split(labels, len(self.label_names), axis=1)
+
         return X, labels

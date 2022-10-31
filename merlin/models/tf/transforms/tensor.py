@@ -28,36 +28,6 @@ MULTI_HOT = utils.MULTI_HOT
 COUNT = utils.COUNT
 
 
-@Block.registry.register("list-to-ragged")
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ListToRagged(TabularBlock):
-    """Convert all list (multi-hot/sequential) features to tf.RaggedTensor"""
-
-    def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        outputs = {}
-        for name, val in inputs.items():
-            if isinstance(val, tuple):
-                outputs[name] = list_col_to_ragged(val)
-            else:
-                outputs[name] = val
-
-        return outputs
-
-    def compute_output_shape(self, input_shapes):
-        output_shapes = {}
-        for k, v in input_shapes.items():
-            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
-            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
-                output_shapes[k] = tf.TensorShape([v[1][0], None])
-            else:
-                output_shapes[k] = v
-
-        return output_shapes
-
-    def compute_call_output_shape(self, input_shapes):
-        return self.compute_output_shape(input_shapes)
-
-
 @Block.registry.register("list-to-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ListToSparse(TabularBlock):

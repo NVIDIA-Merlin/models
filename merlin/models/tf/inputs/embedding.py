@@ -42,12 +42,7 @@ from merlin.models.tf.transforms.tensor import ListToDense, ListToSparse
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import (
-    call_layer,
-    df_to_tensor,
-    list_col_to_ragged,
-    tensor_to_df,
-)
+from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, tensor_to_df
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
@@ -388,9 +383,6 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def _call_table(self, inputs, **kwargs):
-        if isinstance(inputs, tuple) and len(inputs) == 2:
-            inputs = list_col_to_ragged(inputs)
-
         # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor):
             inputs = tf.squeeze(inputs, axis=-1)

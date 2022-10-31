@@ -26,7 +26,6 @@ from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
-from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -55,15 +54,7 @@ class FeaturesTensorTypeConversion(TabularBlock):
         raise NotImplementedError("The call method need to be implemented by child clases")
 
     def compute_output_shape(self, input_shapes):
-        output_shapes = {}
-        for k, v in input_shapes.items():
-            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
-            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
-                output_shapes[k] = tf.TensorShape([v[1][0], None])
-            else:
-                output_shapes[k] = v
-
-        return output_shapes
+        return input_shapes
 
     def compute_call_output_shape(self, input_shapes):
         return self.compute_output_shape(input_shapes)
@@ -87,8 +78,6 @@ class ToSparse(FeaturesTensorTypeConversion):
             if self.column_names is not None and name not in self.column_names:
                 continue
 
-            if isinstance(val, tuple):
-                val = list_col_to_ragged(val)
             if isinstance(val, tf.RaggedTensor):
                 outputs[name] = val.to_sparse()
             elif isinstance(val, tf.Tensor):
@@ -112,8 +101,6 @@ class ToDense(FeaturesTensorTypeConversion):
             if self.column_names is not None and name not in self.column_names:
                 continue
 
-            if isinstance(val, tuple):
-                val = list_col_to_ragged(val)
             if isinstance(val, tf.RaggedTensor):
                 val = val.to_sparse()
             if isinstance(val, tf.SparseTensor):

@@ -247,7 +247,6 @@ def _retrieval_inputs_(batch_size):
 
 def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
     def _last_interaction_as_target(inputs, targets):
-        inputs = mm.ListToRagged()(inputs)
         items = inputs["item_id_seq"]
         _items = items[:, :-1]
 

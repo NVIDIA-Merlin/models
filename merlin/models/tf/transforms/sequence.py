@@ -18,10 +18,9 @@ from typing import Optional, Tuple, Union
 import tensorflow as tf
 from tensorflow.keras.backend import random_bernoulli
 
-from merlin.models.tf.core.base import Block, BlockType, PredictionOutput
+from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
@@ -96,13 +95,9 @@ class SequenceTransform(TabularBlock):
         self,
         schema: Schema,
         target: Union[str, Tags, ColumnSchema],
-        pre: Optional[BlockType] = None,
         **kwargs,
     ):
-        _pre = ListToRagged()
-        if pre:
-            _pre = _pre.connect(pre)
-        super().__init__(pre=_pre, schema=schema, **kwargs)
+        super().__init__(schema=schema, **kwargs)
 
         self.target = target
         self.target_name = self._get_target(target)

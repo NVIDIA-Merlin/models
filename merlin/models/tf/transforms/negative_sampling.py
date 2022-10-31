@@ -19,7 +19,6 @@ import tensorflow as tf
 
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
@@ -107,9 +106,6 @@ class InBatchNegatives(tf.keras.layers.Layer):
         item_cols = self.schema.column_names
         outputs = {}
         for name, val in inputs.items():
-            if isinstance(val, tuple):
-                val = list_col_to_ragged(val)
-
             if name in item_cols:
                 negatives = tf.gather(val, sampled_positive_idx)
             else:
