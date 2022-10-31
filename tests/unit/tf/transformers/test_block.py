@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 import pytest
 import tensorflow as tf
@@ -284,16 +286,17 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     )
     seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    inputs, targets = next(iter(loader))
-    outputs = model(inputs, targets=targets, training=True)
+    inputs = itertools.islice(iter(loader), 1)
+    outputs = model.predict(inputs, pre=seq_mask_random)
     assert list(outputs.shape) == [8, 4, 51997]
+
     testing_utils.model_test(
         model,
         loader,
         run_eagerly=run_eagerly,
         reload_model=True,
         fit_kwargs={"pre": seq_mask_random},
-        metrics=[mm.RecallAt(5000), mm.NDCGAt(5000)],
+        metrics=[mm.RecallAt(5000), mm.NDCGAt(5000, seed=4)],
     )
 
     # This transform only extracts targets, but without applying mask
