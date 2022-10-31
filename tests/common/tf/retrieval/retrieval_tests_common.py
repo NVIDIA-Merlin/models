@@ -93,6 +93,7 @@ def train_eval_two_tower(
     log_to_wandb: bool = False,
     wandb_project: str = None,
     config_callback: Callable = None,
+    retrieval_api_version: int = 1,
 ):
     runner_cfg = config_retrieval_train_eval_runner(
         train_ds,
@@ -100,6 +101,7 @@ def train_eval_two_tower(
         model_type="two_tower",
         log_to_wandb=log_to_wandb,
         wandb_project=wandb_project,
+        retrieval_api_version=retrieval_api_version,
     )
 
     if config_callback:
@@ -131,6 +133,7 @@ def train_eval_mf(
     log_to_wandb: bool = False,
     wandb_project: str = None,
     config_callback: Callable = None,
+    retrieval_api_version: int = 1,
 ):
     runner_cfg = config_retrieval_train_eval_runner(
         train_ds,
@@ -138,6 +141,7 @@ def train_eval_mf(
         model_type="mf",
         log_to_wandb=log_to_wandb,
         wandb_project=wandb_project,
+        retrieval_api_version=retrieval_api_version,
     )
 
     if config_callback:
@@ -170,6 +174,7 @@ def train_eval_two_tower_for_lastfm(
     topk_metrics_cutoffs: str = "10,50,100",
     log_to_wandb: bool = False,
     wandb_project: str = None,
+    retrieval_api_version: int = 1,
 ):
     return train_eval_two_tower(
         train_ds,
@@ -183,6 +188,7 @@ def train_eval_two_tower_for_lastfm(
         log_to_wandb,
         wandb_project,
         config_callback=set_lastfm_two_tower_hparams_config,
+        retrieval_api_version=retrieval_api_version,
     )
 
 
@@ -197,6 +203,7 @@ def train_eval_mf_for_lastfm(
     topk_metrics_cutoffs: str = "10,50,100",
     log_to_wandb: bool = False,
     wandb_project: str = None,
+    retrieval_api_version: int = 1,
 ):
     return train_eval_mf(
         train_ds,
@@ -210,4 +217,5 @@ def train_eval_mf_for_lastfm(
         log_to_wandb,
         wandb_project,
         config_callback=set_lastfm_mf_hparams_config,
+        retrieval_api_version=retrieval_api_version,
     )
