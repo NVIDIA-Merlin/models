@@ -270,7 +270,7 @@ class DotProduct(Layer):
         Identify item tower for item embeddings, by default 'item'
     """
 
-    def __init__(self, query_name: str = "query", item_name: str = "item", **kwargs):
+    def __init__(self, query_name: str = "query", item_name: str = "candidate", **kwargs):
         super().__init__(**kwargs)
         self.query_name = query_name
         self.item_name = item_name
