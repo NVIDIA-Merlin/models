@@ -135,19 +135,42 @@ class RaggedToDense(FeaturesTensorTypeConversion):
         self.max_seq_length = max_seq_length
 
     def call(self, inputs: TabularData) -> TabularData:
+        if isinstance(inputs, tf.RaggedTensor):
+            return self._convert_tensor_to_dense(inputs)
+
         outputs = {}
         for name, val in inputs.items():
-            if isinstance(val, tf.RaggedTensor):
-                if self.max_seq_length:
-                    shape = [None] * val.shape.rank
-                    shape[1] = self.max_seq_length
-                    val = val.to_tensor(shape=shape)
-                else:
-                    val = val.to_tensor()
+            outputs[name] = self._convert_tensor_to_dense(val)
+        return outputs
 
-            outputs[name] = val
+    def _convert_tensor_to_dense(self, val):
+        if isinstance(val, tf.RaggedTensor):
+            if self.max_seq_length:
+                shape = [None] * val.shape.rank
+                shape[1] = self.max_seq_length
+                val = val.to_tensor(shape=shape)
+            else:
+                val = tf.squeeze(val.to_tensor())
+            return val
+        return tf.squeeze(val)
+
+    def compute_output_shape(self, input_shape):
+        if not isinstance(input_shape, dict):
+            return self._get_output_tensor_shape(input_shape)
+
+        outputs = {}
+        for key, val in input_shape.items():
+            outputs[key] = self._get_output_tensor_shape(val)
 
         return outputs
+
+    def _get_output_tensor_shape(self, val_shape: tf.TensorShape) -> tf.TensorShape:
+        if val_shape.rank > 1 and val_shape[-1] != 1:
+            shapes = val_shape.as_list()
+            if self.max_seq_length:
+                shapes[1] = self.max_seq_length
+            return tf.TensorShape(shapes)
+        return tf.TensorShape((val_shape[0]))
 
     def get_config(self):
         config = super().get_config()
