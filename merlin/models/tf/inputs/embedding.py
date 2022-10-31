@@ -36,7 +36,7 @@ from merlin.models.tf.core.tabular import (
     TabularAggregationType,
     TabularBlock,
 )
-from merlin.models.tf.transforms.tensor import ListToDense, ListToSparse
+from merlin.models.tf.transforms.features import RaggedToDense, RaggedToSparse
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -720,7 +720,7 @@ class EmbeddingFeatures(TabularBlock):
         **kwargs,
     ):
         if add_default_pre:
-            embedding_pre = [Filter(list(feature_config.keys())), ListToSparse()]
+            embedding_pre = [Filter(list(feature_config.keys())), RaggedToSparse()]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
         self.l2_reg = l2_reg
@@ -1074,7 +1074,10 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         **kwargs,
     ):
         if add_default_pre:
-            embedding_pre = [Filter(list(feature_config.keys())), ListToDense(max_seq_length)]
+            embedding_pre = [
+                Filter(list(feature_config.keys())),
+                RaggedToDense(max_seq_length=max_seq_length),
+            ]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
 
         super().__init__(

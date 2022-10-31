@@ -145,6 +145,8 @@ from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
     HashedCrossAll,
+    RaggedToDense,
+    RaggedToSparse,
     ToDense,
     ToOneHot,
     ToSparse,
@@ -161,7 +163,7 @@ from merlin.models.tf.transforms.sequence import (
     SequencePredictRandom,
     SequenceTargetAsInput,
 )
-from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToSparse
+from merlin.models.tf.transforms.tensor import ExpandDims
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
@@ -212,11 +214,11 @@ __all__ = [
     "TwoTowerBlock",
     "MatrixFactorizationBlock",
     "QueryItemIdsEmbeddingsBlock",
-    "ListToDense",
-    "ListToSparse",
     "ToSparse",
     "ToDense",
     "ToTarget",
+    "RaggedToDense",
+    "RaggedToSparse",
     "CategoryEncoding",
     "HashedCross",
     "HashedCrossAll",

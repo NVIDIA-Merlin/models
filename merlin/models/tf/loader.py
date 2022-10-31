@@ -606,7 +606,7 @@ def sample_batch(
             "Sparse values cannot be converted to both ragged tensors and dense tensors"
         )
 
-    from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged
+    from merlin.models.tf.transforms.features import RaggedToDense
 
     if not isinstance(data, Loader):
         data = Loader(data, batch_size=batch_size, shuffle=shuffle)
@@ -615,10 +615,8 @@ def sample_batch(
     # batch could be of type Prediction, so we can't unpack directly
     inputs, targets = batch[0], batch[1]
 
-    if to_ragged:
-        inputs = ListToRagged()(inputs)
-    elif to_dense:
-        inputs = ListToDense()(inputs)
+    if to_dense:
+        inputs = RaggedToDense()(inputs)
     if not include_targets:
         return inputs
     return inputs, targets

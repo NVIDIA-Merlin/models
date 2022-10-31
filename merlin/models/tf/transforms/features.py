@@ -109,7 +109,53 @@ class ToDense(FeaturesTensorTypeConversion):
         return outputs
 
 
-@Block.registry.register("as-ragged")
+@Block.registry.register("ragged-to-sparse")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class RaggedToSparse(FeaturesTensorTypeConversion):
+    """Convert ragged tensors to sparse tensors"""
+
+    def call(self, inputs: TabularData) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            if isinstance(val, tf.RaggedTensor):
+                val = val.to_sparse()
+
+            outputs[name] = val
+
+        return outputs
+
+
+@Block.registry.register("ragged-to-dense")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class RaggedToDense(FeaturesTensorTypeConversion):
+    """Convert ragged tensors to dense tensors"""
+
+    def __init__(self, max_seq_length: Optional[int] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.max_seq_length = max_seq_length
+
+    def call(self, inputs: TabularData) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            if isinstance(val, tf.RaggedTensor):
+                if self.max_seq_length:
+                    shape = [None] * val.shape.rank
+                    shape[1] = self.max_seq_length
+                    val = val.to_tensor(shape=shape)
+                else:
+                    val = val.to_tensor()
+
+            outputs[name] = val
+
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config["max_seq_length"] = self.max_seq_length
+        return config
+
+
+@Block.registry.register("rename")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Rename(TabularBlock):
     """Rename input features
@@ -777,7 +823,8 @@ def reshape_categorical_input_tensor_for_encoding(
             input.get_shape()[-1] is not None and len(input.get_shape()) == 2
         ):
             # Ensures that the shape is known to avoid error on graph mode
-            new_shape = (-1, features_2d_last_dim.get(feat_name, input.get_shape()[-1]))
+            last_dim = features_2d_last_dim.get(feat_name) or input.get_shape()[-1]
+            new_shape = (-1, last_dim)
             output = reshape_fn(output, new_shape)
         else:
             expand_dims_fn = (

@@ -61,7 +61,7 @@ def test_transformer_encoder_with_list_to_dense(max_seq_length):
 
     transformer_encod = mm.TransformerBlock(
         transformer=BertConfig(hidden_size=EMBED_DIM, num_attention_heads=16),
-        pre=mm.ListToDense(max_seq_length=max_seq_length),
+        pre=mm.RaggedToDense(max_seq_length=max_seq_length),
     )
     outputs = transformer_encod(inputs)
 
