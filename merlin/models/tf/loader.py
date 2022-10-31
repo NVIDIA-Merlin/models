@@ -633,6 +633,7 @@ def get_default_hvd_seed_fn(seed=None):
     """
     if HAS_GPU:
         import cupy
+
         cupy.random.seed(seed)
     else:
         np.random.seed(seed)
