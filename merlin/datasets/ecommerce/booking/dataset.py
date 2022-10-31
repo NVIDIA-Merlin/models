@@ -4,6 +4,7 @@ from glob import glob
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
+import numpy as np
 from tqdm import tqdm
 
 import merlin.io
@@ -72,6 +73,7 @@ def download_booking(path: Path):
     Args:
         path (Path): _description_
     """
+    path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
 
     for file in _FILES:
@@ -93,6 +95,7 @@ def download_booking(path: Path):
 def preprocess_booking(
     path: Path,
 ):
+    path = Path(path)
     train = get_lib().read_csv(path / "train_set.csv")
     test = get_lib().read_csv(path / "test_set.csv")
 
@@ -106,6 +109,18 @@ def preprocess_booking(
 
     train.to_parquet(path / "train/data.parquet")
     test.to_parquet(path / "test/data.parquet")
+
+
+def _get_cycled_feature_value_sin(col, max_value=7):
+    value_scaled = (col + 0.000001) / max_value
+    value_sin = np.sin(2 * np.pi * value_scaled)
+    return value_sin
+
+
+def _get_cycled_feature_value_cos(col, max_value=7):
+    value_scaled = (col + 0.000001) / max_value
+    value_cos = np.cos(2 * np.pi * value_scaled)
+    return value_cos
 
 
 def transform_booking(
@@ -142,6 +157,8 @@ def transform_booking(
 
 
 def default_booking_transformation(**kwargs):
+    cat = lambda: nvt.ops.Categorify(start_index=1, dtype="int32")  # noqa: E731
+
     df_season = get_lib().DataFrame(
         {"month": range(1, 13), "season": ([0] * 3) + ([1] * 3) + ([2] * 3) + ([3] * 3)}
     )
@@ -182,23 +199,34 @@ def default_booking_transformation(**kwargs):
         how="left",
     )
 
-    cityid = (
-        ["city_id"] >> nvt.ops.Categorify(freq_threshold=9) >> nvt.ops.AddTags(tags=[Tags.ITEM_ID])
+    weekday_sin = (
+        weekday_checkout
+        >> (lambda col: _get_cycled_feature_value_sin(col + 1, 7))
+        >> nvt.ops.Rename(name="dayofweek_sin")
+        >> nvt.ops.AddTags([Tags.CONTINUOUS])
+    )
+    weekday_cos = (
+        weekday_checkout
+        >> (lambda col: _get_cycled_feature_value_cos(col + 1, 7))
+        >> nvt.ops.Rename(name="dayofweek_cos")
+        >> nvt.ops.AddTags([Tags.CONTINUOUS])
     )
 
-    context_cat_features = ["device_class", "affiliate_id"] + season >> nvt.ops.Categorify()
-
+    context_cat_features = ["device_class", "affiliate_id"] + season >> cat()
     seq_cat_features = (
         ["booker_country", "hotel_country"]
         + month
         + weekday_checkin
         + weekday_checkout
+        + weekday_sin
+        + weekday_cos
         + is_weekend
         + length_feature
-        >> nvt.ops.Categorify()
+        >> cat()
         >> nvt.ops.AddTags(tags=[Tags.SEQUENCE])
     )
 
+    cityid = ["city_id"] >> cat() >> nvt.ops.AddTags(tags=[Tags.ITEM_ID])
     session_id = ["utrip_id"] >> nvt.ops.AddTags(tags=[Tags.SESSION_ID])
     user_id = ["user_id"] >> nvt.ops.AddTags(tags=[Tags.USER_ID])
 
