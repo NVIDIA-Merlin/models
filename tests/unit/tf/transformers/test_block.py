@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 import pytest
 import tensorflow as tf
@@ -69,6 +71,22 @@ def test_transformer_encoder_with_list_to_dense(max_seq_length):
         assert list(outputs.shape) == [NUM_ROWS, max_seq_length, EMBED_DIM]
     else:
         assert list(outputs.shape) == [NUM_ROWS, SEQ_LENGTH, EMBED_DIM]
+
+
+def test_transformer_encoder_with_post():
+    NUM_ROWS = 100
+    SEQ_LENGTH = 10
+    EMBED_DIM = 128
+    inputs = tf.RaggedTensor.from_tensor(tf.random.uniform((NUM_ROWS, SEQ_LENGTH, EMBED_DIM)))
+
+    transformer_encod = mm.TransformerBlock(
+        transformer=BertConfig(hidden_size=EMBED_DIM, num_attention_heads=16),
+        pre=mm.ListToDense(max_seq_length=5),
+        post="sequence_mean",
+    )
+    outputs = transformer_encod(inputs)
+
+    assert list(outputs.shape) == [NUM_ROWS, EMBED_DIM]
 
 
 @pytest.mark.parametrize("encoder", [XLNetBlock, BertBlock, AlbertBlock, RobertaBlock, GPT2Block])
@@ -268,16 +286,17 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     )
     seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    inputs, targets = next(iter(loader))
-    outputs = model(inputs, targets=targets, training=True)
+    inputs = itertools.islice(iter(loader), 1)
+    outputs = model.predict(inputs, pre=seq_mask_random)
     assert list(outputs.shape) == [8, 4, 51997]
+
     testing_utils.model_test(
         model,
         loader,
         run_eagerly=run_eagerly,
         reload_model=True,
         fit_kwargs={"pre": seq_mask_random},
-        metrics=[mm.RecallAt(5000), mm.NDCGAt(5000)],
+        metrics=[mm.RecallAt(5000), mm.NDCGAt(5000, seed=4)],
     )
 
     # This transform only extracts targets, but without applying mask
