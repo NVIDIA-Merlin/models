@@ -197,9 +197,6 @@ class ContrastiveOutput(ModelOutput):
             positive_id = features[self.col_schema.name]
             positive_embedding = inputs[self.candidate_name]
 
-        if isinstance(positive_id, tf.RaggedTensor):
-            positive_id = positive_id.to_tensor()
-
         positive = Candidate(positive_id, {**features}).with_embedding(positive_embedding)
         negative = self.sample_negatives(positive, features, training=training, testing=testing)
         if self.has_candidate_weights and (
@@ -317,9 +314,9 @@ class ContrastiveOutput(ModelOutput):
         return negatives
 
     def embedding_lookup(self, ids: tf.Tensor):
-        if isinstance(ids, tf.RaggedTensor):
-            ids = ids.to_tensor()
-        return self.to_call.embedding_lookup(tf.squeeze(ids))
+        if ids.shape.rank == 2:
+            ids = tf.squeeze(ids, axis=1)
+        return self.to_call.embedding_lookup(ids)
 
     def to_dataset(self, gpu=None) -> merlin.io.Dataset:
         return merlin.io.Dataset(tf_utils.tensor_to_df(self.to_call.embeddings, gpu=gpu))
