@@ -336,7 +336,7 @@ class BaseModel(tf.keras.Model):
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
 
-        if hvd_installed:
+        if hvd_installed and hvd.size() > 1:
             # Horovod: Specify `experimental_run_tf_function=False` to ensure TensorFlow
             # uses hvd.DistributedOptimizer() to compute gradients.
             kwargs.update({"experimental_run_tf_function": False})
@@ -371,7 +371,7 @@ class BaseModel(tf.keras.Model):
 
             return hvd.DistributedOptimizer(opt)
 
-        if hvd_installed:
+        if hvd_installed and hvd.size() > 1:
             if isinstance(optimizer, merlin.models.tf.MultiOptimizer):
                 for pair in (
                     optimizer.optimizers_and_blocks + optimizer.update_optimizers_and_blocks
@@ -875,7 +875,7 @@ class BaseModel(tf.keras.Model):
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
-        if hvd_installed:
+        if hvd_installed and hvd.size() > 1:
             # Horovod: broadcast initial variable states from rank 0 to all other processes.
             # This is necessary to ensure consistent initialization of all workers when
             # training is started with random weights or restored from a checkpoint.
@@ -883,8 +883,9 @@ class BaseModel(tf.keras.Model):
             # Horovod: average metrics among workers at the end of every epoch.
             callbacks.append(hvd.callbacks.MetricAverageCallback())
 
-        # Horovod: write logs on worker 0.
-        verbose = verbose if hvd_installed and hvd.rank() == 0 else 0
+        # Horovod: if it's not worker 0, turn off logging.
+        if hvd_installed and hvd.rank() != 0:
+            verbose = 0  # noqa: F841
 
         fit_kwargs = {
             k: v

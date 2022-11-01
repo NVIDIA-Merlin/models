@@ -58,7 +58,7 @@ requirements = {
     "docs": _docs,
 }
 dev_requirements = {
-    "tensorflow-dev": requirements["tensorflow"] + _transformers + _horovod + _dev + _nvt,
+    "tensorflow-dev": requirements["tensorflow"] + _transformers + _dev + _nvt,
     "pytorch-dev": requirements["pytorch"] + _dev + _nvt,
     "implicit-dev": requirements["implicit"] + _dev + _nvt,
     "lightfm-dev": requirements["lightfm"] + _dev + _nvt,
