@@ -80,7 +80,7 @@ class TopKLayer(Layer):
             Whether to check if `data` has unique indices, by default True
         """
         if hasattr(data, "to_ddf"):
-            data = data.to_ddf()
+            data = data.to_ddf().compute()
         if check_unique_ids:
             self._check_unique_ids(data=data)
         values = tf_utils.df_to_tensor(data)
@@ -195,7 +195,8 @@ class BruteForce(TopKLayer):
             f" dimension of {tf.shape(self._candidates)[1]} ",
         )
         scores = self._score(inputs, self._candidates)
-        top_scores, top_ids = tf.math.top_k(scores, k=self._k)
+        top_scores, top_idx = tf.math.top_k(scores, k=self._k)
+        top_ids = tf.gather(self._ids, top_idx)
         if testing:
             assert targets is not None, ValueError(
                 "Targets should be provided during the evaluation mode"
@@ -287,4 +288,18 @@ class TopKOutput(ModelOutput):
             post=post,
             logits_temperature=logits_temperature,
             **kwargs,
+        )
+
+    def call(self, inputs, targets=None, training=False, testing=False, **kwargs):
+        if isinstance(targets, dict):
+            if self.target is None:
+                raise ValueError(
+                    "The name of the target for top-k evaluation should be specified"
+                    " when a dictionary of multiple targets is provided"
+                )
+
+            targets = targets[self.target]
+
+        return tf_utils.call_layer(
+            self.to_call, inputs, targets=targets, training=training, testing=testing, **kwargs
         )

@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -275,6 +275,9 @@ class TopKEncoder(Encoder, BaseModel):
     post: Optional[tf.keras.layers.Layer]
         A block to use after getting the top-k prediction scores
         By default None
+    target: str, optional
+        The name of the target. This is required when multiple targets are provided.
+        By default None
     """
 
     def __init__(
@@ -286,12 +289,13 @@ class TopKEncoder(Encoder, BaseModel):
         k: int = 10,
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
+        target: str = None,
         **kwargs,
     ):
         if isinstance(topk_layer, TopKOutput):
             topk_output = topk_layer
         else:
-            topk_output = TopKOutput(to_call=topk_layer, candidates=candidates, k=k, **kwargs)
+            topk_output = TopKOutput(to_call=topk_layer, candidates=candidates, k=k, target=target)
         self.k = k
 
         Encoder.__init__(self, query_encoder, topk_output, pre=pre, post=post, **kwargs)
@@ -451,6 +455,8 @@ class EmbeddingEncoder(Encoder):
         name=None,
         dtype=None,
         dynamic=False,
+        post: Optional[tf.keras.layers.Layer] = None,
+        embeddings_l2_batch_regularization: Optional[Union[float, Dict[str, float]]] = 0.0,
     ):
         if isinstance(schema, ColumnSchema):
             col = schema
@@ -472,9 +478,10 @@ class EmbeddingEncoder(Encoder):
             name=name,
             dtype=dtype,
             dynamic=dynamic,
+            l2_batch_regularization_factor=embeddings_l2_batch_regularization,
         )
 
-        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col_name]))
+        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col_name]), post=post)
 
     def to_dataset(self, gpu=None) -> merlin.io.Dataset:
         return self.blocks[0].to_dataset(gpu=gpu)
