@@ -18,3 +18,5 @@ testbook
 fiddle
 wandb
 transformers
+optuna
+plotly

@@ -1,7 +1,23 @@
+#
+# Copyright (c) 2022, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 from __future__ import annotations
 
 import collections
 import inspect
+import os
 import sys
 import warnings
 from collections.abc import Sequence as SequenceCollection
@@ -15,6 +31,7 @@ from packaging import version
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
+from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
@@ -1046,6 +1063,34 @@ class Model(BaseModel):
         ]
         self.schema = sum(input_block_schemas, Schema())
         self._frozen_blocks = set()
+
+    def save(
+        self,
+        export_path: Union[str, os.PathLike],
+        include_optimizer=True,
+        save_traces=True,
+    ) -> None:
+        """Saves the model to export_path as a Tensorflow Saved Model.
+        Along with merlin model metadata.
+        """
+        super().save(
+            export_path,
+            include_optimizer=include_optimizer,
+            save_traces=save_traces,
+            save_format="tf",
+        )
+        save_merlin_metadata(export_path, self, self.schema, None)
+
+    @classmethod
+    def load(cls, export_path: Union[str, os.PathLike]) -> "Model":
+        """Loads a model that was saved with `model.save()`.
+
+        Parameters
+        ----------
+        export_path : Union[str, os.PathLike]
+            The path to the saved model.
+        """
+        return tf.keras.models.load_model(export_path)
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):

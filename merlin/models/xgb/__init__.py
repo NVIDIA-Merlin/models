@@ -25,6 +25,7 @@ import xgboost as xgb
 
 from merlin.core.utils import global_dask_client
 from merlin.io import Dataset
+from merlin.models.io import save_merlin_metadata
 from merlin.models.utils.schema_utils import (
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
@@ -254,6 +255,14 @@ class XGBoost:
         export_dir.mkdir(parents=True)
         self.booster.save_model(export_dir / "model.json")
         schema_to_tensorflow_metadata_json(self.schema, export_dir / "schema.json")
+
+        save_merlin_metadata(
+            export_dir,
+            self,
+            self.schema.select_by_name(self.feature_columns),
+            self.schema.select_by_name(self.target_columns),
+        )
+
         with open(export_dir / "params.json", "w") as f:
             json.dump(self.params, f, indent=4)
         with open(export_dir / "config.json", "w") as f:
