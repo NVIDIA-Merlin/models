@@ -181,7 +181,7 @@ class ListToDense(TabularBlock):
         if isinstance(val, tuple):
             val = list_col_to_ragged(val)
         if isinstance(val, tf.RaggedTensor):
-            return _ragged_to_dense(val)
+            return _ragged_to_dense(val, self.max_seq_length)
         return tf.squeeze(val)
 
     def get_config(self):
