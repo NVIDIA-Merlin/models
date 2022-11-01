@@ -391,6 +391,10 @@ class BaseModel(tf.keras.Model):
         else:
             out = metrics
 
+        for metric in tf.nest.flatten(out):
+            # We ensure metrics passed to `compile()` are reset
+            if metric:
+                metric.reset_state()
         return out
 
     def _create_weighted_metrics(self, weighted_metrics=None):
@@ -414,6 +418,10 @@ class BaseModel(tf.keras.Model):
                 else:
                     for i, block in enumerate(self.model_outputs):
                         out[block.full_name] = weighted_metrics[i]
+
+        for metric in tf.nest.flatten(out):
+            if metric:
+                metric.reset_state()
 
         return out
 
@@ -713,7 +721,7 @@ class BaseModel(tf.keras.Model):
         x, _, _ = unpack_x_y_sample_weight(data)
 
         if getattr(self, "predict_pre", None):
-            out = call_layer(self.predict_pr, x, features=x, training=False)
+            out = call_layer(self.predict_pre, x, features=x, training=False)
             if isinstance(out, Prediction):
                 x = out.outputs
             else:
@@ -1718,6 +1726,39 @@ class RetrievalModelV2(Model):
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post", "_encoder", "_output"])
 
         return config
+
+    def to_top_k_encoder(
+        self,
+        candidates: merlin.io.Dataset = None,
+        candidate_id=Tags.ITEM_ID,
+        strategy: Union[str, tf.keras.layers.Layer] = "brute-force-topk",
+        k: int = 10,
+        **kwargs,
+    ):
+        from merlin.models.tf.core.encoder import TopKEncoder
+
+        """Method to get a top-k encoder
+
+        Parameters
+        ----------
+        candidate : merlin.io.Dataset, optional
+            Dataset of unique candidates, by default None
+        candidate_id:
+            Column to use as the candidates index,
+            by default Tags.ITEM_ID
+        strategy: str
+            Strategy to use for retrieving the top-k candidates of
+            a given query, by default brute-force-topk
+        """
+        candidates_embeddings = self.candidate_embeddings(candidates, index=candidate_id, **kwargs)
+        topk_model = TopKEncoder(
+            self.query_encoder,
+            topk_layer=strategy,
+            k=k,
+            candidates=candidates_embeddings,
+            target=self.encoder._schema.select_by_tag(candidate_id).first.name,
+        )
+        return topk_model
 
 
 def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
