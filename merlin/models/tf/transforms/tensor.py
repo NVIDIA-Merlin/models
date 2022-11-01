@@ -22,6 +22,7 @@ from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
+from merlin.schema import Schema
 
 ONE_HOT = utils.ONE_HOT
 MULTI_HOT = utils.MULTI_HOT
@@ -38,6 +39,52 @@ class ListToRagged(TabularBlock):
         for name, val in inputs.items():
             if isinstance(val, tuple):
                 outputs[name] = list_col_to_ragged(val)
+            else:
+                outputs[name] = val
+
+        return outputs
+
+    def compute_output_shape(self, input_shapes):
+        output_shapes = {}
+        for k, v in input_shapes.items():
+            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                output_shapes[k] = tf.TensorShape([v[1][0], None])
+            else:
+                output_shapes[k] = v
+
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ProcessList(TabularBlock):
+    """Convert all list (multi-hot/sequential) features to tf.RaggedTensor"""
+
+    def __init__(self, schema: Schema, **kwargs):
+        super().__init__(**kwargs)
+        self.schema = schema
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+
+        for name, val in inputs.items():
+            is_ragged = True
+            if name in self.schema:
+                is_ragged = self.schema[name].is_ragged
+
+            if isinstance(val, tuple):
+                ragged = list_col_to_ragged(val)
+
+                if is_ragged:
+                    if len(ragged.shape) == 2:
+                        ragged = tf.expand_dims(ragged, axis=-1)
+
+                    outputs[name] = ragged
+                else:
+                    outputs[name] = _ragged_to_dense(ragged)
             else:
                 outputs[name] = val
 
@@ -134,13 +181,7 @@ class ListToDense(TabularBlock):
         if isinstance(val, tuple):
             val = list_col_to_ragged(val)
         if isinstance(val, tf.RaggedTensor):
-            if self.max_seq_length:
-                shape = [None] * val.shape.rank
-                shape[1] = self.max_seq_length
-                val = val.to_tensor(shape=shape)
-            else:
-                val = tf.squeeze(val.to_tensor())
-            return val
+            return _ragged_to_dense(val)
         return tf.squeeze(val)
 
     def get_config(self):
@@ -197,3 +238,11 @@ class ExpandDims(TabularBlock):
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+
+def _ragged_to_dense(ragged_tensor, max_seq_length=None):
+    if max_seq_length:
+        shape = [None] * ragged_tensor.shape.rank
+        shape[1] = max_seq_length
+        return ragged_tensor.to_tensor(shape=shape)
+    return tf.squeeze(ragged_tensor.to_tensor())
