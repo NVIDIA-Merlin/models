@@ -99,6 +99,12 @@ class TransformerBlock(Block):
             transformer_post = block_registry.parse(transformer_post)
         self.transformer_post = transformer_post
 
+        if isinstance(pre, str):
+            pre = block_registry.parse(pre)
+
+        if isinstance(post, str):
+            post = block_registry.parse(post)
+
         self.post = post
         self.pre = pre
 

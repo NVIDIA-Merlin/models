@@ -673,6 +673,32 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
+def test_save_and_load(tmpdir):
+    dataset = generate_data("e-commerce", num_rows=10)
+    dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
+    model = mm.Model(
+        mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+    model.compile()
+    _ = model.fit(
+        dataset,
+        epochs=1,
+        batch_size=10,
+    )
+    model.save(tmpdir)
+    reloaded_model = mm.Model.load(tmpdir)
+    signature_input_keys = set(
+        reloaded_model.signatures["serving_default"].structured_input_signature[1].keys()
+    )
+    assert signature_input_keys == {"user_age"}
+    test_case = TestCase()
+    test_case.assertAllClose(
+        model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
+    )
+
+
 def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
