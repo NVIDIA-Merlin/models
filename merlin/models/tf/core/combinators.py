@@ -516,6 +516,10 @@ class ParallelBlock(TabularBlock):
     def __setitem__(self, key: str, item: "Block"):
         self.parallel_dict[key] = item
 
+    @property
+    def first(self) -> "Block":
+        return self.parallel_values[0]
+
     def add_branch(self, name: str, block: "Block") -> "ParallelBlock":
         if isinstance(self.parallel_layers, dict):
             self.parallel_layers[name] = block
