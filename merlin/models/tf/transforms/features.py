@@ -835,20 +835,31 @@ class BroadcastToSequence(tf.keras.layers.Layer):
             if fname in self.sequence_schema.column_names:
                 seq_features_shapes[fname] = tuple(fshape[:2])
 
-        sequence_length = 0
+        sequence_length = None
         if len(seq_features_shapes) > 0:
-            if len(set(seq_features_shapes.values())) > 1:
-                raise ValueError(
-                    "All sequential features must share the same shape in the first two dims "
-                    "(batch_size, seq_length): {}".format(seq_features_shapes)
-                )
-
-            sequence_length = list(seq_features_shapes.values())[0][1]
-            if sequence_length is None:
-                for k, v in inputs.items():
-                    if k in self.sequence_schema.column_names:
-                        if isinstance(v, tf.RaggedTensor):
-                            sequence_length = v.row_lengths()
+            for k, v in inputs.items():
+                if k in self.sequence_schema.column_names:
+                    if isinstance(v, tf.RaggedTensor):
+                        if sequence_length is not None:
+                            sequence_lengths_equal = tf.math.reduce_all(
+                                tf.equal(v.row_lengths(), sequence_length)
+                            )
+                            tf.Assert(
+                                sequence_lengths_equal,
+                                [
+                                    "sequence features must share the same sequence lengths",
+                                    v.row_lengths(),
+                                ],
+                            )
+                        sequence_length = v.row_lengths()
+                    else:
+                        if sequence_length is not None:
+                            if sequence_length != [v.shape[1]]:
+                                raise ValueError(
+                                    "sequence features must share the same sequence lengths"
+                                    " {}".format(seq_features_shapes)
+                                )
+                        sequence_length = [v.shape[1]]
 
         return seq_features_shapes, sequence_length
 

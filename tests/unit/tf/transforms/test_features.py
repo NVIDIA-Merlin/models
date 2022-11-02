@@ -749,9 +749,20 @@ class TestBroadcastToSequence(tf.test.TestCase):
                 "s2": tf.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
             }
             layer(inputs)
-        assert "All sequential features must share the same shape in the first two dims" in str(
-            exc_info.value
-        )
+        assert "sequence features must share the same sequence lengths" in str(exc_info.value)
+
+    def test_different_sequence_lengths_ragged(self):
+        context_schema = Schema([ColumnSchema("c1")])
+        sequence_schema = Schema([ColumnSchema("s1"), ColumnSchema("s2")])
+        with pytest.raises(Exception) as exc_info:
+            layer = BroadcastToSequence(context_schema, sequence_schema)
+            inputs = {
+                "c1": tf.constant([[1], [2]]),
+                "s1": tf.ragged.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
+                "s2": tf.ragged.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
+            }
+            layer(inputs)
+        assert "sequence features must share the same sequence lengths" in str(exc_info.value)
 
     def test_mask_propagation(self):
         masking_layer = tf.keras.layers.Masking(mask_value=0)
