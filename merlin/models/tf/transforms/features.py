@@ -763,7 +763,6 @@ class ToTarget(Block):
     def _to_one_hot(self, name, target):
         num_classes = schema_utils.categorical_cardinalities(self.schema)[name]
         one_hot = tf.one_hot(target, num_classes, dtype=target.dtype)
-
         return tf.squeeze(one_hot)
 
     def compute_output_shape(self, input_shape):
