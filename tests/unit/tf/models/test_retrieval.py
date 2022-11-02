@@ -60,13 +60,9 @@ def test_two_tower_shared_embeddings():
     train = workflow.transform(train_dataset)
     schema = train.schema
 
-    embeddings = mm.Embeddings(schema)
-    emd_item = embeddings.select_by_tag(Tags.ITEM)
-    emd_user = embeddings.select_by_tag(Tags.USER)
-
-    item_tower = mm.InputBlockV2(schema.select_by_tag(Tags.ITEM), categorical=emd_item)
-
-    query_tower = mm.InputBlockV2(schema.select_by_tag(Tags.USER), categorical=emd_user)
+    input_block = mm.InputBlockV2(schema)
+    item_tower = input_block.select_by_tag(Tags.ITEM)
+    query_tower = input_block.select_by_tag(Tags.USER)
 
     model = mm.TwoTowerModel(
         schema,
