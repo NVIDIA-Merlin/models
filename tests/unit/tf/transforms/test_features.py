@@ -764,6 +764,19 @@ class TestBroadcastToSequence(tf.test.TestCase):
             layer(inputs)
         assert "sequence features must share the same sequence lengths" in str(exc_info.value)
 
+    def test_ragged_and_dense_features(self):
+        context_schema = Schema([ColumnSchema("c1")])
+        sequence_schema = Schema([ColumnSchema("s1"), ColumnSchema("s2")])
+        with pytest.raises(ValueError) as exc_info:
+            layer = BroadcastToSequence(context_schema, sequence_schema)
+            inputs = {
+                "c1": tf.constant([[1], [2]]),
+                "s1": tf.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
+                "s2": tf.ragged.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
+            }
+            layer(inputs)
+        assert "sequence features must all be ragged or all dense, not both" in str(exc_info.value)
+
     def test_mask_propagation(self):
         masking_layer = tf.keras.layers.Masking(mask_value=0)
         partially_masked_inputs = {

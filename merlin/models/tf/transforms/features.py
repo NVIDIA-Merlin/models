@@ -836,13 +836,26 @@ class BroadcastToSequence(tf.keras.layers.Layer):
                 seq_features_shapes[fname] = tuple(fshape[:2])
 
         sequence_length = None
+        sequence_is_ragged = None
         if len(seq_features_shapes) > 0:
             for k, v in inputs.items():
                 if k in self.sequence_schema.column_names:
                     if isinstance(v, tf.RaggedTensor):
+                        if sequence_is_ragged is False:
+                            raise ValueError(
+                                "sequence features must all be ragged or all dense, not both."
+                            )
                         new_sequence_length = v.row_lengths()
+                        sequence_is_ragged = True
                     else:
+                        if sequence_is_ragged is True:
+                            raise ValueError(
+                                "sequence features must all be ragged or all dense, not both."
+                            )
                         new_sequence_length = [v.shape[1]]
+                        sequence_is_ragged = False
+
+                    # check sequences lengths match
                     if sequence_length is not None:
                         sequence_lengths_equal = tf.math.reduce_all(
                             tf.equal(new_sequence_length, sequence_length)
