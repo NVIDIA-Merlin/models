@@ -6,7 +6,7 @@ from tensorflow.test import TestCase
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 @pytest.mark.parametrize("name_branches", [True, False])
@@ -147,6 +147,34 @@ def test_parallel_block_select_by_tags(music_streaming_data):
     ]
     outputs = item_inputs(batch)
     assert sorted(outputs.keys()) == sorted(item_inputs.schema.column_names)
+
+
+def test_parallel_block_select_by_tag_args():
+    is_input = True
+    pre = tf.keras.layers.Dense(5, name="pre")
+    post = tf.keras.layers.Dense(5, name="post")
+    aggregation = mm.ConcatFeatures(name="agg")
+
+    user_schema = Schema([ColumnSchema("user_feature", tags=[Tags.USER])])
+    item_schema = Schema([ColumnSchema("item_feature", tags=[Tags.ITEM])])
+    schema = user_schema + item_schema
+
+    branches = {
+        "user": mm.ParallelBlock([tf.keras.layers.Dense(10)], schema=user_schema),
+        "item": mm.ParallelBlock([tf.keras.layers.Dense(10)], schema=item_schema),
+    }
+
+    parallel_block = mm.ParallelBlock(
+        branches, schema=schema, is_input=is_input, pre=pre, post=post, aggregation=aggregation
+    )
+
+    user_block = parallel_block.select_by_tag(Tags.USER)
+    item_block = parallel_block.select_by_tag(Tags.ITEM)
+
+    assert user_block.is_input == is_input == item_block.is_input
+    assert user_block.pre == pre == item_block.pre
+    assert user_block.post == post == item_block.post
+    assert user_block.aggregation == aggregation == item_block.aggregation
 
 
 class TestCond:
