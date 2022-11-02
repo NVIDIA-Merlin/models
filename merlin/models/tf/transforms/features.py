@@ -761,7 +761,7 @@ class ToTarget(Block):
         return outputs, targets
 
     def _to_one_hot(self, name, target):
-        num_classes = self.schema[name].int_domain.max + 1
+        num_classes = schema_utils.categorical_cardinalities(self.schema)[name]
         one_hot = tf.one_hot(target, num_classes, dtype=target.dtype)
 
         return tf.squeeze(one_hot)
