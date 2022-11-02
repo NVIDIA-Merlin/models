@@ -887,10 +887,6 @@ class BroadcastToSequence(tf.keras.layers.Layer):
         for k in input_shape:
             if k in self.context_schema.column_names:
                 rest_shape = input_shape[k][1:]
-                # If sequence length is None, we have ragged tensors.
-                # non-batch dims become ragged (None) during transform.
-                if sequence_length is None:
-                    rest_shape = [None] * len(rest_shape)
                 context_shapes[k] = (
                     input_shape[k][:1] + tf.TensorShape([sequence_length]) + rest_shape
                 )

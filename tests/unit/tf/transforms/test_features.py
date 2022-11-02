@@ -802,16 +802,19 @@ class TestBroadcastToSequence(tf.test.TestCase):
         partially_masked_inputs = {
             "a": tf.constant([[1], [2]]),
             "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
+            "c": masking_layer(tf.ragged.constant([[[1, 2]], [[3, 4], [4, 5]]], ragged_rank=1)),
         }
         context_schema = Schema([ColumnSchema("a")])
-        sequence_schema = Schema([ColumnSchema("b")])
+        sequence_schema = Schema([ColumnSchema("b"), ColumnSchema("c")])
 
         broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        _ = broadcast_layer(partially_masked_inputs)
         input_shape = {k: v.shape for k, v in partially_masked_inputs.items()}
         output_shape = broadcast_layer.compute_output_shape(input_shape)
 
-        self.assertAllEqual(output_shape["a"], tf.TensorShape([2, None, None]))
+        self.assertAllEqual(output_shape["a"], tf.TensorShape([2, None, 1]))
         self.assertAllEqual(output_shape["b"], tf.TensorShape([2, None, None]))
+        self.assertAllEqual(output_shape["c"], tf.TensorShape([2, None, 2]))
 
     def test_sequence_embedding(self):
         embedding = tf.keras.layers.Embedding(6, 4)
