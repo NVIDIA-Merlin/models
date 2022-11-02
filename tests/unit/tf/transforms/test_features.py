@@ -741,7 +741,7 @@ class TestBroadcastToSequence(tf.test.TestCase):
     def test_different_sequence_lengths(self):
         context_schema = Schema([ColumnSchema("c1")])
         sequence_schema = Schema([ColumnSchema("s1"), ColumnSchema("s2")])
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(Exception) as exc_info:
             layer = BroadcastToSequence(context_schema, sequence_schema)
             inputs = {
                 "c1": tf.constant([[1], [2]]),

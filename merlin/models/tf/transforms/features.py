@@ -840,26 +840,21 @@ class BroadcastToSequence(tf.keras.layers.Layer):
             for k, v in inputs.items():
                 if k in self.sequence_schema.column_names:
                     if isinstance(v, tf.RaggedTensor):
-                        if sequence_length is not None:
-                            sequence_lengths_equal = tf.math.reduce_all(
-                                tf.equal(v.row_lengths(), sequence_length)
-                            )
-                            tf.Assert(
-                                sequence_lengths_equal,
-                                [
-                                    "sequence features must share the same sequence lengths",
-                                    v.row_lengths(),
-                                ],
-                            )
-                        sequence_length = v.row_lengths()
+                        new_sequence_length = v.row_lengths()
                     else:
-                        if sequence_length is not None:
-                            if sequence_length != [v.shape[1]]:
-                                raise ValueError(
-                                    "sequence features must share the same sequence lengths"
-                                    " {}".format(seq_features_shapes)
-                                )
-                        sequence_length = [v.shape[1]]
+                        new_sequence_length = [v.shape[1]]
+                    if sequence_length is not None:
+                        sequence_lengths_equal = tf.math.reduce_all(
+                            tf.equal(new_sequence_length, sequence_length)
+                        )
+                        tf.Assert(
+                            sequence_lengths_equal,
+                            [
+                                "sequence features must share the same sequence lengths",
+                                (sequence_length, new_sequence_length),
+                            ],
+                        )
+                    sequence_length = new_sequence_length
 
         return seq_features_shapes, sequence_length
 
