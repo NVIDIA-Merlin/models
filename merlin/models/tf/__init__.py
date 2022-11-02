@@ -17,7 +17,7 @@
 # flake8: noqa
 
 # Must happen before any importing of tensorflow to curtail mem usage
-from merlin.models.loader.tf_utils import configure_tensorflow
+from merlin.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
 
@@ -29,7 +29,6 @@ from tensorflow.keras.metrics import Metric
 from tensorflow.keras.optimizers import Optimizer
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
-from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
