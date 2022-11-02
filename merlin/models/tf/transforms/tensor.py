@@ -22,6 +22,10 @@ from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
 from merlin.schema import Schema
 
 ONE_HOT = utils.ONE_HOT
@@ -61,7 +65,13 @@ class ListToRagged(TabularBlock):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ProcessList(TabularBlock):
-    """Convert all list (multi-hot/sequential) features to tf.RaggedTensor"""
+    """Process all list (multi-hot/sequential) features.add()
+
+    In NVTabular, list-columns are represented as a tuple of (values, offsets).
+    This layer processes those columns and:
+    - Converts them to a `tf.RaggedTensor` if the features has a variable length.
+    - Converts them to a `tf.Tensor` if the feature has a fixed length.
+    """
 
     def __init__(self, schema: Schema, **kwargs):
         super().__init__(**kwargs)
@@ -95,7 +105,14 @@ class ProcessList(TabularBlock):
         for k, v in input_shapes.items():
             # If it is a list/sparse feature (in tuple representation), uses the offset as shape
             if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
-                output_shapes[k] = tf.TensorShape([v[1][0], None])
+                is_ragged = True
+                if k in self.schema:
+                    is_ragged = self.schema[k].is_ragged
+
+                if is_ragged:
+                    output_shapes[k] = tf.TensorShape([v[1][0], None, 1])
+                else:
+                    output_shapes[k] = tf.TensorShape([v[1][0], None])
             else:
                 output_shapes[k] = v
 
@@ -103,6 +120,19 @@ class ProcessList(TabularBlock):
 
     def compute_call_output_shape(self, input_shapes):
         return self.compute_output_shape(input_shapes)
+
+    def get_config(self):
+        config = super().get_config()
+
+        config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
+
+        return cls(schema, **config)
 
 
 @Block.registry.register("list-to-sparse")
