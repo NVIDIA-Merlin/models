@@ -862,14 +862,9 @@ class BroadcastToSequence(tf.keras.layers.Layer):
                     if target[fname] is None:
                         continue
                     if isinstance(sequence_length, tf.Tensor):
-                        rows = []
-                        for row, row_sequence_length in zip(target[fname], sequence_length):
-                            rows.append(
-                                tf.RaggedTensor.from_tensor(
-                                    tf.repeat(tf.expand_dims(row, 1), row_sequence_length, axis=0)
-                                )
-                            )
-                        non_seq_target[fname] = tf.stack(rows)
+                        non_seq_target[fname] = tf.RaggedTensor.from_row_lengths(
+                            tf.repeat(target[fname], sequence_length, axis=0), sequence_length
+                        )
                     else:
                         shape = target[fname].shape
                         target_shape = shape[:1] + sequence_length + shape[1:]
