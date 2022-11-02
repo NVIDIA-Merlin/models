@@ -83,7 +83,9 @@ class ProcessList(TabularBlock):
         for name, val in inputs.items():
             is_ragged = True
             if name in self.schema:
-                is_ragged = self.schema[name].is_ragged
+                val_count = self.schema[name].properties.get("value_count")
+                if val_count and val_count["min"] == val_count["max"]:
+                    is_ragged = False
 
             if isinstance(val, tuple):
                 ragged = list_col_to_ragged(val)
@@ -106,13 +108,17 @@ class ProcessList(TabularBlock):
             # If it is a list/sparse feature (in tuple representation), uses the offset as shape
             if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
                 is_ragged = True
+                max_seq_length = None
                 if k in self.schema:
-                    is_ragged = self.schema[k].is_ragged
+                    val_count = self.schema[k].properties.get("value_count")
+                    if val_count and val_count["min"] == val_count["max"]:
+                        is_ragged = False
+                        max_seq_length = val_count["min"]
 
                 if is_ragged:
                     output_shapes[k] = tf.TensorShape([v[1][0], None, 1])
                 else:
-                    output_shapes[k] = tf.TensorShape([v[1][0], None])
+                    output_shapes[k] = tf.TensorShape([v[1][0], max_seq_length])
             else:
                 output_shapes[k] = v
 
