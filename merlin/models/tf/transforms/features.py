@@ -835,20 +835,39 @@ class BroadcastToSequence(tf.keras.layers.Layer):
             if fname in self.sequence_schema.column_names:
                 seq_features_shapes[fname] = tuple(fshape[:2])
 
-        sequence_length = 0
+        sequence_length = None
+        sequence_is_ragged = None
         if len(seq_features_shapes) > 0:
-            if len(set(seq_features_shapes.values())) > 1:
-                raise ValueError(
-                    "All sequential features must share the same shape in the first two dims "
-                    "(batch_size, seq_length): {}".format(seq_features_shapes)
-                )
+            for k, v in inputs.items():
+                if k in self.sequence_schema.column_names:
+                    if isinstance(v, tf.RaggedTensor):
+                        if sequence_is_ragged is False:
+                            raise ValueError(
+                                "sequence features must all be ragged or all dense, not both."
+                            )
+                        new_sequence_length = v.row_lengths()
+                        sequence_is_ragged = True
+                    else:
+                        if sequence_is_ragged is True:
+                            raise ValueError(
+                                "sequence features must all be ragged or all dense, not both."
+                            )
+                        new_sequence_length = [v.shape[1]]
+                        sequence_is_ragged = False
 
-            sequence_length = list(seq_features_shapes.values())[0][1]
-            if sequence_length is None:
-                for k, v in inputs.items():
-                    if k in self.sequence_schema.column_names:
-                        if isinstance(v, tf.RaggedTensor):
-                            sequence_length = v.row_lengths()
+                    # check sequences lengths match
+                    if sequence_length is not None:
+                        sequence_lengths_equal = tf.math.reduce_all(
+                            tf.equal(new_sequence_length, sequence_length)
+                        )
+                        tf.Assert(
+                            sequence_lengths_equal,
+                            [
+                                "sequence features must share the same sequence lengths",
+                                (sequence_length, new_sequence_length),
+                            ],
+                        )
+                    sequence_length = new_sequence_length
 
         return seq_features_shapes, sequence_length
 
@@ -862,14 +881,9 @@ class BroadcastToSequence(tf.keras.layers.Layer):
                     if target[fname] is None:
                         continue
                     if isinstance(sequence_length, tf.Tensor):
-                        rows = []
-                        for row, row_sequence_length in zip(target[fname], sequence_length):
-                            rows.append(
-                                tf.RaggedTensor.from_tensor(
-                                    tf.repeat(tf.expand_dims(row, 1), row_sequence_length, axis=0)
-                                )
-                            )
-                        non_seq_target[fname] = tf.stack(rows)
+                        non_seq_target[fname] = tf.RaggedTensor.from_row_lengths(
+                            tf.repeat(target[fname], sequence_length, axis=0), sequence_length
+                        )
                     else:
                         shape = target[fname].shape
                         target_shape = shape[:1] + sequence_length + shape[1:]
@@ -892,10 +906,6 @@ class BroadcastToSequence(tf.keras.layers.Layer):
         for k in input_shape:
             if k in self.context_schema.column_names:
                 rest_shape = input_shape[k][1:]
-                # If sequence length is None, we have ragged tensors.
-                # non-batch dims become ragged (None) during transform.
-                if sequence_length is None:
-                    rest_shape = [None] * len(rest_shape)
                 context_shapes[k] = (
                     input_shape[k][:1] + tf.TensorShape([sequence_length]) + rest_shape
                 )
