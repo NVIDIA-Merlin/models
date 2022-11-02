@@ -64,20 +64,26 @@ def test_horovod_multigpu_dlrm(criteo_data, tmpdir, batch_size=11, learning_rate
     opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
     model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
 
-    if hvd_installed:
-        assert model.optimizer.learning_rate == learning_rate * hvd.size()
-    else:
-        assert model.optimizer.learning_rate == learning_rate
-
     # model.fit() will hang or terminate with error if all workers don't have
     # the same number of batches.
     losses = model.fit(
         train_loader,
         batch_size=batch_size,
     )
-    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
     model.save(tmpdir)
+
+    if hvd_installed:
+        assert model.optimizer.learning_rate == learning_rate * hvd.size()
+    else:
+        assert model.optimizer.learning_rate == learning_rate
+
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+    if hvd_installed:
+        assert losses.params["steps"] == 9 // hvd.size()
+    else:
+        assert losses.params["steps"] == 9
 
     saved_model = "saved_model.pb"
     if hvd_installed and hvd.rank() == 0:
@@ -121,10 +127,16 @@ def test_horovod_multigpu_two_tower(
 
     # model.fit() will hang or terminate with error if all workers don't have
     # the same number of batches.
-    losses = model.fit(train_loader, batch_size=50, epochs=2)
+    losses = model.fit(train_loader, batch_size=batch_size, epochs=2)
 
     model.save(tmpdir)
+
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+    if hvd_installed:
+        assert losses.params["steps"] == 9 // hvd.size()
+    else:
+        assert losses.params["steps"] == 9
 
     saved_model = "saved_model.pb"
     if hvd_installed and hvd.rank() != 0:
