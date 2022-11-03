@@ -17,4 +17,4 @@
 #!/bin/bash
 set -e
 
-tox -e test-gpu
+tox -e test-gpu $@
