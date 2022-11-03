@@ -27,18 +27,6 @@ class TabularAggregation(
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
         raise NotImplementedError()
 
-    def _expand_non_sequential_features(self, inputs: TabularData) -> TabularData:
-        inputs_sizes = {k: v.shape for k, v in inputs.items()}
-        seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs_sizes)
-
-        if len(seq_features_shapes) > 0:
-            non_seq_features = set(inputs.keys()).difference(set(seq_features_shapes.keys()))
-            for fname in non_seq_features:
-                # Including the 2nd dim and repeating for the sequence length
-                inputs[fname] = tf.tile(tf.expand_dims(inputs[fname], 1), (1, sequence_length, 1))
-
-        return inputs
-
     def _get_seq_features_shapes(self, inputs_sizes: Dict[str, tf.TensorShape]):
         seq_features_shapes = dict()
         for fname, fshape in inputs_sizes.items():
