@@ -162,18 +162,15 @@ def test_tranformer_with_prepare_module(sequence_testing_data):
 
 
 def classification_loader(sequence_testing_data: Dataset):
-    def _target_to_onehot(inputs, targets):
-        targets = tf.squeeze(tf.one_hot(targets, 63))
-        return inputs, targets
-
     schema = sequence_testing_data.schema.select_by_name(
         ["item_id_seq", "categories", "user_country"]
     )
-    schema["user_country"] = schema["user_country"].with_tags(
-        schema["user_country"].tags + "target"
-    )
     sequence_testing_data.schema = schema
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=_target_to_onehot)
+    dataloader = mm.Loader(
+        sequence_testing_data,
+        batch_size=50,
+        transform=mm.ToTarget(schema, "user_country", one_hot=True),
+    )
     return dataloader, schema
 
 

@@ -580,6 +580,7 @@ def sample_batch(
     include_targets: bool = True,
     to_ragged: bool = False,
     to_dense: bool = False,
+    process_lists=True,
 ):
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
@@ -607,7 +608,7 @@ def sample_batch(
             "Sparse values cannot be converted to both ragged tensors and dense tensors"
         )
 
-    from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged
+    from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged, ProcessList
 
     if not isinstance(data, Loader):
         data = Loader(data, batch_size=batch_size, shuffle=shuffle)
@@ -620,6 +621,8 @@ def sample_batch(
         inputs = ListToRagged()(inputs)
     elif to_dense:
         inputs = ListToDense()(inputs)
+    if process_lists:
+        inputs = ProcessList(data.schema)(inputs)
     if not include_targets:
         return inputs
     return inputs, targets

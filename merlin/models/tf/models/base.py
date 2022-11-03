@@ -45,7 +45,7 @@ from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.outputs.base import ModelOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.tensor import ListToRagged
+from merlin.models.tf.transforms.tensor import ListToRagged, ProcessList
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -1063,6 +1063,7 @@ class Model(BaseModel):
             block.schema for block in self.submodules if getattr(block, "is_input", False)
         ]
         self.schema = sum(input_block_schemas, Schema())
+        self.process_list = ProcessList(self.schema)
         self._frozen_blocks = set()
 
     def save(
@@ -1142,7 +1143,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            ListToRagged()(inputs),
+            self.process_list(inputs),
             targets=targets,
             training=training,
             testing=testing,

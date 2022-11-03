@@ -29,7 +29,8 @@ def test_dlrm_block(testing_data: Dataset):
         bottom_block=mm.MLPBlock([64]),
         top_block=mm.DenseResidualBlock(),
     )
-    outputs = dlrm(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+    features = mm.sample_batch(testing_data, batch_size=100, include_targets=False)
+    outputs = dlrm(features)
     num_features = len(schema.select_by_tag(Tags.CATEGORICAL)) + 1
     dot_product_dim = (num_features - 1) * num_features // 2
     assert list(outputs.shape) == [100, dot_product_dim + 64]
