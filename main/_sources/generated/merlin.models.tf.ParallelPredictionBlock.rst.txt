@@ -97,6 +97,7 @@
       ~ParallelPredictionBlock.dtype
       ~ParallelPredictionBlock.dtype_policy
       ~ParallelPredictionBlock.dynamic
+      ~ParallelPredictionBlock.first
       ~ParallelPredictionBlock.has_schema
       ~ParallelPredictionBlock.inbound_nodes
       ~ParallelPredictionBlock.input

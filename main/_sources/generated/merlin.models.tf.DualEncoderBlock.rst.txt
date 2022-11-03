@@ -95,6 +95,7 @@
       ~DualEncoderBlock.dtype
       ~DualEncoderBlock.dtype_policy
       ~DualEncoderBlock.dynamic
+      ~DualEncoderBlock.first
       ~DualEncoderBlock.has_schema
       ~DualEncoderBlock.inbound_nodes
       ~DualEncoderBlock.input

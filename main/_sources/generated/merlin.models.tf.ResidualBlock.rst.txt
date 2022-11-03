@@ -93,6 +93,7 @@
       ~ResidualBlock.dtype
       ~ResidualBlock.dtype_policy
       ~ResidualBlock.dynamic
+      ~ResidualBlock.first
       ~ResidualBlock.has_schema
       ~ResidualBlock.inbound_nodes
       ~ResidualBlock.input

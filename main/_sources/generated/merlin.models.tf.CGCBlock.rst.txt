@@ -93,6 +93,7 @@
       ~CGCBlock.dtype
       ~CGCBlock.dtype_policy
       ~CGCBlock.dynamic
+      ~CGCBlock.first
       ~CGCBlock.has_schema
       ~CGCBlock.inbound_nodes
       ~CGCBlock.input

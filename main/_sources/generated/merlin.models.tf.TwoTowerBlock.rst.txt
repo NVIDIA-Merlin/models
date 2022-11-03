@@ -95,6 +95,7 @@
       ~TwoTowerBlock.dtype
       ~TwoTowerBlock.dtype_policy
       ~TwoTowerBlock.dynamic
+      ~TwoTowerBlock.first
       ~TwoTowerBlock.has_schema
       ~TwoTowerBlock.inbound_nodes
       ~TwoTowerBlock.input

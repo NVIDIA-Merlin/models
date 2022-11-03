@@ -93,6 +93,7 @@
       ~ParallelBlock.dtype
       ~ParallelBlock.dtype_policy
       ~ParallelBlock.dynamic
+      ~ParallelBlock.first
       ~ParallelBlock.has_schema
       ~ParallelBlock.inbound_nodes
       ~ParallelBlock.input
