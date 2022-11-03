@@ -743,16 +743,27 @@ class ToTarget(Block):
         target_columns = self._target_column_schemas()
 
         outputs = {}
-        for name, val in inputs.items():
+        for name in inputs:
             if name not in target_columns:
                 outputs[name] = inputs[name]
                 continue
             if isinstance(targets, dict):
-                targets[name] = targets.get(name, inputs[name])
+                _target = targets.get(name, inputs[name])
+                if self.one_hot:
+                    _target = self._to_one_hot(name, _target)
+                targets[name] = _target
             else:
-                targets = inputs[name]
+                _target = inputs[name]
+                if self.one_hot:
+                    _target = self._to_one_hot(name, _target)
+                targets = _target
 
         return outputs, targets
+
+    def _to_one_hot(self, name, target):
+        num_classes = schema_utils.categorical_cardinalities(self.schema)[name]
+        one_hot = tf.one_hot(target, num_classes, dtype=target.dtype)
+        return tf.squeeze(one_hot)
 
     def compute_output_shape(self, input_shape):
         return input_shape
