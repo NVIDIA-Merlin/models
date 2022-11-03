@@ -137,7 +137,7 @@ def test_parallel_block_select_by_tags(music_streaming_data):
     assert parallel_block.select_by_tag([Tags.SEQUENCE, Tags.TIME]) is None
 
     # InputBlock is also a ParallelBlock.
-    input_block = mm.InputBlockV2(music_streaming_data.schema)
+    input_block = mm.InputBlockV2(music_streaming_data.schema, aggregation=None)
     item_inputs = input_block.select_by_tag(Tags.ITEM)
     assert sorted(item_inputs.schema.column_names) == [
         "item_category",
