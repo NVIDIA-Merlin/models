@@ -144,6 +144,7 @@ if is_transformers_available():
     )
 
 from merlin.models.tf.transforms.features import (
+    BroadcastToSequence,
     CategoryEncoding,
     HashedCross,
     HashedCrossAll,
@@ -221,6 +222,7 @@ __all__ = [
     "ToDense",
     "ToTarget",
     "CategoryEncoding",
+    "BroadcastToSequence",
     "HashedCross",
     "HashedCrossAll",
     "ElementwiseSum",
