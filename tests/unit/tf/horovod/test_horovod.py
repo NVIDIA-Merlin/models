@@ -21,7 +21,6 @@ def test_horovod_multigpu_dlrm(
     criteo_data,
     tmpdir,
     custom_distributed_optimizer,
-    dedupe_callback,
     batch_size=11,
     learning_rate=0.03,
 ):
