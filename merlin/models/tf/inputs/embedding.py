@@ -399,6 +399,8 @@ class EmbeddingTable(EmbeddingTableBase):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
                 if isinstance(inputs, tf.RaggedTensor):
                     inputs = inputs.to_sparse()
+                if len(inputs.dense_shape) == 3 and inputs.dense_shape[-1] == 1:
+                    inputs = tf.sparse.reshape(inputs, inputs.dense_shape[:-1])
                 out = tf.nn.safe_embedding_lookup_sparse(
                     self.table.embeddings, inputs, None, combiner=self.sequence_combiner
                 )
@@ -448,7 +450,10 @@ class EmbeddingTable(EmbeddingTableBase):
 
         first_dims = input_shape
         if (self.sequence_combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
-            first_dims = input_shape[:-1]
+            if len(input_shape) == 3:
+                first_dims = [input_shape[0]]
+            else:
+                first_dims = input_shape[:-1]
         output_shapes = tf.TensorShape(first_dims + [self.dim])
 
         return output_shapes
@@ -887,6 +892,9 @@ class EmbeddingFeatures(TabularBlock):
         table: TableConfig = self.feature_config[name].table
         table_var = self.embedding_tables[table.name].embeddings
         if isinstance(val, tf.SparseTensor):
+            if len(val.dense_shape) == 3 and val.dense_shape[-1] == 1:
+                val = tf.sparse.reshape(val, val.dense_shape[:-1])
+
             out = tf.nn.safe_embedding_lookup_sparse(table_var, val, None, combiner=table.combiner)
         else:
             if output_sequence:
