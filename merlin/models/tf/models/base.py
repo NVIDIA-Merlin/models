@@ -356,8 +356,6 @@ class BaseModel(tf.keras.Model):
 
     def _create_optimizer(self, optimizer):
         def _create_single_distributed_optimizer(opt):
-            opt = tf.keras.optimizers.get(opt)
-
             opt_config = opt.get_config()
 
             if isinstance(opt.learning_rate, tf.keras.optimizers.schedules.LearningRateSchedule):
@@ -371,8 +369,13 @@ class BaseModel(tf.keras.Model):
 
             return hvd.DistributedOptimizer(opt)
 
+        optimizer = tf.keras.optimizers.get(optimizer)
+
         if hvd_installed and hvd.size() > 1:
-            if isinstance(optimizer, merlin.models.tf.MultiOptimizer):
+            if optimizer.__module__.startswith("horovod"):
+                # do nothing if the optimizer is already wrapped in hvd.DistributedOptimizer
+                pass
+            elif isinstance(optimizer, merlin.models.tf.MultiOptimizer):
                 for pair in (
                     optimizer.optimizers_and_blocks + optimizer.update_optimizers_and_blocks
                 ):
@@ -874,14 +877,10 @@ class BaseModel(tf.keras.Model):
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
+
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
         if hvd_installed and hvd.size() > 1:
-            # Horovod: broadcast initial variable states from rank 0 to all other processes.
-            # This is necessary to ensure consistent initialization of all workers when
-            # training is started with random weights or restored from a checkpoint.
-            callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
-            # Horovod: average metrics among workers at the end of every epoch.
-            callbacks.append(hvd.callbacks.MetricAverageCallback())
+            callbacks = self._add_horovod_callbacks(callbacks)
 
         # Horovod: if it's not worker 0, turn off logging.
         if hvd_installed and hvd.rank() != 0:
@@ -904,7 +903,7 @@ class BaseModel(tf.keras.Model):
 
         return out
 
-    def _add_metrics_callback(self, callbacks, train_metrics_steps):
+    def _validate_callbacks(self, callbacks):
         if callbacks is None:
             callbacks = []
 
@@ -913,10 +912,33 @@ class BaseModel(tf.keras.Model):
         else:
             callbacks = [callbacks]
 
+        return callbacks
+
+    def _add_metrics_callback(self, callbacks, train_metrics_steps):
+        callbacks = self._validate_callbacks(callbacks)
+
         callback_types = [type(callback) for callback in callbacks]
         if MetricsComputeCallback not in callback_types:
             # Adding a callback to control metrics computation
             callbacks.append(MetricsComputeCallback(train_metrics_steps))
+
+        return callbacks
+
+    def _add_horovod_callbacks(self, callbacks):
+        if not (hvd_installed and hvd.size() > 1):
+            return callbacks
+
+        callbacks = self._validate_callbacks(callbacks)
+
+        callback_types = [type(callback) for callback in callbacks]
+        # Horovod: broadcast initial variable states from rank 0 to all other processes.
+        # This is necessary to ensure consistent initialization of all workers when
+        # training is started with random weights or restored from a checkpoint.
+        if hvd.callbacks.BroadcastGlobalVariablesCallback not in callback_types:
+            callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
+        # Horovod: average metrics among workers at the end of every epoch.
+        if hvd.callbacks.MetricAverageCallback not in callback_types:
+            callbacks.append(hvd.callbacks.MetricAverageCallback())
 
         return callbacks
 

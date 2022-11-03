@@ -1,5 +1,6 @@
 import os
 
+import pytest
 import tensorflow as tf
 from tensorflow.keras.utils import set_random_seed
 
@@ -15,7 +16,15 @@ from merlin.schema.tags import Tags
 set_random_seed(42)
 
 
-def test_horovod_multigpu_dlrm(criteo_data, tmpdir, batch_size=11, learning_rate=0.03):
+@pytest.mark.parametrize("custom_distributed_optimizer", [True, False])
+def test_horovod_multigpu_dlrm(
+    criteo_data,
+    tmpdir,
+    custom_distributed_optimizer,
+    dedupe_callback,
+    batch_size=11,
+    learning_rate=0.03,
+):
     """
     This test should work on CPU, single GPU, and multiple GPUs.
     However, for distributed training on multiple GPUs, it needs to be
@@ -61,7 +70,14 @@ def test_horovod_multigpu_dlrm(criteo_data, tmpdir, batch_size=11, learning_rate
         prediction_tasks=mm.BinaryClassificationTask(target_column),
     )
 
-    opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
+    if custom_distributed_optimizer:
+        # Test for a case when the user uses a custom DistributedOptimizer.
+        # With a custom hvd.DistributedOptimzer, users have to adjust the learning rate.
+        opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate * hvd.size())
+        opt = hvd.DistributedOptimizer(opt, compression=hvd.Compression.fp16)
+    else:
+        opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
+
     model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
 
     # model.fit() will hang or terminate with error if all workers don't have
