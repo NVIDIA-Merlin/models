@@ -352,7 +352,7 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         if isinstance(inputs, dict):
-            inputs = self.pre_aggregation(inputs)
+            inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
 
         if self.low_rank_dim is None:
             return self.dense(inputs)  # type: ignore
@@ -361,7 +361,8 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
 
     def compute_output_shape(self, input_shape):
         if isinstance(input_shape, dict):
-            input_shape = self.pre_aggregation.compute_output_shape(input_shape)
+            agg = tabular_aggregation_registry.parse(self.pre_aggregation)
+            input_shape = agg.compute_output_shape(input_shape)
 
         return input_shape
 
@@ -369,6 +370,8 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         config = dict(
             low_rank_dim=self.low_rank_dim,
             use_bias=self.use_bias,
+            activation=self.activation,
+            pre_aggregation=self.pre_aggregation,
         )
         config.update(super(DenseMaybeLowRank, self).get_config())
 
@@ -376,12 +379,6 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
             self,
             config,
             [
-                "activation",
-                "kernel_initializer",
-                "bias_initializer",
-                "kernel_regularizer",
-                "bias_regularizer",
-                "pre_aggregation",
                 "dense",
                 "dense_u",
             ],
@@ -394,12 +391,6 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         config = maybe_deserialize_keras_objects(
             config,
             [
-                "activation",
-                "kernel_initializer",
-                "bias_initializer",
-                "kernel_regularizer",
-                "bias_regularizer",
-                "pre_aggregation",
                 "dense",
                 "dense_u",
             ],

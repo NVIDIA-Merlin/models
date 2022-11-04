@@ -149,7 +149,7 @@ def test_dense_residual_block(
         kernel_initializer=kernel_initializer,
         bias_initializer=bias_initializer,
         kernel_regularizer=kernel_regularizer,
-        bias_regularizer=kernel_regularizer,
+        bias_regularizer=bias_regularizer,
     )
 
     batch = ml.sample_batch(testing_data, batch_size=100, include_targets=False)
@@ -161,7 +161,8 @@ def test_dense_residual_block(
 
     res_block = residual_block
     if depth > 1:
-        res_block = residual_block.layers[0]
+        # Checks properties of the last stacked ResidualBlock
+        res_block = residual_block.layers[-1]
 
     assert res_block.aggregation.activation.__name__ == activation
     assert res_block.layers[0].layers[0].dense.units == input_dim
@@ -180,7 +181,7 @@ def test_dense_residual_block(
 
 
 @pytest.mark.parametrize("run_eagerly", [False, True])
-def test_model_with_dense_residual(ecommerce_data: Dataset, run_eagerly: bool, tmp_path):
+def test_model_with_dense_residual(ecommerce_data: Dataset, run_eagerly: bool):
     model = ml.Model.from_block(
         ml.DenseResidualBlock(
             low_rank_dim=32,
@@ -189,8 +190,8 @@ def test_model_with_dense_residual(ecommerce_data: Dataset, run_eagerly: bool, t
             dropout=0.5,
             normalization=tf.keras.layers.BatchNormalization(),
             depth=2,
-            kernel_initializer=regularizers.l2(1e-5),
-            bias_initializer=regularizers.l2(1e-5),
+            kernel_initializer="glorot_uniform",
+            bias_initializer="zeros",
             kernel_regularizer=regularizers.l2(1e-5),
             bias_regularizer=regularizers.l2(1e-5),
         ),
