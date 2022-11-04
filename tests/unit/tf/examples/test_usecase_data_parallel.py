@@ -11,7 +11,7 @@ def test_usecase_data_parallel(tb, tmpdir):
         f"""
         import os
         os.environ["DATA_FOLDER"] = "{tmpdir}"
-        os.environ["NUM_GPUs"] = "1"
+        os.environ["NUM_GPUs"]="1"
         """
     )
     tb.execute()
