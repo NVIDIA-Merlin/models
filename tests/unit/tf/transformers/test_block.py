@@ -46,7 +46,7 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
                 query_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        GPT2Block(d_model=48, n_head=4, n_layer=2),
         tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
     )
 
