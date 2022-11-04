@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Two-Stage Recommender Systems &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Building a Retrieval Model with Merlin Models &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
@@ -52,7 +52,7 @@
 <li class="toctree-l2"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="04-Exporting-ranking-models.html">Exporting Ranking Models</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Two-Stage Recommender Systems</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Building a Retrieval Model with Merlin Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="06-Define-your-own-architecture-with-Merlin-Models.html">Taking the Next Step with Merlin Models: Define Your Own Architecture</a></li>
 </ul>
 </li>
@@ -75,7 +75,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="index.html">Merlin Models Example Notebooks</a> &raquo;</li>
-      <li>Two-Stage Recommender Systems</li>
+      <li>Building a Retrieval Model with Merlin Models</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -105,8 +105,8 @@
 </div>
 </div>
 <img alt="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_05-retrieval-model/nvidia_logo.png" src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_05-retrieval-model/nvidia_logo.png" />
-<div class="tex2jax_ignore mathjax_ignore section" id="two-stage-recommender-systems">
-<h1>Two-Stage Recommender Systems<a class="headerlink" href="#two-stage-recommender-systems" title="Permalink to this headline"></a></h1>
+<div class="tex2jax_ignore mathjax_ignore section" id="building-a-retrieval-model-with-merlin-models">
+<h1>Building a Retrieval Model with Merlin Models<a class="headerlink" href="#building-a-retrieval-model-with-merlin-models" title="Permalink to this headline"></a></h1>
 <p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
 <p>In large scale recommender systems pipelines, the size of the item catalog (number of unique items) might be in the order of millions. At such scale, a typical setup is having two-stage pipeline, where a faster candidate retrieval model quickly extracts thousands of relevant items and a then a more powerful ranking model (i.e. with more features and more powerful architecture) ranks the top-k items that are going to be displayed to the user. For ML-based candidate retrieval model, as it needs to quickly score millions of items for a given user, a popular choices are models that can produce recommendation scores by just computing the dot product the user embeddings and item embeddings. Popular choices of such models are <strong>Matrix Factorization</strong>, which learns low-rank user and item embeddings, and the <strong>Two-Tower architecture</strong>, which is a neural network with two MLP towers where both user and item features are fed to generate user and item embeddings in the output.</p>
 <div class="section" id="dataset">
