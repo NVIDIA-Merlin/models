@@ -150,6 +150,151 @@ class EmbeddingTableBase(Block):
 
         return cls(dim, *schema, **config)
 
+class SOKEmbedding(tf.keras.layers.Layer):
+    """
+    dim: int The last dimension of the variable
+    vocab_sizes: list, rows of the variable list 
+    initializer: string, a list of dict {"indices":numpy.array, "value": numpy.array} = "uniform"
+            When it's string, it specifies the initializer used to generate initial values.
+            When it's list of numpy.array, its shape must be [vocab_size[i], embedding_vec_size],
+            and will be used as the initial indices and value.
+    use_dynamic_variable: bool = "False" use sok.DynamicVariable or sok.Variable
+    localized: If set to None, use Distributed Variable, otherwise Localized Variable. where the             list indicates which GPU you want to put this variable on.
+            Default is None 
+    Examples
+    --------
+    .. code-block:: python
+
+    Notes
+    -----
+    """
+    def __init__(self,
+        dim: int,
+        *col_schemas: ColumnSchema,
+        vocab_sizes: list,
+        initializer: Union[str, tf.Tensor, list] = "uniform"
+        use_dynamic_variable = False,
+        localized = None,
+        **kwargs
+        ):
+        super(Embedding, self).__init__(**kwargs)
+        self._embedding_vec_size = dim
+        self._vocab_sizes = vocab_sizes
+        self._use_dynamic_variable = use_dynamic_variable
+        self._localized = localized
+        if self._localized is None and self._use_dynamic_variable == False :
+            prefix_sum = []
+            offset = 0
+            for i in range(len(vocab_sizes)):
+                prefix_sum.append(offset)
+                offset += self._vocab_sizes[i]
+            prefix_sum = np.array(prefix_sum, dtype=np.int64).reshape(1, -1)
+            self._vocab_prefix_sum = tf.constant(prefix_sum)
+            print("[Info] Total vocabulary size:", offset)
+
+            if isinstance(initializer, str):
+                self._var = sok.Variable(
+                    shape=[offset, self._embedding_vec_size], initializer=tf.keras.initializers.get(initializer), dtype=tf.float32
+                )
+            else:
+                self._var = sok.Variable(initializer)
+        else:
+            self._vars = []
+            for i in range(len(vocab_sizes)):
+                if _use_dynamic_variable:
+                    if isinstance(initializer, str): 
+                        v = sok.DynamicVariable(dimension=self._embedding_vec_size, initializer=initializer)
+                    else:
+                        indices = tf.convert_to_tensor(initializer[i][0])
+                        values = tf.convert_to_tensor(initializer[i][1])
+                        sok.assign(v, indices, values)
+                elif self._localized is not None:
+                    if isinstance(initializer, str): 
+                        v = sok.Variable(
+                            shape=[self._vocab_sizes[i], self._embedding_vec_size],
+                            initializer=tf.keras.initializers.get(intializer),
+                            dtype=tf.float32,
+                            mode="localized:%d" % self._localized[i],
+                        )
+                    else:
+                        v = sok.Variable(
+                            initializer[i],
+                            mode="localized:%d" % self._localized[i],
+                        )
+                else:
+                    raise ValueError("Wrong Configuration!!!")
+                self._trainable_weights.append(v)
+                self._vars.append(v)
+
+    def call(self, inputs, training=True):
+        if self._localized is None and self._use_dynamic_variable == False :
+            fused_inputs = tf.add(inputs, self._vocab_prefix_sum)
+            fused_inputs = tf.reshape(fused_inputs, [-1])
+            fused_inputs = tf.RaggedTensor.from_tensor(tf.reshape(fused_inputs, [-1, 1]))
+            
+            emb_vectors = sok.lookup_sparse(self._var, fused_inputs, 1, "sum")
+            emb_vectors = tf.reshape(
+                emb_vectors, [-1, len(self._vocab_sizes), self._embedding_vec_size]
+            )
+            return emb_vectors
+        # localized mode
+        else:
+            input_list = tf.split(inputs, num_or_size_splits=len(self._vocab_sizes), axis=1)
+            for i in range(len(self._vocab_sizes)):
+                input_list[i] = tf.RaggedTensor.from_tensor(tf.reshape(input_list[i], [-1, 1]))
+            emb_vectors = sok.lookup_sparse(
+                self._vars,
+                input_list,
+                [1 for _ in range(len(self._vocab_sizes))],
+                ["sum" for _ in range(len(self._vocab_sizes))],
+            )
+            for i in range(len(self._vocab_sizes)):
+                emb_vectors[i] = tf.reshape(emb_vectors[i], [-1, 1, self._embedding_vec_size])
+            emb_vectors = tf.concat(emb_vectors, axis=1)
+            return emb_vectors
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        data: list,
+        trainable=True,
+        name=None,
+        col_schema=None,
+        use_dynamic_variable = False,
+        localized = None,
+        **kwargs,
+    ) -> "SOKEmbedding":
+        """Create From pre-trained embeddings from a Dataset or DataFrame.
+        Parameters
+        ----------
+        data : Union[Dataset, DataFrameType]
+            A dataset containing the pre-trained embedding weights
+        trainable : bool
+            Whether the layer should be trained or not.
+        name : str
+            The name of the layer.
+        """
+        vocab_size=[]
+        weights = []
+        for i, item in enumerate(data):
+            if use_dynamic_variable:
+                if isinstance(item, dict) and item.has_key("indice") and item.has_key("values"):
+                    weights.append([item["indice"], item["values"]])
+                else:
+                    raise ValueError("DynamicVariable should be initialized with indice and values")
+            else:
+                weights.append(item)
+
+        return cls(
+            dim,
+            col_schema,
+            name=name,
+            initializer=weights,
+            use_dynamic_variable = use_dynamic_variable,
+            localized = localized,
+            trainable=trainable,
+            **kwargs,
+        )
 
 CombinerType = Union[str, tf.keras.layers.Layer]
 
