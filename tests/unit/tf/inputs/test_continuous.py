@@ -69,3 +69,18 @@ def test_inputv2_without_categorical_features(music_streaming_data: Dataset, run
     )
 
     assert inputs(batch).shape == (100, 3)
+
+
+def test_continuous_features_ragged(sequence_testing_data: Dataset):
+    schema = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS)
+
+    seq_schema = schema.select_by_tag(Tags.SEQUENCE)
+    context_schema = schema.remove_by_tag(Tags.SEQUENCE)
+
+    inputs = ml.ContinuousFeatures.from_schema(
+        schema, post=ml.BroadcastToSequence(context_schema, seq_schema), aggregation="concat"
+    )
+    features, _ = ml.sample_batch(sequence_testing_data, batch_size=100)
+    outputs = inputs(features)
+
+    assert outputs.to_tensor().shape == (100, 4, 6)
