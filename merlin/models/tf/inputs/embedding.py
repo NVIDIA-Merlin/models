@@ -150,7 +150,8 @@ class EmbeddingTableBase(Block):
 
         return cls(dim, *schema, **config)
 
-class SOKEmbedding(tf.keras.layers.Layer):
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SOKEmbedding(EmbeddingTableBase):
     """
     dim: int The last dimension of the variable
     vocab_sizes: list, rows of the variable list 
@@ -175,9 +176,16 @@ class SOKEmbedding(tf.keras.layers.Layer):
         initializer: Union[str, tf.Tensor, list] = "uniform"
         use_dynamic_variable = False,
         localized = None,
+        name = None,
         **kwargs
         ):
-        super(Embedding, self).__init__(**kwargs)
+        super(SOKEmbedding, self).__init__(
+             dim,
+             *col_schemas,
+             trainable=trainable,
+             name=name,
+             dtype=dtype,
+             **kwargs)
         self._embedding_vec_size = dim
         self._vocab_sizes = vocab_sizes
         self._use_dynamic_variable = use_dynamic_variable
@@ -295,6 +303,29 @@ class SOKEmbedding(tf.keras.layers.Layer):
             trainable=trainable,
             **kwargs,
         )
+    def get_config(self):
+        config = super().get_config()
+        config["dim"] = self.dim
+
+        schema = schema_to_tensorflow_metadata_json(self.schema)
+        config["schema"] = schema
+        config["vocab_sizes"] = self._vocab_sizes
+        config["initializer"] = self._initializer
+        config["use_dynamic_variable"] = self._use_dynamic_variable
+        config["localized"] = self._localized
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        dim = config.pop("dim")
+        schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
+        vocab_size = config["vocab_sizes"]
+        initializer = config["initializer"]
+        use_dynamic_variable = config["use_dynamic_variable"]
+        localized = config["localized"]
+
+        return cls(dim, *schema, vocab_size, initializer, use_dynamic_variable, localized, **config)
 
 CombinerType = Union[str, tf.keras.layers.Layer]
 
