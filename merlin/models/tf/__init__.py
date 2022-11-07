@@ -104,8 +104,11 @@ from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel, Retri
 from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, WideAndDeepModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
+    MatrixFactorizationModelV2,
     TwoTowerModel,
+    TwoTowerModelV2,
     YoutubeDNNRetrievalModel,
+    YoutubeDNNRetrievalModelV2,
 )
 from merlin.models.tf.outputs.base import ModelOutput
 from merlin.models.tf.outputs.classification import BinaryOutput, CategoricalOutput
@@ -142,6 +145,7 @@ if is_transformers_available():
     )
 
 from merlin.models.tf.transforms.features import (
+    BroadcastToSequence,
     CategoryEncoding,
     HashedCross,
     HashedCrossAll,
@@ -219,6 +223,7 @@ __all__ = [
     "ToDense",
     "ToTarget",
     "CategoryEncoding",
+    "BroadcastToSequence",
     "HashedCross",
     "HashedCrossAll",
     "ElementwiseSum",

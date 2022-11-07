@@ -46,7 +46,7 @@ def test_tf_tensors_generation_cpu():
 
     from merlin.models.tf import sample_batch
 
-    tensors = sample_batch(data, batch_size=100, include_targets=False)
+    tensors, _ = sample_batch(data, batch_size=100, process_lists=False)
     assert tensors["user_id"].shape == (100, 1)
     assert tensors["user_age"].dtype == tf.float64
     for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():

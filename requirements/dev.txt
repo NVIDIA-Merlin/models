@@ -1,3 +1,5 @@
+# bokeh is needed for Dask dashboard
+bokeh
 check-manifest
 pytest>=5
 pytest-cov>=2
@@ -16,3 +18,5 @@ testbook
 fiddle
 wandb
 transformers
+optuna
+plotly

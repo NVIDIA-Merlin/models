@@ -125,14 +125,14 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
 
     def __init__(self, name="update_count_metric", **kwargs):
         super().__init__(name=name, **kwargs)
-        self._built = False
+        self.built = False
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        if not self._built:
+        if not self.built:
             self.call_count = self.add_weight(
                 "call_count", shape=tf.TensorShape([1]), initializer="zeros"
             )
-            self._built = True
+            self.built = True
 
         self.call_count.assign(self.call_count + tf.constant([1.0]))
 
@@ -140,7 +140,8 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
         return self.call_count[0]
 
     def reset_state(self):
-        self.call_count.assign(tf.constant([0.0]))
+        if self.built:
+            self.call_count.assign(tf.constant([0.0]))
 
 
 @pytest.mark.parametrize(
@@ -670,6 +671,32 @@ def test_unfreeze_all_blocks(ecommerce_data):
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
+
+
+def test_save_and_load(tmpdir):
+    dataset = generate_data("e-commerce", num_rows=10)
+    dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
+    model = mm.Model(
+        mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+    model.compile()
+    _ = model.fit(
+        dataset,
+        epochs=1,
+        batch_size=10,
+    )
+    model.save(tmpdir)
+    reloaded_model = mm.Model.load(tmpdir)
+    signature_input_keys = set(
+        reloaded_model.signatures["serving_default"].structured_input_signature[1].keys()
+    )
+    assert signature_input_keys == {"user_age"}
+    test_case = TestCase()
+    test_case.assertAllClose(
+        model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
+    )
 
 
 def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):

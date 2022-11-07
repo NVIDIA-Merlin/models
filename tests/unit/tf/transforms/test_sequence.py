@@ -30,7 +30,7 @@ def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_next = mm.SequencePredictNext(schema=seq_schema, target=target, pre=mm.ListToRagged())
 
-    batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
     if use_loader:
         dataset_transformed = Loader(
             sequence_testing_data, batch_size=8, shuffle=False, transform=predict_next
@@ -64,7 +64,7 @@ def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
 
-    batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
     if use_loader:
         dataset_transformed = Loader(
             sequence_testing_data, batch_size=8, shuffle=False, transform=predict_last
@@ -99,7 +99,7 @@ def test_seq_predict_random(sequence_testing_data: Dataset, use_loader: bool):
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_random = mm.SequencePredictRandom(schema=seq_schema, target=target)
 
-    batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
     if use_loader:
         dataset_transformed = Loader(
             sequence_testing_data, batch_size=8, shuffle=False, transform=predict_random
@@ -182,7 +182,7 @@ def test_seq_random_masking(sequence_testing_data: Dataset):
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_masked = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
 
     output = predict_masked(batch)
     output_x, output_y = output.outputs, output.targets
@@ -236,7 +236,7 @@ def test_seq_mask_random_replace_embeddings(
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_masked = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
 
     output = predict_masked(batch)
     inputs, targets = output.outputs, output.targets

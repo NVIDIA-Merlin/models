@@ -141,6 +141,7 @@ def extract_topk(
     labels: tf.Tensor,
     shuffle_ties: bool = False,
     shuffle_ties_epsilon=1e-6,
+    seed=None,
 ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
     """Extracts top-k values of predictions, sorting the corresponding
     labels accordingly.
@@ -155,10 +156,11 @@ def extract_topk(
         Tensor with the labels per example
     shuffle_ties : bool, optional
         Adds a small random value to predictions to break ties if any, by default False
-    shuffle_ties_epsilon : _type_, optional
+    shuffle_ties_epsilon : float, optional
         The maximum random value to be added to break ties (used only if shuffle_ties=True),
         by default 1e-6
-
+    seed : int, optional
+        Random seed to use for tie breaking
     Returns
     -------
     Tuple(tf.Tensor,tf.Tensor,tf.Tensor)
@@ -175,6 +177,8 @@ def extract_topk(
 
     if shuffle_ties:
         # Adds a small random value to break ties in the range [0,shuffle_ties_epsilon)
+        if seed is not None:
+            tf.random.set_seed(seed)
         predictions = predictions + (
             tf.random.uniform(tf.shape(predictions)) * shuffle_ties_epsilon
         )

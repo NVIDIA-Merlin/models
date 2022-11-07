@@ -6,6 +6,8 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
+from merlin.models.utils.dataset import unique_rows_by_features
+from merlin.schema import Tags
 
 
 def test_encoder_block(music_streaming_data: Dataset):
@@ -43,9 +45,7 @@ def test_encoder_block(music_streaming_data: Dataset):
 
 
 def test_topk_encoder(music_streaming_data: Dataset):
-    # TODO: Simplify the test after RetrievalModelV2 is merged
-    TOP_K = 50
-    NUM_CANDIDATES = 100
+    TOP_K = 10
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["user_id", "item_id", "country", "user_age"]
     )
@@ -54,16 +54,22 @@ def test_topk_encoder(music_streaming_data: Dataset):
     schema = music_streaming_data.schema
     user_schema = schema.select_by_name(["user_id", "country", "user_age"])
     user_encoder = mm.Encoder(user_schema, mm.MLPBlock([4]), name="query")
+
     item_schema = schema.select_by_name(["item_id"])
     item_encoder = mm.Encoder(item_schema, mm.MLPBlock([4]), name="candidate")
-    retrieval_model = mm.Model(
-        mm.ParallelBlock(user_encoder, item_encoder),
-        mm.ContrastiveOutput(item_schema, "in-batch"),
+
+    retrieval_model = mm.RetrievalModelV2(
+        query=user_encoder,
+        candidate=item_encoder,
+        output=mm.ContrastiveOutput(item_schema, "in-batch"),
     )
     testing_utils.model_test(retrieval_model, music_streaming_data, reload_model=True)
 
     # 2. Get candidates embeddings for the top-k encoder
-    _candidate_embeddings = tf.random.uniform(shape=(NUM_CANDIDATES, 4), dtype=tf.float32)
+    candidate_features = unique_rows_by_features(music_streaming_data, Tags.ITEM, Tags.ITEM_ID)
+    candidates = retrieval_model.candidate_embeddings(
+        candidate_features, batch_size=10, index=Tags.ITEM_ID
+    )
 
     # 3. Set data-loader for top-k recommendation
     loader = mm.Loader(
@@ -73,7 +79,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
 
     # 4. Define the top-k encoder
     topk_encoder = mm.TopKEncoder(
-        query_encoder=retrieval_model.blocks[0]["query"], candidates=_candidate_embeddings, k=TOP_K
+        query_encoder=retrieval_model.query_encoder, candidates=candidates, k=TOP_K
     )
     # 5. Get top-k predictions
     batch_output = topk_encoder(batch[0])
