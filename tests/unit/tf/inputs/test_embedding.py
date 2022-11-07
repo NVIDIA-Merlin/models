@@ -329,7 +329,7 @@ class TestSOKEmbedding:
         with pytest.raises(ValueError) as exc_info:
             mm.EmbeddingTable(16, column_schema)
         assert "needs to have an int-domain" in str(exc_info.value)
-    def test_sok_variables(self, dim):
+    def test_sok_dynamic_variables(self, dim):
         rows = [65536 * 10, 65536]
         cols = [128, 4]
         hotness = [10, 3]
