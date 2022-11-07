@@ -114,12 +114,8 @@ def rescore_false_negatives(
     Zeroes the logits of accidental negatives.
     """
     # Removing dimensions of size 1 from the shape of the item ids, if applicable
-    if positive_item_ids.shape.rank == 2:
-        positive_item_ids = tf.squeeze(positive_item_ids, axis=1)
-    positive_item_ids = tf.cast(positive_item_ids, neg_samples_item_ids.dtype)
-
-    if neg_samples_item_ids.shape.rank == 2:
-        neg_samples_item_ids = tf.squeeze(neg_samples_item_ids, axis=1)
+    positive_item_ids = tf.cast(tf.squeeze(positive_item_ids), neg_samples_item_ids.dtype)
+    neg_samples_item_ids = tf.squeeze(neg_samples_item_ids)
 
     # Reshapes positive and negative ids so that false_negatives_mask matches the scores shape
     false_negatives_mask = tf.equal(
