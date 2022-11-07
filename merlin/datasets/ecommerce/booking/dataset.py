@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 import merlin.io
 from merlin.core.dispatch import get_lib
+from merlin.dag import ColumnSelector
 from merlin.datasets import BASE_PATH
 from merlin.models.utils.example_utils import workflow_fit_transform
 from merlin.models.utils.nvt_utils import require_nvt
@@ -101,8 +102,10 @@ def preprocess_booking(
 
     train["checkin"] = get_lib().to_datetime(train["checkin"], format="%Y-%m-%d")
     train["checkout"] = get_lib().to_datetime(train["checkout"], format="%Y-%m-%d")
+    train["timestamp"] = train["checkout"].astype("int64")
     test["checkin"] = get_lib().to_datetime(test["checkin"], format="%Y-%m-%d")
     test["checkout"] = get_lib().to_datetime(test["checkout"], format="%Y-%m-%d")
+    test["timestamp"] = test["checkout"].astype("int64")
 
     (path / "train").mkdir(exist_ok=True)
     (path / "test").mkdir(exist_ok=True)
@@ -157,7 +160,7 @@ def transform_booking(
 
 
 def default_booking_transformation(**kwargs):
-    cat = lambda: nvt.ops.Categorify(start_index=1, dtype="int32")  # noqa: E731
+    cat = lambda: nvt.ops.Categorify(start_index=1)  # noqa: E731
 
     df_season = get_lib().DataFrame(
         {"month": range(1, 13), "season": ([0] * 3) + ([1] * 3) + ([2] * 3) + ([3] * 3)}
@@ -230,12 +233,20 @@ def default_booking_transformation(**kwargs):
     session_id = ["utrip_id"] >> nvt.ops.AddTags(tags=[Tags.SESSION_ID])
     user_id = ["user_id"] >> nvt.ops.AddTags(tags=[Tags.USER_ID])
 
-    features = seq_cat_features + cityid + context_cat_features + session_id + user_id
+    features = (
+        ColumnSelector(["timestamp"])
+        + seq_cat_features
+        + cityid
+        + context_cat_features
+        + session_id
+        + user_id
+    )
 
     grouped = (
         features
         >> nvt.ops.Groupby(
             groupby_cols=["utrip_id"],
+            sort_cols=["timestamp"],
             aggs={
                 "user_id": "first",
                 "device_class": "first",
