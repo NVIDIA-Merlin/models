@@ -33,8 +33,8 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     )
 
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
-    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False, transform=predict_next)
+    predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
 
     query_schema = seq_schema
     output_schema = seq_schema.select_by_name(target)
@@ -61,6 +61,7 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
         run_eagerly=run_eagerly,
         reload_model=False,
         metrics={},
+        fit_kwargs={"pre": predict_last},
     )
 
     predictions = model.predict(loader)
