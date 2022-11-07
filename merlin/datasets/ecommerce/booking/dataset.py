@@ -249,11 +249,16 @@ def default_booking_transformation(**kwargs):
     )
 
     cityid = ["city_id"] >> cat() >> nvt.ops.AddTags(tags=[Tags.ITEM_ID])
-    session_id = ["utrip_id"] >> nvt.ops.AddTags(tags=[Tags.SESSION_ID])
-    user_id = ["user_id"] >> nvt.ops.AddTags(tags=[Tags.USER_ID])
+    session_id = (
+        ["utrip_id"]
+        >> cat()
+        >> nvt.ops.AddTags(tags=[Tags.SESSION_ID])
+        >> nvt.ops.Rename(name="session_id")
+    )
+    user_id = ["user_id"] >> cat() >> nvt.ops.AddTags(tags=[Tags.USER_ID])
 
     features = (
-        ColumnSelector(["timestamp"])
+        ColumnSelector(["timestamp", "utrip_id"])
         + seq_cat_features
         + cityid
         + context_cat_features
@@ -268,6 +273,7 @@ def default_booking_transformation(**kwargs):
             sort_cols=["timestamp"],
             aggs={
                 "user_id": "first",
+                "session_id": "first",
                 "device_class": "first",
                 "booker_country": "list",
                 "hotel_country": "list",
@@ -280,6 +286,7 @@ def default_booking_transformation(**kwargs):
             },
         )
         >> nvt.ops.Rename(_remove_list_and_first_from_name)
+        >> nvt.ops.ValueCount()
     )
 
     return grouped

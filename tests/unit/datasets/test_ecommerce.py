@@ -104,6 +104,14 @@ def test_transform_alliccp(tmp_path):
     assert len(output_files) == 10
 
 
+def test_synthetic_booking_data():
+    dataset = generate_data("booking.com", 100)
+
+    assert isinstance(dataset, merlin.io.Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 11
+
+
 @pytest.mark.skipif(
     MAYBE_DATA_DIR is None,
     reason="No data-dir available, pass it through env variable $INPUT_DATA_DIR",
