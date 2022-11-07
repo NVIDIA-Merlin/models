@@ -19,7 +19,7 @@ from typing import List, Optional, Union
 import tensorflow as tf
 
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.combinators import ResidualBlock, SequentialBlock
+from merlin.models.tf.core.combinators import ResidualBlock, SequentialBlock, TabularAggregationType
 from merlin.models.tf.core.tabular import Filter, tabular_aggregation_registry
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -136,32 +136,47 @@ def MLPBlock(
 
 def DenseResidualBlock(
     low_rank_dim: Optional[int] = None,
-    activation="relu",
+    activation: Optional[Union[str, tf.keras.layers.Layer]] = "relu",
     use_bias: bool = True,
     dropout: Optional[float] = None,
     normalization: Optional[Union[str, tf.keras.layers.Layer]] = "batch_norm",
     depth: int = 1,
+    **dense_kwargs,
 ) -> Block:
     """A block that applies a dense residual block to the input.
+    The residual consists in the input summed element-wise with the
+    output of the dense block.
+    The dense block projects the inputs using dense layers to the same output dim.
+    If the input dim is very high dimensional, the low_rank_dim can
+    be used to create a low rank matrix and reduce the necessary number
+    of parameters for this projection.
+
+    Example usage::
+        block = ml.DenseResidualBlock(depth=3).connect(ml.MLPBlock([1]))
 
     Parameters
     ----------
-    low_rank_dim: int
-        The dimension of the low rank matrix.
-    activation: str
-        The activation function to use.
+    low_rank_dim: int, optional
+        The dimension of the low rank matrix. If set, it projects the input to the
+        low_rank_dim (`LR`) and then back to the input dim (`I`) as output.
+        That requires much less parameters (`I*LR + LR*I`) than projecting the
+        inputs dim directly to the same dim (`I*I`). By default None
+    activation: Union[str, tf.keras.layers.Layer], optional
+        The activation function to use. By default "relu"
     use_bias: bool
-        Whether to use a bias in the MLP.
+        Whether to use a bias in the MLP. By default True
     dropout: float
-        The dropout rate to use.
-    normalization: str or Layer
-        The normalization layer to use.
+        The dropout rate to use. By default 0.0
+    normalization: Union[str, tf.keras.layers.Layer], optional
+        The normalization layer to use. By the default None.
     depth: int
-        The number of residual blocks to apply.
+        The number of residual blocks to stack. By default 1
     """
 
     block_layers = []
-    block_layers.append(DenseMaybeLowRank(low_rank_dim, activation=None, use_bias=use_bias))
+    block_layers.append(
+        DenseMaybeLowRank(low_rank_dim, activation=None, use_bias=use_bias, **dense_kwargs)
+    )
     if dropout:
         block_layers.append(tf.keras.layers.Dropout(dropout))
     if normalization:
@@ -178,6 +193,10 @@ def DenseResidualBlock(
 
     if depth > 1:
         return output.repeat(depth - 1)
+    elif depth < 1:
+        raise ValueError(
+            "The depth (number of stacked residual blocks) needs " "to be equal or greater than 1."
+        )
 
     return output
 
@@ -251,24 +270,58 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         self,
         low_rank_dim: Optional[int] = None,
         use_bias: bool = True,
-        activation=None,
+        activation: Optional[Union[str, tf.keras.layers.Layer]] = None,
         kernel_initializer: InitializerType = "truncated_normal",
         bias_initializer: InitializerType = "zeros",
         kernel_regularizer: Optional[RegularizerType] = None,
         bias_regularizer: Optional[RegularizerType] = None,
-        pre_aggregation="concat",
+        pre_aggregation: Optional[TabularAggregationType] = "concat",
         dense: Optional[tf.keras.layers.Dense] = None,
         dense_u: Optional[tf.keras.layers.Dense] = None,
         **kwargs,
     ):
+        """A block that projects the inputs the same input dim.
+        If the input dim is very high dimensional, the low_rank_dim can
+        be used to create a low rank matrix and reduce the necessary number
+        of parameters for this projection.
+
+        Parameters
+        ----------
+        low_rank_dim : Optional[int], optional
+            The dimension of the low rank matrix. If set, it projects the input to the
+            low_rank_dim (`LR`) and then back to the input dim (`I`) as output.
+            That requires much less parameters (`I*LR + LR*I`) than projecting the
+            inputs dim directly to the same dim (`I*I`), by default None.
+        use_bias : bool, optional
+            Whether to use a bias in the MLP, by default True
+        activation : Optional[Union[str,tf.keras.layers.Layer]], optional
+            The activation function to use. By default None
+        kernel_initializer: InitializerType
+            Initializer for the kernel weights matrix. Defaults to "glorot_uniform".
+        bias_initializer: InitializerType
+            Initializer for the bias vector. Default to "zeros".
+        kernel_regularizer: Optional[RegularizerType]
+            Regularizer function applied to the kernel weights matrix. Default to None.
+        bias_regularizer: Optional[RegularizerType]
+            Regularizer function applied to the bias vector.  Default to None.
+        pre_aggregation : Optional[TabularAggregationType], optional
+            Aggregation to be done before projection, by default "concat"
+        dense : Optional[tf.keras.layers.Dense], optional
+            An optional dense layer to be used for projection,
+            by default None. If not set it is created internally.
+        dense_u : Optional[tf.keras.layers.Dense], optional
+            An optional dense layer to be called first if low_rank_dim is set,
+            by default None. If not set it is created internally.
+        """
+
         super().__init__(**kwargs)
         self.low_rank_dim = low_rank_dim
         self.use_bias = use_bias
         self.activation = activation
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
+        self.kernel_initializer = kernel_initializer
+        self.bias_initializer = bias_initializer
+        self.kernel_regularizer = kernel_regularizer
+        self.bias_regularizer = bias_regularizer
         self.pre_aggregation = pre_aggregation
         self.dense = dense
         self.dense_u = dense_u
@@ -322,21 +375,25 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         )
         config.update(super(DenseMaybeLowRank, self).get_config())
 
-        return maybe_serialize_keras_objects(
+        config = maybe_serialize_keras_objects(
             self,
             config,
             [
                 "dense",
                 "dense_u",
-                "kernel_initializer",
-                "bias_initializer",
-                "kernel_regularizer",
-                "bias_regularizer",
             ],
         )
 
+        return config
+
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["dense", "dense_u"])
+        config = maybe_deserialize_keras_objects(
+            config,
+            [
+                "dense",
+                "dense_u",
+            ],
+        )
 
         return cls(**config)
