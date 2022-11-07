@@ -466,6 +466,7 @@ def test_two_tower_model_with_custom_options(
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "auc",
             "recall_at_5",
@@ -573,6 +574,7 @@ def test_two_tower_model_v2_with_custom_options(
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "auc",
             "recall_at_5",

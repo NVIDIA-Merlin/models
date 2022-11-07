@@ -34,6 +34,7 @@ def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
+        "loss_batch",
         "precision",
         "regularization_loss",
     }
@@ -97,6 +98,7 @@ def test_parallel_outputs(ecommerce_data: Dataset, run_eagerly):
 
     assert list(history.history.keys()) == [
         "loss",
+        "loss_batch",
         "click/model_output_loss",
         "conversion/model_output_loss",
         "click/model_output/precision",

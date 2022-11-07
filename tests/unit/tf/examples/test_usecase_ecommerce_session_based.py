@@ -37,6 +37,7 @@ def test_usecase_ecommerce_session_based(tb):
     assert set(metrics_mlp.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "recall_at_100",
             "mrr_at_100",
             "ndcg_at_100",
@@ -49,6 +50,7 @@ def test_usecase_ecommerce_session_based(tb):
     assert set(metrics_bi_lstm.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "recall_at_100",
             "mrr_at_100",
             "ndcg_at_100",
