@@ -173,7 +173,7 @@ class SOKEmbedding(EmbeddingTableBase):
         dim: int,
         *col_schemas: ColumnSchema,
         vocab_sizes: list,
-        initializer: Union[str, tf.Tensor, list] = "uniform"
+        initializer: Union[str, tf.Tensor, list] = "uniform",
         use_dynamic_variable = False,
         localized = None,
         name = None,
