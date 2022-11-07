@@ -34,16 +34,29 @@ def get_booking(
     nvt_workflow: Optional[Workflow] = None,
     **kwargs,
 ) -> Tuple[merlin.io.Dataset, merlin.io.Dataset]:
-    """_summary_
+    """Dataset for the WSDM '21 challenge organized by booking.com.
 
-    Args:
-        path (Union[str, Path]): _description_
-        overwrite (bool, optional): _description_. Defaults to False.
-        transformed_name (str, optional): _description_. Defaults to "transformed".
-        nvt_workflow (Optional[Workflow], optional): _description_. Defaults to None.
+    The goal of this challenge is to use a dataset based on
+    millions of real anonymized accommodation reservations
+    to come up with a strategy for making the best recommendation
+    for their next destination in real-time.
 
-    Returns:
-        Tuple[merlin.io.Dataset, merlin.io.Dataset]: _description_
+    Parameters
+    ----------
+    path (Union[str, Path]): Path to save the dataset.
+    overwrite (bool, optional): Whether or not to overwrite the dataset,
+        if already downloaded. Defaults to False.
+    transformed_name (str, optional): Name of folder to put the transformed dataset in.
+        Defaults to "transformed".
+    nvt_workflow (Optional[Workflow], optional): NVTabular workflow, pass this in
+        if you want to customize the default workflow. Defaults to `default_booking_transformation`.
+
+    Returns
+    -------
+        train: merlin.io.Dataset
+            Training dataset.
+        valid: merlin.io.Dataset
+            Test dataset.
     """
     require_nvt()
 
@@ -69,10 +82,11 @@ def get_booking(
 
 
 def download_booking(path: Path):
-    """_summary_
+    """Automatically download the booking dataset.
 
-    Args:
-        path (Path): _description_
+    Parameters
+    ----------
+    path (Path): output-path.
     """
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
@@ -132,15 +146,15 @@ def transform_booking(
     nvt_workflow=None,
     **kwargs,
 ):
-    """_summary_
+    """Transform the booking dataset.
 
-    Args:
-        data (Union[str, Path, Tuple[merlin.io.Dataset, merlin.io.Dataset]]): _description_
-        output_path (Union[str, Path]): _description_
-        nvt_workflow (_type_, optional): _description_. Defaults to None.
-
-    Raises:
-        ValueError: _description_
+    Parameters
+    ----------
+    data (Union[str, Path, Tuple[merlin.io.Dataset, merlin.io.Dataset]]):
+        Raw training and test data.
+    output_path (Union[str, Path]): Path to save the transformed dataset.
+    nvt_workflow (Optional[Workflow], optional): NVTabular workflow, pass this in
+        if you want to customize the default workflow. Defaults to `default_booking_transformation`.
     """
     nvt_workflow = nvt_workflow or default_booking_transformation(**locals())
 
@@ -160,6 +174,11 @@ def transform_booking(
 
 
 def default_booking_transformation(**kwargs):
+    """Default transformation for the booking dataset.
+
+    Returns:
+        Workflow: NVTabular workflow
+    """
     cat = lambda: nvt.ops.Categorify(start_index=1)  # noqa: E731
 
     df_season = get_lib().DataFrame(
