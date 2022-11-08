@@ -575,7 +575,7 @@ def sample_batch(
     include_targets: bool = True,
     to_ragged: bool = False,
     to_dense: bool = False,
-    process_lists=True,
+    process_lists=False,
 ):
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
