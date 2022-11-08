@@ -34,6 +34,7 @@ def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
+        "loss_batch",
         "precision",
         "regularization_loss",
     }
@@ -95,14 +96,17 @@ def test_parallel_outputs(ecommerce_data: Dataset, run_eagerly):
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
-    assert list(history.history.keys()) == [
-        "loss",
-        "click/model_output_loss",
-        "conversion/model_output_loss",
-        "click/model_output/precision",
-        "conversion/model_output/precision",
-        "regularization_loss",
-    ]
+    assert set(list(history.history.keys())) == set(
+        [
+            "loss",
+            "loss_batch",
+            "click/model_output_loss",
+            "conversion/model_output_loss",
+            "click/model_output/precision",
+            "conversion/model_output/precision",
+            "regularization_loss",
+        ]
+    )
 
 
 def _BinaryPrediction(name, **kwargs):

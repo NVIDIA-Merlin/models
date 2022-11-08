@@ -111,6 +111,7 @@ def test_dlrm_model_with_sample_weights_and_weighted_metrics(music_streaming_dat
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "binary_accuracy",
             "recall",

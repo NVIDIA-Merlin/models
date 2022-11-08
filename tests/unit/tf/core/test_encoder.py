@@ -93,6 +93,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
     assert set(topk_evaluation_metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "mrr_at_10",
             "ndcg_at_10",
             "map_at_10",

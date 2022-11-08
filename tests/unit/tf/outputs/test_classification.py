@@ -35,6 +35,7 @@ def test_binary_output(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
+        "loss_batch",
         "precision",
         "recall",
         "binary_accuracy",
@@ -56,6 +57,7 @@ def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
+        "loss_batch",
         "ndcg_at_10",
         "precision_at_10",
         "map_at_10",
