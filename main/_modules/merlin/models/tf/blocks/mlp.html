@@ -94,7 +94,7 @@
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">ResidualBlock</span><span class="p">,</span> <span class="n">SequentialBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">ResidualBlock</span><span class="p">,</span> <span class="n">SequentialBlock</span><span class="p">,</span> <span class="n">TabularAggregationType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.tabular</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">tabular_aggregation_registry</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">maybe_deserialize_keras_objects</span><span class="p">,</span>
@@ -211,32 +211,47 @@
 
 <div class="viewcode-block" id="DenseResidualBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.DenseResidualBlock.html#merlin.models.tf.DenseResidualBlock">[docs]</a><span class="k">def</span> <span class="nf">DenseResidualBlock</span><span class="p">(</span>
     <span class="n">low_rank_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">activation</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+    <span class="n">activation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
     <span class="n">use_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalization</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">&quot;batch_norm&quot;</span><span class="p">,</span>
     <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">dense_kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Block</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A block that applies a dense residual block to the input.</span>
+<span class="sd">    The residual consists in the input summed element-wise with the</span>
+<span class="sd">    output of the dense block.</span>
+<span class="sd">    The dense block projects the inputs using dense layers to the same output dim.</span>
+<span class="sd">    If the input dim is very high dimensional, the low_rank_dim can</span>
+<span class="sd">    be used to create a low rank matrix and reduce the necessary number</span>
+<span class="sd">    of parameters for this projection.</span>
+
+<span class="sd">    Example usage::</span>
+<span class="sd">        block = ml.DenseResidualBlock(depth=3).connect(ml.MLPBlock([1]))</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    low_rank_dim: int</span>
-<span class="sd">        The dimension of the low rank matrix.</span>
-<span class="sd">    activation: str</span>
-<span class="sd">        The activation function to use.</span>
+<span class="sd">    low_rank_dim: int, optional</span>
+<span class="sd">        The dimension of the low rank matrix. If set, it projects the input to the</span>
+<span class="sd">        low_rank_dim (`LR`) and then back to the input dim (`I`) as output.</span>
+<span class="sd">        That requires much less parameters (`I*LR + LR*I`) than projecting the</span>
+<span class="sd">        inputs dim directly to the same dim (`I*I`). By default None</span>
+<span class="sd">    activation: Union[str, tf.keras.layers.Layer], optional</span>
+<span class="sd">        The activation function to use. By default &quot;relu&quot;</span>
 <span class="sd">    use_bias: bool</span>
-<span class="sd">        Whether to use a bias in the MLP.</span>
+<span class="sd">        Whether to use a bias in the MLP. By default True</span>
 <span class="sd">    dropout: float</span>
-<span class="sd">        The dropout rate to use.</span>
-<span class="sd">    normalization: str or Layer</span>
-<span class="sd">        The normalization layer to use.</span>
+<span class="sd">        The dropout rate to use. By default 0.0</span>
+<span class="sd">    normalization: Union[str, tf.keras.layers.Layer], optional</span>
+<span class="sd">        The normalization layer to use. By the default None.</span>
 <span class="sd">    depth: int</span>
-<span class="sd">        The number of residual blocks to apply.</span>
+<span class="sd">        The number of residual blocks to stack. By default 1</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">block_layers</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">block_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DenseMaybeLowRank</span><span class="p">(</span><span class="n">low_rank_dim</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_bias</span><span class="o">=</span><span class="n">use_bias</span><span class="p">))</span>
+    <span class="n">block_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">DenseMaybeLowRank</span><span class="p">(</span><span class="n">low_rank_dim</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_bias</span><span class="o">=</span><span class="n">use_bias</span><span class="p">,</span> <span class="o">**</span><span class="n">dense_kwargs</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">dropout</span><span class="p">:</span>
         <span class="n">block_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">normalization</span><span class="p">:</span>
@@ -253,6 +268,10 @@
 
     <span class="k">if</span> <span class="n">depth</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">output</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">depth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">depth</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;The depth (number of stacked residual blocks) needs &quot;</span> <span class="s2">&quot;to be equal or greater than 1.&quot;</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">output</span></div>
 
@@ -326,24 +345,58 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">low_rank_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">use_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">activation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">kernel_initializer</span><span class="p">:</span> <span class="n">InitializerType</span> <span class="o">=</span> <span class="s2">&quot;truncated_normal&quot;</span><span class="p">,</span>
         <span class="n">bias_initializer</span><span class="p">:</span> <span class="n">InitializerType</span> <span class="o">=</span> <span class="s2">&quot;zeros&quot;</span><span class="p">,</span>
         <span class="n">kernel_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RegularizerType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">bias_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RegularizerType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">pre_aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">,</span>
+        <span class="n">pre_aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span>
         <span class="n">dense</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dense_u</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A block that projects the inputs the same input dim.</span>
+<span class="sd">        If the input dim is very high dimensional, the low_rank_dim can</span>
+<span class="sd">        be used to create a low rank matrix and reduce the necessary number</span>
+<span class="sd">        of parameters for this projection.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        low_rank_dim : Optional[int], optional</span>
+<span class="sd">            The dimension of the low rank matrix. If set, it projects the input to the</span>
+<span class="sd">            low_rank_dim (`LR`) and then back to the input dim (`I`) as output.</span>
+<span class="sd">            That requires much less parameters (`I*LR + LR*I`) than projecting the</span>
+<span class="sd">            inputs dim directly to the same dim (`I*I`), by default None.</span>
+<span class="sd">        use_bias : bool, optional</span>
+<span class="sd">            Whether to use a bias in the MLP, by default True</span>
+<span class="sd">        activation : Optional[Union[str,tf.keras.layers.Layer]], optional</span>
+<span class="sd">            The activation function to use. By default None</span>
+<span class="sd">        kernel_initializer: InitializerType</span>
+<span class="sd">            Initializer for the kernel weights matrix. Defaults to &quot;glorot_uniform&quot;.</span>
+<span class="sd">        bias_initializer: InitializerType</span>
+<span class="sd">            Initializer for the bias vector. Default to &quot;zeros&quot;.</span>
+<span class="sd">        kernel_regularizer: Optional[RegularizerType]</span>
+<span class="sd">            Regularizer function applied to the kernel weights matrix. Default to None.</span>
+<span class="sd">        bias_regularizer: Optional[RegularizerType]</span>
+<span class="sd">            Regularizer function applied to the bias vector.  Default to None.</span>
+<span class="sd">        pre_aggregation : Optional[TabularAggregationType], optional</span>
+<span class="sd">            Aggregation to be done before projection, by default &quot;concat&quot;</span>
+<span class="sd">        dense : Optional[tf.keras.layers.Dense], optional</span>
+<span class="sd">            An optional dense layer to be used for projection,</span>
+<span class="sd">            by default None. If not set it is created internally.</span>
+<span class="sd">        dense_u : Optional[tf.keras.layers.Dense], optional</span>
+<span class="sd">            An optional dense layer to be called first if low_rank_dim is set,</span>
+<span class="sd">            by default None. If not set it is created internally.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">low_rank_dim</span> <span class="o">=</span> <span class="n">low_rank_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_bias</span> <span class="o">=</span> <span class="n">use_bias</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">activation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kernel_initializer</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bias_initializer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">bias_initializer</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_regularizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">regularizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kernel_regularizer</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bias_regularizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">regularizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">bias_regularizer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span> <span class="o">=</span> <span class="n">kernel_initializer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias_initializer</span> <span class="o">=</span> <span class="n">bias_initializer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_regularizer</span> <span class="o">=</span> <span class="n">kernel_regularizer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias_regularizer</span> <span class="o">=</span> <span class="n">bias_regularizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_aggregation</span> <span class="o">=</span> <span class="n">pre_aggregation</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dense</span> <span class="o">=</span> <span class="n">dense</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dense_u</span> <span class="o">=</span> <span class="n">dense_u</span>
@@ -397,22 +450,26 @@
         <span class="p">)</span>
         <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">super</span><span class="p">(</span><span class="n">DenseMaybeLowRank</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_config</span><span class="p">())</span>
 
-        <span class="k">return</span> <span class="n">maybe_serialize_keras_objects</span><span class="p">(</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_serialize_keras_objects</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">config</span><span class="p">,</span>
             <span class="p">[</span>
                 <span class="s2">&quot;dense&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;dense_u&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;kernel_initializer&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;bias_initializer&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;kernel_regularizer&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;bias_regularizer&quot;</span><span class="p">,</span>
             <span class="p">],</span>
         <span class="p">)</span>
 
+        <span class="k">return</span> <span class="n">config</span>
+
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_deserialize_keras_objects</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;dense&quot;</span><span class="p">,</span> <span class="s2">&quot;dense_u&quot;</span><span class="p">])</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_deserialize_keras_objects</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;dense&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;dense_u&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">)</span>
 </pre></div>
