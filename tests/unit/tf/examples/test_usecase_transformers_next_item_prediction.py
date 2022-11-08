@@ -22,6 +22,6 @@ def test_usecase_pretrained_embeddings(tb):
         df.to_csv('ml-dataset-mdt/train_set.csv')
         """
     )
-    tb.cells[31].source = tb.cells[31].source.replace("d_model=40", "d_model=16")
-    tb.cells[33].source = tb.cells[33].source.replace("epochs=5", "epochs=1")
+    tb.cells[30].source = tb.cells[30].source.replace("d_model=40", "d_model=16")
+    tb.cells[32].source = tb.cells[32].source.replace("epochs=5", "epochs=1")
     tb.execute()
