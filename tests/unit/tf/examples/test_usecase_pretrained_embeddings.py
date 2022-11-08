@@ -9,4 +9,4 @@ from tests.conftest import REPO_ROOT
 def test_usecase_pretrained_embeddings(tb):
     tb.execute()
     history = tb.ref("history")
-    assert set(history.keys()) == set(["auc", "loss", "regularization_loss"])
+    assert set(history.keys()) == set(["auc", "loss", "loss_batch", "regularization_loss"])
