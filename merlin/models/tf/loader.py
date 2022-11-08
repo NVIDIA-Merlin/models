@@ -25,6 +25,7 @@ from merlin.core.dispatch import HAS_GPU
 from merlin.io import Dataset
 from merlin.loader.tf_utils import get_dataset_schema_from_feature_columns
 from merlin.models.loader.backend import DataLoader
+from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Schema, Tags
 
@@ -278,8 +279,12 @@ class Loader(DataLoader, merlin.loader.tensorflow.Loader):
             feature_columns, cat_names, cont_names, label_names, schema=dataset.schema
         )
 
-        device = device or 0
         device = "cpu" if not HAS_GPU else device
+        if hvd_installed and hvd.size() > 1:
+            device = hvd.local_rank()
+            global_size = global_size or hvd.size()
+            global_rank = global_rank or hvd.rank()
+            seed_fn = seed_fn or get_default_hvd_seed_fn()
         DataLoader.__init__(
             self,
             dataset,
@@ -442,3 +447,40 @@ def sample_batch(
     if not include_targets:
         return inputs
     return inputs, targets
+
+
+def get_default_hvd_seed_fn(seed=None):
+    """
+    Generate consistent dataloader shuffle seeds across workers
+    Reseeds each worker's dataloader each epoch to get fresh a shuffle
+    that's consistent across workers.
+    """
+    if HAS_GPU:
+        import cupy
+
+        cupy.random.seed(seed)
+    else:
+        np.random.seed(seed)
+
+    if hvd_installed:
+        import horovod
+    else:
+        raise ImportError("'horovod' is required to use this function.")
+
+    def _seed_fn():
+        min_int, max_int = tf.int32.limits
+        max_rand = max_int // horovod.tensorflow.keras.size()
+        # Generate a seed fragment on each worker
+        if HAS_GPU:
+            seed_fragment = cupy.random.randint(0, max_rand).get()
+        else:
+            seed_fragment = np.random.randint(0, max_rand)
+        # Aggregate seed fragments from all Horovod workers
+        seed_tensor = tf.constant(seed_fragment)
+        reduced_seed = hvd.allreduce(
+            seed_tensor, name="shuffle_seed", op=horovod.tensorflow.mpi_ops.Sum
+        )
+
+        return reduced_seed % max_rand
+
+    return _seed_fn

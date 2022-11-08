@@ -11,7 +11,7 @@ isort
 mypy
 jupyter
 markupsafe==2.0.1
-sklearn
+scikit-learn
 tensorflow-metadata
 tensorflow-ranking>=0.4
 testbook

@@ -230,7 +230,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         """
         from merlin.models.tf.core.combinators import SequentialBlock
 
-        repeated = []
+        repeated = [self]
         for _ in range(num):
             repeated.append(self.copy())
 
