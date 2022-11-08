@@ -720,8 +720,11 @@ class BaseModel(tf.keras.Model):
 
         metrics = self.train_compute_metrics(outputs, self.compiled_metrics)
 
-        # Adding regularization loss to metrics
+        # Batch regularization loss
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
+        # Batch loss (the default loss metric from Keras is the incremental average per epoch,
+        # not the actual batch loss)
+        metrics["loss_batch"] = loss
 
         return metrics
 
@@ -744,12 +747,15 @@ class BaseModel(tf.keras.Model):
             # so we need to retrieve top-k negative scores to compute the loss
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
-        self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
+        loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
         metrics = self.compute_metrics(outputs)
 
-        # Adding regularization loss to metrics
+        # Batch regularization loss
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
+        # Batch loss (the default loss metric from Keras is the incremental average per epoch,
+        # not the actual batch loss)
+        metrics["loss_batch"] = loss
 
         return metrics
 
