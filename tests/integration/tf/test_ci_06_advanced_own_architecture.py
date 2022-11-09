@@ -23,6 +23,7 @@ def test_func(tb):
         "loss",
         "rating_binary/binary_classification_task/auc",
         "regularization_loss",
+        "loss_batch",
         "total_loss",
     ]
     assert os.path.isdir("custom_dlrm")

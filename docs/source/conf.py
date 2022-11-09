@@ -98,6 +98,7 @@ suppress_warnings = ["etoc.toctree", "myst.header", "misc.highlighting_failure"]
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     "navigation_depth": 2,
+    "analytics_id": "G-NVJ1Y1YJHK",
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -120,6 +121,9 @@ else:
 smv_branch_whitelist = r"^main$"
 
 smv_refs_override_suffix = r"-docs"
+
+html_sidebars = {"**": ["versions.html"]}
+html_baseurl = "https://nvidia-merlin.github.io/models/main"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
