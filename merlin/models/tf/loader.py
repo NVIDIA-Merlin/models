@@ -18,6 +18,7 @@ import os
 from typing import Protocol
 
 import dask.dataframe as dd
+import numpy as np
 import tensorflow as tf
 
 import merlin.loader.tensorflow
@@ -285,6 +286,7 @@ class Loader(DataLoader, merlin.loader.tensorflow.Loader):
             global_size = global_size or hvd.size()
             global_rank = global_rank or hvd.rank()
             seed_fn = seed_fn or get_default_hvd_seed_fn()
+
         DataLoader.__init__(
             self,
             dataset,

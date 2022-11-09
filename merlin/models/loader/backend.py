@@ -31,8 +31,6 @@ def _get_dataset_schema(dataset):
     return dataset.schema if hasattr(dataset, "schema") else None
 
 
-# TODO: implement as metaclass and assign methods to children
-# to avoid having to do Dataset.<method> calls?
 class DataLoader(LoaderBase):
     def __init__(
         self,
@@ -93,11 +91,6 @@ class DataLoader(LoaderBase):
                 "You must either specify the cat_names, cont_names and "
                 "label_names properties or supply a schema.pbtxt file in dataset directory."
             )
-
-        self.__buff = None
-        self.__buff_len = None
-        self._batch_itr = None
-        self._workers = None
 
     @annotate("make_tensors", color="darkgreen", domain="merlin_dataloader")
     def make_tensors(self, gdf, use_nnz=False):
