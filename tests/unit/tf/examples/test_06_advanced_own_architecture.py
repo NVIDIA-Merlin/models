@@ -29,5 +29,5 @@ def test_example_06_defining_own_architecture(tb, tmpdir):
     )
     tb.execute()
     metrics = tb.ref("metrics")
-    assert set(metrics.keys()) == set(["auc", "loss", "regularization_loss"])
+    assert set(metrics.keys()) == set(["auc", "loss", "loss_batch", "regularization_loss"])
     assert os.path.isdir(os.path.join(tmpdir, "custom_dlrm"))

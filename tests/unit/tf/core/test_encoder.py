@@ -46,6 +46,7 @@ def test_encoder_block(music_streaming_data: Dataset):
 
 def test_topk_encoder(music_streaming_data: Dataset):
     TOP_K = 10
+    BATCH_SIZE = 32
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["user_id", "item_id", "country", "user_age"]
     )
@@ -68,12 +69,12 @@ def test_topk_encoder(music_streaming_data: Dataset):
     # 2. Get candidates embeddings for the top-k encoder
     candidate_features = unique_rows_by_features(music_streaming_data, Tags.ITEM, Tags.ITEM_ID)
     candidates = retrieval_model.candidate_embeddings(
-        candidate_features, batch_size=10, index=Tags.ITEM_ID
+        candidate_features, batch_size=BATCH_SIZE, index=Tags.ITEM_ID
     )
 
     # 3. Set data-loader for top-k recommendation
     loader = mm.Loader(
-        music_streaming_data, batch_size=32, transform=mm.ToTarget(schema, "item_id")
+        music_streaming_data, batch_size=BATCH_SIZE, transform=mm.ToTarget(schema, "item_id")
     )
     batch = next(iter(loader))
 
@@ -84,7 +85,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
     # 5. Get top-k predictions
     batch_output = topk_encoder(batch[0])
     predict_output = topk_encoder.predict(loader)
-    assert list(batch_output.scores.shape) == [32, TOP_K]
+    assert list(batch_output.scores.shape) == [BATCH_SIZE, TOP_K]
     assert list(predict_output.scores.shape) == [100, TOP_K]
 
     # 6. Compute top-k evaluation metrics (using the whole candidates catalog)
@@ -93,6 +94,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
     assert set(topk_evaluation_metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "mrr_at_10",
             "ndcg_at_10",
             "map_at_10",
@@ -116,10 +118,23 @@ def test_topk_encoder(music_streaming_data: Dataset):
         loaded_topk_encoder = tf.keras.models.load_model(tmpdir)
     batch_output = loaded_topk_encoder(batch[0])
 
-    assert list(batch_output.scores.shape) == [32, TOP_K]
+    assert list(batch_output.scores.shape) == [BATCH_SIZE, TOP_K]
     tf.debugging.assert_equal(
         topk_encoder.topk_layer._candidates,
         loaded_topk_encoder.topk_layer._candidates,
     )
 
     assert not loaded_topk_encoder.topk_layer._candidates.trainable
+
+    # 9. Change the top-k threshold
+    scores = topk_encoder(batch[0], k=20)
+    assert list(scores.scores.shape) == [BATCH_SIZE, 20]
+    scores = topk_encoder(batch[0], k=30)
+    assert list(scores.scores.shape) == [BATCH_SIZE, 30]
+
+    topk_encoder.compile(k=20)
+    scores = topk_encoder.predict(loader)
+    assert list(scores.scores.shape) == [100, 20]
+    topk_encoder.compile(k=30)
+    scores = topk_encoder.predict(loader)
+    assert list(scores.scores.shape) == [100, 30]

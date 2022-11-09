@@ -60,6 +60,7 @@ def test_example_02_nvt_integration(tb, tmpdir):
             "auc",
             "binary_accuracy",
             "loss",
+            "loss_batch",
             "regularization_loss",
             "precision",
             "recall",
