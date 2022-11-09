@@ -37,6 +37,7 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks, r
     assert set(list(metrics.keys())) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "click/binary_classification_task_loss",
             "play_percentage/regression_task_loss",
@@ -72,6 +73,7 @@ def test_mmoe_head(music_streaming_data: Dataset, run_eagerly: bool):
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "click/binary_classification_task_loss",
             "like/binary_classification_task_loss",
             "play_percentage/regression_task_loss",
@@ -151,6 +153,7 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "click/binary_classification_task_auc",
             "click/binary_classification_task_binary_accuracy",
@@ -193,6 +196,7 @@ def test_ple_head(music_streaming_data: Dataset, run_eagerly: bool):
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "click/binary_classification_task_loss",
             "like/binary_classification_task_loss",
             "play_percentage/regression_task_loss",

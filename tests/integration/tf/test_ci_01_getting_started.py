@@ -15,6 +15,7 @@ def test_func(tb):
     metrics = tb.ref("metrics")
     assert sorted(list(metrics.keys())) == [
         "loss",
+        "loss_batch",
         "rating_binary/binary_classification_task/auc",
         "rating_binary/binary_classification_task/binary_accuracy",
         "rating_binary/binary_classification_task/precision",

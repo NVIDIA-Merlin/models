@@ -466,6 +466,7 @@ def test_two_tower_model_with_custom_options(
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "auc",
             "recall_at_5",
@@ -573,6 +574,7 @@ def test_two_tower_model_v2_with_custom_options(
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "auc",
             "recall_at_5",
@@ -608,7 +610,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
-    expected_loss_metrics = ["loss", "regularization_loss"]
+    expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
     expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
     assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
@@ -653,7 +655,7 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
-    expected_loss_metrics = ["loss", "regularization_loss"]
+    expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
     expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
     assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
@@ -700,7 +702,7 @@ def test_two_tower_retrieval_model_v2_with_topk_metrics_aggregator(
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
-    expected_loss_metrics = ["loss", "regularization_loss"]
+    expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
     expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
     assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
