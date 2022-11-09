@@ -860,3 +860,29 @@ def test_model_compute_loss_metrics_with_without_masking(
     assert not np.isclose(loss1, loss_masked)
     for k in metrics1:
         assert not np.isclose(metrics1[k], metrics_masked[k])
+
+
+def test_categorical_prediction_with_temperature(sequence_testing_data: Dataset):
+    train = sequence_testing_data
+    train.schema = train.schema.select_by_name(["item_id_seq", "user_country"])
+    schema_model = train.schema.select_by_name(["item_id_seq"])
+    inputs = mm.InputBlockV2(
+        schema_model,
+        embeddings=mm.Embeddings(
+            schema_model,
+        ),
+    )
+    model = mm.Model(
+        inputs,
+        mm.MLPBlock([32]),
+        mm.CategoricalOutput(
+            to_call=train.schema.select_by_name(["user_country"]), logits_temperature=0.2
+        ),
+    )
+
+    loader = mm.Loader(
+        train, batch_size=1024, transform=mm.ToTarget(train.schema, "user_country", one_hot=True)
+    )
+
+    model.compile(run_eagerly=False, optimizer="adam")
+    model.fit(loader, batch_size=1024, epochs=1)
