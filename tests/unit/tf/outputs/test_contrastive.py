@@ -120,6 +120,7 @@ def test_contrastive_output(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
+        "loss_batch",
         "ndcg_at_10",
         "precision_at_10",
         "map_at_10",

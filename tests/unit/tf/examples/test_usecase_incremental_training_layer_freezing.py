@@ -24,6 +24,7 @@ def test_usecase_incremental_training_layer_freezing(tb):
     assert set(model.history.history.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "recall_at_10",
             "mrr_at_10",
             "ndcg_at_10",
