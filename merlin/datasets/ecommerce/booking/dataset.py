@@ -74,6 +74,8 @@ def get_booking(
     if not nvt_path_exists or overwrite:
         transform_booking(raw_path, nvt_path, nvt_workflow=nvt_workflow, **kwargs)
 
+    _check_path(train_path, strict=True)
+    _check_path(valid_path, strict=True)
     train = merlin.io.Dataset(str(train_path), engine="parquet")
     valid = merlin.io.Dataset(str(valid_path), engine="parquet")
 
@@ -301,17 +303,29 @@ def _remove_list_and_first_from_name(name):
     return name
 
 
-def _check_path(path):
+def _check_path(path, strict=False):
     if not isinstance(path, (str, Path)):
-        raise ValueError("path must be a string or a Path object")
+        if strict:
+            raise ValueError("path must be a string or a Path object")
+
+        return False
 
     if not Path(path).exists():
-        raise ValueError(f"path {path} does not exist")
+        if strict:
+            raise ValueError(f"path {path} does not exist")
+
+        return False
 
     if not len(Path(path).glob("*.parquet")):
-        raise ValueError(f"path {path} does not contain any parquet files")
+        if strict:
+            raise ValueError(f"path {path} does not contain any parquet files")
+
+        return False
 
     if not len(Path(path).glob("schema.*")):
-        raise ValueError(f"path {path} does not contain a schema")
+        if strict:
+            raise ValueError(f"path {path} does not contain a schema")
+
+        return False
 
     return True
