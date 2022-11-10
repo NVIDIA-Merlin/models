@@ -319,14 +319,14 @@ def _check_path(path, strict=False, check_schema=True):
 
         return False
 
-    if not len(Path(path).glob("*.parquet")):
+    if not len(list(Path(path).glob("*.parquet"))):
         if strict:
             raise ValueError(f"path {path} does not contain any parquet files")
 
         return False
 
     if check_schema:
-        if not len(Path(path).glob("schema.*")):
+        if not len(list(Path(path).glob("schema.*"))):
             if strict:
                 raise ValueError(f"path {path} does not contain a schema")
 
