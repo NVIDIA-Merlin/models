@@ -11,7 +11,7 @@ def test_usecase_pretrained_embeddings(tb):
         from datetime import datetime, timedelta
         from merlin.datasets.synthetic import generate_data
         ds = generate_data('booking.com-raw', 10000)
-        if not os.path.exists('./data'): os.mkdir('./data')
+        if not os.path.exists('/workspace/data'): os.mkdir('/workspace/data')
         df = ds.compute()
         def generate_date():
             date = datetime.today()
