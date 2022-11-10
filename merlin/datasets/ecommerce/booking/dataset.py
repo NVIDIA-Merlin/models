@@ -28,7 +28,7 @@ _DATA_URL = "https://raw.githubusercontent.com/bookingcom/ml-dataset-mdt/main/"
 
 
 def get_booking(
-    path: Union[str, Path],
+    path: Optional[Union[str, Path]] = None,
     overwrite: bool = False,
     transformed_name: str = "transformed",
     nvt_workflow: Optional[Workflow] = None,
@@ -159,8 +159,8 @@ def transform_booking(
     nvt_workflow = nvt_workflow or default_booking_transformation(**locals())
 
     if isinstance(data, (str, Path)):
-        _train = glob(str(data / "train/*.parquet"))
-        _valid = glob(str(data / "test/*.parquet"))
+        _train = glob(str(Path(data) / "train/*.parquet"))
+        _valid = glob(str(Path(data) / "test/*.parquet"))
     elif (
         isinstance(data, tuple)
         and len(data) == 2
