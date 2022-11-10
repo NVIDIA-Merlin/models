@@ -65,7 +65,10 @@ def get_booking(
         p = Path(path)
 
     raw_path = p
-    if not raw_path.exists():
+    if not (
+        _check_path(raw_path / "train", check_schema=False)
+        and _check_path(raw_path / "test", check_schema=False)
+    ):
         download_booking(p)
 
     nvt_path = raw_path / transformed_name
@@ -303,7 +306,7 @@ def _remove_list_and_first_from_name(name):
     return name
 
 
-def _check_path(path, strict=False):
+def _check_path(path, strict=False, check_schema=True):
     if not isinstance(path, (str, Path)):
         if strict:
             raise ValueError("path must be a string or a Path object")
@@ -322,10 +325,11 @@ def _check_path(path, strict=False):
 
         return False
 
-    if not len(Path(path).glob("schema.*")):
-        if strict:
-            raise ValueError(f"path {path} does not contain a schema")
+    if check_schema:
+        if not len(Path(path).glob("schema.*")):
+            if strict:
+                raise ValueError(f"path {path} does not contain a schema")
 
-        return False
+            return False
 
     return True
