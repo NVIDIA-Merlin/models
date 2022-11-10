@@ -71,7 +71,7 @@ def get_booking(
 
     nvt_path = raw_path / transformed_name
     train_path, valid_path = nvt_path / "train", nvt_path / "valid"
-    nvt_path_exists = train_path.exists() and valid_path.exists()
+    nvt_path_exists = _check_path(train_path) and _check_path(valid_path)
     if not nvt_path_exists or overwrite:
         transform_booking(raw_path, nvt_path, nvt_workflow=nvt_workflow, **kwargs)
 
@@ -300,3 +300,19 @@ def _remove_list_and_first_from_name(name):
         return name[:-6]
 
     return name
+
+
+def _check_path(path):
+    if not isinstance(path, (str, Path)):
+        raise ValueError("path must be a string or a Path object")
+
+    if not Path(path).exists():
+        raise ValueError(f"path {path} does not exist")
+
+    if not len(Path(path).glob("*.parquet")):
+        raise ValueError(f"path {path} does not contain any parquet files")
+
+    if not len(Path(path).glob("schema.*")):
+        raise ValueError(f"path {path} does not contain a schema")
+
+    return True
