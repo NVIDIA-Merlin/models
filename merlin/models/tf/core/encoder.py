@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from typing import Dict, Optional, Union
 
 import numpy as np
@@ -139,7 +155,7 @@ class Encoder(tf.keras.Model):
 
         return merlin.io.Dataset(predictions)
 
-    def call(self, inputs, training=False, testing=False, targets=None):
+    def call(self, inputs, training=False, testing=False, targets=None, **kwargs):
         return combinators.call_sequentially(
             list(self.to_call),
             inputs=inputs,
@@ -147,6 +163,7 @@ class Encoder(tf.keras.Model):
             targets=targets,
             training=training,
             testing=testing,
+            **kwargs,
         )
 
     def build(self, input_shape):
@@ -343,6 +360,38 @@ class TopKEncoder(Encoder, BaseModel):
             to_call="topk_layer", candidate_dataset=candidates, k=top_k, **kwargs
         )
         return cls(query_encoder, topk_output, **kwargs)
+
+    def compile(
+        self,
+        optimizer="rmsprop",
+        loss=None,
+        metrics=None,
+        loss_weights=None,
+        weighted_metrics=None,
+        run_eagerly=None,
+        steps_per_execution=None,
+        jit_compile=None,
+        k: int = None,
+        **kwargs,
+    ):
+        """Extend the compile method of `BaseModel` to set the threshold `k`
+        of the top-k encoder.
+        """
+        if k is not None:
+            self.topk_layer._k = k
+            self.k = k
+        BaseModel.compile(
+            self,
+            optimizer=optimizer,
+            loss=loss,
+            metrics=metrics,
+            weighted_metrics=weighted_metrics,
+            run_eagerly=run_eagerly,
+            loss_weights=loss_weights,
+            steps_per_execution=steps_per_execution,
+            jit_compile=jit_compile,
+            **kwargs,
+        )
 
     @property
     def topk_layer(self):

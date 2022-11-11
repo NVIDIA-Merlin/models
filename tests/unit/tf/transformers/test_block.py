@@ -282,8 +282,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
-        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
@@ -331,7 +330,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
             ),
         ),
         # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
-        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        GPT2Block(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
@@ -364,7 +363,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     def _metrics_almost_equal(metrics1, metrics2):
         return np.all(
             [
-                np.isclose(metrics1[k], metrics2[k])
+                np.isclose(metrics1[k], metrics2[k], atol=1e-05)
                 for k in metrics1
                 if k not in "regularization_loss"
             ]
