@@ -17,9 +17,4 @@
 #!/bin/bash
 set -e
 
-tox -e py38-gpu $@
-
-# skip multi-gpu testing if any arguments are supplied.
-if [[ $# -eq 0 ]] ; then
-  tox -e py38-multi-gpu
-fi
+pytest -rxs tests/unit
