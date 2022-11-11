@@ -39,6 +39,7 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     query_schema = seq_schema
     output_schema = seq_schema.select_by_name(target)
 
+    d_model = 48
     query_encoder = mm.Encoder(
         mm.InputBlockV2(
             query_schema,
@@ -46,7 +47,8 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
                 query_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        GPT2Block(d_model=48, n_head=4, n_layer=2),
+        mm.MLPBlock([d_model]),
+        GPT2Block(d_model=d_model, n_head=2, n_layer=2),
         tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
     )
 
@@ -68,12 +70,12 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     assert list(predictions.shape) == [100, 51997]
 
     query_embeddings = query_encoder.predict(loader)
-    assert list(query_embeddings.shape) == [100, 48]
+    assert list(query_embeddings.shape) == [100, d_model]
 
     # query_embeddings = model.query_embeddings(sequence_testing_data, batch_size=10).compute()
     item_embeddings = model.candidate_embeddings().compute().to_numpy()
 
-    assert list(item_embeddings.shape) == [51997, 48]
+    assert list(item_embeddings.shape) == [51997, d_model]
     predicitons_2 = np.dot(query_embeddings, item_embeddings.T)
 
     np.testing.assert_allclose(predictions, predicitons_2, atol=1e-7)
