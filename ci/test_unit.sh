@@ -17,4 +17,4 @@
 #!/bin/bash
 set -e
 
-pytest --cov-report term --cov merlin -rxs tests/unit
+pytest -rxs tests/unit
