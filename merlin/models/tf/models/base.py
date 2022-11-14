@@ -710,7 +710,7 @@ class BaseModel(tf.keras.Model):
                 elif isinstance(out, tuple):
                     assert (
                         len(out) == 2
-                    ), "output of `pre` must be a 2-tuple of x, y or `Prediction` name tuple"
+                    ), "output of `pre` must be a 2-tuple of x, y or `Prediction` tuple"
                     x, y = out
                 else:
                     x = out
