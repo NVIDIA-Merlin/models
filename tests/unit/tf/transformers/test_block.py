@@ -72,7 +72,6 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     query_embeddings = query_encoder.predict(loader)
     assert list(query_embeddings.shape) == [100, d_model]
 
-    # query_embeddings = model.query_embeddings(sequence_testing_data, batch_size=10).compute()
     item_embeddings = model.candidate_embeddings().compute().to_numpy()
 
     assert list(item_embeddings.shape) == [51997, d_model]
