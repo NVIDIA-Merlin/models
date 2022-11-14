@@ -15,7 +15,8 @@ scikit-learn
 tensorflow-metadata
 tensorflow-ranking>=0.4
 testbook
-fiddle
+# fiddle pinned due to use of functools.cache (added in Python 3.9) 
+fiddle==0.2.2
 wandb
 transformers
 optuna
