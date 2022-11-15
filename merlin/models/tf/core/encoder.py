@@ -216,6 +216,17 @@ class Encoder(tf.keras.Model):
     ) -> None:
         """Saves the model to export_path as a Tensorflow Saved Model.
         Along with merlin model metadata.
+
+        Parameters
+        ----------
+        export_path : Union[str, os.PathLike]
+            Path where model will be saved to
+        include_optimizer : bool, optional
+            If False, do not save the optimizer state, by default True
+        save_traces : bool, optional
+            When enabled, will store the function traces for each layer. This
+            can be disabled, so that only the configs of each layer are
+            stored, by default True
         """
         super().save(
             export_path,
