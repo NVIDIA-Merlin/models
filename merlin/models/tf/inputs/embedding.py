@@ -392,7 +392,9 @@ class EmbeddingTable(EmbeddingTableBase):
             inputs = list_col_to_ragged(inputs)
 
         # Eliminating the last dim==1 of dense tensors before embedding lookup
-        if isinstance(inputs, tf.Tensor):
+        if isinstance(inputs, tf.Tensor) or (
+            isinstance(inputs, tf.RaggedTensor) and inputs.shape[-1] == 1
+        ):
             inputs = tf.squeeze(inputs, axis=-1)
 
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
