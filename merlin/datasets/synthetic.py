@@ -232,7 +232,7 @@ def generate_user_item_interactions(
     if not is_list_feature:
         shape = num_interactions
     else:
-        shape = (num_interactions, item_id_col.value_count.max)  # type: ignore
+        shape = (num_interactions, max_session_length)  # type: ignore
     tmp = _array.clip(
         _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
         1,
