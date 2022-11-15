@@ -53,6 +53,19 @@ def test_tf_tensors_generation_cpu():
         assert len(val) == 2
 
 
+def test_sequence_data():
+    data = generate_data(
+        "sequence-testing", num_rows=100, min_session_length=5, max_session_length=50
+    )
+
+    from merlin.models.tf import sample_batch
+
+    tensors, _ = sample_batch(data, batch_size=10, process_lists=False)
+
+    assert all(tensors["item_id_seq"][1] == 50)
+    assert all(tensors["categories"][1] == 50)
+
+
 def test_generate_user_item_interactions_dtypes():
     schema = Schema(
         [
