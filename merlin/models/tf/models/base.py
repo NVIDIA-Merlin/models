@@ -108,14 +108,14 @@ def get_output_schema(export_path: str) -> Schema:
     output_schema = Schema()
     for output_name, output_spec in signature.structured_outputs.items():
         col_schema = ColumnSchema(output_name, dtype=output_spec.dtype.as_numpy_dtype)
-        if output_spec.shape.rank > 1 and output_spec.shape[1] > 1:
-            list_length = output_spec.shape[1]
+        shape = output_spec.shape
+        if shape.rank > 1 and (shape[1] is None or shape[1] > 1):
+            is_ragged = shape[1] is None
             col_schema = ColumnSchema(
                 output_name,
-                output_spec.dtype.as_numpy_dtype,
+                dtype=output_spec.dtype.as_numpy_dtype,
                 is_list=True,
-                is_ragged=False,
-                properties={"value_count": {"min": list_length, "max": list_length}},
+                is_ragged=is_ragged,
             )
         output_schema.column_schemas[output_name] = col_schema
 
