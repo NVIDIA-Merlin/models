@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import os
 from typing import Dict, Optional, Union
 
 import numpy as np
@@ -21,6 +22,7 @@ import tensorflow as tf
 from packaging import version
 
 import merlin.io
+from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
@@ -205,6 +207,23 @@ class Encoder(tf.keras.Model):
             # required args, which is wrong. This is a workaround.
             _arg_spec = self._saved_model_arg_spec
             self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
+
+    def save(
+        self,
+        export_path: Union[str, os.PathLike],
+        include_optimizer=True,
+        save_traces=True,
+    ) -> None:
+        """Saves the model to export_path as a Tensorflow Saved Model.
+        Along with merlin model metadata.
+        """
+        super().save(
+            export_path,
+            include_optimizer=include_optimizer,
+            save_traces=save_traces,
+            save_format="tf",
+        )
+        save_merlin_metadata(export_path, self, self.schema, None)
 
     @property
     def to_call(self):
