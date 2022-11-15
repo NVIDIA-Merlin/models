@@ -915,7 +915,7 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
         # Bind schema from dataset to model in case we can't infer it from the inputs
-        if isinstance(x, Loader) and self.schema is None:
+        if isinstance(x, Loader) and getattr(self, "schema", None) is None:
             self.schema = x.schema.excluding_by_tag(Tags.TARGET)
 
         validation_data = _maybe_convert_merlin_dataset(
