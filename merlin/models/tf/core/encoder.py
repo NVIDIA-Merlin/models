@@ -27,7 +27,7 @@ from merlin.models.tf.core import combinators
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
-from merlin.models.tf.models.base import BaseModel
+from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
 from merlin.models.tf.utils import tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
@@ -223,7 +223,9 @@ class Encoder(tf.keras.Model):
             save_traces=save_traces,
             save_format="tf",
         )
-        save_merlin_metadata(export_path, self, self.schema, None)
+        input_schema = self.schema
+        output_schema = get_output_schema(export_path)
+        save_merlin_metadata(export_path, self, input_schema, output_schema)
 
     @property
     def to_call(self):

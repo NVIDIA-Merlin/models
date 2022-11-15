@@ -89,6 +89,39 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
         self._is_first_batch = False
 
 
+def get_output_schema(export_path: str) -> Schema:
+    """Compute Output Schema
+
+    Parameters
+    ----------
+    export_path : str
+        Path to saved model directory
+
+    Returns
+    -------
+    Schema
+        Output Schema representing model outputs
+    """
+    model = tf.keras.models.load_model(export_path)
+    signature = model.signatures["serving_default"]
+
+    output_schema = Schema()
+    for output_name, output_spec in signature.structured_outputs.items():
+        col_schema = ColumnSchema(output_name, dtype=output_spec.dtype.as_numpy_dtype)
+        if output_spec.shape.rank > 1 and output_spec.shape[1] > 1:
+            list_length = output_spec.shape[1]
+            col_schema = ColumnSchema(
+                output_name,
+                output_spec.dtype.as_numpy_dtype,
+                is_list=True,
+                is_ragged=False,
+                properties={"value_count": {"min": list_length, "max": list_length}},
+            )
+        output_schema.column_schemas[output_name] = col_schema
+
+    return output_schema
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ModelBlock(Block, tf.keras.Model):
     """Block that extends `tf.keras.Model` to make it saveable."""
@@ -883,7 +916,7 @@ class BaseModel(tf.keras.Model):
 
         # Bind schema from dataset to model in case we can't infer it from the inputs
         if isinstance(x, Loader):
-            self.schema = x.schema
+            self.schema = x.schema.excluding_by_tag(Tags.TARGET)
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
@@ -1114,7 +1147,9 @@ class Model(BaseModel):
             save_traces=save_traces,
             save_format="tf",
         )
-        save_merlin_metadata(export_path, self, self.schema, None)
+        input_schema = self.schema
+        output_schema = get_output_schema(export_path)
+        save_merlin_metadata(export_path, self, input_schema, output_schema)
 
     @classmethod
     def load(cls, export_path: Union[str, os.PathLike]) -> "Model":
