@@ -238,7 +238,15 @@ class ItemRetrievalScorer(Block):
         """
         if self.cache_query:
             # enabled only during top-k evaluation
-            self.context["query"].assign(tf.cast(inputs[self.query_name], tf.float32))
+
+            query = inputs[self.query_name]
+
+            # pad with zeros to match shape of initial query variable
+            padding_size = self.context["query"].shape[0] - query.shape[0]
+            if padding_size > 0:
+                query = tf.pad(query, [[0, padding_size], [0, 0]])
+
+            self.context["query"].assign(tf.cast(query, tf.float32))
 
         if training or testing:
             return inputs

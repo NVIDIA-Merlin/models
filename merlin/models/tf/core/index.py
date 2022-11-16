@@ -250,7 +250,12 @@ class TopKIndexBlock(IndexBlock):
             2D Tensors with the one-hot representation of true targets and
             the scores for the top-k implicit negatives.
         """
+
+        n = outputs.positive_item_ids.shape[0]
+
         queries = self.context["query"]
+        queries = queries[:n]
+
         pred_top_scores, top_ids = self(queries, k=self._k)
 
         targets_sorted = tf.cast(
