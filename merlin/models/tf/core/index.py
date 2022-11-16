@@ -251,7 +251,7 @@ class TopKIndexBlock(IndexBlock):
             the scores for the top-k implicit negatives.
         """
 
-        n = outputs.positive_item_ids.shape[0]
+        n = tf.shape(outputs.positive_item_ids)[0]
 
         queries = self.context["query"]
         queries = queries[:n]

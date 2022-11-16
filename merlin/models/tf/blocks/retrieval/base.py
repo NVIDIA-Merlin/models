@@ -240,11 +240,13 @@ class ItemRetrievalScorer(Block):
             # enabled only during top-k evaluation
 
             query = inputs[self.query_name]
-
+            context_query_size = tf.shape(self.context["query"])[0]
             # pad with zeros to match shape of initial query variable
-            padding_size = self.context["query"].shape[0] - query.shape[0]
+            padding_size = context_query_size - tf.shape(query)[0]
             if padding_size > 0:
                 query = tf.pad(query, [[0, padding_size], [0, 0]])
+
+            query = query[:context_query_size]
 
             self.context["query"].assign(tf.cast(query, tf.float32))
 
