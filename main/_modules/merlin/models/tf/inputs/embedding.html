@@ -468,7 +468,9 @@
             <span class="n">inputs</span> <span class="o">=</span> <span class="n">list_col_to_ragged</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
         <span class="c1"># Eliminating the last dim==1 of dense tensors before embedding lookup</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="p">):</span>
             <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)):</span>
