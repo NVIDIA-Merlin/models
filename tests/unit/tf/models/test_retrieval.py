@@ -274,7 +274,7 @@ def test_two_tower_model_save(tmpdir, ecommerce_data: Dataset):
         embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),
     )
 
-    testing_utils.model_test(model, dataset, reload_model=False)
+    testing_utils.model_test(model, dataset, reload_model=True)
 
     query_tower = model.retrieval_block.query_block()
     query_tower_path = Path(tmpdir) / "query_tower"
