@@ -36,6 +36,7 @@ from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
 from merlin.models.tf.core.tabular import TabularBlock
+from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
@@ -141,7 +142,6 @@ class ModelBlock(Block, tf.keras.Model):
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
-
         fit_kwargs = {
             k: v
             for k, v in locals().items()
@@ -336,8 +336,13 @@ class BaseModel(tf.keras.Model):
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
 
+        if hvd_installed and hvd.size() > 1:
+            # Horovod: Specify `experimental_run_tf_function=False` to ensure TensorFlow
+            # uses hvd.DistributedOptimizer() to compute gradients.
+            kwargs.update({"experimental_run_tf_function": False})
+
         super(BaseModel, self).compile(
-            optimizer=optimizer,
+            optimizer=self._create_optimizer(optimizer),
             loss=self._create_loss(loss),
             metrics=self._create_metrics(metrics),
             weighted_metrics=self._create_weighted_metrics(weighted_metrics),
@@ -348,6 +353,37 @@ class BaseModel(tf.keras.Model):
             from_serialized=from_serialized,
             **kwargs,
         )
+
+    def _create_optimizer(self, optimizer):
+        def _create_single_distributed_optimizer(opt):
+            opt_config = opt.get_config()
+
+            if isinstance(opt.learning_rate, tf.keras.optimizers.schedules.LearningRateSchedule):
+                lr_config = opt.learning_rate.get_config()
+                lr_config["initial_learning_rate"] *= hvd.size()
+                opt_config["lr"] = opt.learning_rate.__class__.from_config(lr_config)
+            else:
+                opt_config["lr"] = opt.learning_rate * hvd.size()
+
+            opt = opt.__class__.from_config(opt_config)
+
+            return hvd.DistributedOptimizer(opt)
+
+        optimizer = tf.keras.optimizers.get(optimizer)
+
+        if hvd_installed and hvd.size() > 1:
+            if optimizer.__module__.startswith("horovod"):
+                # do nothing if the optimizer is already wrapped in hvd.DistributedOptimizer
+                pass
+            elif isinstance(optimizer, merlin.models.tf.MultiOptimizer):
+                for pair in (
+                    optimizer.optimizers_and_blocks + optimizer.update_optimizers_and_blocks
+                ):
+                    pair.optimizer = _create_single_distributed_optimizer(pair.optimizer)
+            else:
+                optimizer = _create_single_distributed_optimizer(optimizer)
+
+        return optimizer
 
     def _create_metrics(self, metrics=None):
         out = {}
@@ -671,6 +707,11 @@ class BaseModel(tf.keras.Model):
                 out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
                 if isinstance(out, Prediction):
                     x, y = out.outputs, out.targets
+                elif isinstance(out, tuple):
+                    assert (
+                        len(out) == 2
+                    ), "output of `pre` must be a 2-tuple of x, y or `Prediction` tuple"
+                    x, y = out
                 else:
                     x = out
 
@@ -684,8 +725,11 @@ class BaseModel(tf.keras.Model):
 
         metrics = self.train_compute_metrics(outputs, self.compiled_metrics)
 
-        # Adding regularization loss to metrics
+        # Batch regularization loss
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
+        # Batch loss (the default loss metric from Keras is the incremental average per epoch,
+        # not the actual batch loss)
+        metrics["loss_batch"] = loss
 
         return metrics
 
@@ -708,12 +752,15 @@ class BaseModel(tf.keras.Model):
             # so we need to retrieve top-k negative scores to compute the loss
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
-        self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
+        loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
         metrics = self.compute_metrics(outputs)
 
-        # Adding regularization loss to metrics
+        # Batch regularization loss
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
+        # Batch loss (the default loss metric from Keras is the incremental average per epoch,
+        # not the actual batch loss)
+        metrics["loss_batch"] = loss
 
         return metrics
 
@@ -841,7 +888,14 @@ class BaseModel(tf.keras.Model):
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
+
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
+        if hvd_installed and hvd.size() > 1:
+            callbacks = self._add_horovod_callbacks(callbacks)
+
+        # Horovod: if it's not worker 0, turn off logging.
+        if hvd_installed and hvd.rank() != 0:
+            verbose = 0  # noqa: F841
 
         fit_kwargs = {
             k: v
@@ -860,7 +914,7 @@ class BaseModel(tf.keras.Model):
 
         return out
 
-    def _add_metrics_callback(self, callbacks, train_metrics_steps):
+    def _validate_callbacks(self, callbacks):
         if callbacks is None:
             callbacks = []
 
@@ -869,10 +923,33 @@ class BaseModel(tf.keras.Model):
         else:
             callbacks = [callbacks]
 
+        return callbacks
+
+    def _add_metrics_callback(self, callbacks, train_metrics_steps):
+        callbacks = self._validate_callbacks(callbacks)
+
         callback_types = [type(callback) for callback in callbacks]
         if MetricsComputeCallback not in callback_types:
             # Adding a callback to control metrics computation
             callbacks.append(MetricsComputeCallback(train_metrics_steps))
+
+        return callbacks
+
+    def _add_horovod_callbacks(self, callbacks):
+        if not (hvd_installed and hvd.size() > 1):
+            return callbacks
+
+        callbacks = self._validate_callbacks(callbacks)
+
+        callback_types = [type(callback) for callback in callbacks]
+        # Horovod: broadcast initial variable states from rank 0 to all other processes.
+        # This is necessary to ensure consistent initialization of all workers when
+        # training is started with random weights or restored from a checkpoint.
+        if hvd.callbacks.BroadcastGlobalVariablesCallback not in callback_types:
+            callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
+        # Horovod: average metrics among workers at the end of every epoch.
+        if hvd.callbacks.MetricAverageCallback not in callback_types:
+            callbacks.append(hvd.callbacks.MetricAverageCallback())
 
         return callbacks
 
@@ -983,6 +1060,11 @@ class BaseModel(tf.keras.Model):
         predictions = dataset.map_partitions(model_encode)
 
         return merlin.io.Dataset(predictions)
+
+    def save(self, *args, **kwargs):
+        if hvd_installed and hvd.rank() != 0:
+            return
+        super().save(*args, **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
