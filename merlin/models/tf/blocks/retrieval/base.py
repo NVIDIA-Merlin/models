@@ -195,15 +195,12 @@ class ItemRetrievalScorer(Block):
     def build(self, input_shapes):
         if isinstance(input_shapes, dict):
             query_shape = input_shapes[self.query_name]
-            self.context.add_variable(
-                tf.Variable(
-                    initial_value=tf.zeros([1, query_shape[-1]], dtype=tf.float32),
-                    name="query",
-                    trainable=False,
-                    validate_shape=False,
-                    dtype=tf.float32,
-                    shape=tf.TensorShape([None, query_shape[-1]]),
-                )
+            self.context.add_weight(
+                name="query",
+                shape=query_shape,
+                dtype=tf.float32,
+                trainable=False,
+                initializer=tf.keras.initializers.Zeros(),
             )
 
         super().build(input_shapes)
