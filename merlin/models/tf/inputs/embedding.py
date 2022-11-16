@@ -153,15 +153,20 @@ class EmbeddingTableBase(Block):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class SOKEmbedding(EmbeddingTableBase):
     """
+    Wrap GPU accelerated opererations dedicated for sparse training / inference case.
     dim: int The last dimension of the variable
     vocab_sizes: list, rows of the variable list 
     initializer: string, a list of dict {"indices":numpy.array, "value": numpy.array} = "uniform"
             When it's string, it specifies the initializer used to generate initial values.
+            For sok.DynamicVariable, currently, only support "random" or string of a float
+            value(meaning const initializer).
+            For sok.Variable, it is compatible with tf.Variable.
+            Default value is "uniform". 
             When it's list of numpy.array, its shape must be [vocab_size[i], embedding_vec_size],
             and will be used as the initial indices and value.
-    use_dynamic_variable: bool = "False" use sok.DynamicVariable or sok.Variable
-    localized: If set to None, use Distributed Variable, otherwise Localized Variable. where the             list indicates which GPU you want to put this variable on.
-            Default is None 
+    use_dynamic_variable: bool = "False" use sok.DynamicVariable or sok.Variable. DynamicVariable            can allocates memory dynamically. Variable is a model-parallel distributed variable
+    localized: When utilizing sok.Variable, we change choose two mode: distributed(Distributed Va            riable) and localized(Localized Variable). If set to None, use Distributed Variable,             otherwise Localized Variable. where the list indicates which GPU you want to put this            variable on.
+            Default is None. 
     Examples
     --------
     .. code-block:: python
@@ -240,7 +245,7 @@ class SOKEmbedding(EmbeddingTableBase):
             fused_inputs = tf.reshape(fused_inputs, [-1])
             fused_inputs = tf.RaggedTensor.from_tensor(tf.reshape(fused_inputs, [-1, 1]))
             
-            emb_vectors = sok.lookup_sparse(self._var, fused_inputs, 1, "sum")
+            emb_vectors = sok.lookup_sparse(self._var, fused_inputs, "sum")
             emb_vectors = tf.reshape(
                 emb_vectors, [-1, len(self._vocab_sizes), self._embedding_vec_size]
             )
@@ -253,7 +258,6 @@ class SOKEmbedding(EmbeddingTableBase):
             emb_vectors = sok.lookup_sparse(
                 self._vars,
                 input_list,
-                [1 for _ in range(len(self._vocab_sizes))],
                 ["sum" for _ in range(len(self._vocab_sizes))],
             )
             for i in range(len(self._vocab_sizes)):
