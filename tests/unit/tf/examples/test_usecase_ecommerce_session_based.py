@@ -59,3 +59,16 @@ def test_usecase_ecommerce_session_based(tb):
             "regularization_loss",
         ]
     )
+    metrics_transformer = tb.ref("metrics_transformer")
+    assert set(metrics_transformer.keys()) == set(
+        [
+            "loss",
+            "loss_batch",
+            "recall_at_100",
+            "mrr_at_100",
+            "ndcg_at_100",
+            "map_at_100",
+            "precision_at_100",
+            "regularization_loss",
+        ]
+    )
