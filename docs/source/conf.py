@@ -110,6 +110,7 @@ html_css_files = ["css/custom.css"]
 source_suffix = [".rst", ".md"]
 
 nbsphinx_allow_errors = True
+html_copy_source = False
 html_show_sourcelink = False
 
 if os.path.exists(gitdir):
