@@ -21,6 +21,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
         [
             "auc",
             "loss",
+            "loss_batch",
             "regularization_loss",
         ]
     )
@@ -29,6 +30,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
         [
             "auc_1",
             "loss",
+            "loss_batch",
             "regularization_loss",
         ]
     )
@@ -37,6 +39,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
         [
             "auc_2",
             "loss",
+            "loss_batch",
             "regularization_loss",
         ]
     )
@@ -45,6 +48,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
         [
             "auc_3",
             "loss",
+            "loss_batch",
             "regularization_loss",
         ]
     )
@@ -53,6 +57,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
         [
             "auc_4",
             "loss",
+            "loss_batch",
             "regularization_loss",
         ]
     )

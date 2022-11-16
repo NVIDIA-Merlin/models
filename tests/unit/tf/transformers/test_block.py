@@ -25,6 +25,61 @@ def test_import():
     assert transformers is not None
 
 
+@pytest.mark.parametrize("run_eagerly", [True])
+def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
+
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
+        Tags.CATEGORICAL
+    )
+
+    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
+
+    query_schema = seq_schema
+    output_schema = seq_schema.select_by_name(target)
+
+    d_model = 48
+    query_encoder = mm.Encoder(
+        mm.InputBlockV2(
+            query_schema,
+            embeddings=mm.Embeddings(
+                query_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+            ),
+        ),
+        mm.MLPBlock([d_model]),
+        GPT2Block(d_model=d_model, n_head=2, n_layer=2),
+        tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
+    )
+
+    model = mm.RetrievalModelV2(
+        query=query_encoder,
+        output=mm.ContrastiveOutput(output_schema, negative_samplers="in-batch"),
+    )
+
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=False,
+        metrics={},
+        fit_kwargs={"pre": predict_last},
+    )
+
+    predictions = model.predict(loader)
+    assert list(predictions.shape) == [100, 51997]
+
+    query_embeddings = query_encoder.predict(loader)
+    assert list(query_embeddings.shape) == [100, d_model]
+
+    item_embeddings = model.candidate_embeddings().compute().to_numpy()
+
+    assert list(item_embeddings.shape) == [51997, d_model]
+    predicitons_2 = np.dot(query_embeddings, item_embeddings.T)
+
+    np.testing.assert_allclose(predictions, predicitons_2, atol=1e-7)
+
+
 def test_transformer_encoder():
     NUM_ROWS = 100
     SEQ_LENGTH = 10
@@ -226,8 +281,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
-        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
@@ -275,7 +329,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
             ),
         ),
         # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
-        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        GPT2Block(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
@@ -308,7 +362,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     def _metrics_almost_equal(metrics1, metrics2):
         return np.all(
             [
-                np.isclose(metrics1[k], metrics2[k])
+                np.isclose(metrics1[k], metrics2[k], atol=1e-05)
                 for k in metrics1
                 if k not in "regularization_loss"
             ]

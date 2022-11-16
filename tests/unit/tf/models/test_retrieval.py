@@ -1,9 +1,11 @@
 from pathlib import Path
 
+import nvtabular as nvt
 import pytest
 import tensorflow as tf
 
 import merlin.models.tf as mm
+from merlin.core.dispatch import make_df
 from merlin.io import Dataset
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
@@ -18,6 +20,60 @@ from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Tags
 from tests.common.tf.retrieval import retrieval_tests_common
+
+
+def test_two_tower_shared_embeddings():
+    train = make_df(
+        {
+            "user_id": [1, 3, 3, 4, 3, 1, 2, 4, 6, 7, 8, 9] * 100,
+            "item_id": [1, 2, 3, 4, 11, 12, 5, 1, 1, 3, 5, 11] * 100,
+            "item_id_hist": [
+                [1, 3, 10],
+                [1, 5],
+                [4, 2, 1],
+                [1, 2, 3],
+                [1],
+                [3, 4],
+                [1, 3, 10],
+                [11, 3, 10],
+                [3, 4],
+                [1, 3, 10],
+                [11, 3, 10],
+                [1, 11],
+            ]
+            * 100,
+        }
+    )
+
+    user_id = ["user_id"] >> nvt.ops.Categorify() >> nvt.ops.TagAsUserID()
+
+    joint_feats = [["item_id_hist", "item_id"]] >> nvt.ops.Categorify()
+
+    item_id = joint_feats["item_id"] >> nvt.ops.TagAsItemID()
+    user_feat = joint_feats["item_id_hist"] >> nvt.ops.TagAsUserFeatures()
+    outputs = user_id + item_id + user_feat
+
+    train_dataset = Dataset(train)
+
+    workflow = nvt.Workflow(outputs)
+    workflow.fit(train_dataset)
+    train = workflow.transform(train_dataset)
+    schema = train.schema
+
+    input_block = mm.InputBlockV2(schema)
+    item_tower = input_block.select_by_tag(Tags.ITEM)
+    query_tower = input_block.select_by_tag(Tags.USER)
+
+    model = mm.TwoTowerModel(
+        schema,
+        query_tower=query_tower.connect(mm.MLPBlock([256, 128], no_activation_last_layer=True)),
+        item_tower=item_tower.connect(mm.MLPBlock([256, 128], no_activation_last_layer=True)),
+        samplers=[mm.InBatchSampler()],
+    )
+
+    model.compile(optimizer="adam", run_eagerly=False, metrics=[])
+
+    model.fit(train, batch_size=128, epochs=5)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -410,6 +466,7 @@ def test_two_tower_model_with_custom_options(
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "auc",
             "recall_at_5",
@@ -517,6 +574,7 @@ def test_two_tower_model_v2_with_custom_options(
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "auc",
             "recall_at_5",
@@ -552,7 +610,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
-    expected_loss_metrics = ["loss", "regularization_loss"]
+    expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
     expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
     assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
@@ -597,7 +655,7 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
-    expected_loss_metrics = ["loss", "regularization_loss"]
+    expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
     expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
     assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
@@ -644,7 +702,7 @@ def test_two_tower_retrieval_model_v2_with_topk_metrics_aggregator(
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
-    expected_loss_metrics = ["loss", "regularization_loss"]
+    expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
     expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
     assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)

@@ -25,6 +25,7 @@ def test_usecase_accelerate_training_by_lazyadam(tb):
     assert set(model1_lazyadam.history.history.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "recall_at_10",
             "mrr_at_10",
             "ndcg_at_10",
@@ -36,6 +37,7 @@ def test_usecase_accelerate_training_by_lazyadam(tb):
     assert set(model2_adam.history.history.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "recall_at_10",
             "mrr_at_10",
             "ndcg_at_10",

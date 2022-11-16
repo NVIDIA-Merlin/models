@@ -32,6 +32,7 @@ def test_regression_output(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
+        "loss_batch",
         "root_mean_squared_error",
         "regularization_loss",
     }
