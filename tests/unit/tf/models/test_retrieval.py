@@ -635,8 +635,6 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         epochs=1,
         steps_per_epoch=1,
         train_metrics_steps=3,
-        validation_data=ecommerce_data,
-        validation_steps=3,
     )
     assert len(losses.epoch) == 1
 
@@ -644,8 +642,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
     expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
-    expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
-    assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
+    assert set(losses.history.keys()) == set(expected_metrics_all)
 
     # TODO: This fails sometimes now
     # for metric_name in expected_metrics + expected_loss_metrics:
