@@ -220,6 +220,38 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
+def test_two_tower_retrieval_model_evaluate_after_fit_validation_should_raise(
+    ecommerce_data: Dataset, run_eagerly
+):
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    df = ecommerce_data.to_ddf().compute()
+    train_ds = Dataset(df[: len(df) // 2], schema=ecommerce_data.schema)
+    eval_ds = Dataset(df[len(df) // 2 :], schema=ecommerce_data.schema)
+
+    model = mm.TwoTowerModel(
+        schema=ecommerce_data.schema,
+        query_tower=mm.MLPBlock([128, 64]),
+        samplers=[mm.InBatchSampler()],
+    )
+    opt = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    model.compile(optimizer=opt, run_eagerly=run_eagerly)
+
+    num_epochs = 3
+    _ = model.fit(
+        train_ds,
+        batch_size=64,
+        epochs=num_epochs,
+        train_metrics_steps=3,
+        validation_data=eval_ds,
+        validation_steps=3,
+    )
+
+    with pytest.raises(Exception) as exc_info:
+        _ = model.evaluate(eval_ds, item_corpus=train_ds, batch_size=10, return_dict=True)
+    assert "The model.evaluate() was called before without `item_corpus`" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_two_tower_model_v2(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_genres"]
