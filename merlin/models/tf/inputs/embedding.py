@@ -164,8 +164,12 @@ class SOKEmbedding(EmbeddingTableBase):
             Default value is "uniform". 
             When it's list of numpy.array, its shape must be [vocab_size[i], embedding_vec_size],
             and will be used as the initial indices and value.
-    use_dynamic_variable: bool = "False" use sok.DynamicVariable or sok.Variable. DynamicVariable            can allocates memory dynamically. Variable is a model-parallel distributed variable
-    localized: When utilizing sok.Variable, we change choose two mode: distributed(Distributed Va            riable) and localized(Localized Variable). If set to None, use Distributed Variable,             otherwise Localized Variable. where the list indicates which GPU you want to put this            variable on.
+    use_dynamic_variable: bool = "False" use sok.DynamicVariable or sok.Variable. DynamicVariable
+            can allocates memory dynamically. Variable is a model-parallel distributed variable
+    localized: When utilizing sok.Variable, we change choose two mode: distributed(Distributed Va
+            riable) and localized(Localized Variable). If set to None, use Distributed Variable, 
+            otherwise Localized Variable. where the list indicates which GPU you want to put this
+            variable on.
             Default is None. 
     Examples
     --------
