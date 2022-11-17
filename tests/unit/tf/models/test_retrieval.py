@@ -237,7 +237,7 @@ def test_two_tower_retrieval_model_evaluate_after_fit_validation_should_raise(
     model.compile(optimizer=opt, run_eagerly=run_eagerly)
 
     num_epochs = 3
-    _ = model.fit(
+    losses = model.fit(
         train_ds,
         batch_size=64,
         epochs=num_epochs,
@@ -245,6 +245,12 @@ def test_two_tower_retrieval_model_evaluate_after_fit_validation_should_raise(
         validation_data=eval_ds,
         validation_steps=3,
     )
+
+    expected_metrics = ["recall_at_10", "mrr_at_10", "ndcg_at_10", "map_at_10", "precision_at_10"]
+    expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
+    expected_metrics_all = expected_metrics + expected_loss_metrics
+    expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
+    assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
 
     with pytest.raises(Exception) as exc_info:
         _ = model.evaluate(eval_ds, item_corpus=train_ds, batch_size=10, return_dict=True)
@@ -677,8 +683,6 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
         epochs=1,
         steps_per_epoch=1,
         train_metrics_steps=3,
-        validation_data=ecommerce_data,
-        validation_steps=3,
     )
     assert len(losses.epoch) == 1
 
@@ -686,8 +690,7 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
     expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
-    expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
-    assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
+    assert set(losses.history.keys()) == set(expected_metrics_all)
 
     metrics = model.evaluate(
         ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True, steps=1
