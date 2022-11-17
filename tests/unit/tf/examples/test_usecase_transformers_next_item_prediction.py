@@ -11,7 +11,6 @@ def test_usecase_pretrained_embeddings(tb):
         from datetime import datetime, timedelta
         from merlin.datasets.synthetic import generate_data
         ds = generate_data('booking.com-raw', 10000)
-        if not os.path.exists('data'): os.mkdir('data')
         df = ds.compute()
         def generate_date():
             date = datetime.today()
@@ -20,12 +19,12 @@ def test_usecase_pretrained_embeddings(tb):
             return date
         df['checkin'] = [generate_date() for _ in range(df.shape[0])]
         df['checkout'] = [generate_date() for _ in range(df.shape[0])]
-        df.to_csv('data/train_set.csv')
+        df.to_csv('/tmpdir/train_set.csv')
         """
     )
     tb.cells[4].source = tb.cells[4].source.replace("get_booking('/workspace/data')", "")
     tb.cells[4].source = tb.cells[4].source.replace(
-        "read_csv('/workspace/data/train_set.csv'", "read_csv('data/train_set.csv'"
+        "read_csv('/workspace/data/train_set.csv'", "read_csv('/tmpdir/train_set.csv'"
     )
     tb.cells[28].source = tb.cells[28].source.replace("d_model=64", "d_model=40")
     tb.cells[30].source = tb.cells[30].source.replace("epochs=5", "epochs=1")
