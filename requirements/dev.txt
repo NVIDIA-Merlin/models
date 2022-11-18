@@ -12,12 +12,9 @@ mypy
 jupyter
 markupsafe==2.0.1
 scikit-learn
-tensorflow-metadata
-tensorflow-ranking>=0.4
 testbook
 # fiddle pinned due to use of functools.cache (added in Python 3.9) 
 fiddle==0.2.2
 wandb
-transformers
 optuna
 plotly
