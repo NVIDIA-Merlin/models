@@ -46,6 +46,7 @@ KNOWN_DATASETS: Dict[str, Path] = {
     "aliccp-raw": HERE / "ecommerce/aliccp/raw",
     "dressipi2022-preprocessed": HERE / "ecommerce/dressipi/preprocessed/",
     "booking.com": HERE / "ecommerce/booking/transformed/",
+    "booking.com-raw": HERE / "ecommerce/booking/raw/",
     "transactions": HERE / "ecommerce/transactions",
 }
 
