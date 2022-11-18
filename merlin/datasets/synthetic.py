@@ -55,7 +55,7 @@ def generate_data(
     input: Union[Schema, Path, str],
     num_rows: int,
     set_sizes: Sequence[float] = (1.0,),
-    min_session_length=5,
+    min_session_length=4,
     max_session_length=None,
     device="cpu",
 ) -> Union[merlin.io.Dataset, Tuple[merlin.io.Dataset, ...]]:
