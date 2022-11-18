@@ -373,7 +373,7 @@ def generate_random_list_feature(
                 )
             return list(_array.stack(padded_array, axis=0))
         else:
-            list_length = feature.value_count.max
+            list_length = min_session_length
             return list(
                 _array.random.randint(
                     1, feature.int_domain.max, (num_interactions, list_length)
@@ -397,7 +397,7 @@ def generate_random_list_feature(
                 )
             return list(_array.stack(padded_array, axis=0))
         else:
-            list_length = feature.value_count.max
+            list_length = min_session_length
             return list(
                 _array.random.uniform(
                     feature.float_domain.min,
