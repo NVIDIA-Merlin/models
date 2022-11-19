@@ -1,6 +1,5 @@
 import os
 import urllib
-from glob import glob
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
@@ -28,7 +27,7 @@ _DATA_URL = "https://raw.githubusercontent.com/bookingcom/ml-dataset-mdt/main/"
 
 
 def get_booking(
-    path: Union[str, Path],
+    path: Optional[Union[str, Path]] = None,
     overwrite: bool = False,
     transformed_name: str = "transformed",
     nvt_workflow: Optional[Workflow] = None,
@@ -66,15 +65,20 @@ def get_booking(
         p = Path(path)
 
     raw_path = p
-    if not raw_path.exists():
+    if not (
+        _check_path(raw_path / "train", check_schema=False)
+        and _check_path(raw_path / "test", check_schema=False)
+    ):
         download_booking(p)
 
     nvt_path = raw_path / transformed_name
     train_path, valid_path = nvt_path / "train", nvt_path / "valid"
-    nvt_path_exists = train_path.exists() and valid_path.exists()
+    nvt_path_exists = _check_path(train_path) and _check_path(valid_path)
     if not nvt_path_exists or overwrite:
         transform_booking(raw_path, nvt_path, nvt_workflow=nvt_workflow, **kwargs)
 
+    _check_path(train_path, strict=True)
+    _check_path(valid_path, strict=True)
     train = merlin.io.Dataset(str(train_path), engine="parquet")
     valid = merlin.io.Dataset(str(valid_path), engine="parquet")
 
@@ -159,8 +163,8 @@ def transform_booking(
     nvt_workflow = nvt_workflow or default_booking_transformation(**locals())
 
     if isinstance(data, (str, Path)):
-        _train = glob(str(data / "train/*.parquet"))
-        _valid = glob(str(data / "test/*.parquet"))
+        _train = merlin.io.Dataset(str(Path(data) / "train"), engine="parquet")
+        _valid = merlin.io.Dataset(str(Path(data) / "test"), engine="parquet")
     elif (
         isinstance(data, tuple)
         and len(data) == 2
@@ -300,3 +304,32 @@ def _remove_list_and_first_from_name(name):
         return name[:-6]
 
     return name
+
+
+def _check_path(path, strict=False, check_schema=True):
+    if not isinstance(path, (str, Path)):
+        if strict:
+            raise ValueError("path must be a string or a Path object")
+
+        return False
+
+    if not Path(path).exists():
+        if strict:
+            raise ValueError(f"path {path} does not exist")
+
+        return False
+
+    if not len(list(Path(path).glob("*.parquet"))):
+        if strict:
+            raise ValueError(f"path {path} does not contain any parquet files")
+
+        return False
+
+    if check_schema:
+        if not len(list(Path(path).glob("schema.*"))):
+            if strict:
+                raise ValueError(f"path {path} does not contain a schema")
+
+            return False
+
+    return True

@@ -14,7 +14,23 @@
 # limitations under the License.
 #
 
-#!/bin/bash
-set -e
+import merlin.models.tf as mm
+from merlin.schema import Tags
 
-pytest -rxs tests/unit
+
+def test_concat_sequence(sequence_testing_data):
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+
+    seq_inputs = mm.InputBlockV2(
+        seq_schema,
+        aggregation="concat",
+        categorical=mm.Embeddings(
+            seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+        ),
+    )
+
+    inputs = mm.sample_batch(sequence_testing_data, 8, include_targets=False, process_lists=True)
+
+    outputs = seq_inputs(inputs)
+
+    assert outputs.shape.rank == 3
