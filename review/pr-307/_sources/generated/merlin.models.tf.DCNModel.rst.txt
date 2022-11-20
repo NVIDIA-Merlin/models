@@ -1,6 +1,0 @@
-﻿merlin.models.tf.DCNModel
-=========================
-
-.. currentmodule:: merlin.models.tf
-
-.. autofunction:: DCNModel

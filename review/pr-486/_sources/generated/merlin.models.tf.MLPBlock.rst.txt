@@ -1,6 +1,0 @@
-﻿merlin.models.tf.MLPBlock
-=========================
-
-.. currentmodule:: merlin.models.tf
-
-.. autofunction:: MLPBlock

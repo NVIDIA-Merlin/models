@@ -1,6 +1,0 @@
-﻿merlin.models.tf.PredictionTasks
-================================
-
-.. currentmodule:: merlin.models.tf
-
-.. autofunction:: PredictionTasks

@@ -1,6 +1,0 @@
-﻿merlin.models.utils.registry.default\_name
-==========================================
-
-.. currentmodule:: merlin.models.utils.registry
-
-.. autofunction:: default_name

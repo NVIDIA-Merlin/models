@@ -1,6 +1,0 @@
-﻿merlin.models.tf.MMOEBlock
-==========================
-
-.. currentmodule:: merlin.models.tf
-
-.. autofunction:: MMOEBlock

@@ -1,6 +1,0 @@
-﻿merlin.models.loader.utils.device\_mem\_size
-============================================
-
-.. currentmodule:: merlin.models.loader.utils
-
-.. autofunction:: device_mem_size
