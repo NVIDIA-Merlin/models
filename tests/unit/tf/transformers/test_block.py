@@ -224,8 +224,7 @@ def classification_loader(sequence_testing_data: Dataset):
     dataloader = mm.Loader(
         sequence_testing_data,
         batch_size=50,
-        transform=mm.ToTarget(schema, "user_country", one_hot=True),
-    )
+    ).map(mm.ToTarget(schema, "user_country", one_hot=True))
     return dataloader, schema
 
 
@@ -238,7 +237,11 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
 
-    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False, transform=predict_next)
+    loader = Loader(
+        sequence_testing_data,
+        batch_size=8,
+        shuffle=False,
+    ).map(predict_next)
 
     model = mm.Model(
         mm.InputBlockV2(

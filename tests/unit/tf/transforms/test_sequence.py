@@ -32,8 +32,8 @@ def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
     if use_loader:
-        dataset_transformed = Loader(
-            sequence_testing_data, batch_size=8, shuffle=False, transform=predict_next
+        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
+            predict_next
         )
         output = next(iter(dataset_transformed))
     else:
@@ -66,8 +66,8 @@ def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
     if use_loader:
-        dataset_transformed = Loader(
-            sequence_testing_data, batch_size=8, shuffle=False, transform=predict_last
+        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
+            predict_last
         )
         output = next(iter(dataset_transformed))
     else:
@@ -101,8 +101,8 @@ def test_seq_predict_random(sequence_testing_data: Dataset, use_loader: bool):
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
     if use_loader:
-        dataset_transformed = Loader(
-            sequence_testing_data, batch_size=8, shuffle=False, transform=predict_random
+        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
+            predict_random
         )
         output = next(iter(dataset_transformed))
     else:

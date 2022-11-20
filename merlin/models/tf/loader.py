@@ -25,7 +25,7 @@ import merlin.loader.tensorflow
 from merlin.core.dispatch import HAS_GPU
 from merlin.io import Dataset
 from merlin.loader.tf_utils import get_dataset_schema_from_feature_columns
-from merlin.models.loader.backend import DataLoader
+from merlin.models.loader.backend import _augment_schema
 from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Schema, Tags
@@ -132,7 +132,7 @@ class SchemaAwareTransform(Protocol):
         ...
 
 
-class Loader(DataLoader, merlin.loader.tensorflow.Loader):
+class Loader(merlin.loader.tensorflow.Loader):
     """
     Override class to customize data loading for backward compatibility with
     older NVTabular releases.
@@ -276,8 +276,35 @@ class Loader(DataLoader, merlin.loader.tensorflow.Loader):
         )
         if schema:
             dataset.schema = schema
+
+        cat_names = cat_names or (
+            dataset.schema.select_by_tag(Tags.CATEGORICAL)
+            .excluding_by_tag(Tags.TARGET)
+            .column_names
+            if _get_schema(dataset)
+            else []
+        )
+        cont_names = cont_names or (
+            dataset.schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
+            if _get_schema(dataset)
+            else []
+        )
+        label_names = label_names or (
+            dataset.schema.select_by_tag(Tags.TARGET).column_names if _get_schema(dataset) else []
+        )
+
         cat_names, cont_names, label_names = _validate_schema(
             feature_columns, cat_names, cont_names, label_names, schema=dataset.schema
+        )
+
+        dataset.schema = _augment_schema(
+            dataset.schema,
+            cat_names,
+            cont_names,
+            label_names,
+            sparse_names,
+            sparse_max,
+            sparse_as_dense,
         )
 
         device = "cpu" if not HAS_GPU else device
@@ -287,108 +314,31 @@ class Loader(DataLoader, merlin.loader.tensorflow.Loader):
             global_rank = global_rank or hvd.rank()
             seed_fn = seed_fn or get_default_hvd_seed_fn()
 
-        DataLoader.__init__(
-            self,
+        super().__init__(
             dataset,
             batch_size,
-            shuffle,
-            cat_names=cat_names,
-            cont_names=cont_names,
-            label_names=label_names,
+            shuffle=shuffle,
             seed_fn=seed_fn,
             parts_per_chunk=parts_per_chunk,
             device=device,
             global_size=global_size,
             global_rank=global_rank,
             drop_last=drop_last,
-            sparse_names=sparse_names,
-            sparse_max=sparse_max,
-            sparse_as_dense=sparse_as_dense,
         )
-        self._transforms = [("all", transform)] if transform else []
-        self.multi_label_as_dict = multi_label_as_dict
-
-    def on_epoch_end(self):
-        """Method to call at the end of every epoch."""
-        DataLoader.stop(self)
-
-    def map(self, fn) -> "Loader":
-        """
-        Applying a function to each batch.
-
-        This can for instance be used to add `sample_weight` to the model.
-        """
-        self._transforms.append(("all", fn))
-
-        return self
-
-    def map_features(self, fn) -> "Loader":
-        def wrapped_fn(*inputs):
-            features = fn(inputs[0])
-
-            return features, *inputs[1:]
-
-        self._transforms.append(("features", wrapped_fn))
-
-        return self
-
-    def map_targets(self, fn) -> "Loader":
-        def wrapped_fn(*inputs):
-            targets = fn(inputs[1])
-
-            if len(inputs) > 2:
-                return inputs[0], targets, *inputs[2:]
-
-            return inputs[0], targets
-
-        self._transforms.append(("targets", wrapped_fn))
-
-        return self
-
-    @property
-    def _LONG_DTYPE(self):
-        return tf.int64
-
-    @property
-    def _FLOAT32_DTYPE(self):
-        return tf.float32
-
-    def _handle_tensors(self, cats, conts, labels):
-        to_return = super()._handle_tensors(cats, conts, labels)
-
-        if len(self.label_names) > 1 and self.multi_label_as_dict:
-            X, y = to_return
-            to_return = X, dict(zip(self.label_names, y))
-
-        for _, transform in self._transforms:
-            to_return = transform(*to_return)
-
-        return to_return
 
     @property
     def input_schema(self) -> Schema:
-        return self.data.schema
+        return self.dataset.schema
 
     @property
     def output_schema(self) -> Schema:
         schema = self.input_schema
 
-        for to, transform in self._transforms:
-            if hasattr(transform, "compute_output_schema"):
-                _schema = transform.compute_output_schema(schema)
+        for map_fn in self._map_fns:
+            if hasattr(map_fn, "compute_output_schema"):
+                schema = map_fn.compute_output_schema(schema)
             else:
-                raise ValueError(f"Couldn't infer schema from transform {transform}")
-
-            if to == "all":
-                schema = _schema
-            elif to == "features":
-                targets_schema = schema.select_by_tag(Tags.Target)
-                schema = _schema + targets_schema
-            elif to == "targets":
-                features_schema = schema.remove_by_tag(Tags.Target)
-                schema = features_schema + _schema
-            else:
-                raise ValueError(f"Unknown schema target {to}")
+                raise ValueError(f"Couldn't infer schema from transform {map_fn}")
 
         return schema
 

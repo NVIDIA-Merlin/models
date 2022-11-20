@@ -67,7 +67,7 @@ class TestAddRandomNegativesToBatch:
         )
         input_df = input_df[sorted(input_df.columns)]
         dataset = Dataset(input_df, schema=schema)
-        loader = mm.Loader(dataset, batch_size=10, transform=sampler)
+        loader = mm.Loader(dataset, batch_size=10).map(sampler)
         outputs, targets = next(iter(loader))
 
         output_dict = {
@@ -134,11 +134,8 @@ class TestAddRandomNegativesToBatch:
         def assert_fn(output_batch_size):
             assert batch_size < output_batch_size <= max_batch_size
 
-        self.assert_outputs_batch_size(
-            assert_fn,
-            outputs.values(),
-            targets.values(),
-        )
+        self.assert_outputs_batch_size(assert_fn, outputs.values())
+        assert_fn(targets.numpy().shape[0])
 
     @pytest.mark.parametrize("to_dense", [True, False])
     def test_run_when_testing(
@@ -161,11 +158,8 @@ class TestAddRandomNegativesToBatch:
         def assert_fn(output_batch_size):
             assert output_batch_size == batch_size
 
-        self.assert_outputs_batch_size(
-            assert_fn,
-            outputs.values(),
-            targets.values(),
-        )
+        self.assert_outputs_batch_size(assert_fn, outputs.values())
+        assert_fn(targets.numpy().shape[0])
 
     # The sampling layer currnetly only works correctly as part of the model when run in eager mode
     @pytest.mark.parametrize("run_eagerly", [True])
@@ -203,7 +197,7 @@ class TestAddRandomNegativesToBatch:
         add_negatives = InBatchNegatives(schema, 5, seed=tf_random_seed)
 
         batch_size, n_per_positive = 10, 5
-        loader = mm.Loader(dataset, batch_size=batch_size, transform=add_negatives)
+        loader = mm.Loader(dataset, batch_size=batch_size).map(add_negatives)
 
         features, targets = next(iter(loader))
 
@@ -214,9 +208,7 @@ class TestAddRandomNegativesToBatch:
         assert all(
             f.shape[0] > batch_size and f.shape[0] <= expected_batch_size for f in features.values()
         )
-        assert all(
-            f.shape[0] > batch_size and f.shape[0] <= expected_batch_size for f in targets.values()
-        )
+        assert targets.shape[0] > batch_size and targets.shape[0] <= expected_batch_size
 
         model = mm.Model(
             mm.InputBlock(schema),

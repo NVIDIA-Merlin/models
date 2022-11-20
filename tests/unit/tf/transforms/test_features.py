@@ -967,7 +967,7 @@ def test_to_target_loader():
     dataset = Dataset(input_df, schema=schema)
 
     # target is passed as a string.
-    loader0 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, "c"))
+    loader0 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, "c"))
     inputs0, targets0 = next(iter(loader0))
     assert sorted(inputs0.keys()) == ["a", "b"]
     assert targets0.numpy().tolist() == [[3], [6]]
@@ -976,7 +976,7 @@ def test_to_target_loader():
     # target is passed as a ColumnSchema
     target_column_schema = ColumnSchema("c", tags=[Tags.CATEGORICAL])
     assert Tags.TARGET not in target_column_schema.tags
-    loader1 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, target_column_schema))
+    loader1 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, target_column_schema))
     inputs1, targets1 = next(iter(loader1))
     assert sorted(inputs1.keys()) == ["a", "b"]
     assert targets1.numpy().tolist() == [[3], [6]]
@@ -985,14 +985,14 @@ def test_to_target_loader():
     # target is passed as a Schema
     target_schema = schema.select_by_name("c")
     assert not target_schema.select_by_tag(Tags.TARGET)
-    loader2 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, target_schema))
+    loader2 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, target_schema))
     inputs2, targets2 = next(iter(loader2))
     assert sorted(inputs2.keys()) == ["a", "b"]
     assert targets2.numpy().tolist() == [[3], [6]]
     assert loader2.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
     # target is passed as a Tag
-    loader3 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, Tags.ITEM))
+    loader3 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, Tags.ITEM))
     inputs3, targets3 = next(iter(loader3))
     assert sorted(inputs3.keys()) == ["a", "b"]
     assert targets3.numpy().tolist() == [[3], [6]]

@@ -73,8 +73,8 @@ def test_topk_encoder(music_streaming_data: Dataset):
     )
 
     # 3. Set data-loader for top-k recommendation
-    loader = mm.Loader(
-        music_streaming_data, batch_size=BATCH_SIZE, transform=mm.ToTarget(schema, "item_id")
+    loader = mm.Loader(music_streaming_data, batch_size=BATCH_SIZE).map(
+        mm.ToTarget(schema, "item_id")
     )
     batch = next(iter(loader))
 
