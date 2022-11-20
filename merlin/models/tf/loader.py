@@ -326,6 +326,10 @@ class Loader(merlin.loader.tensorflow.Loader):
             drop_last=drop_last,
         )
 
+    def on_epoch_end(self):
+        """Method to call at the end of every epoch."""
+        super().stop()
+
     @property
     def input_schema(self) -> Schema:
         return self.dataset.schema
