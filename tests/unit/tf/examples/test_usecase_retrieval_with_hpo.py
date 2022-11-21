@@ -1,6 +1,9 @@
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
+
+optuna = pytest.importorskip("optuna")
 
 
 @testbook(
