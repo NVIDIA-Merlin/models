@@ -56,7 +56,7 @@ def test_tf_tensors_generation_cpu():
 @pytest.mark.parametrize(
     ["generate_data_kwargs", "expected_sequence_length"],
     [
-        [{}, 5],  # this is the default value in the generate_data kwargs
+        [{}, 4],  # this is the default value in the generate_data kwargs
         [{"min_session_length": 6}, 6],
         [{"max_session_length": 8}, 8],
         [{"min_session_length": 1, "max_session_length": 8}, 8],
@@ -70,8 +70,8 @@ def test_sequence_data_length(generate_data_kwargs, expected_sequence_length):
 
     tensors, y = sample_batch(data, batch_size=1, process_lists=False)
 
-    assert all(tensors["item_id_seq"][1] == 6)
-    assert all(tensors["categories"][1] == 6)
+    assert all(tensors["item_id_seq"][1] == expected_sequence_length)
+    assert all(tensors["categories"][1] == expected_sequence_length)
 
 
 def test_generate_user_item_interactions_dtypes():
