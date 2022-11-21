@@ -46,6 +46,7 @@ KNOWN_DATASETS: Dict[str, Path] = {
     "aliccp-raw": HERE / "ecommerce/aliccp/raw",
     "dressipi2022-preprocessed": HERE / "ecommerce/dressipi/preprocessed/",
     "booking.com": HERE / "ecommerce/booking/transformed/",
+    "booking.com-raw": HERE / "ecommerce/booking/raw/",
     "transactions": HERE / "ecommerce/transactions",
 }
 
@@ -54,7 +55,7 @@ def generate_data(
     input: Union[Schema, Path, str],
     num_rows: int,
     set_sizes: Sequence[float] = (1.0,),
-    min_session_length=5,
+    min_session_length=4,
     max_session_length=None,
     device="cpu",
 ) -> Union[merlin.io.Dataset, Tuple[merlin.io.Dataset, ...]]:
@@ -232,7 +233,7 @@ def generate_user_item_interactions(
     if not is_list_feature:
         shape = num_interactions
     else:
-        shape = (num_interactions, item_id_col.value_count.max)  # type: ignore
+        shape = (num_interactions, max_session_length or min_session_length)  # type: ignore
     tmp = _array.clip(
         _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
         1,
@@ -373,7 +374,7 @@ def generate_random_list_feature(
                 )
             return list(_array.stack(padded_array, axis=0))
         else:
-            list_length = feature.value_count.max
+            list_length = min_session_length
             return list(
                 _array.random.randint(
                     1, feature.int_domain.max, (num_interactions, list_length)
@@ -397,7 +398,7 @@ def generate_random_list_feature(
                 )
             return list(_array.stack(padded_array, axis=0))
         else:
-            list_length = feature.value_count.max
+            list_length = min_session_length
             return list(
                 _array.random.uniform(
                     feature.float_domain.min,
