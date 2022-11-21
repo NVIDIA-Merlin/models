@@ -3,10 +3,7 @@ from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
-try:
-    import optuna  # noqa: F401
-except ImportError:
-    pytest.skip("No module named 'optuna'", allow_module_level=True)
+optuna = pytest.importorskip("optuna")
 
 
 @testbook(
