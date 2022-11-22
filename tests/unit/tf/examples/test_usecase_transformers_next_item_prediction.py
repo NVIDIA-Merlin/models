@@ -1,6 +1,9 @@
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
+
+pytest.importorskip("transformers")
 
 
 @testbook(REPO_ROOT / "examples/usecases/transformers-next-item-prediction.ipynb", execute=False)
