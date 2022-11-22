@@ -7,7 +7,7 @@ pytest.importorskip("transformers")
 
 
 @testbook(REPO_ROOT / "examples/usecases/transformers-next-item-prediction.ipynb", execute=False)
-def test_usecase_pretrained_embeddings(tb):
+def test_next_item_prediction(tb):
     tb.inject(
         """
         import os, random
