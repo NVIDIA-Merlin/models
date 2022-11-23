@@ -1,8 +1,10 @@
 # Test is currently breaks in TF 2.10
-
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
+
+pytest.importorskip("transformers")
 
 p = "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.ipynb"
 
@@ -30,6 +32,7 @@ def test_usecase_ecommerce_session_based(tb):
         p1.start()
         os.environ["DATA_FOLDER"] = "/tmp/dressipi2022/"
         os.environ["EPOCHS"] = "1"
+        os.environ["dmodel"] = "32"
         """
     )
     tb.execute()
