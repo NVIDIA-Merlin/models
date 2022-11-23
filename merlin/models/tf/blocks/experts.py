@@ -19,17 +19,47 @@ import tensorflow as tf
 
 from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
+from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.schema import Schema
 
 
 class MMOEGate(Block):
-    def __init__(self, num_experts: int, dim=32, name=None, **kwargs):
+    """MMoE Gate, which uses input features to generate softmax weights
+    in a weighted sum of expert outputs.
+
+    Parameters
+    ----------
+    num_experts : int
+        Number of experts, so that there is a weight for each expert
+    dim : int, optional
+        The dim that the input features will be projected by an inner MLP layer
+        of the gate, by default 32
+    softmax_temperature : float, optional
+        The temperature of the softmax that is used for weighting the experts outputs,
+        by default 1.0
+    enable_gate_weights_metric : bool, optional
+        Enables logging the average gate weights on experts
+    name : str, optional
+        Name of the block, by default None
+    """
+
+    def __init__(
+        self,
+        num_experts: int,
+        dim: int = 32,
+        softmax_temperature: float = 1.0,
+        enable_gate_weights_metrics: bool = False,
+        name: str = None,
+        **kwargs,
+    ):
         super().__init__(name=name, **kwargs)
         self.dim = dim
         self.num_experts = num_experts
+        self.softmax_temperature = softmax_temperature
+        self.enable_gate_weights_metrics = enable_gate_weights_metrics
+        self.gate_name = name
 
         self.gate = tf.keras.layers.Dense(dim, name=f"gate_{name}")
         self.softmax = tf.keras.layers.Dense(
@@ -37,30 +67,96 @@ class MMOEGate(Block):
         )
 
     def call(self, inputs: TabularData, **kwargs):
-        shortcut = inputs.pop("shortcut")
-        expert_outputs = list(inputs.values())[0]
+        """MMOE call
 
-        expanded_gate_output = tf.expand_dims(self.softmax(self.gate(shortcut)), axis=-1)
-        out = tf.reduce_sum(expert_outputs * expanded_gate_output, axis=1, keepdims=False)
+        Parameters
+        ----------
+        inputs : TabularData
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
+        inputs = dict(inputs)  # Creates a copy of the dict
+        if set(inputs.keys()) != set(["shortcut", "experts"]):
+            raise ValueError("MMoE gate expects a dict with 'shortcut' and 'experts' keys.")
+
+        inputs_shortcut, expert_outputs = inputs["shortcut"], inputs["experts"]
+
+        gate_weights = tf.expand_dims(
+            self.softmax(self.gate(inputs_shortcut) / self.softmax_temperature), axis=-1
+        )
+        out = tf.reduce_sum(expert_outputs * gate_weights, axis=1, keepdims=False)
+
+        if self.enable_gate_weights_metrics:
+            gate_weights_batch_mean = tf.reduce_mean(gate_weights, axis=0, keepdims=False)
+            for i in range(gate_weights.shape[1]):
+                self.add_metric(gate_weights_batch_mean[i], name=f"{self.gate_name}_weight_{i}")
 
         return out
 
     def compute_output_shape(self, input_shape):
-        return input_shape["shortcut"]
+        return tf.TensorShape([input_shape["experts"][0], input_shape["experts"][2]])
 
     def get_config(self):
         config = super().get_config()
-        config.update(dim=self.dim, num_experts=self.num_experts)
+        config.update(
+            dim=self.dim,
+            num_experts=self.num_experts,
+            softmax_temperature=self.softmax_temperature,
+            enable_gate_weights_metrics=self.enable_gate_weights_metrics,
+        )
 
         return config
 
 
 def MMOEBlock(
+    input_block: Optional[Block],
     outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
     expert_block: Block,
     num_experts: int,
     gate_dim: int = 32,
-):
+    gate_softmax_temperature: float = 1.0,
+    **gate_kwargs,
+) -> SequentialBlock:
+    """Implements the Multi-gate Mixture-of-Experts (MMoE) introduced in [1].
+
+    References
+    ----------
+    [1] Ma, Jiaqi, et al. "Modeling task relationships in multi-task learning with
+    multi-gate mixture-of-experts." Proceedings of the 24th ACM SIGKDD international
+    conference on knowledge discovery & data mining. 2018.
+
+    Parameters
+    ----------
+    input_block : Optional[Block]
+        The input block, that will be fed as input for each expert and
+        also for the gates, that control the weighted sum of experts
+        outputs
+    outputs : Union[List[str], List[PredictionTask], ParallelPredictionBlock]
+        List with the tasks. A gate is created for each task.
+    expert_block : Block
+        Expert block to be replicated, e.g. MLPBlock([64])
+    num_experts : int
+        Number of experts to be replicated
+    gate_dim : int, optional
+        Dimension to be used in an inner MLP layer within the gate, by default 32
+    gate_softmax_temperature : float, optional
+        The temperature used by the gates, by default 1.0.
+        It can be used to smooth the weights distribution over experts outputs.
+
+    Returns
+    -------
+    SequentialBlock
+        Outputs the sequence of blocks that implement MMOE
+    """
     if isinstance(outputs, ParallelPredictionBlock):
         output_names = outputs.task_names
     elif all(isinstance(x, PredictionTask) for x in outputs):
@@ -71,9 +167,21 @@ def MMOEBlock(
     experts = expert_block.repeat_in_parallel(
         num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
     )
-    gates = MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
-    mmoe = expert_block.connect_with_shortcut(experts, block_outputs_name="experts")
-    mmoe = mmoe.connect(gates, block_name="MMOE")
+
+    gates = {
+        output_name: MMOEGate(
+            num_experts,
+            dim=gate_dim,
+            softmax_temperature=gate_softmax_temperature,
+            name=f"gate_{output_name}",
+            **gate_kwargs,
+        )
+        for output_name in output_names
+    }
+    gates = ParallelBlock(gates)
+
+    mmoe = input_block.connect_with_shortcut(experts, block_outputs_name="experts")
+    mmoe = mmoe.connect(gates, block_name="mmoe")
 
     return mmoe
 
@@ -208,4 +316,18 @@ class CGCBlock(ParallelBlock):
 
 
 def create_expert(expert_block: Block, name: str) -> Tuple[str, TabularBlock]:
+    """Creates an expert from a block
+
+    Parameters
+    ----------
+    expert_block : Block
+        Expert Block
+    name : str
+        Expert name
+
+    Returns
+    -------
+    Tuple[str, TabularBlock]
+        Tuple with the expert name and block
+    """
     return name, expert_block.as_tabular(name)
