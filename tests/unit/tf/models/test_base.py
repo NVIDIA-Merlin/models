@@ -886,7 +886,7 @@ def test_categorical_prediction_with_temperature(sequence_testing_data: Dataset)
     schema_model = train.schema.select_by_name(["item_id_seq"])
     inputs = mm.InputBlockV2(
         schema_model,
-        embeddings=mm.Embeddings(
+        categorical=mm.Embeddings(
             schema_model,
         ),
     )
