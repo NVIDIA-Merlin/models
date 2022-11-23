@@ -195,15 +195,12 @@ class ItemRetrievalScorer(Block):
     def build(self, input_shapes):
         if isinstance(input_shapes, dict):
             query_shape = input_shapes[self.query_name]
-            self.context.add_variable(
-                tf.Variable(
-                    initial_value=tf.zeros([1, query_shape[-1]], dtype=tf.float32),
-                    name="query",
-                    trainable=False,
-                    validate_shape=False,
-                    dtype=tf.float32,
-                    shape=tf.TensorShape([None, query_shape[-1]]),
-                )
+            self.context.add_weight(
+                name="query",
+                shape=query_shape,
+                dtype=tf.float32,
+                trainable=False,
+                initializer=tf.keras.initializers.Zeros(),
             )
 
         super().build(input_shapes)
@@ -241,7 +238,17 @@ class ItemRetrievalScorer(Block):
         """
         if self.cache_query:
             # enabled only during top-k evaluation
-            self.context["query"].assign(tf.cast(inputs[self.query_name], tf.float32))
+
+            query = inputs[self.query_name]
+            context_query_size = tf.shape(self.context["query"])[0]
+            # pad with zeros to match shape of initial query variable
+            padding_size = context_query_size - tf.shape(query)[0]
+            if padding_size > 0:
+                query = tf.pad(query, [[0, padding_size], [0, 0]])
+
+            query = query[:context_query_size]
+
+            self.context["query"].assign(tf.cast(query, tf.float32))
 
         if training or testing:
             return inputs
