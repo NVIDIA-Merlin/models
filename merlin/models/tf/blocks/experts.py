@@ -66,23 +66,18 @@ class MMOEGate(Block):
             num_experts, use_bias=False, activation="softmax", name=f"gate_distribution_{name}"
         )
 
-    def call(self, inputs: TabularData, **kwargs):
+    def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
         """MMOE call
 
         Parameters
         ----------
         inputs : TabularData
-            _description_
+            Expects a dict/TabularData with "shortcut" (inputs) and "experts" blocks
 
         Returns
         -------
-        _type_
-            _description_
-
-        Raises
-        ------
-        ValueError
-            _description_
+        tf.Tensor
+            The experts outputs weighted by the gate
         """
         inputs = dict(inputs)  # Creates a copy of the dict
         if set(inputs.keys()) != set(["shortcut", "experts"]):
