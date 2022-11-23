@@ -53,11 +53,24 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks, r
 
 
 @testing_utils.mark_run_eagerly_modes
-def test_mmoe_head(music_streaming_data: Dataset, run_eagerly: bool):
-    inputs = ml.InputBlock(music_streaming_data.schema)
+@pytest.mark.parametrize(
+    "enable_gate_weights_metrics",
+    [False, True],
+)
+def test_mmoe_block(
+    music_streaming_data: Dataset, run_eagerly: bool, enable_gate_weights_metrics: bool
+):
+    inputs = ml.InputBlockV2(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
-    mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
-    model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
+    num_experts = 4
+    mmoe = ml.MMOEBlock(
+        inputs,
+        prediction_tasks,
+        expert_block=ml.MLPBlock([64]),
+        num_experts=num_experts,
+        enable_gate_weights_metrics=enable_gate_weights_metrics,
+    )
+    model = ml.Model(mmoe, prediction_tasks)
 
     loss_weights = {
         "click/binary_classification_task": 1.0,
@@ -70,29 +83,35 @@ def test_mmoe_head(music_streaming_data: Dataset, run_eagerly: bool):
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert metrics["loss"] >= 0
-    assert set(metrics.keys()) == set(
-        [
-            "loss",
-            "loss_batch",
-            "click/binary_classification_task_loss",
-            "like/binary_classification_task_loss",
-            "play_percentage/regression_task_loss",
-            "click/binary_classification_task_precision",
-            "click/binary_classification_task_recall",
-            "click/binary_classification_task_binary_accuracy",
-            "click/binary_classification_task_auc",
-            "like/binary_classification_task_precision_1",
-            "like/binary_classification_task_recall_1",
-            "like/binary_classification_task_binary_accuracy",
-            "like/binary_classification_task_auc_1",
-            "play_percentage/regression_task_root_mean_squared_error",
-            "regularization_loss",
-        ]
-    )
+
+    expected_metrics = [
+        "loss",
+        "loss_batch",
+        "click/binary_classification_task_loss",
+        "like/binary_classification_task_loss",
+        "play_percentage/regression_task_loss",
+        "click/binary_classification_task_precision",
+        "click/binary_classification_task_recall",
+        "click/binary_classification_task_binary_accuracy",
+        "click/binary_classification_task_auc",
+        "like/binary_classification_task_precision_1",
+        "like/binary_classification_task_recall_1",
+        "like/binary_classification_task_binary_accuracy",
+        "like/binary_classification_task_auc_1",
+        "play_percentage/regression_task_root_mean_squared_error",
+        "regularization_loss",
+    ]
+    if enable_gate_weights_metrics:
+        for task in loss_weights.keys():
+            for i in range(num_experts):
+                gate_metric_name = f"gate_{task}_weight_{i}"
+                expected_metrics.append(gate_metric_name)
+
+    assert set(metrics.keys()) == set(expected_metrics)
 
 
 @testing_utils.mark_run_eagerly_modes
-def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
+def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
     music_streaming_data: Dataset, run_eagerly: bool
 ):
     class CustomSampleWeight(Block):
@@ -109,12 +128,12 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
             outputs = outputs.copy_with_updates(sample_weight=targets)
             return outputs
 
-    inputs = ml.InputBlock(music_streaming_data.schema)
+    inputs = ml.InputBlockV2(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(
         music_streaming_data.schema, task_pre_dict={"like": CustomSampleWeight()}
     )
-    mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
-    model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
+    mmoe = ml.MMOEBlock(inputs, prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
+    model = ml.Model(mmoe, prediction_tasks)
 
     loss_weights = {
         "click/binary_classification_task": 1.0,
