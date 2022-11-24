@@ -13,7 +13,7 @@ models by incorporating standard components of deep learning recommender models 
 example offline
 datasets.
 
-In our initial releases, Merlin Models features a TensorFlow API. The PyTorch API is initiated, but incomplete.
+In our initial releases, Merlin Models features a TensorFlow API. The PyTorch API is initiated, but incomplete. We have PyTorch support for transformer-based, session-based recommender systems in the [Transformer4Rec](https://github.com/NVIDIA-Merlin/Transformers4Rec/) library.
 
 ### Benefits of Merlin Models
 
