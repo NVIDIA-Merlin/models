@@ -113,7 +113,7 @@ class MMOEGate(Block):
 
 
 def MMOEBlock(
-    input_block: Optional[Block],
+    input_block: Block,
     outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
     expert_block: Block,
     num_experts: int,
@@ -244,6 +244,7 @@ class CGCBlock(ParallelBlock):
         num_task_experts: int = 1,
         num_shared_experts: int = 1,
         add_shared_gate: bool = True,
+        gate_dim: int = 32,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
         **kwargs,
@@ -270,7 +271,11 @@ class CGCBlock(ParallelBlock):
         )
 
         post = CGCGateTransformation(
-            output_names, num_task_experts, num_shared_experts, add_shared_gate=add_shared_gate
+            output_names,
+            num_task_experts,
+            num_shared_experts,
+            add_shared_gate=add_shared_gate,
+            dim=gate_dim,
         )
         super().__init__(
             task_experts,
