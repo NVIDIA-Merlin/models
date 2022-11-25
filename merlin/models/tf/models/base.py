@@ -884,7 +884,7 @@ class BaseModel(tf.keras.Model):
         input_schema = getattr(self, "schema", None)
 
         if isinstance(x, Loader):
-            if input_schema is not None:
+            if isinstance(input_schema, Schema) and input_schema.column_names:
                 # If we have an input schema on the model,
                 # set this on the loader to ensure that
                 # the model receives only the features it requires
