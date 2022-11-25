@@ -22,8 +22,9 @@ import tensorflow as tf
 from tensorflow.test import TestCase
 
 import merlin.models.tf as mm
+from merlin.core.dispatch import make_df
 from merlin.datasets.synthetic import generate_data
-from merlin.io.dataset import Dataset
+from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -673,11 +674,51 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
+def test_saved_model_input_features(tmpdir):
+    dataset = Dataset(
+        make_df(
+            {
+                "a": [1, 2],
+                "b": [3, 4],
+                "click": [0, 1],
+            }
+        ),
+        schema=Schema(
+            [
+                ColumnSchema("a", tags=[Tags.CONTINUOUS], dtype=np.float32),
+                ColumnSchema(
+                    "b",
+                    tags=[Tags.CATEGORICAL],
+                    dtype=np.int32,
+                    properties={"domain": {"min": 0, "max": 10}},
+                ),
+                ColumnSchema(
+                    "click",
+                    tags=[Tags.TARGET],
+                    dtype=np.int32,
+                    properties={"domain": {"min": 0, "max": 1}},
+                ),
+            ]
+        ),
+    )
+    input_schema = dataset.schema.select_by_name(["a"])
+    model = mm.Model(
+        mm.InputBlockV2(input_schema),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+    model.compile()
+    model.fit(dataset, batch_size=2)
+    model.save(tmpdir)
+    reloaded_model = mm.Model.load(tmpdir)
+    signature = reloaded_model.signatures["serving_default"]
+    assert set(signature.structured_input_signature[1]) == {"a"}
+
+
 def test_save_and_load(tmpdir):
     dataset = generate_data("e-commerce", num_rows=10)
-    dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
     model = mm.Model(
-        mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
+        mm.InputBlockV2(dataset.schema.select_by_name(["user_age"])),
         mm.MLPBlock([4]),
         mm.BinaryClassificationTask("click"),
     )
