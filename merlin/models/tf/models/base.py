@@ -881,9 +881,20 @@ class BaseModel(tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
-        # Bind schema from dataset to model in case we can't infer it from the inputs
+        input_schema = getattr(self, "schema", None)
+
         if isinstance(x, Loader):
-            self.schema = x.schema
+            if input_schema is not None:
+                # If we have an input schema on the model,
+                # set this on the loader to ensure that
+                # the model receives only the features it requires
+                # this ensures that the saved model input signature
+                # matches the required input features
+                x.schema = self.schema + x.data.schema.select_by_tag(Tags.TARGET)
+            else:
+                # Bind input schema from dataset to model,
+                # to handle the case where this hasn't been set on an input block
+                self.schema = x.schema.excluding_by_tag(Tags.TARGET)
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
@@ -900,7 +911,8 @@ class BaseModel(tf.keras.Model):
         fit_kwargs = {
             k: v
             for k, v in locals().items()
-            if k not in ["self", "kwargs", "train_metrics_steps", "pre"] and not k.startswith("__")
+            if k not in ["self", "kwargs", "input_schema", "train_metrics_steps", "pre"]
+            and not k.startswith("__")
         }
 
         if pre:
