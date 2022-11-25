@@ -38,7 +38,7 @@ from merlin.core.dispatch import (
 )
 from merlin.io.shuffle import shuffle_df
 from merlin.models.loader.dataframe_iter import DataFrameIter
-from merlin.schema import Tags
+from merlin.schema import Schema, Tags
 
 
 def _num_steps(num_samples, step_size):
@@ -210,6 +210,7 @@ class DataLoader:
         sparse_as_dense=False,
     ):
         self.data = dataset
+        self._schema = None
         self.schema = _get_dataset_schema(dataset)
         # self.data is ddf format
         self.indices = cp.arange(self.data.npartitions)
@@ -222,19 +223,9 @@ class DataLoader:
         self.global_rank = global_rank or 0
         self._epochs = 1
 
-        self.cat_names = cat_names or (
-            self.schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET).column_names
-            if self.schema
-            else []
-        )
-        self.cont_names = cont_names or (
-            self.schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
-            if self.schema
-            else []
-        )
-        self.label_names = label_names or (
-            self.schema.select_by_tag(Tags.TARGET).column_names if self.schema else []
-        )
+        self.cat_names = cat_names or self.cat_names
+        self.cont_names = cont_names or self.cont_names
+        self.label_names = label_names or self.label_names
 
         if not self.cat_names and not self.cont_names:
             raise ValueError(
@@ -264,6 +255,45 @@ class DataLoader:
                 self, 1, num_parts=self.parts_per_chunk, shuffle=self.shuffle, epochs=self._epochs
             )
         return self.__buff
+
+    @property
+    def schema(self):
+        """Get schema of data to be loaded
+
+        Returns
+        -------
+        ~merlin.schema.Schema
+            Schema corresponding to the data
+        """
+        return self._schema
+
+    @schema.setter
+    def schema(self, value):
+        """Set schema property
+
+        Parameters
+        ----------
+        value : ~merlin.schema.Schema
+            The schema corresponding to data to be loaded.
+
+        Raises
+        ------
+        ValueError
+            When value provided doesn't match expected type
+        """
+        if not isinstance(value, Schema):
+            raise ValueError(
+                "schema value on loader must be of type merlin.io.Schema. "
+                f"provided: {type(value)}"
+            )
+        self._schema = value
+        self.cat_names = (
+            value.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET).column_names
+        )
+        self.cont_names = (
+            value.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
+        )
+        self.label_names = value.select_by_tag(Tags.TARGET).column_names
 
     @property
     def _buff_len(self):
