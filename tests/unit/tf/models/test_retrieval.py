@@ -220,6 +220,44 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
+def test_two_tower_retrieval_model_evaluate_after_fit_validation_should_raise(
+    ecommerce_data: Dataset, run_eagerly
+):
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    df = ecommerce_data.to_ddf().compute()
+    train_ds = Dataset(df[: len(df) // 2], schema=ecommerce_data.schema)
+    eval_ds = Dataset(df[len(df) // 2 :], schema=ecommerce_data.schema)
+
+    model = mm.TwoTowerModel(
+        schema=ecommerce_data.schema,
+        query_tower=mm.MLPBlock([128, 64]),
+        samplers=[mm.InBatchSampler()],
+    )
+    opt = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    model.compile(optimizer=opt, run_eagerly=run_eagerly)
+
+    num_epochs = 3
+    losses = model.fit(
+        train_ds,
+        batch_size=64,
+        epochs=num_epochs,
+        train_metrics_steps=3,
+        validation_data=eval_ds,
+        validation_steps=3,
+    )
+
+    expected_metrics = ["recall_at_10", "mrr_at_10", "ndcg_at_10", "map_at_10", "precision_at_10"]
+    expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
+    expected_metrics_all = expected_metrics + expected_loss_metrics
+    expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
+    assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
+
+    with pytest.raises(Exception) as exc_info:
+        _ = model.evaluate(eval_ds, item_corpus=train_ds, batch_size=10, return_dict=True)
+    assert "The model.evaluate() was called before without `item_corpus`" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_two_tower_model_v2(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_genres"]
@@ -274,7 +312,7 @@ def test_two_tower_model_save(tmpdir, ecommerce_data: Dataset):
         embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),
     )
 
-    testing_utils.model_test(model, dataset, reload_model=False)
+    testing_utils.model_test(model, dataset, reload_model=True)
 
     query_tower = model.retrieval_block.query_block()
     query_tower_path = Path(tmpdir) / "query_tower"
@@ -603,8 +641,6 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         epochs=1,
         steps_per_epoch=1,
         train_metrics_steps=3,
-        validation_data=ecommerce_data,
-        validation_steps=3,
     )
     assert len(losses.epoch) == 1
 
@@ -612,8 +648,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
     expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
-    expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
-    assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
+    assert set(losses.history.keys()) == set(expected_metrics_all)
 
     # TODO: This fails sometimes now
     # for metric_name in expected_metrics + expected_loss_metrics:
@@ -648,8 +683,6 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
         epochs=1,
         steps_per_epoch=1,
         train_metrics_steps=3,
-        validation_data=ecommerce_data,
-        validation_steps=3,
     )
     assert len(losses.epoch) == 1
 
@@ -657,8 +690,7 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
     expected_loss_metrics = ["loss", "loss_batch", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
-    expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
-    assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
+    assert set(losses.history.keys()) == set(expected_metrics_all)
 
     metrics = model.evaluate(
         ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True, steps=1

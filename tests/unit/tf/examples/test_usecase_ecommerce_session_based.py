@@ -1,8 +1,10 @@
 # Test is currently breaks in TF 2.10
-
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
+
+pytest.importorskip("transformers")
 
 p = "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.ipynb"
 
@@ -30,6 +32,7 @@ def test_usecase_ecommerce_session_based(tb):
         p1.start()
         os.environ["DATA_FOLDER"] = "/tmp/dressipi2022/"
         os.environ["EPOCHS"] = "1"
+        os.environ["dmodel"] = "32"
         """
     )
     tb.execute()
@@ -48,6 +51,19 @@ def test_usecase_ecommerce_session_based(tb):
     )
     metrics_bi_lstm = tb.ref("metrics_bi_lstm")
     assert set(metrics_bi_lstm.keys()) == set(
+        [
+            "loss",
+            "loss_batch",
+            "recall_at_100",
+            "mrr_at_100",
+            "ndcg_at_100",
+            "map_at_100",
+            "precision_at_100",
+            "regularization_loss",
+        ]
+    )
+    metrics_transformer = tb.ref("metrics_transformer")
+    assert set(metrics_transformer.keys()) == set(
         [
             "loss",
             "loss_batch",
