@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="_static/mystnb.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/custom.css" type="text/css" />
     <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/README.html" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
@@ -27,7 +28,14 @@
     <link rel="prev" title="Merlin Models" href="index.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+  <div class="banner">
+    <p class="banner">
+      Beginning in January 2023, versions for all NVIDIA Merlin projects
+      will change from semantic versioning like <code>4.0</code>
+      to calendar versioning like <code>23.01</code>.</p>
+  </div>
+
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
@@ -93,7 +101,7 @@ practices that are already baked into the library. The library simplifies how us
 models by incorporating standard components of deep learning recommender models and then researchers can benchmark the new models on
 example offline
 datasets.</p>
-<p>In our initial releases, Merlin Models features a TensorFlow API. The PyTorch API is initiated, but incomplete.</p>
+<p>In our initial releases, Merlin Models features a TensorFlow API. The PyTorch API is initiated, but incomplete. We have PyTorch support for transformer-based, session-based recommender systems in the <a class="reference external" href="https://github.com/NVIDIA-Merlin/Transformers4Rec/">Transformer4Rec</a> library.</p>
 <div class="section" id="benefits-of-merlin-models">
 <h2>Benefits of Merlin Models<a class="headerlink" href="#benefits-of-merlin-models" title="Permalink to this headline"></a></h2>
 <p><strong><a class="reference external" href="https://nvidia-merlin.github.io/models/main/models_overview.html">RecSys model implementations</a></strong> - The library provides a high-level API for classic and state-of-the-art deep learning architectures for recommender models.
