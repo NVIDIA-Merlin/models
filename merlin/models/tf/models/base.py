@@ -890,11 +890,15 @@ class BaseModel(tf.keras.Model):
                 # the model receives only the features it requires
                 # this ensures that the saved model input signature
                 # matches the required input features
-                x.schema = self.schema + x.data.schema.select_by_tag([Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION])
+                x.schema = self.schema + x.data.schema.select_by_tag(
+                    [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
+                )
             else:
                 # Bind input schema from dataset to model,
                 # to handle the case where this hasn't been set on an input block
-                self.schema = x.schema.excluding_by_tag([Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION])
+                self.schema = x.schema.excluding_by_tag(
+                    [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
+                )
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
