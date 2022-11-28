@@ -15,6 +15,7 @@
 #
 
 import logging
+import warnings
 from typing import Callable, Dict, Optional, Tuple, Type, Union
 
 from tensorflow.keras.layers import Layer
@@ -292,6 +293,14 @@ def InputBlockV2(
     """
     # If targets are passed, exclude these from the input block schema
     schema = schema.excluding_by_tag(Tags.TARGET)
+
+    if "embeddings" in branches:
+        warnings.warn(
+            "The `embeddings` argument is deprecated and should be replaced "
+            "by `categorical` argument",
+            DeprecationWarning,
+        )
+        categorical = branches["embeddings"]
 
     unparsed = {"categorical": categorical, "continuous": continuous, **branches}
     parsed = {}
