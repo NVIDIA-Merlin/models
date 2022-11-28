@@ -292,7 +292,7 @@ def InputBlockV2(
         continuous and embeddings
     """
     # If targets are passed, exclude these from the input block schema
-    schema = schema.excluding_by_tag(Tags.TARGET)
+    schema = schema.excluding_by_tag([Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION])
 
     if "embeddings" in branches:
         warnings.warn(
