@@ -293,7 +293,9 @@ class DataLoader:
         self.cont_names = (
             value.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
         )
-        self.label_names = value.select_by_tag(Tags.TARGET).column_names
+        self.label_names = value.select_by_tag(
+            [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
+        ).column_names
 
     @property
     def _buff_len(self):
