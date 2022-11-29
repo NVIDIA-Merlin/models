@@ -1,7 +1,9 @@
-# Test is currently breaks in TF 2.10
+# TODO: Test is currently breaks in TF 2.10
 
+import pytest
 from testbook import testbook
 
+from merlin.core.dispatch import HAS_GPU
 from tests.conftest import REPO_ROOT
 
 p = "examples/usecases/accelerate-training-of-large-embedding-tables-by-LazyAdam.ipynb"
@@ -12,6 +14,7 @@ p = "examples/usecases/accelerate-training-of-large-embedding-tables-by-LazyAdam
     timeout=180,
     execute=False,
 )
+@pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
 def test_usecase_accelerate_training_by_lazyadam(tb):
     tb.inject(
         """

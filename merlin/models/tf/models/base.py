@@ -1485,9 +1485,20 @@ class RetrievalModel(Model):
         return_dict=False,
         **kwargs,
     ):
-        self.has_item_corpus = False
-
         if item_corpus:
+            if getattr(self, "has_item_corpus", None) is False:
+                raise Exception(
+                    "The model.evaluate() was called before without `item_corpus` argument, "
+                    "(which is done internally by model.fit() with `validation_data` set) "
+                    "and you cannot use model.evaluate() after with `item_corpus` set "
+                    "due to a limitation in graph mode. "
+                    "Classes based on RetrievalModel (MatrixFactorizationModel,TwoTowerModel) "
+                    "are deprecated and we advice using MatrixFactorizationModelV2 and "
+                    "TwoTowerModelV2, where this issue does not happen because the evaluation "
+                    "over the item catalog is done separately by using "
+                    "`model.to_top_k_encoder().evaluate()."
+                )
+
             from merlin.models.tf.core.index import TopKIndexBlock
 
             self.has_item_corpus = True
@@ -1527,6 +1538,8 @@ class RetrievalModel(Model):
 
             if isinstance(self.prediction_tasks[0], ItemRetrievalTask):
                 self.prediction_tasks[0].set_retrieval_cache_query(True)  # type: ignore
+        else:
+            self.has_item_corpus = False
 
         return super().evaluate(
             x,

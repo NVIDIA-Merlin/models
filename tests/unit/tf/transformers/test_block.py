@@ -43,7 +43,7 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     query_encoder = mm.Encoder(
         mm.InputBlockV2(
             query_schema,
-            embeddings=mm.Embeddings(
+            categorical=mm.Embeddings(
                 query_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
@@ -167,7 +167,7 @@ def test_transformer_as_classfication_model(sequence_testing_data: Dataset, run_
     model = mm.Model(
         mm.InputBlockV2(
             schema,
-            embeddings=mm.Embeddings(schema, sequence_combiner=None),
+            categorical=mm.Embeddings(schema, sequence_combiner=None),
         ),
         BertBlock(
             d_model=EMBED_DIM,
@@ -246,7 +246,7 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     model = mm.Model(
         mm.InputBlockV2(
             seq_schema,
-            embeddings=mm.Embeddings(
+            categorical=mm.Embeddings(
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
@@ -280,7 +280,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
     model = mm.Model(
         mm.InputBlockV2(
             seq_schema,
-            embeddings=mm.Embeddings(
+            categorical=mm.Embeddings(
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
@@ -327,7 +327,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     model = mm.Model(
         mm.InputBlockV2(
             seq_schema,
-            embeddings=mm.Embeddings(
+            categorical=mm.Embeddings(
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
