@@ -703,10 +703,6 @@ class BaseModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
 
-            if isinstance(x, dict) and self.input_schema:
-                feature_names = set(self.input_schema.column_names)
-                x = {k: v for k, v in x.items() if k in feature_names}
-
             if getattr(self, "train_pre", None):
                 out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
                 if isinstance(out, Prediction):
@@ -1139,6 +1135,12 @@ class Model(BaseModel):
             The path to the saved model.
         """
         return tf.keras.models.load_model(export_path)
+
+    def __call__(self, inputs, *args, **kwargs):
+        if isinstance(inputs, dict) and isinstance(self.input_schema, Schema):
+            input_features = set(self.input_schema.column_names)
+            inputs = {k: v for k, v in inputs.items() if k in input_features}
+        return super().__call__(inputs, *args, **kwargs)
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
