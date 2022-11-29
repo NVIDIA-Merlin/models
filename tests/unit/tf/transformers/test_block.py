@@ -307,7 +307,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
     predictions = model.predict(loader, batch_size=8, steps=1)
     # TODO: Decide what should be the output of predictions for MLM (currently it predicts for all
     # positions of the sequence, but typically you want a single next-item prediction)
-    assert predictions.shape == (8, 4, 51997)
+    assert predictions.shape == (8, 5, 51997)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -339,7 +339,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
 
     inputs = itertools.islice(iter(loader), 1)
     outputs = model.predict(inputs, pre=seq_mask_random)
-    assert list(outputs.shape) == [8, 4, 51997]
+    assert list(outputs.shape) == [8, 5, 51997]
 
     testing_utils.model_test(
         model,

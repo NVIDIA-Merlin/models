@@ -651,6 +651,8 @@ class ReplaceMaskedEmbeddings(Block):
         self,
         inputs: Union[tf.Tensor, tf.RaggedTensor],
         targets: Optional[Union[tf.Tensor, tf.RaggedTensor, TabularData]] = None,
+        training: bool = False,
+        testing: bool = False,
     ) -> Union[tf.Tensor, tf.RaggedTensor]:
         """If the sequence of input embeddings or the corresponding sequential
         targets is masked (with `tensor._keras_mask` defined),
@@ -664,11 +666,28 @@ class ReplaceMaskedEmbeddings(Block):
         targets : Union[tf.Tensor, tf.RaggedTensor, TabularData], optional
             The target values, from which the mask can be extracted
             if targets inputs._keras_mask is defined.
+        training : bool, optional
+            Flag that indicates whether in training mode, by default True
+        testing : bool, optional
+            Flag that indicates whether in evaluation mode, by default True
         Returns
         -------
         Union[tf.Tensor, tf.RaggedTensor]
             If training, returns a tensor with the masked inputs replaced by the dummy embedding
         """
+        if not testing and not training:
+            # Infers the mask from the inputs or targets
+            mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
+            if not mask:
+                target_positions = tf.tile(
+                    tf.expand_dims(self.masked_embedding, 0), [tf.shape(inputs)[0], 1]
+                )
+                outputs = tf.concat([inputs, tf.expand_dims(target_positions, 1)], axis=1)
+                return outputs
+            else:
+                # TODO: mask should be defined if padded dense tensors are provided
+                pass
+
         outputs = inputs
         # Infers the mask from the inputs or targets
         mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
