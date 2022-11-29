@@ -68,6 +68,7 @@ def test_mmoe_block(
         prediction_tasks,
         expert_block=ml.MLPBlock([64]),
         num_experts=num_experts,
+        gate_block=ml.MLPBlock([32]),
         enable_gate_weights_metrics=enable_gate_weights_metrics,
     )
     model = ml.Model(mmoe, prediction_tasks)
