@@ -33,9 +33,12 @@ class MMOEGate(Block):
     ----------
     num_experts : int
         Number of experts, so that there is a weight for each expert
-    dim : int, optional
-        The dim that the input features will be projected by an inner MLP layer
-        of the gate, by default 32
+    gate_block : Block, optional
+        Allows for having a Block (e.g. MLPBlock([32])) to combine the inputs
+        before the final projection layer (created automatically)
+        that outputs a softmax distribution over the number of experts.
+        This might give more capacity to the gates to decide from the inputs
+        how to better combine the experts.
     softmax_temperature : float, optional
         The temperature of the softmax that is used for weighting the experts outputs,
         by default 1.0
@@ -48,22 +51,21 @@ class MMOEGate(Block):
     def __init__(
         self,
         num_experts: int,
-        dim: int = 32,
+        gate_block: Optional[Block] = None,
         softmax_temperature: float = 1.0,
         enable_gate_weights_metrics: bool = False,
         name: str = None,
         **kwargs,
     ):
         super().__init__(name=name, **kwargs)
-        self.dim = dim
         self.num_experts = num_experts
         self.softmax_temperature = softmax_temperature
         self.enable_gate_weights_metrics = enable_gate_weights_metrics
         self.gate_name = name
 
-        self.gate = tf.keras.layers.Dense(dim, name=f"gate_{name}")
-        self.softmax = tf.keras.layers.Dense(
-            num_experts, use_bias=False, activation="softmax", name=f"gate_distribution_{name}"
+        self.gate_block = gate_block
+        self.gate_final = tf.keras.layers.Dense(
+            num_experts, use_bias=False, name=f"gate_final_{name}"
         )
 
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
@@ -85,8 +87,13 @@ class MMOEGate(Block):
 
         inputs_shortcut, expert_outputs = inputs["shortcut"], inputs["experts"]
 
+        inputs_gate = inputs_shortcut
+        if self.gate_block is not None:
+            inputs_gate = self.gate_block(inputs_gate)
         gate_weights = tf.expand_dims(
-            self.softmax(self.gate(inputs_shortcut) / self.softmax_temperature), axis=-1
+            tf.nn.softmax(self.gate_final(inputs_gate) / self.softmax_temperature),
+            axis=-1,
+            name="gate_softmax",
         )
         out = tf.reduce_sum(expert_outputs * gate_weights, axis=1, keepdims=False)
 
@@ -117,7 +124,7 @@ def MMOEBlock(
     outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
     expert_block: Block,
     num_experts: int,
-    gate_dim: int = 32,
+    gate_block: Optional[Block] = None,
     gate_softmax_temperature: float = 1.0,
     **gate_kwargs,
 ) -> SequentialBlock:
@@ -141,8 +148,12 @@ def MMOEBlock(
         Expert block to be replicated, e.g. MLPBlock([64])
     num_experts : int
         Number of experts to be replicated
-    gate_dim : int, optional
-        Dimension to be used in an inner MLP layer within the gate, by default 32
+    gate_block : Block, optional
+        Allows for having a Block (e.g. MLPBlock([32])) to combine the inputs
+        before the final projection layer (created automatically)
+        that outputs a softmax distribution over the number of experts.
+        This might give more capacity to the gates to decide from the inputs
+        how to better combine the experts.
     gate_softmax_temperature : float, optional
         The temperature used by the gates, by default 1.0.
         It can be used to smooth the weights distribution over experts outputs.
@@ -166,7 +177,7 @@ def MMOEBlock(
     gates = {
         output_name: MMOEGate(
             num_experts,
-            dim=gate_dim,
+            gate_block=gate_block.copy() if gate_block else None,
             softmax_temperature=gate_softmax_temperature,
             name=f"gate_{output_name}",
             **gate_kwargs,
