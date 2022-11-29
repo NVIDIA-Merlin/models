@@ -703,6 +703,10 @@ class BaseModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
 
+            if isinstance(x, dict) and self.input_schema:
+                feature_names = set(self.input_schema.column_names)
+                x = {k: v for k, v in x.items() if k in feature_names}
+
             if getattr(self, "train_pre", None):
                 out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
                 if isinstance(out, Prediction):
@@ -854,6 +858,12 @@ class BaseModel(tf.keras.Model):
                 return_metrics[metric.name] = result
         return return_metrics
 
+    @property
+    def input_schema(self) -> Optional[Schema]:
+        schema = getattr(self, "schema", None)
+        if isinstance(schema, Schema) and schema.column_names:
+            return schema
+
     def fit(
         self,
         x=None,
@@ -881,24 +891,12 @@ class BaseModel(tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
-        input_schema = getattr(self, "schema", None)
-
-        if isinstance(x, Loader):
-            if isinstance(input_schema, Schema) and input_schema.column_names:
-                # If we have an input schema on the model,
-                # set this on the loader to ensure that
-                # the model receives only the features it requires
-                # this ensures that the saved model input signature
-                # matches the required input features
-                x.schema = self.schema + x.data.schema.select_by_tag(
-                    [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
-                )
-            else:
-                # Bind input schema from dataset to model,
-                # to handle the case where this hasn't been set on an input block
-                self.schema = x.schema.excluding_by_tag(
-                    [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
-                )
+        if isinstance(x, Loader) and not isinstance(self.input_schema, Schema):
+            # Bind input schema from dataset to model,
+            # to handle the case where this hasn't been set on an input block
+            self.schema = x.output_schema.excluding_by_tag(
+                [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
+            )
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
@@ -915,8 +913,7 @@ class BaseModel(tf.keras.Model):
         fit_kwargs = {
             k: v
             for k, v in locals().items()
-            if k not in ["self", "kwargs", "input_schema", "train_metrics_steps", "pre"]
-            and not k.startswith("__")
+            if k not in ["self", "kwargs", "train_metrics_steps", "pre"] and not k.startswith("__")
         }
 
         if pre:
