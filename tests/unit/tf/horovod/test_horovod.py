@@ -81,10 +81,14 @@ def test_horovod_multigpu_dlrm(
 
     # model.fit() will hang or terminate with error if all workers don't have
     # the same number of batches.
-    losses = model.fit(
-        train_loader,
-        batch_size=batch_size,
-    )
+    steps = 0
+    try:
+        while True:
+            inputs, target = next(train_loader)
+            losses = model.fit(inputs)
+            steps += 1
+    except StopIteration:
+        pass
 
     model.save(tmpdir)
 
@@ -96,9 +100,9 @@ def test_horovod_multigpu_dlrm(
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
     if hvd_installed:
-        assert losses.params["steps"] == 9 // hvd.size()
+        assert steps // hvd.size()
     else:
-        assert losses.params["steps"] == 9
+        assert steps == 9
 
     saved_model = "saved_model.pb"
     if hvd_installed and hvd.rank() == 0:
@@ -140,18 +144,27 @@ def test_horovod_multigpu_two_tower(
     model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([2]))
     model.compile(optimizer="adam", run_eagerly=False)
 
+    as_dense = mm.ListToDense()
+
     # model.fit() will hang or terminate with error if all workers don't have
     # the same number of batches.
-    losses = model.fit(train_loader, batch_size=batch_size, epochs=2)
+    steps = 0
+    try:
+        while True:
+            inputs, _ = next(train_loader)
+            losses = model.fit(as_dense(inputs), batch_size=batch_size, epochs=2)
+            steps += 1
+    except StopIteration:
+        pass
 
     model.save(tmpdir)
 
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
     if hvd_installed:
-        assert losses.params["steps"] == 9 // hvd.size()
+        assert steps == 9 // hvd.size()
     else:
-        assert losses.params["steps"] == 9
+        assert steps == 9
 
     saved_model = "saved_model.pb"
     if hvd_installed and hvd.rank() != 0:

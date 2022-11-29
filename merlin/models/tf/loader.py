@@ -15,16 +15,16 @@
 #
 import logging
 import os
-from typing import Protocol
+from typing import Optional, Protocol
 
 import dask.dataframe as dd
 import numpy as np
 import tensorflow as tf
 
-import merlin.loader.tensorflow
+import merlin.dataloader.tensorflow
 from merlin.core.dispatch import HAS_GPU
+from merlin.dataloader.tf_utils import get_dataset_schema_from_feature_columns
 from merlin.io import Dataset
-from merlin.loader.tf_utils import get_dataset_schema_from_feature_columns
 from merlin.models.loader.backend import _augment_schema
 from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.utils.schema_utils import select_targets
@@ -132,7 +132,7 @@ class SchemaAwareTransform(Protocol):
         ...
 
 
-class Loader(merlin.loader.tensorflow.Loader):
+class Loader(merlin.dataloader.tensorflow.Loader):
     """
     Override class to customize data loading for backward compatibility with
     older NVTabular releases.
@@ -347,12 +347,14 @@ class Loader(merlin.loader.tensorflow.Loader):
         return schema
 
 
-KerasSequenceValidater = KerasSequenceValidator = merlin.loader.tensorflow.KerasSequenceValidater
+KerasSequenceValidater = (
+    KerasSequenceValidator
+) = merlin.dataloader.tensorflow.KerasSequenceValidater
 
 
 def sample_batch(
     data: Dataset,
-    batch_size: int,
+    batch_size: Optional[int] = None,
     shuffle: bool = False,
     include_targets: bool = True,
     to_ragged: bool = False,
@@ -388,6 +390,8 @@ def sample_batch(
     from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged, ProcessList
 
     if not isinstance(data, Loader):
+        if not batch_size:
+            raise ValueError("Either use 'Loader' or specify 'batch_size'")
         data = Loader(data, batch_size=batch_size, shuffle=shuffle)
 
     batch = next(iter(data))

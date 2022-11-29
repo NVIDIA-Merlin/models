@@ -796,7 +796,6 @@ def reshape_categorical_input_tensor_for_encoding(
             )
 
     else:
-        # if feat_name in features_2d_last_dim or len(input.get_shape()) == 2:
         if feat_name in features_2d_last_dim or (
             input.get_shape()[-1] is not None and len(input.get_shape()) == 2
         ):
