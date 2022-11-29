@@ -85,7 +85,7 @@ def test_horovod_multigpu_dlrm(
     try:
         while True:
             inputs, target = next(train_loader)
-            losses = model.fit(inputs)
+            losses = model.fit(inputs, target)
             steps += 1
     except StopIteration:
         pass
