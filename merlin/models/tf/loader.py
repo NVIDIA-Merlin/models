@@ -15,7 +15,7 @@
 #
 import logging
 import os
-from typing import Optional, Protocol
+from typing import Optional, Protocol, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -326,10 +326,6 @@ class Loader(merlin.dataloader.tensorflow.Loader):
             drop_last=drop_last,
         )
 
-    def on_epoch_end(self):
-        """Method to call at the end of every epoch."""
-        super().stop()
-
     @property
     def input_schema(self) -> Schema:
         return self.dataset.schema
@@ -353,7 +349,7 @@ KerasSequenceValidater = (
 
 
 def sample_batch(
-    data: Dataset,
+    dataset_or_loader: Union[Dataset, Loader],
     batch_size: Optional[int] = None,
     shuffle: bool = False,
     include_targets: bool = True,
@@ -389,12 +385,14 @@ def sample_batch(
 
     from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged, ProcessList
 
-    if not isinstance(data, Loader):
+    if isinstance(dataset_or_loader, Dataset):
         if not batch_size:
             raise ValueError("Either use 'Loader' or specify 'batch_size'")
-        data = Loader(data, batch_size=batch_size, shuffle=shuffle)
+        loader = Loader(dataset_or_loader, batch_size=batch_size, shuffle=shuffle)
+    else:
+        loader = dataset_or_loader
 
-    batch = next(iter(data))
+    batch = loader.peek()
     # batch could be of type Prediction, so we can't unpack directly
     inputs, targets = batch[0], batch[1]
 
@@ -403,7 +401,7 @@ def sample_batch(
     elif to_dense:
         inputs = ListToDense()(inputs)
     if process_lists:
-        inputs = ProcessList(data.schema)(inputs)
+        inputs = ProcessList(loader.schema)(inputs)
     if not include_targets:
         return inputs
     return inputs, targets

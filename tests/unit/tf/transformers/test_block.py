@@ -181,8 +181,7 @@ def test_transformer_as_classification_model(sequence_testing_data: Dataset, run
         ),
     )
 
-    batch = next(loader)[0]
-    loader.stop()
+    batch = loader.peek()[0]
 
     outputs = model(batch)
     assert list(outputs.shape) == [50, 63]
@@ -295,8 +294,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
     )
     seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    inputs, targets = next(loader)
-    loader.stop()
+    inputs, targets = loader.peek()
 
     outputs = model(inputs, targets=targets, training=True)
     assert list(outputs.shape) == [8, 4, 51997]
@@ -345,7 +343,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     )
     seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    inputs = itertools.islice(iter(loader), 1)
+    inputs = loader.peek()
     outputs = model.predict(inputs, pre=seq_mask_random)
     assert list(outputs.shape) == [8, 4, 51997]
 
@@ -360,13 +358,14 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
 
     # This transform only extracts targets, but without applying mask
     seq_target_as_input_no_mask = mm.SequenceTargetAsInput(schema=seq_schema, target=target)
-    loader.stop()
+
     metrics_all_positions1 = model.evaluate(
-        loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
+        inputs1, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
     )
     loader.stop()
+
     metrics_all_positions2 = model.evaluate(
-        loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
+        inputs2, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
     )
 
     def _metrics_almost_equal(metrics1, metrics2):

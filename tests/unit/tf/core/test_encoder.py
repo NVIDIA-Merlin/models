@@ -77,8 +77,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
     loader = mm.Loader(music_streaming_data, batch_size=BATCH_SIZE).map(
         mm.ToTarget(schema, "item_id")
     )
-    batch = next(loader)
-    loader.stop()
+    batch = loader.peek()
 
     # 4. Define the top-k encoder
     topk_encoder = mm.TopKEncoder(

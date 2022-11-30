@@ -76,7 +76,7 @@ def assert_model_is_retrainable(
 
 def model_test(
     model: Model,
-    dataloader: Union[merlin.io.Dataset, Loader],
+    dataset_or_loader: Union[merlin.io.Dataset, Loader],
     run_eagerly: bool = True,
     optimizer="adam",
     epochs: int = 1,
@@ -88,8 +88,11 @@ def model_test(
 
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
 
-    if not isinstance(dataloader, Loader):
-        dataloader = Loader(dataloader, batch_size=50)
+    if isinstance(dataset_or_loader, merlin.io.Dataset):
+        dataloader = Loader(dataset_or_loader, batch_size=50)
+    else:
+        dataloader = dataset_or_loader
+
     batch = sample_batch(dataloader, to_ragged=reload_model)
 
     fit_kwargs = fit_kwargs or {}
