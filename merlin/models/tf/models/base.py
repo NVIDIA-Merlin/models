@@ -53,6 +53,7 @@ from merlin.models.tf.utils.tf_utils import (
     get_sub_blocks,
     maybe_serialize_keras_objects,
 )
+from merlin.models.utils import schema_utils
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -1084,6 +1085,7 @@ class Model(BaseModel):
         context: Optional[ModelContext] = None,
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
+        schema: Optional[Schema] = None,
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
@@ -1101,10 +1103,14 @@ class Model(BaseModel):
         self.context = context
         self._is_fitting = False
 
-        input_block_schemas = [
-            block.schema for block in self.submodules if getattr(block, "is_input", False)
-        ]
-        self.schema = sum(input_block_schemas, Schema())
+        if schema is not None:
+            self.schema = schema
+        else:
+            input_block_schemas = [
+                block.schema for block in self.submodules if getattr(block, "is_input", False)
+            ]
+            self.schema = sum(input_block_schemas, Schema())
+
         self.process_list = ProcessList(self.schema)
         self._frozen_blocks = set()
 
@@ -1294,6 +1300,8 @@ class Model(BaseModel):
     def from_config(cls, config, custom_objects=None):
         pre = config.pop("pre", None)
         post = config.pop("post", None)
+        schema = config.pop("schema", None)
+
         layers = [
             tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
             for conf in config.values()
@@ -1305,10 +1313,14 @@ class Model(BaseModel):
         if post is not None:
             post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
 
-        return cls(*layers, pre=pre, post=post)
+        if schema is not None:
+            schema = schema_utils.tensorflow_metadata_json_to_schema(schema)
+
+        return cls(*layers, pre=pre, post=post, schema=schema)
 
     def get_config(self):
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         for i, layer in enumerate(self.blocks):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
 
