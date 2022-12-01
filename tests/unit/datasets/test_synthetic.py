@@ -50,8 +50,7 @@ def test_tf_tensors_generation_cpu():
     assert tensors["user_id"].shape == (100, 1)
     assert tensors["user_age"].dtype == tf.float64
     for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():
-        assert isinstance(val, tf.SparseTensor)
-        assert val.shape[1] == 50
+        assert len(val) == 2
 
 
 @pytest.mark.parametrize(
@@ -72,10 +71,7 @@ def test_sequence_data_length(generate_data_kwargs, expected_sequence_length):
     tensors, y = sample_batch(data, batch_size=1, process_lists=False)
 
     for col in ["item_id_seq", "categories"]:
-        if "max_session_length" in generate_data_kwargs:
-            assert tensors[col].shape[1] == expected_sequence_length
-        else:
-            assert all(tensors[col][1] == expected_sequence_length)
+        assert all(tensors[col][1] == expected_sequence_length)
 
 
 def test_generate_user_item_interactions_dtypes():

@@ -343,7 +343,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     )
     seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    inputs = loader.peek()
+    inputs = itertools.islice(iter(loader), 1)
     outputs = model.predict(inputs, pre=seq_mask_random)
     assert list(outputs.shape) == [8, 4, 51997]
 
@@ -358,14 +358,13 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
 
     # This transform only extracts targets, but without applying mask
     seq_target_as_input_no_mask = mm.SequenceTargetAsInput(schema=seq_schema, target=target)
-
+    loader.stop()
     metrics_all_positions1 = model.evaluate(
-        inputs1, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
+        loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
     )
     loader.stop()
-
     metrics_all_positions2 = model.evaluate(
-        inputs2, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
+        loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
     )
 
     def _metrics_almost_equal(metrics1, metrics2):
