@@ -358,14 +358,16 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
 
     # This transform only extracts targets, but without applying mask
     seq_target_as_input_no_mask = mm.SequenceTargetAsInput(schema=seq_schema, target=target)
-    loader.stop()
-    metrics_all_positions1 = model.evaluate(
-        loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
-    )
-    loader.stop()
-    metrics_all_positions2 = model.evaluate(
-        loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
-    )
+
+    with Loader(sequence_testing_data, batch_size=8, shuffle=False) as loader:
+        metrics_all_positions1 = model.evaluate(
+            loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
+        )
+
+    with Loader(sequence_testing_data, batch_size=8, shuffle=False) as loader:
+        metrics_all_positions2 = model.evaluate(
+            loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
+        )
 
     def _metrics_almost_equal(metrics1, metrics2):
         return np.all(
