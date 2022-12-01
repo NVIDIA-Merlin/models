@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 import pytest
 import tensorflow as tf
@@ -54,14 +54,21 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks, r
 
 @testing_utils.mark_run_eagerly_modes
 @pytest.mark.parametrize(
+    "task_blocks",
+    [None, ml.MLPBlock([32])],
+)
+@pytest.mark.parametrize(
     "enable_gate_weights_metrics",
     [False, True],
 )
-def test_mmoe_block(
-    music_streaming_data: Dataset, run_eagerly: bool, enable_gate_weights_metrics: bool
+def test_mmoe_model(
+    music_streaming_data: Dataset,
+    run_eagerly: bool,
+    task_blocks: Optional[Block],
+    enable_gate_weights_metrics: bool,
 ):
     inputs = ml.InputBlockV2(music_streaming_data.schema)
-    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
+    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)
     num_experts = 4
     mmoe = ml.MMOEBlock(
         inputs,
@@ -201,13 +208,17 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
 
 
 @testing_utils.mark_run_eagerly_modes
-def test_ple_head(music_streaming_data: Dataset, run_eagerly: bool):
-    inputs = ml.InputBlock(music_streaming_data.schema)
-    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
+@pytest.mark.parametrize(
+    "task_blocks",
+    [None, ml.MLPBlock([32])],
+)
+def test_cgc_model(music_streaming_data: Dataset, run_eagerly: bool, task_blocks: Optional[Block]):
+    inputs = ml.InputBlockV2(music_streaming_data.schema)
+    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)
     cgc = ml.CGCBlock(
-        prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
+        prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=3
     )
-    model = ml.Model(inputs, ml.MLPBlock([64]), cgc, prediction_tasks)
+    model = ml.Model(inputs, cgc, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
