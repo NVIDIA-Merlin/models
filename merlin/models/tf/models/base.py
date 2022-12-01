@@ -89,6 +89,39 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
         self._is_first_batch = False
 
 
+def get_output_schema(export_path: str) -> Schema:
+    """Compute Output Schema
+
+    Parameters
+    ----------
+    export_path : str
+        Path to saved model directory
+
+    Returns
+    -------
+    Schema
+        Output Schema representing model outputs
+    """
+    model = tf.keras.models.load_model(export_path)
+    signature = model.signatures["serving_default"]
+
+    output_schema = Schema()
+    for output_name, output_spec in signature.structured_outputs.items():
+        col_schema = ColumnSchema(output_name, dtype=output_spec.dtype.as_numpy_dtype)
+        shape = output_spec.shape
+        if shape.rank > 1 and (shape[1] is None or shape[1] > 1):
+            is_ragged = shape[1] is None
+            col_schema = ColumnSchema(
+                output_name,
+                dtype=output_spec.dtype.as_numpy_dtype,
+                is_list=True,
+                is_ragged=is_ragged,
+            )
+        output_schema.column_schemas[output_name] = col_schema
+
+    return output_schema
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ModelBlock(Block, tf.keras.Model):
     """Block that extends `tf.keras.Model` to make it saveable."""
@@ -882,8 +915,8 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
         # Bind schema from dataset to model in case we can't infer it from the inputs
-        if isinstance(x, Loader):
-            self.schema = x.schema
+        if isinstance(x, Loader) and getattr(self, "schema", None) is None:
+            self.schema = x.schema.excluding_by_tag(Tags.TARGET)
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
@@ -1107,6 +1140,17 @@ class Model(BaseModel):
     ) -> None:
         """Saves the model to export_path as a Tensorflow Saved Model.
         Along with merlin model metadata.
+
+        Parameters
+        ----------
+        export_path : Union[str, os.PathLike]
+            Path where model will be saved to
+        include_optimizer : bool, optional
+            If False, do not save the optimizer state, by default True
+        save_traces : bool, optional
+            When enabled, will store the function traces for each layer. This
+            can be disabled, so that only the configs of each layer are
+            stored, by default True
         """
         super().save(
             export_path,
@@ -1114,7 +1158,9 @@ class Model(BaseModel):
             save_traces=save_traces,
             save_format="tf",
         )
-        save_merlin_metadata(export_path, self, self.schema, None)
+        input_schema = self.schema
+        output_schema = get_output_schema(export_path)
+        save_merlin_metadata(export_path, self, input_schema, output_schema)
 
     @classmethod
     def load(cls, export_path: Union[str, os.PathLike]) -> "Model":
