@@ -652,7 +652,7 @@ class BaseModel(tf.keras.Model):
         - Converts ragged targets (and their masks) to dense, so that they are compatible
         with most losses and metrics
         - Copies the targets mask to predictions mask, if defined
-        - One-hot encode targets if their tf.rank(targest) == tf.rank(predictions)-1
+        - One-hot encode targets if their tf.rank(targets) == tf.rank(predictions)-1
         - Ensures targets has the same shape and dtype as predicitnos
 
         Parameters

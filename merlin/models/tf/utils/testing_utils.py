@@ -167,7 +167,7 @@ def numeric_test(actual, expected):
 
 # This function is copied from keras/testing_infra/test_utils.py
 # We need it here because this was not publicly exposed prior to 2.9.0
-# and our CI tests muliple versions of tensorflow/keras
+# and our CI tests multiple versions of tensorflow/keras
 @disable_cudnn_autotune
 def layer_test(
     layer_cls,
