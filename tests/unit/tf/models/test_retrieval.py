@@ -858,10 +858,14 @@ def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly, t
         schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
     )
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=target_augmentation)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
 
     _, losses = testing_utils.model_test(
-        model, dataloader, reload_model=True, run_eagerly=run_eagerly
+        model,
+        dataloader,
+        reload_model=True,
+        run_eagerly=run_eagerly,
+        fit_kwargs=dict(pre=target_augmentation),
     )
 
     assert losses is not None
@@ -938,8 +942,10 @@ def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
         schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
     )
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=predict_next)
-    model, _ = testing_utils.model_test(model, dataloader, reload_model=False)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
+    model, _ = testing_utils.model_test(
+        model, dataloader, reload_model=False, fit_kwargs=dict(pre=predict_next)
+    )
 
     candidates = model.candidate_embeddings().compute()
     assert list(candidates.columns) == [str(i) for i in range(32)]
@@ -971,9 +977,11 @@ def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly
         schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
     )
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=predict_next)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
 
-    model, _ = testing_utils.model_test(model, dataloader, reload_model=False)
+    model, _ = testing_utils.model_test(
+        model, dataloader, reload_model=False, fit_kwargs=dict(pre=predict_next)
+    )
 
     # Top-K evaluation
     topk_model = model.to_top_k_encoder(k=20)
