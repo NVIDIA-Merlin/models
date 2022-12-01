@@ -300,3 +300,42 @@ class PopularityLogitsCorrection(Block):
         config["item_freq_probs"] = tf.convert_to_tensor(config["item_freq_probs"])
 
         return cls(**config)
+
+
+class RetrievalSampleWeight(Block):
+    def __init__(self, pos_class_weight, neg_class_weight=1, **kwargs):
+        """Generate the sample weights for positive and sampled
+        negative candiddates
+
+        Parameters
+        ----------
+        pos_class_weight : float
+            scalar weight of the positive class
+        neg_class_weight : float
+            scalar weight of the negative class
+        """
+        self.pos_class_weight = pos_class_weight
+        self.neg_class_weight = neg_class_weight
+        super().__init__(**kwargs)
+
+    def call(
+        self,
+        outputs: Prediction,
+        training=False,
+        testing=False,
+        **kwargs,
+    ) -> Prediction:
+        """Update the predictins returned by the
+        ConstrastiveOutput with a 2-D sample weights
+        for negative and positive candidates.
+        """
+        if training:
+            predictions = outputs.predictions
+            bs, num_samples = tf.shape(predictions)
+            # generate a 2-d matrix of sample weights
+            neg_samples = tf.ones((bs, num_samples - 1)) * self.neg_class_weight
+            pos_samples = tf.ones((bs, 1)) * self.pos_class_weight
+            samples_weights = tf.concat([pos_samples, neg_samples], axis=1)
+            samples_weights = tf.expand_dims(samples_weights, -1)
+            outputs = outputs.copy_with_updates(sample_weight=tf.cast(samples_weights, tf.float32))
+        return outputs

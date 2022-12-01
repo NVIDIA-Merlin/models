@@ -515,6 +515,36 @@ def test_two_tower_model_with_custom_options(
     )
 
 
+def test_two_tower_v2_with_sample_weight(ecommerce_data: Dataset):
+    from merlin.models.tf.transforms.bias import RetrievalSampleWeight
+
+    tower_dim = 64
+    data = ecommerce_data
+    data.schema = data.schema.select_by_name(["user_categories", "item_id"])
+    user_schema = data.schema.select_by_tag(Tags.USER)
+    user_inputs = mm.InputBlockV2(user_schema)
+    query = mm.Encoder(user_inputs, mm.MLPBlock([128, tower_dim]))
+    item_schema = data.schema.select_by_tag(Tags.ITEM)
+    item_inputs = mm.InputBlockV2(item_schema)
+    tower_dim = 64
+    candidate = mm.Encoder(item_inputs, mm.MLPBlock([128, tower_dim]))
+    output = mm.ContrastiveOutput(
+        DotProduct(),
+        post=None,
+        schema=data.schema.select_by_tag(Tags.ITEM_ID),
+        negative_samplers="in-batch",
+    )
+    model = mm.TwoTowerModelV2(query, candidate, outputs=output)
+    model.compile(run_eagerly=True)
+    batch = mm.sample_batch(data, batch_size=16)
+    # loss without sample weight
+    metrics1 = model.train_step(batch)
+    # loss with sample weight
+    model.blocks[-1].post = RetrievalSampleWeight(pos_class_weight=1, neg_class_weight=0.1)
+    metrics2 = model.train_step(batch)
+    assert metrics2["loss"] < metrics1["loss"]
+
+
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("logits_pop_logq_correction", [True, False])
 @pytest.mark.parametrize("loss", ["categorical_crossentropy", "bpr-max", "binary_crossentropy"])
