@@ -622,6 +622,41 @@ class SequenceMaskLast(SequenceTargetAsInput):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceMaskLastInference(Block):
+    def call(self, inputs, training=False, testing=False):
+        self.inference_mode = not training and not testing
+        if self.inference_mode:
+            # Extending sequences in one position by copying the last embedding
+            repeat = inputs[:, -1:, :]
+            # repeat = tf.expand_dims(repeat, 1)
+            inputs = tf.concat([inputs, repeat], axis=1)
+        return inputs
+
+    def compute_mask(self, inputs, mask=None):
+        """Selects (masks) the nex position after the
+        last valid (non-padded) position of the sequential targets
+        to be predicted.
+        This method is called by Keras after call()
+        and returns the mask that is going to be assigned
+        to the input tensors, being accessible
+        by tensor._keras_mask
+        """
+
+        targets_mask = None
+        if self.inference_mode:
+            if isinstance(inputs, tf.RaggedTensor):
+                row_lengths = inputs.row_lengths(1) + 1
+                max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+
+                padding_mask = tf.sequence_mask(row_lengths)
+                targets_mask = tf.ragged.boolean_mask(
+                    tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
+                )
+
+        return targets_mask
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ReplaceMaskedEmbeddings(Block):
     """Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
     by a dummy trainable single embedding at the positions to be masked.
@@ -636,6 +671,10 @@ class ReplaceMaskedEmbeddings(Block):
     at masked positions we avoid target leakage when training models with
     Masked Language Modeling (BERT-like)
     """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.supports_masking = True
 
     def build(self, input_shape):
         self.hidden_size = input_shape[-1]
@@ -675,19 +714,8 @@ class ReplaceMaskedEmbeddings(Block):
         Union[tf.Tensor, tf.RaggedTensor]
             If training, returns a tensor with the masked inputs replaced by the dummy embedding
         """
-        if not testing and not training:
-            # Infers the mask from the inputs or targets
-            mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
-            if not mask:
-                target_positions = tf.tile(
-                    tf.expand_dims(self.masked_embedding, 0), [tf.shape(inputs)[0], 1]
-                )
-                outputs = tf.concat([inputs, tf.expand_dims(target_positions, 1)], axis=1)
-                return outputs
-            else:
-                # TODO: mask should be defined if padded dense tensors are provided
-                pass
-
+        if not training and not testing:
+            return inputs
         outputs = inputs
         # Infers the mask from the inputs or targets
         mask = self._infer_mask_from_inputs_or_targets(inputs, targets)

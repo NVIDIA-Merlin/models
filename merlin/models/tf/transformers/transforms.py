@@ -37,8 +37,60 @@ class LastHiddenState(Layer):
         The output class returned by the HuggingFace transformer layer
     """
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.supports_masking = True
+
     def call(self, inputs: TFBaseModelOutputWithPoolingAndCrossAttentions):
         return inputs.last_hidden_state
+
+
+@Block.registry.register("inference_hidden_state")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class InferenceHiddenState(Layer):
+    """A post-processing layer to select the hidden state
+    of the next-item position, during inference.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.supports_masking = True
+
+    def call(
+        self,
+        inputs: tf.Tensor,
+        training: bool = False,
+        testing: bool = False,
+        mask: tf.Tensor = None,
+    ):
+        """Select the hidden state of the target position, during inference.
+        During training or testing, the inputs are returned
+        without any processing.
+
+        Parameters:
+        ----------
+        inputs: tf.Tensor
+            The 3-D output tensor returned by the transformer block
+        training : bool, optional
+            Flag that indicates whether in training mode, by default True
+        testing : bool, optional
+            Flag that indicates whether in evaluation mode, by default True
+        mask: tf.Tensor
+            Boolean tensor that indicates the target ("next-item") position at
+            inference.
+
+        Returns
+        -------
+        tf.Tensor
+            If inference, returns a 2-D tensor with the hidden states of
+            the target position
+        """
+        if not training and not testing:
+            if mask is not None:
+                if isinstance(mask, tf.RaggedTensor):
+                    mask = mask.to_tensor()
+                inputs = tf.reshape(tf.boolean_mask(inputs, mask), (-1, inputs.shape[-1]))
+        return inputs
 
 
 @Block.registry.register("pooler_output")
@@ -112,6 +164,10 @@ class LastHiddenStateAndAttention(Layer):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PrepareTransformerInputs(tf.keras.layers.Layer):
     """Prepare the dictionary of inputs expected by the transformer layer"""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.supports_masking = True
 
     def call(self, inputs: tf.Tensor) -> Dict[str, tf.Tensor]:
         if isinstance(inputs, tf.RaggedTensor):
