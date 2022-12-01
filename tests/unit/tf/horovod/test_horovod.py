@@ -88,13 +88,9 @@ def test_horovod_multigpu_dlrm(
     # 1 GPU, steps = 4 in each worker with 2 GPUS, steps = 3 in each worker
     # with 3 GPUS, and so on.
     steps = 0
-    try:
-        while True:
-            inputs, target = next(train_loader)
-            losses = model.fit(inputs, target)
-            steps += 1
-    except StopIteration:
-        pass
+    for inputs, target in train_loader:
+        losses = model.fit(inputs, target)
+        steps += 1
 
     model.save(tmpdir)
 
@@ -155,13 +151,9 @@ def test_horovod_multigpu_two_tower(
     # model.fit() will hang or terminate with error if all workers don't have
     # the same number of batches.
     steps = 0
-    try:
-        while True:
-            inputs, _ = next(train_loader)
-            losses = model.fit(as_dense(inputs), batch_size=batch_size, epochs=2)
-            steps += 1
-    except StopIteration:
-        pass
+    for inputs, _ in train_loader:
+        losses = model.fit(as_dense(inputs), batch_size=batch_size, epochs=2)
+        steps += 1
 
     model.save(tmpdir)
 
