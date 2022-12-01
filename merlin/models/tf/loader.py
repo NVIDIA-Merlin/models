@@ -326,6 +326,14 @@ class Loader(merlin.dataloader.tensorflow.Loader):
             drop_last=drop_last,
         )
 
+        # Override these parameters after initializing the parent dataloader
+        # class since the new dataloader will use sparse tensors for list
+        # columns by default, but sparse tensors were disabled by default
+        # and were optional in the old version of merlin.loader.
+        self.sparse_names = sparse_names or []
+        self.sparse_max = sparse_max or {}
+        self.sparse_as_dense = sparse_as_dense
+
     @property
     def input_schema(self) -> Schema:
         return self.dataset.schema
