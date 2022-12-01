@@ -81,6 +81,12 @@ def test_horovod_multigpu_dlrm(
 
     # model.fit() will hang or terminate with error if all workers don't have
     # the same number of batches.
+    # We use the try-except and while loop for the dataloader iterator and
+    # count the steps in each worker to check that the dataset is distributed
+    # acorss workers. If this works correctly in a multi-gpu setting, the steps
+    # should decrease with more workers, e.g., steps = 9 in each worker with
+    # 1 GPU, steps = 4 in each worker with 2 GPUS, steps = 3 in each worker
+    # with 3 GPUS, and so on.
     steps = 0
     try:
         while True:
