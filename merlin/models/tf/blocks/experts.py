@@ -81,7 +81,6 @@ class MMOEGate(Block):
         tf.Tensor
             The experts outputs weighted by the gate
         """
-        inputs = dict(inputs)  # Creates a copy of the dict
         if set(inputs.keys()) != set(["shortcut", "experts"]):
             raise ValueError("MMoE gate expects a dict with 'shortcut' and 'experts' keys.")
 
@@ -170,6 +169,9 @@ def MMOEBlock(
     else:
         output_names = outputs  # type: ignore
 
+    if not isinstance(expert_block, Block):
+        expert_block = Block.from_layer(expert_block)
+
     experts = expert_block.repeat_in_parallel(
         num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
     )
@@ -199,7 +201,9 @@ class CGCGateTransformation(TabularBlock):
         num_task_experts: int = 1,
         num_shared_experts: int = 1,
         add_shared_gate: bool = True,
-        dim: int = 32,
+        gate_block: Optional[Block] = None,
+        gate_softmax_temperature: float = 1.0,
+        enable_gate_weights_metrics: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -207,17 +211,29 @@ class CGCGateTransformation(TabularBlock):
         self.task_names = [*task_names, "shared"] if add_shared_gate else task_names
         self.stack = StackFeatures(axis=1)
         self.gate_dict: Dict[str, MMOEGate] = {
-            name: MMOEGate(num_total_experts, dim=dim) for name in task_names
+            name: MMOEGate(
+                num_total_experts,
+                gate_block=gate_block,
+                softmax_temperature=gate_softmax_temperature,
+                enable_gate_weights_metrics=enable_gate_weights_metrics,
+                name=f"gate_{name}",
+            )
+            for name in task_names
         }
 
         if add_shared_gate:
             self.gate_dict["shared"] = MMOEGate(
-                len(task_names) * num_task_experts + num_shared_experts, dim=dim
+                (len(task_names) * num_task_experts) + num_shared_experts,
+                gate_block=gate_block,
+                softmax_temperature=gate_softmax_temperature,
+                enable_gate_weights_metrics=enable_gate_weights_metrics,
+                name="shared_gate",
             )
 
     def call(self, expert_outputs: TabularData, **kwargs) -> TabularData:  # type: ignore
         outputs: TabularData = {}
 
+        expert_outputs = dict(expert_outputs)  # Copying the dict
         shortcut = expert_outputs.pop("shortcut")
         outputs["shortcut"] = shortcut
 
@@ -244,7 +260,8 @@ class CGCGateTransformation(TabularBlock):
     def compute_output_shape(self, input_shape):
         tensor_output_shape = list(input_shape.values())[0]
 
-        return {name: tensor_output_shape for name in self.task_names}
+        output_shapes = {name: tensor_output_shape for name in self.task_names}
+        return output_shapes
 
 
 class CGCBlock(ParallelBlock):
@@ -255,13 +272,16 @@ class CGCBlock(ParallelBlock):
         num_task_experts: int = 1,
         num_shared_experts: int = 1,
         add_shared_gate: bool = True,
-        gate_dim: int = 32,
+        gate_block: Optional[Block] = None,
+        gate_softmax_temperature: float = 1.0,
+        enable_gate_weights_metrics: bool = False,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
         **kwargs,
     ):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
+        self.expert_block = expert_block
 
         if isinstance(outputs, ParallelPredictionBlock):
             output_names = outputs.task_names
@@ -286,7 +306,9 @@ class CGCBlock(ParallelBlock):
             num_task_experts,
             num_shared_experts,
             add_shared_gate=add_shared_gate,
-            dim=gate_dim,
+            gate_block=gate_block,
+            gate_softmax_temperature=gate_softmax_temperature,
+            enable_gate_weights_metrics=enable_gate_weights_metrics,
         )
         super().__init__(
             task_experts,
