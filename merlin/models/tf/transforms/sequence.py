@@ -659,17 +659,23 @@ class SequenceMaskLastInference(Block):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ReplaceMaskedEmbeddings(Block):
     """Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
-    by a dummy trainable single embedding at the positions to be masked.
-    This block looks for the Keras mask (`._keras_mask`) in the following order:
-      1. Checks if the input tensor has a mask
-      2. Checks if there is a single target and if it has a mask
-      3. If there are multiple targets (dict) returns the mask of the target
-      that matches the first 2 dims of the input
-    This is useful to be used when PredictMasked() transformation is used in
-    the Loader, which randomly selects some targets to be predicted and uses
-    Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
-    at masked positions we avoid target leakage when training models with
-    Masked Language Modeling (BERT-like)
+     by a dummy trainable single embedding at the positions to be masked.
+     This block looks for the Keras mask (`._keras_mask`) in the following order:
+       1. Checks if the input tensor has a mask
+       2. Checks if there is a single target and if it has a mask
+       3. If there are multiple targets (dict) returns the mask of the target
+       that matches the first 2 dims of the input
+     This is useful to be used when PredictMasked() transformation is used in
+     the Loader, which randomly selects some targets to be predicted and uses
+     Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
+     at masked positions we avoid target leakage when training models with
+     Masked Language Modeling (BERT-like)
+
+     **Note:** To support inference, the input sequence and its corresponding mask should be
+     extended by one position at the end to account for the next-item (`target`) position.
+     To do this, you should set `SequenceMaskLastInference` as a pre-layer of
+    `ReplaceMaskedEmbeddings()` using the sequential-block:
+    ```mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()])```
     """
 
     def __init__(self, **kwargs):
@@ -690,8 +696,6 @@ class ReplaceMaskedEmbeddings(Block):
         self,
         inputs: Union[tf.Tensor, tf.RaggedTensor],
         targets: Optional[Union[tf.Tensor, tf.RaggedTensor, TabularData]] = None,
-        training: bool = False,
-        testing: bool = False,
     ) -> Union[tf.Tensor, tf.RaggedTensor]:
         """If the sequence of input embeddings or the corresponding sequential
         targets is masked (with `tensor._keras_mask` defined),
@@ -705,17 +709,11 @@ class ReplaceMaskedEmbeddings(Block):
         targets : Union[tf.Tensor, tf.RaggedTensor, TabularData], optional
             The target values, from which the mask can be extracted
             if targets inputs._keras_mask is defined.
-        training : bool, optional
-            Flag that indicates whether in training mode, by default True
-        testing : bool, optional
-            Flag that indicates whether in evaluation mode, by default True
         Returns
         -------
         Union[tf.Tensor, tf.RaggedTensor]
             If training, returns a tensor with the masked inputs replaced by the dummy embedding
         """
-        if not training and not testing:
-            return inputs
         outputs = inputs
         # Infers the mask from the inputs or targets
         mask = self._infer_mask_from_inputs_or_targets(inputs, targets)

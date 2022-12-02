@@ -15,7 +15,6 @@ from merlin.models.tf.transformers.block import (
     RobertaBlock,
     XLNetBlock,
 )
-from merlin.models.tf.transforms.sequence import SequenceMaskLastInference
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -286,7 +285,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
             d_model=48,
             n_head=8,
             n_layer=2,
-            pre=mm.SequentialBlock([SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()]),
+            pre=mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()]),
             post="inference_hidden_state",
         ),
         mm.CategoricalOutput(

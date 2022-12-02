@@ -61,7 +61,6 @@ class InferenceHiddenState(Layer):
         inputs: tf.Tensor,
         training: bool = False,
         testing: bool = False,
-        mask: tf.Tensor = None,
     ):
         """Select the hidden state of the target position, during inference.
         During training or testing, the inputs are returned
@@ -75,9 +74,6 @@ class InferenceHiddenState(Layer):
             Flag that indicates whether in training mode, by default True
         testing : bool, optional
             Flag that indicates whether in evaluation mode, by default True
-        mask: tf.Tensor
-            Boolean tensor that indicates the target ("next-item") position at
-            inference.
 
         Returns
         -------
@@ -86,10 +82,10 @@ class InferenceHiddenState(Layer):
             the target position
         """
         if not training and not testing:
-            if mask is not None:
-                if isinstance(mask, tf.RaggedTensor):
-                    mask = mask.to_tensor()
-                inputs = tf.reshape(tf.boolean_mask(inputs, mask), (-1, inputs.shape[-1]))
+            if getattr(inputs, "_keras_mask", None) is not None:
+                inputs = tf.reshape(
+                    tf.boolean_mask(inputs, inputs._keras_mask), (-1, inputs.shape[-1])
+                )
         return inputs
 
 
@@ -170,9 +166,16 @@ class PrepareTransformerInputs(tf.keras.layers.Layer):
         self.supports_masking = True
 
     def call(self, inputs: tf.Tensor) -> Dict[str, tf.Tensor]:
+        mask = None
+        if getattr(inputs, "_keras_mask", None) is not None and isinstance(
+            inputs._keras_mask, tf.RaggedTensor
+        ):
+            mask = inputs._keras_mask.to_tensor()
         if isinstance(inputs, tf.RaggedTensor):
             # convert to a dense tensor as HF transformers do not support ragged tensors
             inputs = inputs.to_tensor()
+        if mask is not None:
+            inputs._keras_mask = mask
         return {"inputs_embeds": inputs}
 
 
