@@ -22,10 +22,9 @@ from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
-from merlin.schema import Schema
 
 
-class MMOEGate(Block):
+class ExpertsGate(Block):
     """MMoE Gate, which uses input features to generate softmax weights
     in a weighted sum of expert outputs.
 
@@ -177,7 +176,7 @@ def MMOEBlock(
     )
 
     gates = {
-        output_name: MMOEGate(
+        output_name: ExpertsGate(
             num_experts,
             gate_block=gate_block.copy() if gate_block else None,
             softmax_temperature=gate_softmax_temperature,
@@ -210,10 +209,10 @@ class CGCGateTransformation(TabularBlock):
         num_total_experts = num_task_experts + num_shared_experts
         self.task_names = [*task_names, "shared"] if add_shared_gate else task_names
         self.stack = StackFeatures(axis=1)
-        self.gate_dict: Dict[str, MMOEGate] = {
-            name: MMOEGate(
+        self.gate_dict: Dict[str, ExpertsGate] = {
+            name: ExpertsGate(
                 num_total_experts,
-                gate_block=gate_block,
+                gate_block=gate_block.copy() if gate_block else None,
                 softmax_temperature=gate_softmax_temperature,
                 enable_gate_weights_metrics=enable_gate_weights_metrics,
                 name=f"gate_{name}",
@@ -222,7 +221,7 @@ class CGCGateTransformation(TabularBlock):
         }
 
         if add_shared_gate:
-            self.gate_dict["shared"] = MMOEGate(
+            self.gate_dict["shared"] = ExpertsGate(
                 (len(task_names) * num_task_experts) + num_shared_experts,
                 gate_block=gate_block,
                 softmax_temperature=gate_softmax_temperature,
@@ -275,13 +274,11 @@ class CGCBlock(ParallelBlock):
         gate_block: Optional[Block] = None,
         gate_softmax_temperature: float = 1.0,
         enable_gate_weights_metrics: bool = False,
-        schema: Optional[Schema] = None,
         name: Optional[str] = None,
         **kwargs,
     ):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
-        self.expert_block = expert_block
 
         if isinstance(outputs, ParallelPredictionBlock):
             output_names = outputs.task_names
@@ -315,7 +312,6 @@ class CGCBlock(ParallelBlock):
             shared_experts,
             post=post,
             aggregation=None,
-            schema=schema,
             name=name,
             strict=False,
             **kwargs,
@@ -363,4 +359,37 @@ def create_expert(expert_block: Block, name: str) -> Tuple[str, TabularBlock]:
     Tuple[str, TabularBlock]
         Tuple with the expert name and block
     """
-    return name, expert_block.as_tabular(name)
+    return name, expert_block.copy().as_tabular(name)
+
+
+def PLEBlock(
+    num_layers: int,
+    outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
+    expert_block: Union[Block, tf.keras.layers.Layer],
+    num_task_experts: int = 1,
+    num_shared_experts: int = 1,
+    gate_block: Optional[Block] = None,
+    gate_softmax_temperature: float = 1.0,
+    enable_gate_weights_metrics: bool = False,
+    name: Optional[str] = None,
+    **kwargs,
+):
+    cgc_blocks = []
+
+    for i in range(num_layers):
+        cgc_block = CGCBlock(
+            outputs=outputs,
+            expert_block=expert_block,
+            num_task_experts=num_task_experts,
+            num_shared_experts=num_shared_experts,
+            add_shared_gate=(i < num_layers - 1),
+            gate_block=gate_block,
+            gate_softmax_temperature=gate_softmax_temperature,
+            enable_gate_weights_metrics=enable_gate_weights_metrics,
+            name=f"cgc_block_{i}",
+            **kwargs,
+        )
+        cgc_blocks.append(cgc_block)
+
+    cgc_blocks = SequentialBlock(*cgc_blocks, name=name)
+    return cgc_blocks
