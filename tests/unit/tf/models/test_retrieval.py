@@ -819,21 +819,20 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
     as_ragged = mm.ListToRagged()
 
-    def last_interaction_as_target(inputs, targets):
-        inputs = as_ragged(inputs)
-        items = inputs["item_id_seq"]
-        _items = items[:, :-1]
-        targets = items[:, -1:].flat_values
+    class LastInteractionAsTarget(tf.keras.layers.Layer):
+        def call(self, inputs, **kwargs):
+            inputs = as_ragged(inputs)
+            items = inputs["item_id_seq"]
+            _items = items[:, :-1]
+            targets = items[:, -1:].flat_values
 
-        inputs["item_id_seq"] = _items
+            inputs["item_id_seq"] = _items
 
-        return inputs, targets
+            return inputs, targets
 
-    dataloader = mm.Loader(
-        sequence_testing_data, batch_size=50, transform=last_interaction_as_target
-    )
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
 
-    losses = model.fit(dataloader, epochs=1)
+    losses = model.fit(dataloader, epochs=1, pre=LastInteractionAsTarget())
 
     assert losses is not None
 
