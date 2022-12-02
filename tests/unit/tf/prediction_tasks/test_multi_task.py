@@ -208,6 +208,32 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
 
 
 @testing_utils.mark_run_eagerly_modes
+def test_mmoe_model_serialization(music_streaming_data: Dataset, run_eagerly: bool):
+    inputs = mm.InputBlockV2(music_streaming_data.schema)
+    prediction_tasks = mm.PredictionTasks(
+        music_streaming_data.schema, task_blocks=mm.MLPBlock([32])
+    )
+    num_experts = 4
+    mmoe = mm.MMOEBlock(
+        inputs,
+        prediction_tasks,
+        expert_block=mm.MLPBlock([64]),
+        num_experts=num_experts,
+        gate_block=mm.MLPBlock([26]),
+    )
+    model = mm.Model(mmoe, prediction_tasks)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    loader = mm.Loader(music_streaming_data, batch_size=8, shuffle=False)
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=False,
+    )
+
+
+@testing_utils.mark_run_eagerly_modes
 @pytest.mark.parametrize(
     "task_blocks",
     [None, mm.MLPBlock([32])],
@@ -269,6 +295,14 @@ def test_ple_model(music_streaming_data: Dataset, run_eagerly: bool, task_blocks
     model = mm.Model(inputs, cgc, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
+    loader = mm.Loader(music_streaming_data, batch_size=8, shuffle=False)
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=True,
+    )
+
     metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
 
     assert metrics["loss"] >= 0
@@ -290,4 +324,29 @@ def test_ple_model(music_streaming_data: Dataset, run_eagerly: bool, task_blocks
             "play_percentage/regression_task_root_mean_squared_error",
             "regularization_loss",
         ]
+    )
+
+
+@testing_utils.mark_run_eagerly_modes
+def test_ple_model_serialization(music_streaming_data: Dataset, run_eagerly: bool):
+    schema = music_streaming_data.schema
+    inputs = mm.InputBlockV2(music_streaming_data.schema)
+    prediction_tasks = mm.PredictionTasks(schema, task_blocks=mm.MLPBlock([32]))
+    cgc = mm.PLEBlock(
+        num_layers=1,
+        outputs=prediction_tasks,
+        expert_block=mm.MLPBlock([64]),
+        num_task_experts=2,
+        num_shared_experts=3,
+        gate_block=mm.MLPBlock([16]),
+    )
+    model = mm.Model(inputs, cgc, prediction_tasks)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    loader = mm.Loader(music_streaming_data, batch_size=8, shuffle=False)
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=False,
     )
