@@ -97,8 +97,8 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
-        x, _ = sample_batch(dataset, batch_size=50, to_ragged=False, process_lists=False)
-        batch = [(x,)]
+        x, y = sample_batch(dataset, batch_size=50, to_ragged=False, process_lists=False)
+        batch = [(x, y)]
 
         np.testing.assert_array_almost_equal(
             model.predict(iter(batch)),
