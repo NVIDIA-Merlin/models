@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import os
 from typing import Dict, Optional, Union
 
 import numpy as np
@@ -21,11 +22,12 @@ import tensorflow as tf
 from packaging import version
 
 import merlin.io
+from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
-from merlin.models.tf.models.base import BaseModel
+from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
 from merlin.models.tf.utils import tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
@@ -205,6 +207,36 @@ class Encoder(tf.keras.Model):
             # required args, which is wrong. This is a workaround.
             _arg_spec = self._saved_model_arg_spec
             self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
+
+    def save(
+        self,
+        export_path: Union[str, os.PathLike],
+        include_optimizer=True,
+        save_traces=True,
+    ) -> None:
+        """Saves the model to export_path as a Tensorflow Saved Model.
+        Along with merlin model metadata.
+
+        Parameters
+        ----------
+        export_path : Union[str, os.PathLike]
+            Path where model will be saved to
+        include_optimizer : bool, optional
+            If False, do not save the optimizer state, by default True
+        save_traces : bool, optional
+            When enabled, will store the function traces for each layer. This
+            can be disabled, so that only the configs of each layer are
+            stored, by default True
+        """
+        super().save(
+            export_path,
+            include_optimizer=include_optimizer,
+            save_traces=save_traces,
+            save_format="tf",
+        )
+        input_schema = self.schema
+        output_schema = get_output_schema(export_path)
+        save_merlin_metadata(export_path, self, input_schema, output_schema)
 
     @property
     def to_call(self):
