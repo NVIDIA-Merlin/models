@@ -987,5 +987,5 @@ def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly
     topk_model = model.to_top_k_encoder(k=20)
     topk_model.compile(run_eagerly=run_eagerly)
 
-    metrics = topk_model.evaluate(dataloader, return_dict=True)
+    metrics = topk_model.evaluate(dataloader, return_dict=True, pre=predict_next)
     assert all([metric >= 0 for metric in metrics.values()])
