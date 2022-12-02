@@ -736,6 +736,15 @@ class BaseModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
 
+            # Ensure that we don't have any ragged or sparse tensors passed at training time.
+            if isinstance(x, dict):
+                for k in x:
+                    if isinstance(x[k], (tf.RaggedTensor, tf.SparseTensor)):
+                        raise ValueError(
+                            "Training with RaggedTensor or SparseTensor inputs is unsupported. "
+                            "Please update your loader to pass dense tensors. "
+                        )
+
             if getattr(self, "train_pre", None):
                 out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
                 if isinstance(out, Prediction):
@@ -747,15 +756,6 @@ class BaseModel(tf.keras.Model):
                     x, y = out
                 else:
                     x = out
-
-            # Ensure that we don't have any ragged or sparse tensors passed at training time.
-            if isinstance(x, dict):
-                for k in x:
-                    if isinstance(x[k], (tf.RaggedTensor, tf.SparseTensor)):
-                        raise ValueError(
-                            "Training with RaggedTensor or SparseTensor inputs is unsupported. "
-                            "Please update your loader to pass dense tensors. "
-                        )
 
             outputs = self.call_train_test(x, y, sample_weight=sample_weight, training=True)
             loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
