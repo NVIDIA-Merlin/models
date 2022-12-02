@@ -90,8 +90,6 @@ def model_test(
     fit_kwargs = fit_kwargs or {}
     losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1, **fit_kwargs)
 
-    batch = sample_batch(dataset, batch_size=50, to_ragged=reload_model)
-
     if reload_model:
         with tempfile.TemporaryDirectory() as tmpdir:
             model.save(tmpdir)
@@ -99,13 +97,16 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
+        x, _ = sample_batch(dataset, batch_size=50, to_ragged=False, process_lists=False)
+        batch = [(x,)]
+
         np.testing.assert_array_almost_equal(
-            model.predict(batch[0]),
-            loaded_model.predict(batch[0]),
+            model.predict(iter(batch)),
+            loaded_model.predict(iter(batch)),
         )
 
         loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-        loaded_model.train_step(batch)
+        loaded_model.fit(iter(batch))
 
         return loaded_model, losses
 
