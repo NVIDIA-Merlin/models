@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/mystnb.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/custom.css" type="text/css" />
     <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/_modules/merlin/models/tf/inputs/base.html" />
   <!--[if lt IE 9]>
     <script src="../../../../../_static/js/html5shiv.min.js"></script>
@@ -25,7 +26,14 @@
     <link rel="search" title="Search" href="../../../../../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+  <div class="banner">
+    <p class="banner">
+      Beginning in January 2023, versions for all NVIDIA Merlin projects
+      will change from semantic versioning like <code>4.0</code>
+      to calendar versioning like <code>23.01</code>.</p>
+  </div>
+
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
@@ -91,6 +99,7 @@
 <span class="c1">#</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Layer</span>
@@ -367,6 +376,14 @@
 <span class="sd">        continuous and embeddings</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="k">if</span> <span class="s2">&quot;embeddings&quot;</span> <span class="ow">in</span> <span class="n">branches</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;The `embeddings` argument is deprecated and should be replaced &quot;</span>
+            <span class="s2">&quot;by `categorical` argument&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">categorical</span> <span class="o">=</span> <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;embeddings&quot;</span><span class="p">]</span>
+
     <span class="n">unparsed</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;categorical&quot;</span><span class="p">:</span> <span class="n">categorical</span><span class="p">,</span> <span class="s2">&quot;continuous&quot;</span><span class="p">:</span> <span class="n">continuous</span><span class="p">,</span> <span class="o">**</span><span class="n">branches</span><span class="p">}</span>
     <span class="n">parsed</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">unparsed</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -427,7 +444,7 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../../../../../v0.4.0/index.html">v0.4.0</a></dd>
+      <dd><a href="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../../../../../v0.5.0/index.html">v0.5.0</a></dd>
       <dd><a href="../../../../../../v0.6.0/index.html">v0.6.0</a></dd>
       <dd><a href="../../../../../../v0.7.0/index.html">v0.7.0</a></dd>
