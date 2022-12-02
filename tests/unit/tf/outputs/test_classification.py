@@ -101,7 +101,10 @@ def _next_item_loader(sequence_testing_data: Dataset):
         inputs["item_id_seq"] = _items
         for k in inputs:
             if isinstance(inputs[k], tf.RaggedTensor):
-                items[k] = (inputs[k].values, inputs[k].row_lengths())
+                inputs[k] = (
+                    tf.expand_dims(inputs[k].values, 1),
+                    tf.expand_dims(inputs[k].row_lengths(), 1),
+                )
         return inputs, targets
 
     schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
