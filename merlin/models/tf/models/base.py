@@ -168,7 +168,6 @@ class ModelBlock(Block, tf.keras.Model):
         workers=1,
         use_multiprocessing=False,
         train_metrics_steps=1,
-        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
@@ -176,23 +175,13 @@ class ModelBlock(Block, tf.keras.Model):
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
-
         fit_kwargs = {
             k: v
             for k, v in locals().items()
-            if k not in ["self", "kwargs", "train_metrics_steps", "pre", "__class__"]
+            if k not in ["self", "kwargs", "train_metrics_steps", "__class__"]
         }
 
-        if pre:
-            self._reset_compile_cache()
-            self.train_pre = pre
-
-        out = super().fit(**fit_kwargs)
-
-        if pre:
-            del self.train_pre
-
-        return out
+        return super().fit(**fit_kwargs)
 
     def evaluate(
         self,
@@ -207,16 +196,11 @@ class ModelBlock(Block, tf.keras.Model):
         workers=1,
         use_multiprocessing=False,
         return_dict=False,
-        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
-        if pre:
-            self._reset_compile_cache()
-            self.test_pre = pre
-
-        out = super().evaluate(
+        return super().evaluate(
             x,
             y,
             batch_size,
@@ -230,11 +214,6 @@ class ModelBlock(Block, tf.keras.Model):
             return_dict,
             **kwargs,
         )
-
-        if pre:
-            del self.test_pre
-
-        return out
 
     def compute_output_shape(self, input_shape):
         return self.block.compute_output_shape(input_shape)
