@@ -160,6 +160,7 @@
     },
     {
       "name": "click",
+      "type": "INT",
       "annotation": {
         "tag": [
           "binary_classification",
@@ -169,6 +170,7 @@
     },
     {
       "name": "play_percentage",
+      "type": "FLOAT",
       "annotation": {
         "tag": [
           "regression",
@@ -178,6 +180,7 @@
     },
     {
       "name": "like",
+      "type": "INT",
       "annotation": {
         "tag": [
           "binary_classification",
