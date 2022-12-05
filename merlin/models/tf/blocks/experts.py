@@ -385,7 +385,7 @@ class CGCBlock(ParallelBlock):
     ):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
-        self.expert_block = expert_block
+        expert_block = expert_block
 
         if isinstance(outputs, ParallelPredictionBlock):
             output_names = outputs.task_names
@@ -393,7 +393,7 @@ class CGCBlock(ParallelBlock):
             output_names = list([o.task_name for o in outputs])  # type: ignore
         else:
             output_names = outputs  # type: ignore
-        self.outputs_names = output_names
+        output_names = list(output_names)
         task_experts = dict(
             [
                 create_expert(expert_block, f"{task}/expert_{i}")
@@ -405,6 +405,8 @@ class CGCBlock(ParallelBlock):
         shared_experts = dict(
             [create_expert(expert_block, f"shared/expert_{i}") for i in range(num_shared_experts)]
         )
+
+        experts = {**task_experts, **shared_experts}
 
         post = kwargs.pop("post", None)
         if post is None:
@@ -418,8 +420,7 @@ class CGCBlock(ParallelBlock):
                 enable_gate_weights_metrics=enable_gate_weights_metrics,
             )
         super().__init__(
-            task_experts,
-            shared_experts,
+            experts,
             post=post,
             aggregation=None,
             name=name,
@@ -455,15 +456,13 @@ class CGCBlock(ParallelBlock):
 
     @classmethod
     def from_config(cls, config, custom_objects=None, **kwargs):
-        config = maybe_deserialize_keras_objects(config, ["expert_block"])
-        config.pop("parallel_layers", None)
-        return cls(**config)
+        inputs, config = ParallelBlock.parse_config(config, custom_objects)
+        paralel_block = ParallelBlock(inputs, **config)
+        paralel_block.__class__ = cls
+        return paralel_block
 
     def get_config(self):
         config = super().get_config()
-        config = maybe_serialize_keras_objects(self, config, ["expert_block"])
-        config.update(outputs=self.outputs_names)
-
         return config
 
 
@@ -497,7 +496,8 @@ def PLEBlock(
     name: Optional[str] = None,
     **kwargs,
 ):
-    """Implements the Progressive Layered Extraction (PLE) model from [1].
+    """Implements the Progressive Layered Extraction (PLE) model from [1],
+    by stacking CGC blocks (CGCBlock).
 
     References
     ----------
