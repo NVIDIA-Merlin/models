@@ -39,7 +39,7 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
 
     loaded_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
-    features = ecommerce_data.schema.excluding_by_name("click").column_names
+    features = ecommerce_data.schema.remove_by_tag(Tags.TARGET).column_names
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
 

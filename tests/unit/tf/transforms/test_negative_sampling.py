@@ -134,8 +134,11 @@ class TestAddRandomNegativesToBatch:
         def assert_fn(output_batch_size):
             assert batch_size < output_batch_size <= max_batch_size
 
-        self.assert_outputs_batch_size(assert_fn, outputs.values())
-        assert_fn(targets.numpy().shape[0])
+        self.assert_outputs_batch_size(
+            assert_fn,
+            outputs.values(),
+            targets.values(),
+        )
 
     @pytest.mark.parametrize("to_dense", [True, False])
     def test_run_when_testing(
@@ -158,8 +161,11 @@ class TestAddRandomNegativesToBatch:
         def assert_fn(output_batch_size):
             assert output_batch_size == batch_size
 
-        self.assert_outputs_batch_size(assert_fn, outputs.values())
-        assert_fn(targets.numpy().shape[0])
+        self.assert_outputs_batch_size(
+            assert_fn,
+            outputs.values(),
+            targets.values(),
+        )
 
     # The sampling layer currnetly only works correctly as part of the model when run in eager mode
     @pytest.mark.parametrize("run_eagerly", [True])
@@ -208,7 +214,9 @@ class TestAddRandomNegativesToBatch:
         assert all(
             f.shape[0] > batch_size and f.shape[0] <= expected_batch_size for f in features.values()
         )
-        assert targets.shape[0] > batch_size and targets.shape[0] <= expected_batch_size
+        assert all(
+            f.shape[0] > batch_size and f.shape[0] <= expected_batch_size for f in targets.values()
+        )
 
         model = mm.Model(
             mm.InputBlock(schema),

@@ -70,5 +70,5 @@ def test_model_pre_transforming_targets(ecommerce_data: Dataset, run_eagerly):
     features, targets = mm.sample_batch(ecommerce_data, batch_size=100)
     outputs, context = model(features, targets=targets, training=True, output_context=True)
 
-    flipped = np.logical_not(targets.numpy()).astype(np.int)
-    assert np.array_equal(context.targets, flipped)
+    flipped = np.logical_not(targets["click"].numpy()).astype(np.int)
+    assert np.array_equal(context.targets["click"], flipped)
