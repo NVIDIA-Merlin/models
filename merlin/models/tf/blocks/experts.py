@@ -19,7 +19,12 @@ import tensorflow as tf
 
 from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
+from merlin.models.tf.core.combinators import (
+    ParallelBlock,
+    SequentialBlock,
+    TabularBlock,
+    WithShortcut,
+)
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
@@ -129,7 +134,6 @@ class ExpertsGate(Block):
 
 
 def MMOEBlock(
-    input_block: Block,
     outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
     expert_block: Block,
     num_experts: int,
@@ -147,10 +151,6 @@ def MMOEBlock(
 
     Parameters
     ----------
-    input_block : Optional[Block]
-        The input block, that will be fed as input for each expert and
-        also for the gates, that control the weighted sum of experts
-        outputs
     outputs : Union[List[str], List[PredictionTask], ParallelPredictionBlock]
         List with the tasks. A gate is created for each task.
     expert_block : Block
@@ -198,7 +198,11 @@ def MMOEBlock(
     }
     gates = ParallelBlock(gates)
 
-    mmoe = input_block.connect_with_shortcut(experts, block_outputs_name="experts")
+    mmoe = WithShortcut(
+        experts,
+        block_outputs_name="experts",
+        automatic_pruning=False,
+    )
     mmoe = mmoe.connect(gates, block_name="mmoe")
 
     return mmoe
@@ -385,7 +389,6 @@ class CGCBlock(ParallelBlock):
     ):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
-        expert_block = expert_block
 
         if isinstance(outputs, ParallelPredictionBlock):
             output_names = outputs.task_names

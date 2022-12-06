@@ -71,14 +71,13 @@ def test_mmoe_model(
     prediction_tasks = mm.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)
     num_experts = 4
     mmoe = mm.MMOEBlock(
-        inputs,
         prediction_tasks,
         expert_block=mm.MLPBlock([64]),
         num_experts=num_experts,
         gate_block=mm.MLPBlock([32]),
         enable_gate_weights_metrics=enable_gate_weights_metrics,
     )
-    model = mm.Model(mmoe, prediction_tasks)
+    model = mm.Model(inputs, mmoe, prediction_tasks)
 
     loss_weights = {
         "click/binary_classification_task": 1.0,
@@ -140,8 +139,8 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
     prediction_tasks = mm.PredictionTasks(
         music_streaming_data.schema, task_pre_dict={"like": CustomSampleWeight()}
     )
-    mmoe = mm.MMOEBlock(inputs, prediction_tasks, expert_block=mm.MLPBlock([64]), num_experts=4)
-    model = mm.Model(mmoe, prediction_tasks)
+    mmoe = mm.MMOEBlock(prediction_tasks, expert_block=mm.MLPBlock([64]), num_experts=4)
+    model = mm.Model(inputs, mmoe, prediction_tasks)
 
     loss_weights = {
         "click/binary_classification_task": 1.0,
@@ -215,13 +214,12 @@ def test_mmoe_model_serialization(music_streaming_data: Dataset, run_eagerly: bo
     )
     num_experts = 4
     mmoe = mm.MMOEBlock(
-        inputs,
         prediction_tasks,
         expert_block=mm.MLPBlock([64]),
         num_experts=num_experts,
         gate_block=mm.MLPBlock([26]),
     )
-    model = mm.Model(mmoe, prediction_tasks)
+    model = mm.Model(inputs, mmoe, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     loader = mm.Loader(music_streaming_data, batch_size=8, shuffle=False)
@@ -229,7 +227,7 @@ def test_mmoe_model_serialization(music_streaming_data: Dataset, run_eagerly: bo
         model,
         loader,
         run_eagerly=run_eagerly,
-        reload_model=False,
+        reload_model=True,
     )
 
 
