@@ -81,16 +81,10 @@ def test_horovod_multigpu_dlrm(
 
     # model.fit() will hang or terminate with error if all workers don't have
     # the same number of batches.
-    # We use the try-except and while loop for the dataloader iterator and
-    # count the steps in each worker to check that the dataset is distributed
-    # across workers. If this works correctly in a multi-gpu setting, the steps
-    # should decrease with more workers, e.g., steps = 9 in each worker with
-    # 1 GPU, steps = 4 in each worker with 2 GPUS, steps = 3 in each worker
-    # with 3 GPUS, and so on.
-    steps = 0
-    for inputs, target in train_loader:
-        losses = model.fit(inputs, target)
-        steps += 1
+    losses = model.fit(
+        train_loader,
+        batch_size=batch_size,
+    )
 
     model.save(tmpdir)
 
@@ -101,10 +95,15 @@ def test_horovod_multigpu_dlrm(
 
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
+    # Check the steps in each worker to check that the dataset is distributed
+    # across workers. If this works correctly in a multi-gpu setting, the steps
+    # should decrease with more workers, e.g., steps = 9 in each worker with
+    # 1 GPU, steps = 4 in each worker with 2 GPUS, steps = 3 in each worker
+    # with 3 GPUS, and so on.
     if hvd_installed:
-        assert steps // hvd.size()
+        assert losses.params["steps"] == 9 // hvd.size()
     else:
-        assert steps == 9
+        assert losses.params["steps"] == 9
 
     saved_model = "saved_model.pb"
     if hvd_installed and hvd.rank() == 0:
@@ -146,23 +145,18 @@ def test_horovod_multigpu_two_tower(
     model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([2]))
     model.compile(optimizer="adam", run_eagerly=False)
 
-    as_dense = mm.ListToDense()
-
     # model.fit() will hang or terminate with error if all workers don't have
     # the same number of batches.
-    steps = 0
-    for inputs, _ in train_loader:
-        losses = model.fit(as_dense(inputs), batch_size=batch_size, epochs=2)
-        steps += 1
+    losses = model.fit(train_loader, batch_size=batch_size, epochs=2)
 
     model.save(tmpdir)
 
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
     if hvd_installed:
-        assert steps == 9 // hvd.size()
+        assert losses.params["steps"] == 9 // hvd.size()  # 9 steps per epoch; 2 epochs
     else:
-        assert steps == 9
+        assert losses.params["steps"] == 9
 
     saved_model = "saved_model.pb"
     if hvd_installed and hvd.rank() != 0:

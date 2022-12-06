@@ -44,7 +44,7 @@ def test_lazy_dataset_map():
 
     loader = mm.Loader(dataset, batch_size=10, transform=identity)
 
-    elapsed_time_seconds = timeit.timeit(lambda: next(loader), number=1)
+    elapsed_time_seconds = timeit.timeit(lambda: next(iter(loader)), number=1)
 
     assert elapsed_time_seconds < 1
 
