@@ -156,14 +156,17 @@ class SOKEmbedding(EmbeddingTableBase):
     Wrap GPU accelerated opererations dedicated for sparse training / inference case.
     dim: int The last dimension of the variable
     vocab_sizes: list, rows of the variable list 
-    initializer: string, a list of dict {"indices":numpy.array, "value": numpy.array} = "uniform"
+    initializer: string, list = "uniform"
             When it's string, it specifies the initializer used to generate initial values.
             For sok.DynamicVariable, currently, only support "random" or string of a float
             value(meaning const initializer).
             For sok.Variable, it is compatible with tf.Variable.
             Default value is "uniform". 
-            When it's list of numpy.array, its shape must be [vocab_size[i], embedding_vec_size],
-            and will be used as the initial indices and value.
+            When it's list, it specifies the values in the embedding table.
+            For sok.DynamicVariable, initializer[i] must be list of [index, value],
+            and will be used as the initial indices and value for i-th sok.DynamicVariable.
+            For sok.Variable, initializer[i] must be a numpy with shape [vocab_size[i], embedding_vec_size],
+            and will be used as the initial value for i-th sok.Variable.
     use_dynamic_variable: bool = "False" use sok.DynamicVariable or sok.Variable. DynamicVariable
             can allocates memory dynamically. Variable is a model-parallel distributed variable
     localized: When utilizing sok.Variable, we change choose two mode: distributed(Distributed Va
@@ -199,24 +202,16 @@ class SOKEmbedding(EmbeddingTableBase):
         self._vocab_sizes = vocab_sizes
         self._use_dynamic_variable = use_dynamic_variable
         self._localized = localized
+        self._vars = []
         if self._localized is None and self._use_dynamic_variable == False :
-            prefix_sum = []
-            offset = 0
             for i in range(len(vocab_sizes)):
-                prefix_sum.append(offset)
-                offset += self._vocab_sizes[i]
-            prefix_sum = np.array(prefix_sum, dtype=np.int64).reshape(1, -1)
-            self._vocab_prefix_sum = tf.constant(prefix_sum)
-            print("[Info] Total vocabulary size:", offset)
-
-            if isinstance(initializer, str):
-                self._var = sok.Variable(
-                    shape=[offset, self._embedding_vec_size], initializer=tf.keras.initializers.get(initializer), dtype=tf.float32
-                )
-            else:
-                self._var = sok.Variable(initializer)
+                if isinstance(initializer, str):
+                    v = sok.Variable(
+                        shape=[self._vocab_sizes[i], self._embedding_vec_size], initializer=tf.keras.initializers.get(initializer), dtype=tf.float32
+                    )
+                else:
+                    v = sok.Variable(initializer[i])
         else:
-            self._vars = []
             for i in range(len(vocab_sizes)):
                 if _use_dynamic_variable:
                     if isinstance(initializer, str): 
@@ -240,34 +235,38 @@ class SOKEmbedding(EmbeddingTableBase):
                         )
                 else:
                     raise ValueError("Wrong Configuration!!!")
-                self._trainable_weights.append(v)
-                self._vars.append(v)
+        self._trainable_weights.append(v)
+        self._vars.append(v)
 
-    def call(self, inputs, training=True):
-        if self._localized is None and self._use_dynamic_variable == False :
-            fused_inputs = tf.add(inputs, self._vocab_prefix_sum)
-            fused_inputs = tf.reshape(fused_inputs, [-1])
-            fused_inputs = tf.RaggedTensor.from_tensor(tf.reshape(fused_inputs, [-1, 1]))
-            
-            emb_vectors = sok.lookup_sparse(self._var, fused_inputs, "sum")
-            emb_vectors = tf.reshape(
-                emb_vectors, [-1, len(self._vocab_sizes), self._embedding_vec_size]
-            )
-            return emb_vectors
-        # localized mode
+    def call(self, inputs, combiners, training=True):
+        """
+        inputs: list, tuple
+            a list or tuple of tf.SparseTensor or tf.RaggedTensor.
+        combiners: list, tuple
+            a list or tuple of string to specify the combiner of each lookup.
+        """
+        is_list = isinstance(inputs, list) or isinstance(inputs, tuple)
+        if is_list:
+            for cur_input in inputs:
+                if not isinstance(cur_input, tf.SparseTensor):
+                    if not isinstance(cur_input, tf.RaggedTensor):
+                        raise ValueError("The input must be a list of tf.SparseTensor or tf.RaggedTensor")
+                    else:
+                        if not len(cur_input.shape)==2:
+                            raise ValueError ("The rank of input RaggedTensor must be 2")
         else:
-            input_list = tf.split(inputs, num_or_size_splits=len(self._vocab_sizes), axis=1)
-            for i in range(len(self._vocab_sizes)):
-                input_list[i] = tf.RaggedTensor.from_tensor(tf.reshape(input_list[i], [-1, 1]))
-            emb_vectors = sok.lookup_sparse(
-                self._vars,
-                input_list,
-                ["sum" for _ in range(len(self._vocab_sizes))],
-            )
-            for i in range(len(self._vocab_sizes)):
-                emb_vectors[i] = tf.reshape(emb_vectors[i], [-1, 1, self._embedding_vec_size])
-            emb_vectors = tf.concat(emb_vectors, axis=1)
-            return emb_vectors
+            if not isinstance(cur_input, tf.SparseTensor):
+                if not isinstance(cur_input, tf.RaggedTensor):
+                    raise ValueError("The input must be a list of tf.SparseTensor or tf.RaggedTensor")
+                else:
+                    if not len(cur_input.shape)==2:
+                        raise ValueError ("The rank of input RaggedTensor must be 2")           
+        emb_vectors = sok.lookup_sparse(
+            self._vars,
+            inputs,
+            combiners,
+        )
+        return emb_vectors
 
     @classmethod
     def from_pretrained(
@@ -283,8 +282,7 @@ class SOKEmbedding(EmbeddingTableBase):
         """Create From pre-trained embeddings from a Dataset or DataFrame.
         Parameters
         ----------
-        data : Union[Dataset, DataFrameType]
-            A dataset containing the pre-trained embedding weights
+        data : A list of numpy.array or A list of dict {"indice": numpy.array, "values": numpy.array}
         trainable : bool
             Whether the layer should be trained or not.
         name : str
