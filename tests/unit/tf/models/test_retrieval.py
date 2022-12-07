@@ -89,6 +89,7 @@ def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly):
 
 
 def test_matrix_factorization_model_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
     model = mm.MatrixFactorizationModel(testing_data.schema, dim=4, embeddings_l2_reg=0.1)
 
     _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
