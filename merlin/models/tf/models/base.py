@@ -1188,14 +1188,19 @@ class Model(BaseModel):
         """
         return tf.keras.models.load_model(export_path)
 
-    def __call__(self, inputs, *args, **kwargs):
-        if isinstance(inputs, dict) and isinstance(self.input_schema, Schema):
-            input_features = set(self.input_schema.column_names)
-            inputs = {k: v for k, v in inputs.items() if k in input_features}
-        return super().__call__(inputs, *args, **kwargs)
-
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
+            if isinstance(self.input_schema, Schema) and set(inputs.keys()) != set(
+                self.input_schema.column_names
+            ):
+                raise ValueError(
+                    "Model called with a different set of features "
+                    "compared with the input schema it was configured with. "
+                    "Please check that the inputs passed to the model are only  "
+                    "those required by the model. If you're using a Merlin Dataset, "
+                    "the `schema` property can be changed to control the features being returned. "
+                )
+
             _ragged_inputs = ListToRagged()(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}

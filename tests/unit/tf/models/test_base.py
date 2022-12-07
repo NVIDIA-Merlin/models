@@ -675,51 +675,74 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
-def test_saved_model_input_features(tmpdir):
-    dataset = Dataset(
-        make_df(
-            {
-                "a": [1, 2],
-                "b": [3, 4],
-                "click": [0, 1],
-            }
-        ),
-        schema=Schema(
-            [
-                ColumnSchema("a", tags=[Tags.CONTINUOUS], dtype=np.float32),
-                ColumnSchema(
-                    "b",
-                    tags=[Tags.CATEGORICAL],
-                    dtype=np.int32,
-                    properties={"domain": {"min": 0, "max": 10}},
-                ),
-                ColumnSchema(
-                    "click",
-                    tags=[Tags.TARGET],
-                    dtype=np.int32,
-                    properties={"domain": {"min": 0, "max": 1}},
-                ),
-            ]
-        ),
-    )
-    input_schema = dataset.schema.select_by_name(["a"])
-    model = mm.Model(
-        mm.InputBlockV2(input_schema),
-        mm.MLPBlock([4]),
-        mm.BinaryClassificationTask("click"),
-    )
-    model.compile()
-    model.fit(dataset, batch_size=2)
-    model.save(tmpdir)
-    reloaded_model = mm.Model.load(tmpdir)
-    signature = reloaded_model.signatures["serving_default"]
-    assert set(signature.structured_input_signature[1]) == {"a"}
+class TestModelInputFeatures:
+    def _get_dataset(self):
+        dataset = Dataset(
+            make_df(
+                {
+                    "a": [1, 2],
+                    "b": [3, 4],
+                    "click": [0, 1],
+                }
+            ),
+            schema=Schema(
+                [
+                    ColumnSchema("a", tags=[Tags.CONTINUOUS], dtype=np.float32),
+                    ColumnSchema(
+                        "b",
+                        tags=[Tags.CATEGORICAL],
+                        dtype=np.int32,
+                        properties={"domain": {"min": 0, "max": 10}},
+                    ),
+                    ColumnSchema(
+                        "click",
+                        tags=[Tags.TARGET],
+                        dtype=np.int32,
+                        properties={"domain": {"min": 0, "max": 1}},
+                    ),
+                ]
+            ),
+        )
+        return dataset
+
+    def test_saved_model_input_features(self, tmpdir):
+        dataset = self._get_dataset()
+        input_schema = dataset.schema.select_by_name(["a"])
+        dataset.schema = dataset.schema.select_by_name(["a", "click"])
+        model = mm.Model(
+            mm.InputBlockV2(input_schema),
+            mm.MLPBlock([4]),
+            mm.BinaryClassificationTask("click"),
+        )
+        model.compile()
+        model.fit(dataset, batch_size=2)
+        model.save(tmpdir)
+        reloaded_model = mm.Model.load(tmpdir)
+        signature = reloaded_model.signatures["serving_default"]
+        assert set(signature.structured_input_signature[1]) == {"a"}
+
+    def test_passing_incorrect_features(self):
+        dataset = self._get_dataset()
+        input_schema = dataset.schema.select_by_name(["a"])
+        model = mm.Model(
+            mm.InputBlockV2(input_schema),
+            mm.MLPBlock([4]),
+            mm.BinaryClassificationTask("click"),
+        )
+        model.compile()
+
+        with pytest.raises(ValueError) as exc_info:
+            model.fit(dataset, batch_size=2)
+
+        assert "Model called with a different set of features" in str(exc_info.value)
 
 
 def test_save_and_load(tmpdir):
     dataset = generate_data("e-commerce", num_rows=10)
+    input_schema = dataset.schema.select_by_name(["user_age"])
+    dataset.schema = dataset.schema.select_by_name(["user_age", "click"])
     model = mm.Model(
-        mm.InputBlockV2(dataset.schema.select_by_name(["user_age"])),
+        mm.InputBlockV2(input_schema),
         mm.MLPBlock([4]),
         mm.BinaryClassificationTask("click"),
     )
