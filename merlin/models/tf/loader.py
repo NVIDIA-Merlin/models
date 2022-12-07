@@ -320,6 +320,10 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
         self._transforms = [("all", transform)] if transform else []
         self.multi_label_as_dict = multi_label_as_dict
 
+    @property
+    def has_transforms(self):
+        return len(self._transforms) > 0
+
     def __len__(self):
         """
         recreating since otherwise Keras yells at you

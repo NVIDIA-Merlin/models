@@ -894,6 +894,60 @@ class BaseModel(tf.keras.Model):
         if isinstance(schema, Schema) and schema.column_names:
             return schema
 
+    def _maybe_set_schema(self, maybe_loader):
+        """Try to set the correct schema on the model or loader.
+
+        Parameters
+        ----------
+        maybe_loader : Union[Loader, Any]
+            A Loader object or other valid input data to the model.
+
+        Raises
+        ------
+        ValueError
+            If the dataloader features do not match the model inputs
+            and we're unable to automatically configure the dataloader
+            to return only the required features
+        """
+        if isinstance(maybe_loader, Loader):
+            loader = maybe_loader
+            target_tags = [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
+            if self.input_schema:
+                loader_output_features = set(
+                    loader.output_schema.excluding_by_tag(target_tags).column_names
+                )
+                model_input_features = set(self.input_schema.column_names)
+                schemas_match = loader_output_features == model_input_features
+                loader_is_superset = loader_output_features.issuperset(model_input_features)
+                if not schemas_match:
+                    if loader_is_superset:
+                        # if the dataloader output schema does not match the model input schema
+                        # and the dataloader features are a superset of the expected model inputs
+                        # and the dataloader doesn't have any custom transforms
+                        # then we can change the schema of the dataloader.
+                        # To ensure that the model receives only the features it requires.
+                        if not loader.has_transforms:
+
+                            loader.schema = self.input_schema + loader.schema.select_by_tag(
+                                target_tags
+                            )
+                        else:
+                            raise ValueError(
+                                "Dataloader features do not match the inputs expected  "
+                                "by the model. The dataloader has transformations that  "
+                                "prevent us from automatically configuring the dataloader "
+                                "to filter out these features."
+                            )
+                    else:
+                        raise ValueError(
+                            "Dataloader features do not match the inputs expected by the model."
+                            "And they are not a superset of the model input features. "
+                        )
+            else:
+                # Bind input schema from dataset to model,
+                # to handle the case where this hasn't been set on an input block
+                self.schema = loader.output_schema.excluding_by_tag(target_tags)
+
     def fit(
         self,
         x=None,
@@ -920,13 +974,7 @@ class BaseModel(tf.keras.Model):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
-
-        if isinstance(x, Loader) and not isinstance(self.input_schema, Schema):
-            # Bind input schema from dataset to model,
-            # to handle the case where this hasn't been set on an input block
-            self.schema = x.output_schema.excluding_by_tag(
-                [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
-            )
+        self._maybe_set_schema(x)
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
@@ -1193,6 +1241,9 @@ class Model(BaseModel):
             if isinstance(self.input_schema, Schema) and set(inputs.keys()) != set(
                 self.input_schema.column_names
             ):
+                import ipdb
+
+                ipdb.set_trace()
                 raise ValueError(
                     "Model called with a different set of features "
                     "compared with the input schema it was configured with. "
