@@ -741,8 +741,12 @@ class BaseModel(tf.keras.Model):
                 for k in x:
                     if isinstance(x[k], (tf.RaggedTensor, tf.SparseTensor)):
                         raise ValueError(
-                            "Training with RaggedTensor or SparseTensor inputs is unsupported. "
-                            "Please update your loader to pass dense tensors. "
+                            "Training with RaggedTensor or SparseTensor input features is "
+                            "not supported. Please update your dataloader to pass a tuple "
+                            "of dense tensors instead, (corresponding to the values and "
+                            "row lengths of the ragged input feature). This will ensure that "
+                            "the model can be saved with the correct input signature, "
+                            "and served correctly."
                         )
 
             if getattr(self, "train_pre", None):
