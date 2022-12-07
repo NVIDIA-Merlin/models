@@ -1241,9 +1241,6 @@ class Model(BaseModel):
             if isinstance(self.input_schema, Schema) and set(inputs.keys()) != set(
                 self.input_schema.column_names
             ):
-                import ipdb
-
-                ipdb.set_trace()
                 raise ValueError(
                     "Model called with a different set of features "
                     "compared with the input schema it was configured with. "
