@@ -731,8 +731,10 @@ class TestModelInputFeatures:
         )
         model.compile()
 
+        loader = (batch for batch in mm.Loader(dataset, 2))
+
         with pytest.raises(ValueError) as exc_info:
-            model.fit(dataset, batch_size=2)
+            model.fit(loader, batch_size=2)
 
         assert "Model called with a different set of features" in str(exc_info.value)
 
