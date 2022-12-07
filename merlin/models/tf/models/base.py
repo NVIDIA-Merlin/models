@@ -746,7 +746,10 @@ class BaseModel(tf.keras.Model):
                             "of dense tensors instead, (corresponding to the values and "
                             "row lengths of the ragged input feature). This will ensure that "
                             "the model can be saved with the correct input signature, "
-                            "and served correctly."
+                            "and served correctly. "
+                            "This is because when ragged or sparse tensors are fed as inputs "
+                            "the input feature names are currently lost in the saved model "
+                            "input signature."
                         )
 
             if getattr(self, "train_pre", None):
