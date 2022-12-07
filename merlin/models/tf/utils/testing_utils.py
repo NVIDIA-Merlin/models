@@ -107,21 +107,21 @@ def model_test(
         loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
         loaded_model.train_step(batch)
 
-        if model.schema:
+        if model.input_schema:
             signature = loaded_model.signatures["serving_default"]
             signature_input_names = set(signature.structured_input_signature[1].keys())
 
             model_input_names = []
-            for col in model.schema:
+            for col in model.input_schema:
                 if col.is_list:
+                    # list columns are currently always passed
+                    # in as a tuple of (values, row_lengths)
                     for i in ["1", "2"]:
                         model_input_names.append(f"{col.name}_{i}")
                 else:
                     model_input_names.append(col.name)
 
-            # TODO: once we are able to enforce that no extra params may be passed
-            # this can be changed to an assert equal check
-            assert signature_input_names.issubset(set(model_input_names))
+            assert signature_input_names == set(model_input_names)
 
         return loaded_model, losses
 
