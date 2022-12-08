@@ -182,8 +182,10 @@ class TestAddRandomNegativesToBatch:
             mm.BinaryClassificationTask("click"),
         )
 
+        testing_utils.model_test(model, dataset, run_eagerly=run_eagerly, reload_model=True)
+
         batch_size = 10
-        features, targets = mm.sample_batch(dataset, batch_size=batch_size, to_ragged=True)
+        features, targets = mm.sample_batch(dataset, batch_size=batch_size)
 
         with_negatives = model(features, targets=targets, training=True)
         assert with_negatives.predictions.shape[0] >= 50
@@ -193,8 +195,6 @@ class TestAddRandomNegativesToBatch:
 
         preds = model.predict(features)
         assert preds.shape[0] == batch_size
-
-        testing_utils.model_test(model, dataset, run_eagerly=run_eagerly, reload_model=True)
 
     def test_model_with_dataloader(self, music_streaming_data: Dataset, tf_random_seed: int):
         dataset = music_streaming_data
