@@ -942,11 +942,23 @@ class BaseModel(tf.keras.Model):
                                 "by the model. The dataloader has transformations that  "
                                 "prevent us from automatically configuring the dataloader "
                                 "to filter out these features."
+                                f"\nModel input features:\n\t{model_input_features} "
+                                f"\nDataloader output features:\n\t{loader_output_features} "
+                                f"\nFeatures in model only:"
+                                f"\n\t{model_input_features.difference(loader_output_features)}"
+                                f"\nFeatures in dataloader only:"
+                                f"\n\t{loader_output_features.difference(model_input_features)}"
                             )
                     else:
                         raise ValueError(
-                            "Dataloader features do not match the inputs expected by the model."
-                            "And they are not a superset of the model input features. "
+                            "Dataloader features do not match the inputs expected by the model. "
+                            "\nDataloader features are not a superset of the model input features. "
+                            f"\nModel input features:\n\t{model_input_features} "
+                            f"\nDataloader output features:\n\t{loader_output_features} "
+                            f"\nFeatures in model only:"
+                            f"\n\t{model_input_features.difference(loader_output_features)}"
+                            f"\nFeatures in dataloader only:"
+                            f"\n\t{loader_output_features.difference(model_input_features)}"
                         )
             else:
                 # Bind input schema from dataset to model,
@@ -1246,12 +1258,20 @@ class Model(BaseModel):
             if isinstance(self.input_schema, Schema) and set(inputs.keys()) != set(
                 self.input_schema.column_names
             ):
+                model_input_features = set(self.input_schema.column_names)
+                call_input_features = set(inputs.keys())
                 raise ValueError(
                     "Model called with a different set of features "
                     "compared with the input schema it was configured with. "
                     "Please check that the inputs passed to the model are only  "
                     "those required by the model. If you're using a Merlin Dataset, "
                     "the `schema` property can be changed to control the features being returned. "
+                    f"\nModel input features:\n\t{model_input_features}"
+                    f"\nCall input features:\n\t{call_input_features}"
+                    f"\nFeatures in model only:"
+                    f"\n\t{model_input_features.difference(call_input_features)}"
+                    f"\nFeatures in call only:"
+                    f"\n\t{call_input_features.difference(model_input_features)}"
                 )
 
             _ragged_inputs = ListToRagged()(inputs)
