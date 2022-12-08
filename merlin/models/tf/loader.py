@@ -536,7 +536,11 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
             if hasattr(transform, "compute_output_schema"):
                 _schema = transform.compute_output_schema(schema)
             else:
-                raise ValueError(f"Couldn't infer schema from transform {transform}")
+                raise ValueError(
+                    f"Couldn't infer schema from transform {transform}. "
+                    "Please implement the `compute_output_schema` method on "
+                    "the transform layer."
+                )
 
             if to == "all":
                 schema = _schema
