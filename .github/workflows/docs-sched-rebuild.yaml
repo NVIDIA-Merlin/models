@@ -14,27 +14,22 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Set up Python 3.9.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9.7
+          python-version: 3.8
       - name: Install Ubuntu packages
         run: |
           sudo apt-get update -y
           sudo apt-get install -y protobuf-compiler
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install .[all]
-      - name: Build
-        run: |
-          python setup.py develop
-      - name: Report the versions to build
-        run: |
-          sphinx-multiversion --dump-metadata docs/source docs/build/html | jq "keys"
+          python -m pip install --upgrade pip tox
       - name: Building docs (multiversion)
         run: |
-          sphinx-multiversion docs/source docs/build/html
+          tox -vv -e docs-multi
+      - name: Delete unnecessary files
+        run: |
           find docs/build/ -name .doctrees -prune -exec rm -rf {} \;
           find docs/build/ -name .buildinfo -exec rm {} \;
       - name: Upload HTML
