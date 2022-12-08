@@ -162,6 +162,8 @@ def test_matrix_factorization_model_with_binary_task(ecommerce_data: Dataset, ru
 
 
 def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
+
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
         dim=4,
@@ -182,6 +184,8 @@ def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
 
 
 def test_matrix_factorization_model_v2_save(tmpdir, testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
+
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
         dim=4,
