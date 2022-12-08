@@ -776,6 +776,11 @@ class BaseModel(tf.keras.Model):
             out = call_layer(self.test_pre, x, targets=y, features=x, testing=True)
             if isinstance(out, Prediction):
                 x, y = out.outputs, out.targets
+            elif isinstance(out, tuple):
+                assert (
+                    len(out) == 2
+                ), "output of `pre` must be a 2-tuple of x, y or `Prediction` tuple"
+                x, y = out
             else:
                 x = out
 
