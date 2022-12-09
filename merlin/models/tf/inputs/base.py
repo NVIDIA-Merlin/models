@@ -94,7 +94,7 @@ def InputBlock(
         Tags to filter the continuous features
         Defaults to  (Tags.CONTINUOUS,)
     continuous_projection: Optional[Block]
-        If set, concatenate all numerical features and projet using the
+        If set, concatenate all numerical features and project using the
         specified Block.
         Defaults to None
     add_embedding_branch: bool

@@ -100,13 +100,13 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
             self,
             outputs: PredictionOutput,
             features: Dict[str, tf.Tensor] = None,
-            targets: Dict[str, tf.Tensor] = None,
+            targets: tf.Tensor = None,
             training=True,
             testing=False,
             **kwargs,
         ) -> PredictionOutput:
             # Computes loss for the like loss only for clicked items
-            outputs = outputs.copy_with_updates(sample_weight=targets["click"])
+            outputs = outputs.copy_with_updates(sample_weight=targets)
             return outputs
 
     inputs = ml.InputBlock(music_streaming_data.schema)

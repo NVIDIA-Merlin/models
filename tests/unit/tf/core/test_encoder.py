@@ -6,7 +6,7 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.models.utils.dataset import unique_rows_by_features
+from merlin.models.utils.dataset import unique_by_tag
 from merlin.schema import Tags
 
 
@@ -29,11 +29,12 @@ def test_encoder_block(music_streaming_data: Dataset):
     assert model.blocks[0]["query"] == user_encoder
     assert model.blocks[0]["candidate"] == item_encoder
 
-    testing_utils.model_test(model, music_streaming_data, reload_model=True)
+    loader = mm.Loader(music_streaming_data, batch_size=50)
+    testing_utils.model_test(model, loader, reload_model=True)
 
     with pytest.raises(Exception) as excinfo:
         user_encoder.compile("adam")
-        user_encoder.fit(music_streaming_data)
+        user_encoder.fit(loader)
 
     assert "This block is not meant to be trained by itself" in str(excinfo.value)
 
@@ -67,16 +68,16 @@ def test_topk_encoder(music_streaming_data: Dataset):
     testing_utils.model_test(retrieval_model, music_streaming_data, reload_model=True)
 
     # 2. Get candidates embeddings for the top-k encoder
-    candidate_features = unique_rows_by_features(music_streaming_data, Tags.ITEM, Tags.ITEM_ID)
+    candidate_features = unique_by_tag(music_streaming_data, Tags.ITEM, Tags.ITEM_ID)
     candidates = retrieval_model.candidate_embeddings(
         candidate_features, batch_size=BATCH_SIZE, index=Tags.ITEM_ID
     )
 
     # 3. Set data-loader for top-k recommendation
-    loader = mm.Loader(
-        music_streaming_data, batch_size=BATCH_SIZE, transform=mm.ToTarget(schema, "item_id")
+    loader = mm.Loader(music_streaming_data, batch_size=BATCH_SIZE).map(
+        mm.ToTarget(schema, "item_id")
     )
-    batch = next(iter(loader))
+    batch = loader.peek()
 
     # 4. Define the top-k encoder
     topk_encoder = mm.TopKEncoder(
@@ -85,6 +86,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
     # 5. Get top-k predictions
     batch_output = topk_encoder(batch[0])
     predict_output = topk_encoder.predict(loader)
+
     assert list(batch_output.scores.shape) == [BATCH_SIZE, TOP_K]
     assert list(predict_output.scores.shape) == [100, TOP_K]
 
