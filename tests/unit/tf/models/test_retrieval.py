@@ -847,7 +847,7 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly, target_augmentation):
     # remove sequential continuous features because second dimension (=[None]) is raising an error
     # in the `compute_output_shape` of  `ConcatFeatures`)
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
@@ -931,7 +931,7 @@ def _check_embeddings(embeddings, extected_len, num_dim=8, index_name=None):
 
 
 def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
@@ -966,7 +966,7 @@ def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly):
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
