@@ -44,7 +44,7 @@ def test_lazy_dataset_map():
 
     loader = mm.Loader(dataset, batch_size=10, transform=identity)
 
-    elapsed_time_seconds = timeit.timeit(lambda: next(loader), number=1)
+    elapsed_time_seconds = timeit.timeit(lambda: next(iter(loader)), number=1)
 
     assert elapsed_time_seconds < 1
 
@@ -226,8 +226,7 @@ def test_tf_map(tmpdir):
         batch_size=10,
         label_names=label_name,
         shuffle=False,
-        transform=add_sample_weight,
-    )
+    ).map(add_sample_weight)
 
     for X, y, sample_weight in loader:
         assert list(X["cat1"].numpy()) == [1] * 10

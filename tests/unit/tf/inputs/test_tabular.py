@@ -18,16 +18,16 @@
 import pytest
 import tensorflow as tf
 
-import merlin.models.tf as ml
+import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
 def test_tabular_features(testing_data: Dataset):
-    tab_module = ml.InputBlock(testing_data.schema)
+    tab_module = mm.InputBlock(testing_data.schema)
 
-    outputs = tab_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    outputs = tab_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     con = testing_data.schema.select_by_tag(Tags.CONTINUOUS).column_names
     cat = testing_data.schema.select_by_tag(Tags.CATEGORICAL).column_names
@@ -36,7 +36,7 @@ def test_tabular_features(testing_data: Dataset):
 
 
 def test_serialization_tabular_features(testing_data: Dataset):
-    inputs = ml.InputBlock(testing_data.schema)
+    inputs = mm.InputBlock(testing_data.schema)
 
     copy_layer = testing_utils.assert_serialization(inputs)
 
@@ -44,9 +44,9 @@ def test_serialization_tabular_features(testing_data: Dataset):
 
 
 def test_tabular_features_with_projection(testing_data: Dataset):
-    tab_module = ml.InputBlock(testing_data.schema, continuous_projection=ml.MLPBlock([64]))
+    tab_module = mm.InputBlock(testing_data.schema, continuous_projection=mm.MLPBlock([64]))
 
-    outputs = tab_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    outputs = tab_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
     continuous_feature_names = testing_data.schema.select_by_tag(Tags.CONTINUOUS).column_names
 
     assert len(set(continuous_feature_names).intersection(set(outputs.keys()))) == 0
@@ -60,15 +60,15 @@ def test_tabular_features_yoochoose_model(
     music_streaming_data: Dataset, run_eagerly, continuous_projection
 ):
     if continuous_projection:
-        continuous_projection = ml.MLPBlock([continuous_projection])
-    inputs = ml.InputBlock(
+        continuous_projection = mm.MLPBlock([continuous_projection])
+    inputs = mm.InputBlock(
         music_streaming_data.schema,
         continuous_projection=continuous_projection,
         aggregation="concat",
     )
 
-    body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+    body = mm.SequentialBlock([inputs, mm.MLPBlock([64])])
+    model = mm.Model(body, mm.BinaryClassificationTask("click"))
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
 
@@ -80,31 +80,30 @@ def test_tabular_features_yoochoose_model_inputblockv2(
 ):
     kwargs = {}
     if continuous_projection:
-        kwargs["continuous"] = ml.ContinuousProjection(
+        kwargs["continuous"] = mm.ContinuousProjection(
             music_streaming_data.schema.select_by_tag(Tags.CONTINUOUS),
-            ml.MLPBlock([continuous_projection]),
+            mm.MLPBlock([continuous_projection]),
         )
 
-    inputs = ml.InputBlockV2(music_streaming_data.schema, aggregation="concat", **kwargs)
+    inputs = mm.InputBlockV2(music_streaming_data.schema, aggregation="concat", **kwargs)
 
-    body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+    body = mm.SequentialBlock([inputs, mm.MLPBlock([64])])
+    model = mm.Model(body, mm.BinaryClassificationTask("click"))
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
 
 
 def test_tabular_seq_features_ragged_embeddings(sequence_testing_data: Dataset):
-    tab_module = ml.InputBlockV2(
+    tab_module = mm.InputBlockV2(
         sequence_testing_data.schema,
-        categorical=ml.Embeddings(
+        categorical=mm.Embeddings(
             sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
         ),
         aggregation=None,
     )
 
-    batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
-    )
+    loader = mm.Loader(sequence_testing_data, batch_size=100)
+    batch = mm.sample_batch(loader, include_targets=False, to_ragged=True)
 
     outputs = tab_module(batch)
 
@@ -122,19 +121,18 @@ def test_tabular_seq_features_ragged_embeddings(sequence_testing_data: Dataset):
 )
 def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset, seq_combiner):
     con2d = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS).remove_by_tag(Tags.SEQUENCE)
-    input_block = ml.InputBlockV2(
+    input_block = mm.InputBlockV2(
         sequence_testing_data.schema,
-        categorical=ml.Embeddings(
+        categorical=mm.Embeddings(
             sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL),
             sequence_combiner=seq_combiner,
         ),
-        continuous=ml.Continuous(con2d),
+        continuous=mm.Continuous(con2d),
         aggregation=None,
     )
 
-    batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
-    )
+    loader = mm.Loader(sequence_testing_data, batch_size=100)
+    batch = mm.sample_batch(loader, include_targets=False, to_ragged=True)
 
     outputs = input_block(batch)
 
@@ -150,19 +148,18 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
     schema = schema + Schema([ColumnSchema("item_id_seq_weights")])
     assert "item_id_seq_weights" in schema.column_names
 
-    batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
-    )
+    loader = mm.Loader(sequence_testing_data, batch_size=100)
+    batch = mm.sample_batch(loader, include_targets=False, to_ragged=True)
     batch["item_id_seq_weights"] = tf.ragged.constant(
         [[1.0, 2.0, 3.0, 4.0] for _ in range(batch["item_id_seq"].shape[0])],
         row_splits_dtype=batch["item_id_seq"].row_splits.dtype,
     )
 
-    input_block_weighed_avg = ml.InputBlockV2(
+    input_block_weighed_avg = mm.InputBlockV2(
         schema,
-        categorical=ml.Embeddings(
+        categorical=mm.Embeddings(
             schema.select_by_tag(Tags.CATEGORICAL),
-            sequence_combiner=ml.AverageEmbeddingsByWeightFeature.from_schema_convention(
+            sequence_combiner=mm.AverageEmbeddingsByWeightFeature.from_schema_convention(
                 schema, "_weights"
             ),
         ),
@@ -171,9 +168,9 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
 
     outputs_weighted_avg = input_block_weighed_avg(batch, features=batch)
 
-    input_block_simple_avg = ml.InputBlockV2(
+    input_block_simple_avg = mm.InputBlockV2(
         schema,
-        categorical=ml.Embeddings(
+        categorical=mm.Embeddings(
             schema.select_by_tag(Tags.CATEGORICAL),
             sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
         ),
@@ -197,16 +194,16 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
 def test_tabular_seq_features_avg_embeddings_with_mapvalues(sequence_testing_data: Dataset):
     cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    batch = ml.sample_batch(
+    batch = mm.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
     )
 
-    input_block = ml.InputBlockV2(
+    input_block = mm.InputBlockV2(
         cat_schema,
-        categorical=ml.Embeddings(
+        categorical=mm.Embeddings(
             cat_schema,
         ),
-        post=ml.MapValues(
+        post=mm.MapValues(
             tf.keras.layers.Lambda(
                 lambda x: tf.math.reduce_mean(x, axis=1) if isinstance(x, tf.RaggedTensor) else x
             )
@@ -226,16 +223,15 @@ def test_tabular_seq_features_avg_embeddings_with_mapvalues(sequence_testing_dat
 @pytest.mark.parametrize("aggregation", [None, "concat"])
 def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset, aggregation: str):
     cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
-    embeddings_block = ml.Embeddings(
+    embeddings_block = mm.Embeddings(
         cat_schema.select_by_tag(Tags.CATEGORICAL),
         dim={"item_id_seq": 15, "test_user_id": 21},
         embeddings_initializer="truncated_normal",
     )
-    input_block = ml.InputBlockV2(cat_schema, categorical=embeddings_block, aggregation=aggregation)
+    input_block = mm.InputBlockV2(cat_schema, categorical=embeddings_block, aggregation=aggregation)
 
-    batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
-    )
+    loader = mm.Loader(sequence_testing_data, batch_size=100)
+    batch = mm.sample_batch(loader, include_targets=False, to_ragged=True)
 
     outputs = input_block(batch)
 

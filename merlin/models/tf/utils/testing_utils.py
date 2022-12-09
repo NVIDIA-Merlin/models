@@ -76,7 +76,7 @@ def assert_model_is_retrainable(
 
 def model_test(
     model: Model,
-    dataset: Union[merlin.io.Dataset, Loader],
+    dataset_or_loader: Union[merlin.io.Dataset, Loader],
     run_eagerly: bool = True,
     optimizer="adam",
     epochs: int = 1,
@@ -87,10 +87,16 @@ def model_test(
     """Generic model test. It will compile & fit the model and make sure it can be re-trained."""
 
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-    fit_kwargs = fit_kwargs or {}
-    losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1, **fit_kwargs)
 
-    batch = sample_batch(dataset, batch_size=50, to_ragged=reload_model)
+    if isinstance(dataset_or_loader, merlin.io.Dataset):
+        dataloader = Loader(dataset_or_loader, batch_size=50)
+    else:
+        dataloader = dataset_or_loader
+
+    batch = sample_batch(dataloader, to_ragged=reload_model)
+
+    fit_kwargs = fit_kwargs or {}
+    losses = model.fit(dataloader, epochs=epochs, steps_per_epoch=1, **fit_kwargs)
 
     if reload_model:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -108,6 +114,8 @@ def model_test(
         loaded_model.train_step(batch)
 
         return loaded_model, losses
+
+    dataloader.stop()
 
     assert isinstance(model.from_config(model.get_config()), type(model))
 
@@ -159,7 +167,7 @@ def numeric_test(actual, expected):
 
 # This function is copied from keras/testing_infra/test_utils.py
 # We need it here because this was not publicly exposed prior to 2.9.0
-# and our CI tests muliple versions of tensorflow/keras
+# and our CI tests multiple versions of tensorflow/keras
 @disable_cudnn_autotune
 def layer_test(
     layer_cls,
