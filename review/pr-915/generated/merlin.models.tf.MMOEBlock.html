@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Overview: module code &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>merlin.models.tf.MMOEBlock &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/_modules/index.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.MMOEBlock.html" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -23,7 +23,9 @@
         <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" /> 
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="merlin.models.tf.CGCBlock" href="merlin.models.tf.CGCBlock.html" />
+    <link rel="prev" title="merlin.models.tf.AsTabular" href="merlin.models.tf.AsTabular.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -49,11 +51,17 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
 </ul>
 
@@ -71,7 +79,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Overview: module code</li>
+          <li><a href="../api.html">API Documentation</a> &raquo;</li>
+      <li>merlin.models.tf.MMOEBlock</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -80,44 +89,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>All modules for which code is available</h1>
-<ul><li><a href="merlin/models/tf/blocks/cross.html">merlin.models.tf.blocks.cross</a></li>
-<li><a href="merlin/models/tf/blocks/dlrm.html">merlin.models.tf.blocks.dlrm</a></li>
-<li><a href="merlin/models/tf/blocks/experts.html">merlin.models.tf.blocks.experts</a></li>
-<li><a href="merlin/models/tf/blocks/interaction.html">merlin.models.tf.blocks.interaction</a></li>
-<li><a href="merlin/models/tf/blocks/mlp.html">merlin.models.tf.blocks.mlp</a></li>
-<li><a href="merlin/models/tf/blocks/retrieval/base.html">merlin.models.tf.blocks.retrieval.base</a></li>
-<li><a href="merlin/models/tf/blocks/retrieval/matrix_factorization.html">merlin.models.tf.blocks.retrieval.matrix_factorization</a></li>
-<li><a href="merlin/models/tf/blocks/retrieval/two_tower.html">merlin.models.tf.blocks.retrieval.two_tower</a></li>
-<li><a href="merlin/models/tf/blocks/sampling/base.html">merlin.models.tf.blocks.sampling.base</a></li>
-<li><a href="merlin/models/tf/blocks/sampling/cross_batch.html">merlin.models.tf.blocks.sampling.cross_batch</a></li>
-<li><a href="merlin/models/tf/blocks/sampling/in_batch.html">merlin.models.tf.blocks.sampling.in_batch</a></li>
-<li><a href="merlin/models/tf/core/combinators.html">merlin.models.tf.core.combinators</a></li>
-<li><a href="merlin/models/tf/core/tabular.html">merlin.models.tf.core.tabular</a></li>
-<li><a href="merlin/models/tf/inputs/base.html">merlin.models.tf.inputs.base</a></li>
-<li><a href="merlin/models/tf/inputs/continuous.html">merlin.models.tf.inputs.continuous</a></li>
-<li><a href="merlin/models/tf/inputs/embedding.html">merlin.models.tf.inputs.embedding</a></li>
-<li><a href="merlin/models/tf/loader.html">merlin.models.tf.loader</a></li>
-<li><a href="merlin/models/tf/losses/listwise.html">merlin.models.tf.losses.listwise</a></li>
-<li><a href="merlin/models/tf/losses/pairwise.html">merlin.models.tf.losses.pairwise</a></li>
-<li><a href="merlin/models/tf/metrics/topk.html">merlin.models.tf.metrics.topk</a></li>
-<li><a href="merlin/models/tf/models/ranking.html">merlin.models.tf.models.ranking</a></li>
-<li><a href="merlin/models/tf/models/retrieval.html">merlin.models.tf.models.retrieval</a></li>
-<li><a href="merlin/models/tf/prediction_tasks/base.html">merlin.models.tf.prediction_tasks.base</a></li>
-<li><a href="merlin/models/tf/prediction_tasks/classification.html">merlin.models.tf.prediction_tasks.classification</a></li>
-<li><a href="merlin/models/tf/prediction_tasks/multi.html">merlin.models.tf.prediction_tasks.multi</a></li>
-<li><a href="merlin/models/tf/prediction_tasks/regression.html">merlin.models.tf.prediction_tasks.regression</a></li>
-<li><a href="merlin/models/tf/prediction_tasks/retrieval.html">merlin.models.tf.prediction_tasks.retrieval</a></li>
-<li><a href="merlin/models/tf/transforms/noise.html">merlin.models.tf.transforms.noise</a></li>
-<li><a href="merlin/models/tf/transforms/tensor.html">merlin.models.tf.transforms.tensor</a></li>
-<li><a href="merlin/models/utils/misc_utils.html">merlin.models.utils.misc_utils</a></li>
-<li><a href="merlin/models/utils/registry.html">merlin.models.utils.registry</a></li>
-<li><a href="merlin/models/utils/schema_utils.html">merlin.models.utils.schema_utils</a></li>
-</ul>
+  <div class="section" id="merlin-models-tf-mmoeblock">
+<h1>merlin.models.tf.MMOEBlock<a class="headerlink" href="#merlin-models-tf-mmoeblock" title="Permalink to this headline"></a></h1>
+<dl class="py function">
+<dt id="merlin.models.tf.MMOEBlock">
+<code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">MMOEBlock</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.prediction_tasks.base.PredictionTask</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.models.tf.prediction_tasks.base.ParallelPredictionBlock</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expert_block</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.core.base.Block</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_experts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gate_dim</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/experts.html#MMOEBlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MMOEBlock" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
+
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="merlin.models.tf.AsTabular.html" class="btn btn-neutral float-left" title="merlin.models.tf.AsTabular" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.CGCBlock.html" class="btn btn-neutral float-right" title="merlin.models.tf.CGCBlock" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

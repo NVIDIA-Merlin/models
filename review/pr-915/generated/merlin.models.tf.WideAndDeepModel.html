@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>merlin.models.tf.WideAndDeepModel &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.WideAndDeepModel.html" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="merlin.models.tf.MatrixFactorizationModelV2" href="merlin.models.tf.MatrixFactorizationModelV2.html" />
+    <link rel="prev" title="merlin.models.tf.DLRMModel" href="merlin.models.tf.DLRMModel.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="banner">
+    <p class="banner">
+      Beginning in January 2023, versions for all NVIDIA Merlin projects
+      will change from semantic versioning like <code>4.0</code>
+      to calendar versioning like <code>23.01</code>.</p>
+  </div>
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../api.html">API Documentation</a> &raquo;</li>
+      <li>merlin.models.tf.WideAndDeepModel</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="merlin-models-tf-wideanddeepmodel">
+<h1>merlin.models.tf.WideAndDeepModel<a class="headerlink" href="#merlin-models-tf-wideanddeepmodel" title="Permalink to this headline"></a></h1>
+<dl class="py function">
+<dt id="merlin.models.tf.WideAndDeepModel">
+<code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">WideAndDeepModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.schema.schema.Schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deep_block</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.core.base.Block</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wide_schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.schema.schema.Schema</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deep_schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.schema.schema.Schema</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wide_preprocess</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.core.base.Block</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deep_input_block</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.core.base.Block</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wide_input_block</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.core.base.Block</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deep_regularizer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">keras.regularizers.Regularizer</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wide_regularizer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">keras.regularizers.Regularizer</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deep_dropout</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wide_dropout</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction_tasks</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.prediction_tasks.base.PredictionTask</span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.prediction_tasks.base.PredictionTask</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.models.tf.prediction_tasks.base.ParallelPredictionBlock</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">wide_body_kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">merlin.models.tf.models.base.Model</span><a class="reference internal" href="../_modules/merlin/models/tf/models/ranking.html#WideAndDeepModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.WideAndDeepModel" title="Permalink to this definition"></a></dt>
+<dd><p>The Wide&amp;Deep architecture [1] was proposed by Google
+in 2016 to balance between the ability of neural networks to generalize and capacity
+of linear models to memorize relevant feature interactions. The deep part is an MLP
+model, with categorical features represented as embeddings, which are concatenated
+with continuous features and fed through multiple MLP layers. The wide part is a
+linear model takes a sparse representation of categorical features (i.e. one-hot
+or multi-hot representation). Both wide and deep sub-models output a logit,
+which is summed and followed by sigmoid for binary classification loss.</p>
+<p>Example Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. Using default input block
+```python
+wide_deep = ml.benchmark.WideAndDeepModel(
+    schema,
+    deep_block=ml.MLPBlock([32, 16]),
+    wide_schema=wide_schema,
+    deep_schema=deep_schema,
+    prediction_tasks=ml.BinaryClassificationTask(&quot;click&quot;),
+)
+wide_deep.compile(optimizer=&quot;adam&quot;)
+wide_deep.fit(train_data, epochs=10)
+```
+
+2. Custom input block
+```python
+deep_embedding = ml.Embeddings(schema, embedding_dim_default=8, infer_embedding_sizes=False)
+model = ml.WideAndDeepModel(
+    schema,
+    deep_input_block = ml.InputBlockV2(schema=schema, categorical=deep_embedding),
+    wide_schema=wide_schema,
+    wide_preprocess=ml.CategoryEncoding(wide_schema, output_mode=&quot;multi_hot&quot;, sparse=True),
+    deep_block=ml.MLPBlock([32, 16]),
+    prediction_tasks=ml.BinaryClassificationTask(&quot;click&quot;),
+)
+```
+
+3. Wide preprocess with one-hot categorical features and hashed 2nd-level feature
+    interactions
+```python
+model = ml.WideAndDeepModel(
+    schema,
+    wide_schema=wide_schema,
+    deep_schema=deep_schema,
+    wide_preprocess=ml.ParallelBlock(
+        [
+            # One-hot representations of categorical features
+            ml.CategoryEncoding(wide_schema, output_mode=&quot;one_hot&quot;, sparse=True),
+            # One-hot representations of hashed 2nd-level feature interactions
+            ml.HashedCrossAll(wide_schema, num_bins=1000, max_level=2, sparse=True),
+        ],
+        aggregation=&quot;concat&quot;,
+    ),
+    deep_block=ml.MLPBlock([31, 16]),
+    prediction_tasks=ml.BinaryClassificationTask(&quot;click&quot;),
+)
+```
+
+4. Wide preprocess with multi-hot categorical features and hashed 2nd-level multi-hot
+    feature interactions
+```python
+
+one_hot_schema = schema.select_by_name([&#39;categ_1&#39;, &#39;categ_2&#39;])
+multi_hot_schema = schema.select_by_name([&#39;categ_multi_hot_3&#39;])
+wide_schema = one_hot_schema + multi_hot_schema
+
+# One-hot features
+one_hot_encoding = mm.SequentialBlock(
+           mm.Filter(one_hot_schema),
+           mm.CategoryEncoding(one_hot_schema, sparse=True, output_mode=&quot;one_hot&quot;),
+)
+```
+
+If your dataset contains multi-hot categorical features, i.e. features that may contain
+multiple categorical values for a data sample, you can instantiate the `AsDenseFeatures`
+block that converts the sparse representation of multi-hot features into a dense one
+(with maximum size defined) where the missing values are padded with zeros, as in the
+following example.
+
+```python
+# Multi-hot features
+multi_hot_encoding = mm.SequentialBlock(
+        mm.Filter(multi_hot_schema),
+        # Assuming max size of multi-hot features is 5
+        ml.AsDenseFeatures(max_seq_length=5),
+        mm.CategoryEncoding(multi_hot_schema, sparse=True, output_mode=&quot;multi_hot&quot;)
+)
+```
+Linear models are not able to compute feature interaction (like MLPs).
+So to give the wide part more power we perform paired feature interactions
+as a preprocessing step, so that every possible combination of the values of
+two categorical features is mapped to a single id. That way, the model is be
+able to pick paired feature relationships, e.g., a pattern between the a category
+of a product and the city of a user.
+Although, this approach leads to very high-cardinality resulting feature (product
+between the two features cardinalities). So typically we apply the hashing trick
+to limit the resulting cardinality. Below you can see how easily you can compute
+crossed features with Merlin Models.
+
+Note: some feature combinations might not add information to the model, for example
+the feature cross between the item id and item category, as every item only maps to a
+single item category. You can explicitly ignore those combinations to reduce a bit
+the feature space.
+
+```python
+# 2nd-level features interaction
+features_crossing = mm.SequentialBlock(
+            mm.Filter(wide_schema),
+            # Assuming max size of multi-hot features is 5
+            ml.AsDenseFeatures(max_seq_length=5),
+            mm.HashedCrossAll(
+                wide_schema,
+                # The crossed features will be hashed to this number of bins
+                num_bins=100,
+                # Performs 2nd feature interactions, typically max is 3rd level
+                max_level=2,
+                output_mode=&quot;multi_hot&quot;,
+                sparse=True,
+                ignore_combinations=[[&quot;item_id&quot;, &quot;item_category&quot;],
+                                    [&quot;item_id&quot;, &quot;item_brand&quot;]]
+            ),
+        )
+
+model = ml.WideAndDeepModel(
+    schema,
+    wide_schema=wide_schema,
+    deep_schema=deep_schema,
+    wide_preprocess=ml.ParallelBlock(
+        [
+            one_hot_encoding,
+            multi_hot_encoding,
+            features_crossing
+        ],
+        aggregation=&quot;concat&quot;,
+    ),
+    deep_block=ml.MLPBlock([32, 16]),
+    prediction_tasks=ml.BinaryClassificationTask(&quot;click&quot;),
+)
+```
+
+5. On Wide&amp;Deep paper [1] they proposed usage of separate optimizers for dense (AdaGrad) and
+sparse embeddings parameters (FTRL). You can implement that by using `MultiOptimizer` class.
+For example:
+```python
+    wide_model = model.blocks[0].parallel_layers[&quot;wide&quot;]
+    deep_model = model.blocks[0].parallel_layers[&quot;deep&quot;]
+
+    multi_optimizer = ml.MultiOptimizer(
+        default_optimizer=&quot;adagrad&quot;,
+        optimizers_and_blocks=[
+            ml.OptimizerBlocks(&quot;ftrl&quot;, wide_model),
+            ml.OptimizerBlocks(&quot;adagrad&quot;, deep_model),
+        ],
+    )
+```
+</pre></div>
+</div>
+<p class="rubric">References</p>
+<p>[1] Cheng, Koc, Harmsen, Shaked, Chandra, Aradhye, Anderson et al. “Wide &amp; deep learning for
+recommender systems.” In Proceedings of the 1st workshop on deep learning for recommender
+systems, pp. 7-10. (2016).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema</strong> (<a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html#merlin.schema.Schema" title="(in Merlin Core)"><em>Schema</em></a>) – The <cite>Schema</cite> with the input features</p></li>
+<li><p><strong>deep_block</strong> (<em>Block</em>) – Block (structure) of deep model.</p></li>
+<li><p><strong>wide_schema</strong> (<em>Optional</em><em>[</em><em>Schema</em><em>]</em>) – The ‘Schema’ of input features for wide model, by default no features would be sent to
+wide model, and the model would become a pure deep model, if specified, only features
+in wide_schema would be sent to wide model</p></li>
+<li><p><strong>deep_schema</strong> (<em>Optional</em><em>[</em><em>Schema</em><em>]</em>) – The ‘Schema’ of input features for deep model, by default all features would be sent to
+deep model. deep_schema and wide_schema could contain the same features</p></li>
+<li><p><strong>wide_preprocess</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – Transformation block for preprocess data in wide model, such as CategoryEncoding,
+HashedCross, and HashedCrossAll. Please note the schema of transformation
+block should be the same as the wide_schema. See example usages.
+If wide_schema is provided and wide_preprocess, the CategoryEncoding transformation
+is used by default for one-hot encoding.</p></li>
+<li><p><strong>deep_input_block</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The input block to be used by the deep part. It not provided, it is created internally
+by using the deep_schema. Defaults to None.</p></li>
+<li><p><strong>wide_input_block</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The input block to be used by the wide part. It not provided, it is created internally
+by using the wide_schema. Defaults to None.</p></li>
+<li><p><strong>deep_regularizer</strong> (<em>Optional</em><em>[</em><em>RegularizerType</em><em>]</em>) – Regularizer function applied to the last layer kernel weights matrix and biases of
+the MLP layer of the wide part. Defaults to None.</p></li>
+<li><p><strong>wide_regularizer</strong> (<em>Optional</em><em>[</em><em>RegularizerType</em><em>]</em>) – Regularizer function applied to the last layer kernel weights matrix and biases
+of the last MLP layer of deep part). Defaults to None.</p></li>
+<li><p><strong>deep_dropout</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>]</em>) – The dropout to be used by the last layer of deep part. Defaults to None.</p></li>
+<li><p><strong>wide_dropout</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>]</em>) – The dropout to be used by the last layer of wide part. Defaults to None.</p></li>
+<li><p><strong>prediction_tasks</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference internal" href="merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask" title="merlin.models.tf.PredictionTask"><em>PredictionTask</em></a><em>, </em><em>List</em><em>[</em><a class="reference internal" href="merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask" title="merlin.models.tf.PredictionTask"><em>PredictionTask</em></a><em>]</em><em>, </em><a class="reference internal" href="merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock" title="merlin.models.tf.ParallelPredictionBlock"><em>ParallelPredictionBlock</em></a><em>]</em>) – The prediction tasks to be used, by default this will be inferred from the Schema.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Model</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="merlin.models.tf.DLRMModel.html" class="btn btn-neutral float-left" title="merlin.models.tf.DLRMModel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.MatrixFactorizationModelV2.html" class="btn btn-neutral float-right" title="merlin.models.tf.MatrixFactorizationModelV2" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NVJ1Y1YJHK"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NVJ1Y1YJHK', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>
