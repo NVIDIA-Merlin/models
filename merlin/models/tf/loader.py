@@ -354,6 +354,10 @@ class Loader(merlin.dataloader.tensorflow.Loader):
 
         return schema
 
+    @property
+    def has_transforms(self):
+        return len(self._map_fns) > 0
+
 
 KerasSequenceValidater = (
     KerasSequenceValidator
