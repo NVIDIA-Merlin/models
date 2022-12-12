@@ -14,14 +14,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.9.7]
+        python-version: [3.8]
         os: [ubuntu-latest]
         tensorflow-version: ["~=2.8.0", "~=2.9.0", "~=2.10.0"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -31,7 +31,7 @@ jobs:
       - name: Install Ubuntu packages
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y protobuf-compiler pandoc
+          sudo apt-get install -y protobuf-compiler
       - name: Install Merlin dependencies
         run: |
           ref_type=${{ github.ref_type }}
@@ -43,6 +43,7 @@ jobs:
           fi
           pip install "pandas>=1.2.0,<1.4.0dev0"
           pip install "NVTabular@git+https://github.com/NVIDIA-Merlin/NVTabular.git@$branch"
+          pip install "merlin-dataloader@git+https://github.com/NVIDIA-Merlin/dataloader.git@$branch"
           pip install "merlin-core@git+https://github.com/NVIDIA-Merlin/core.git@$branch"
       - name: Install dependencies
         run: |
@@ -62,30 +63,19 @@ jobs:
         with:
           name: dist
           path: dist
-      - name: Store PR information
-        run: |
-          mkdir ./pr
-          echo ${{ github.event.number }}              > ./pr/pr.txt
-          echo ${{ github.event.pull_request.merged }} > ./pr/merged.txt
-          echo ${{ github.event.action }}              > ./pr/action.txt
-      - name: Upload PR information
-        uses: actions/upload-artifact@v2
-        with:
-          name: pr
-          path: pr/
 
   examples:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [ 3.9.7 ]
+        python-version: [ 3.8 ]
         os: [ ubuntu-latest ]
         tensorflow-version: ["~=2.8.0", "~=2.9.0"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -108,6 +98,7 @@ jobs:
           fi
           pip install "pandas>=1.2.0,<1.4.0dev0"
           pip install "NVTabular@git+https://github.com/NVIDIA-Merlin/NVTabular.git@$branch"
+          pip install "merlin-dataloader@git+https://github.com/NVIDIA-Merlin/dataloader.git@$branch"
           pip install "merlin-core@git+https://github.com/NVIDIA-Merlin/core.git@$branch"
       - name: Install dependencies
         run: |
@@ -119,13 +110,14 @@ jobs:
       - name: Run unittests
         run: |
           make tests-tf-examples
+
   release:
     name: Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [tests]
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: dist
       - name: Create GitHub Release
@@ -133,7 +125,7 @@ jobs:
         env:
           GHR_PATH: .
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
       - name: Push to PyPi
