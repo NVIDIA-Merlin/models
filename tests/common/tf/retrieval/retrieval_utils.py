@@ -784,9 +784,8 @@ class RetrievalTrainEvalRunnerV2:
             train_loader = mm.Loader(
                 self.train_ds,
                 batch_size=self.eval_batch_size,
-                transform=mm.ToTarget(self.train_ds.schema, item_id_name),
                 shuffle=False,
-            )
+            ).map(mm.ToTarget(self.train_ds.schema, item_id_name))
 
             train_metrics = recommender.evaluate(
                 train_loader,
@@ -800,9 +799,8 @@ class RetrievalTrainEvalRunnerV2:
             eval_loader = mm.Loader(
                 self.eval_ds,
                 batch_size=self.eval_batch_size,
-                transform=mm.ToTarget(self.eval_ds.schema, item_id_name),
                 shuffle=False,
-            )
+            ).map(mm.ToTarget(self.eval_ds.schema, item_id_name))
             eval_metrics = recommender.evaluate(
                 eval_loader,
                 batch_size=self.eval_batch_size,

@@ -67,7 +67,7 @@ class TestAddRandomNegativesToBatch:
         )
         input_df = input_df[sorted(input_df.columns)]
         dataset = Dataset(input_df, schema=schema)
-        loader = mm.Loader(dataset, batch_size=10, transform=sampler)
+        loader = mm.Loader(dataset, batch_size=10).map(sampler)
         outputs, targets = next(iter(loader))
 
         output_dict = {

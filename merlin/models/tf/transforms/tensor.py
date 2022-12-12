@@ -43,6 +43,8 @@ class ListToRagged(TabularBlock):
         for name, val in inputs.items():
             if isinstance(val, tuple):
                 outputs[name] = list_col_to_ragged(val)
+            elif isinstance(val, tf.SparseTensor):
+                outputs[name] = tf.RaggedTensor.from_sparse(val)
             else:
                 outputs[name] = val
 
@@ -89,16 +91,19 @@ class ProcessList(TabularBlock):
 
             if isinstance(val, tuple):
                 ragged = list_col_to_ragged(val)
-
-                if is_ragged:
-                    if len(ragged.shape) == 2:
-                        ragged = tf.expand_dims(ragged, axis=-1)
-
-                    outputs[name] = ragged
-                else:
-                    outputs[name] = _ragged_to_dense(ragged)
+            elif isinstance(val, tf.SparseTensor):
+                ragged = tf.RaggedTensor.from_sparse(val)
             else:
                 outputs[name] = val
+                continue
+
+            if is_ragged:
+                if len(ragged.shape) == 2:
+                    ragged = tf.expand_dims(ragged, axis=-1)
+
+                outputs[name] = ragged
+            else:
+                outputs[name] = _ragged_to_dense(ragged)
 
         return outputs
 
@@ -185,7 +190,7 @@ class ListToDense(TabularBlock):
         self.max_seq_length = max_seq_length
 
     def call(self, inputs: Union[tuple, tf.RaggedTensor, TabularData], **kwargs) -> TabularData:
-        if isinstance(inputs, (tf.RaggedTensor, tuple)):
+        if isinstance(inputs, (tf.SparseTensor, tf.RaggedTensor, tuple)):
             return self._convert_tensor_to_dense(inputs)
 
         outputs = {}
@@ -216,6 +221,8 @@ class ListToDense(TabularBlock):
     def _convert_tensor_to_dense(self, val):
         if isinstance(val, tuple):
             val = list_col_to_ragged(val)
+        if isinstance(val, tf.SparseTensor):
+            val = tf.RaggedTensor.from_sparse(val)
         if isinstance(val, tf.RaggedTensor):
             return _ragged_to_dense(val, self.max_seq_length)
         return tf.squeeze(val)

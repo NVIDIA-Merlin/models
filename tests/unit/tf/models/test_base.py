@@ -48,7 +48,7 @@ def test_fit_compile_twice():
     dataset.schema = Schema(
         [
             ColumnSchema("feature", dtype=np.int32, tags=[Tags.CONTINUOUS]),
-            ColumnSchema("target", dtype=np.int32, tags=[Tags.BINARY_CLASSIFICATION]),
+            ColumnSchema("target", dtype=np.int32, tags=[Tags.TARGET, Tags.BINARY_CLASSIFICATION]),
         ]
     )
     loader = mm.Loader(dataset, batch_size=2, shuffle=False)
@@ -721,8 +721,8 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
 
-    loader = mm.Loader(
-        ecommerce_data, batch_size=50, transform=mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
+    loader = mm.Loader(ecommerce_data, batch_size=50).map(
+        mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
     )
 
     model = mm.RetrievalModelV2(
@@ -898,8 +898,8 @@ def test_categorical_prediction_with_temperature(sequence_testing_data: Dataset)
         ),
     )
 
-    loader = mm.Loader(
-        train, batch_size=1024, transform=mm.ToTarget(train.schema, "user_country", one_hot=True)
+    loader = mm.Loader(train, batch_size=1024).map(
+        mm.ToTarget(train.schema, "user_country", one_hot=True)
     )
 
     model.compile(run_eagerly=False, optimizer="adam")

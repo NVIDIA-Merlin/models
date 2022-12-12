@@ -13,35 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import contextlib
 import logging
 import os
-from typing import Protocol
+from typing import Optional, Protocol, Union
 
 import dask.dataframe as dd
 import numpy as np
 import tensorflow as tf
-from packaging import version
 
+import merlin.dataloader.tensorflow
 from merlin.core.dispatch import HAS_GPU
+from merlin.dataloader.tf_utils import get_dataset_schema_from_feature_columns
 from merlin.io import Dataset
-from merlin.models.loader.backend import DataLoader
-from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
+from merlin.models.loader.backend import _augment_schema
 from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin.models")
-
-if version.parse(tf.__version__) < version.parse("2.3.0"):
-    try:
-        from tfdlpack import from_dlpack
-    except ModuleNotFoundError as e:
-        message = "If using TensorFlow < 2.3.0, you must install tfdlpack-gpu extension library"
-        raise ModuleNotFoundError(message) from e
-
-else:
-    from tensorflow.experimental.dlpack import from_dlpack
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -143,7 +132,7 @@ class SchemaAwareTransform(Protocol):
         ...
 
 
-class Loader(tf.keras.utils.Sequence, DataLoader):
+class Loader(merlin.dataloader.tensorflow.Loader):
     """
     Override class to customize data loading for backward compatibility with
     older NVTabular releases.
@@ -257,8 +246,6 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
         bool value to activate transforming sparse tensors to dense
     """
 
-    _use_nnz = True
-
     def __init__(
         self,
         paths_or_dataset,
@@ -289,8 +276,35 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
         )
         if schema:
             dataset.schema = schema
+
+        cat_names = cat_names or (
+            dataset.schema.select_by_tag(Tags.CATEGORICAL)
+            .excluding_by_tag(Tags.TARGET)
+            .column_names
+            if _get_schema(dataset)
+            else []
+        )
+        cont_names = cont_names or (
+            dataset.schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
+            if _get_schema(dataset)
+            else []
+        )
+        label_names = label_names or (
+            dataset.schema.select_by_tag(Tags.TARGET).column_names if _get_schema(dataset) else []
+        )
+
         cat_names, cont_names, label_names = _validate_schema(
             feature_columns, cat_names, cont_names, label_names, schema=dataset.schema
+        )
+
+        dataset.schema = _augment_schema(
+            dataset.schema,
+            cat_names,
+            cont_names,
+            label_names,
+            sparse_names,
+            sparse_max,
+            sparse_as_dense,
         )
 
         device = "cpu" if not HAS_GPU else device
@@ -299,283 +313,52 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
             global_size = global_size or hvd.size()
             global_rank = global_rank or hvd.rank()
             seed_fn = seed_fn or get_default_hvd_seed_fn()
-        DataLoader.__init__(
-            self,
+
+        super().__init__(
             dataset,
             batch_size,
-            shuffle,
-            cat_names=cat_names,
-            cont_names=cont_names,
-            label_names=label_names,
+            shuffle=shuffle,
             seed_fn=seed_fn,
             parts_per_chunk=parts_per_chunk,
             device=device,
             global_size=global_size,
             global_rank=global_rank,
             drop_last=drop_last,
-            sparse_names=sparse_names,
-            sparse_max=sparse_max,
-            sparse_as_dense=sparse_as_dense,
         )
-        self._transforms = [("all", transform)] if transform else []
-        self.multi_label_as_dict = multi_label_as_dict
 
-    def __len__(self):
-        """
-        recreating since otherwise Keras yells at you
-        """
-        # TODO: what's a better way to do this inheritance
-        # of the appropriate methods? A Metaclass?
-        DataLoader.stop(self)
-        return DataLoader.__len__(self)
-
-    def on_epoch_end(self):
-        """Method to call at the end of every epoch."""
-        DataLoader.stop(self)
-
-    def __getitem__(self, idx):
-        """
-        implemented exclusively for consistency
-        with Keras model.fit. Does not leverage
-        passed idx in any way
-        """
-        return DataLoader.__next__(self)
-
-    def map(self, fn) -> "Loader":
-        """
-        Applying a function to each batch.
-
-        This can for instance be used to add `sample_weight` to the model.
-        """
-        self._transforms.append(("all", fn))
-
-        return self
-
-    def map_features(self, fn) -> "Loader":
-        def wrapped_fn(*inputs):
-            features = fn(inputs[0])
-
-            return features, *inputs[1:]
-
-        self._transforms.append(("features", wrapped_fn))
-
-        return self
-
-    def map_targets(self, fn) -> "Loader":
-        def wrapped_fn(*inputs):
-            targets = fn(inputs[1])
-
-            if len(inputs) > 2:
-                return inputs[0], targets, *inputs[2:]
-
-            return inputs[0], targets
-
-        self._transforms.append(("targets", wrapped_fn))
-
-        return self
-
-    @contextlib.contextmanager
-    def _get_device_ctx(self, dev):
-        # with tf.device("/device:GPU:{}".format(dev)) as tf_device:
-        #     # tf.device changes the cupy cuda device, which breaks us on multigpu
-        #     # force cupy to still use the device we expect
-        #     cupy.cuda.Device(dev).use()
-        #     yield tf_device
-        # commenting out since device statements cause
-        # RuntimeErrors when exiting if two dataloaders
-        # are running at once (e.g. train and validation)
-        if dev != "cpu":
-            yield tf.device("/GPU:" + str(dev))
-        else:
-            # https://www.tensorflow.org/guide/gpu#manual_device_placement
-            yield tf.device("/device:CPU:0")
-
-    def _split_fn(self, tensor, idx, axis=0):
-        return tf.split(tensor, idx, axis=axis)
-
-    def _tensor_split(self, tensor, idx, axis=0):
-        """
-        Same function as above but need this method
-        for api match.
-        """
-        return tf.split(tensor, idx, axis=axis)
-
-    @property
-    def _LONG_DTYPE(self):
-        return tf.int64
-
-    @property
-    def _FLOAT32_DTYPE(self):
-        return tf.float32
-
-    def _pack(self, gdf):
-        if isinstance(gdf, np.ndarray):
-            return gdf
-        elif hasattr(gdf, "to_dlpack") and callable(getattr(gdf, "to_dlpack")):
-            return gdf.to_dlpack()
-        elif hasattr(gdf, "to_numpy") and callable(getattr(gdf, "to_numpy")):
-            gdf = gdf.to_numpy()
-            if isinstance(gdf[0], list):
-                gdf = np.stack(gdf)
-            return gdf
-        return gdf.toDlpack()
-
-    def _unpack(self, gdf):
-        if hasattr(gdf, "shape"):
-            return tf.convert_to_tensor(gdf)
-        return from_dlpack(gdf)
-
-    def _to_tensor(self, gdf, dtype=None):
-        if gdf.empty:
-            return
-
-        # checks necessary because of this bug
-        # https://github.com/tensorflow/tensorflow/issues/42660
-        if len(gdf.shape) == 1 or gdf.shape[1] == 1:
-            dlpack = self._pack(gdf)
-        elif gdf.shape[0] == 1:
-            dlpack = self._pack(gdf.values[0])
-        else:
-            dlpack = self._pack(gdf.values.T)
-        # catch error caused by tf eager context
-        # not being initialized
-
-        try:
-            x = self._unpack(dlpack)
-        except AssertionError:
-            tf.random.uniform((1,))
-            x = self._unpack(dlpack)
-        # if rank is already two it is  already in list format
-        if gdf.shape[0] == 1 and not tf.rank(x) == 2:
-            # batch size 1 so got squashed to a vector
-            x = tf.expand_dims(x, 0)
-        elif len(gdf.shape) == 1 or len(x.shape) == 1:
-            # sort of a generic check for any other
-            # len(shape)==1 case, could probably
-            # be more specific
-            x = tf.expand_dims(x, -1)
-        elif gdf.shape[1] > 1:
-            # matrix which means we had to transpose
-            # for the bug above, so untranspose
-            x = tf.transpose(x)
-        return x
-
-    def _pull_values_offsets(self, values_offset):
-        """
-        values_offset is either a tuple (values, offsets) or just values.
-        Values is a tensor.
-        This method is used to turn a tensor into its sparse representation
-        """
-        # pull_values_offsets, return values offsets diff_offsets
-        diff_offsets = None
-        if isinstance(values_offset, tuple):
-            values = tf.reshape(values_offset[0], [-1])
-            diff_offsets = tf.cast(tf.reshape(values_offset[1], [-1]), dtype=tf.int64)
-            offsets = tf.math.cumsum(diff_offsets)
-        else:
-            values = tf.reshape(values_offset, [-1])
-            offsets = tf.arange(tf.shape(values)[0], dtype=tf.int64)
-            diff_offsets = offsets[1:] - offsets[:-1]
-        num_rows = len(offsets)
-        return values, offsets, diff_offsets, num_rows
-
-    def _get_max_seq_len(self, diff_offsets):
-        # get_max_seq_len, return int
-        return int(tf.math.reduce_max(diff_offsets))
-
-    def _get_indices(self, offsets, diff_offsets):
-        # Building the indices to reconstruct the sparse tensors
-        row_ids = tf.range(len(offsets), dtype=tf.int64)
-
-        row_ids_repeated = tf.repeat(row_ids, diff_offsets)
-        row_offset_repeated = tf.repeat(offsets, diff_offsets)
-        col_ids = tf.range(len(row_offset_repeated), dtype=tf.int64) - row_offset_repeated
-        indices = tf.concat(
-            values=[tf.expand_dims(row_ids_repeated, -1), tf.expand_dims(col_ids, -1)], axis=1
-        )
-        return indices
-
-    def _get_sparse_tensor(self, values, indices, num_rows, seq_limit):
-        sparse_tensor = tf.sparse.SparseTensor(
-            indices=indices, values=values, dense_shape=[num_rows, seq_limit]
-        )
-        return sparse_tensor
-
-    def _build_sparse_tensor(self, values, offsets, diff_offsets, num_rows, seq_limit):
-        ragged = tf.RaggedTensor.from_row_lengths(values=values, row_lengths=diff_offsets)
-        tensor = tf.RaggedTensor.from_tensor(ragged.to_tensor(shape=[None, seq_limit])).to_sparse()
-        if self.sparse_as_dense:
-            tensor = tf.sparse.to_dense(tensor)
-        return tensor
-
-    def _handle_tensors(self, cats, conts, labels):
-        to_return = super()._handle_tensors(cats, conts, labels)
-
-        if len(self.label_names) > 1 and self.multi_label_as_dict:
-            X, y = to_return
-            to_return = X, dict(zip(self.label_names, y))
-
-        for _, transform in self._transforms:
-            to_return = transform(*to_return)
-
-        return to_return
+        # Override these parameters after initializing the parent dataloader
+        # class since the new dataloader will use sparse tensors for list
+        # columns by default, but sparse tensors were disabled by default
+        # and were optional in the old version of merlin.loader.
+        self.sparse_names = sparse_names or []
+        self.sparse_max = sparse_max or {}
+        self.sparse_as_dense = sparse_as_dense
 
     @property
     def input_schema(self) -> Schema:
-        return self.data.schema
+        return self.dataset.schema
 
     @property
     def output_schema(self) -> Schema:
         schema = self.input_schema
 
-        for to, transform in self._transforms:
-            if hasattr(transform, "compute_output_schema"):
-                _schema = transform.compute_output_schema(schema)
+        for map_fn in self._map_fns:
+            if hasattr(map_fn, "compute_output_schema"):
+                schema = map_fn.compute_output_schema(schema)
             else:
-                raise ValueError(f"Couldn't infer schema from transform {transform}")
-
-            if to == "all":
-                schema = _schema
-            elif to == "features":
-                targets_schema = schema.select_by_tag(Tags.Target)
-                schema = _schema + targets_schema
-            elif to == "targets":
-                features_schema = schema.remove_by_tag(Tags.Target)
-                schema = features_schema + _schema
-            else:
-                raise ValueError(f"Unknown schema target {to}")
+                raise ValueError(f"Couldn't infer schema from transform {map_fn}")
 
         return schema
 
 
-class KerasSequenceValidator(tf.keras.callbacks.Callback):
-    # TODO: document
-    _supports_tf_logs = True
-
-    def __init__(self, dataloader):
-        super().__init__()
-        self.dataloader = dataloader
-
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs if logs is not None else {}
-        for X, y_true in self.dataloader:
-            y_pred = self.model(X)
-
-            # TODO: how do we want to handle the multi-output case?
-            for metric in self.model.metrics:
-                metric.update_state(y_true, y_pred)
-
-        set_logs = {}
-        for metric in self.model.metrics:
-            set_logs[f"val_{metric.name}"] = metric.result().numpy()
-        logs.update(set_logs)
-        print(set_logs)
-        return logs
+KerasSequenceValidater = (
+    KerasSequenceValidator
+) = merlin.dataloader.tensorflow.KerasSequenceValidater
 
 
 def sample_batch(
-    data: Dataset,
-    batch_size: int,
+    dataset_or_loader: Union[Dataset, Loader],
+    batch_size: Optional[int] = None,
     shuffle: bool = False,
     include_targets: bool = True,
     to_ragged: bool = False,
@@ -610,10 +393,14 @@ def sample_batch(
 
     from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged, ProcessList
 
-    if not isinstance(data, Loader):
-        data = Loader(data, batch_size=batch_size, shuffle=shuffle)
+    if isinstance(dataset_or_loader, Dataset):
+        if not batch_size:
+            raise ValueError("Either use 'Loader' or specify 'batch_size'")
+        loader = Loader(dataset_or_loader, batch_size=batch_size, shuffle=shuffle)
+    else:
+        loader = dataset_or_loader
 
-    batch = next(iter(data))
+    batch = loader.peek()
     # batch could be of type Prediction, so we can't unpack directly
     inputs, targets = batch[0], batch[1]
 
@@ -622,7 +409,7 @@ def sample_batch(
     elif to_dense:
         inputs = ListToDense()(inputs)
     if process_lists:
-        inputs = ProcessList(data.schema)(inputs)
+        inputs = ProcessList(loader.schema)(inputs)
     if not include_targets:
         return inputs
     return inputs, targets
