@@ -47,7 +47,7 @@ class LastHiddenState(Layer):
 
 @Block.registry.register("inference_hidden_state")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class InferenceHiddenState(Layer):
+class TransformerInferenceHiddenState(Layer):
     """A post-processing layer to select the hidden state
     of the next-item position, during inference.
     """
@@ -62,7 +62,7 @@ class InferenceHiddenState(Layer):
         training: bool = False,
         testing: bool = False,
     ):
-        """Select the hidden state of the target position, during inference.
+        """Select the hidden state of the target (last) position, during inference.
         During training or testing, the inputs are returned
         without any processing.
 
