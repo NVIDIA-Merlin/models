@@ -25,6 +25,7 @@ import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
 from merlin.models.tf.utils import testing_utils, tf_utils
+from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -47,7 +48,7 @@ def test_fit_compile_twice():
     dataset.schema = Schema(
         [
             ColumnSchema("feature", dtype=np.int32, tags=[Tags.CONTINUOUS]),
-            ColumnSchema("target", dtype=np.int32, tags=[Tags.BINARY_CLASSIFICATION]),
+            ColumnSchema("target", dtype=np.int32, tags=[Tags.TARGET, Tags.BINARY_CLASSIFICATION]),
         ]
     )
     loader = mm.Loader(dataset, batch_size=2, shuffle=False)
@@ -689,10 +690,27 @@ def test_save_and_load(tmpdir):
     )
     model.save(tmpdir)
     reloaded_model = mm.Model.load(tmpdir)
+
+    saved_input_schema = schema_utils.tensorflow_metadata_json_to_schema(
+        f"{tmpdir}/.merlin/input_schema.json"
+    )
+    saved_output_schema = schema_utils.tensorflow_metadata_json_to_schema(
+        f"{tmpdir}/.merlin/output_schema.json"
+    )
+
     signature_input_keys = set(
         reloaded_model.signatures["serving_default"].structured_input_signature[1].keys()
     )
-    assert signature_input_keys == {"user_age"}
+    signature_output_keys = set(
+        reloaded_model.signatures["serving_default"].structured_outputs.keys()
+    )
+    assert signature_input_keys == {"user_age"} == set(saved_input_schema.column_names)
+    assert (
+        signature_output_keys
+        == {"click/binary_classification_task"}
+        == set(saved_output_schema.column_names)
+    )
+
     test_case = TestCase()
     test_case.assertAllClose(
         model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
@@ -703,8 +721,8 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
 
-    loader = mm.Loader(
-        ecommerce_data, batch_size=50, transform=mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
+    loader = mm.Loader(ecommerce_data, batch_size=50).map(
+        mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
     )
 
     model = mm.RetrievalModelV2(
@@ -880,8 +898,8 @@ def test_categorical_prediction_with_temperature(sequence_testing_data: Dataset)
         ),
     )
 
-    loader = mm.Loader(
-        train, batch_size=1024, transform=mm.ToTarget(train.schema, "user_country", one_hot=True)
+    loader = mm.Loader(train, batch_size=1024).map(
+        mm.ToTarget(train.schema, "user_country", one_hot=True)
     )
 
     model.compile(run_eagerly=False, optimizer="adam")
