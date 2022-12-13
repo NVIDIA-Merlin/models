@@ -239,11 +239,7 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
 
-    loader = Loader(
-        sequence_testing_data,
-        batch_size=8,
-        shuffle=False,
-    ).map(predict_next)
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
 
     model = mm.Model(
         mm.InputBlockV2(
@@ -260,14 +256,16 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
 
     batch = next(iter(loader))[0]
     outputs = model(batch)
-    assert list(outputs.shape) == [8, 3, 51997]
-    testing_utils.model_test(model, loader, run_eagerly=run_eagerly, reload_model=True)
+    assert list(outputs.shape) == [8, 4, 51997]
+    testing_utils.model_test(
+        model, loader, run_eagerly=run_eagerly, reload_model=True, fit_kwargs={"pre": predict_next}
+    )
 
-    metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True)
+    metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_next)
     assert len(metrics) > 0
 
     predictions = model.predict(loader, batch_size=8, steps=1)
-    assert predictions.shape == (8, 3, 51997)
+    assert predictions.shape == (8, 4, 51997)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

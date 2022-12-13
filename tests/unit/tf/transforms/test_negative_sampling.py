@@ -203,9 +203,10 @@ class TestAddRandomNegativesToBatch:
         add_negatives = InBatchNegatives(schema, 5, seed=tf_random_seed)
 
         batch_size, n_per_positive = 10, 5
-        loader = mm.Loader(dataset, batch_size=batch_size).map(add_negatives)
+        loader = mm.Loader(dataset, batch_size=batch_size)
 
-        features, targets = next(iter(loader))
+        features, targets = next(loader)
+        features, targets = add_negatives(features, targets)
 
         expected_batch_size = batch_size + batch_size * n_per_positive
 
@@ -226,4 +227,4 @@ class TestAddRandomNegativesToBatch:
         assert model(features).shape[0] > batch_size
         assert model(features).shape[0] <= expected_batch_size
 
-        testing_utils.model_test(model, loader)
+        testing_utils.model_test(model, loader, fit_kwargs=dict(pre=add_negatives))

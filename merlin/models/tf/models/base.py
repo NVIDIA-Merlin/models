@@ -736,6 +736,22 @@ class BaseModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
 
+            # Ensure that we don't have any ragged or sparse tensors passed at training time.
+            if isinstance(x, dict):
+                for k in x:
+                    if isinstance(x[k], (tf.RaggedTensor, tf.SparseTensor)):
+                        raise ValueError(
+                            "Training with RaggedTensor or SparseTensor input features is "
+                            "not supported. Please update your dataloader to pass a tuple "
+                            "of dense tensors instead, (corresponding to the values and "
+                            "row lengths of the ragged input feature). This will ensure that "
+                            "the model can be saved with the correct input signature, "
+                            "and served correctly. "
+                            "This is because when ragged or sparse tensors are fed as inputs "
+                            "the input feature names are currently lost in the saved model "
+                            "input signature."
+                        )
+
             if getattr(self, "train_pre", None):
                 out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
                 if isinstance(out, Prediction):
@@ -775,6 +791,11 @@ class BaseModel(tf.keras.Model):
             out = call_layer(self.test_pre, x, targets=y, features=x, testing=True)
             if isinstance(out, Prediction):
                 x, y = out.outputs, out.targets
+            elif isinstance(out, tuple):
+                assert (
+                    len(out) == 2
+                ), "output of `pre` must be a 2-tuple of x, y or `Prediction` tuple"
+                x, y = out
             else:
                 x = out
 
@@ -804,6 +825,11 @@ class BaseModel(tf.keras.Model):
             out = call_layer(self.predict_pre, x, features=x, training=False)
             if isinstance(out, Prediction):
                 x = out.outputs
+            elif isinstance(out, tuple):
+                assert (
+                    len(out) == 2
+                ), "output of `pre` must be a 2-tuple of x, y or `Prediction` tuple"
+                x, y = out
             else:
                 x = out
 
