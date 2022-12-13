@@ -158,6 +158,7 @@ from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.transforms.sequence import (
     ReplaceMaskedEmbeddings,
     SequenceMaskLast,
+    SequenceMaskLastInference,
     SequenceMaskRandom,
     SequencePredictLast,
     SequencePredictNext,
