@@ -305,7 +305,7 @@ class PopularityLogitsCorrection(Block):
 class RetrievalSampleWeight(Block):
     def __init__(self, pos_class_weight, neg_class_weight=1, **kwargs):
         """Generate the sample weights for positive and sampled
-        negative candiddates
+        negative candidates
 
         Parameters
         ----------
@@ -325,7 +325,7 @@ class RetrievalSampleWeight(Block):
         testing=False,
         **kwargs,
     ) -> Prediction:
-        """Update the predictins returned by the
+        """Update the predictions returned by the
         ConstrastiveOutput with a 2-D sample weights
         for negative and positive candidates.
         """
