@@ -110,14 +110,17 @@ def model_test(
 
         model_preds = model.predict(iter(batch))
         loaded_model_preds = loaded_model.predict(iter(batch))
+
         if isinstance(model_preds, dict):
             for task_name in model_preds:
                 tf.debugging.assert_near(
-                    model_preds[task_name], loaded_model_preds[task_name],
+                    model_preds[task_name],
+                    loaded_model_preds[task_name],
                 )
         else:
             tf.debugging.assert_near(
-                model_preds, loaded_model_preds,
+                model_preds,
+                loaded_model_preds,
             )
 
         loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
@@ -263,7 +266,12 @@ def layer_test(
         raise AssertionError(
             "When testing layer %s, the `supports_masking` property is %r"
             "but expected to be %r.\nFull kwargs: %s"
-            % (layer_cls.__name__, layer.supports_masking, supports_masking, kwargs,)
+            % (
+                layer_cls.__name__,
+                layer.supports_masking,
+                supports_masking,
+                kwargs,
+            )
         )
 
     # Test adapt, if data was passed.
@@ -286,7 +294,13 @@ def layer_test(
         raise AssertionError(
             "When testing layer %s, for input %s, found output "
             "dtype=%s but expected to find %s.\nFull kwargs: %s"
-            % (layer_cls.__name__, x, tf.keras.backend.dtype(y), expected_output_dtype, kwargs,)
+            % (
+                layer_cls.__name__,
+                x,
+                tf.keras.backend.dtype(y),
+                expected_output_dtype,
+                kwargs,
+            )
         )
 
     def assert_shapes_equal(expected, actual):
@@ -328,7 +342,13 @@ def layer_test(
         raise AssertionError(
             "When testing layer %s, for input %s, found output_dtype="
             "%s but expected to find %s.\nFull kwargs: %s"
-            % (layer_cls.__name__, x, actual_output.dtype, computed_output_signature.dtype, kwargs,)
+            % (
+                layer_cls.__name__,
+                x,
+                actual_output.dtype,
+                computed_output_signature.dtype,
+                kwargs,
+            )
         )
     if expected_output is not None:
         assert_equal(actual_output, expected_output)
@@ -375,7 +395,13 @@ def layer_test(
                     "for input %s, found output_shape="
                     "%s but expected to find inferred shape %s.\n"
                     "Full kwargs: %s"
-                    % (layer_cls.__name__, x, actual_output_shape, computed_output_shape, kwargs,)
+                    % (
+                        layer_cls.__name__,
+                        x,
+                        actual_output_shape,
+                        computed_output_shape,
+                        kwargs,
+                    )
                 )
     if expected_output is not None:
         assert_equal(actual_output, expected_output)
