@@ -81,11 +81,19 @@ class TransformerInferenceHiddenState(Layer):
             If inference, returns a 2-D tensor with the hidden states of
             the target position
         """
+        batch_size = tf.shape(inputs)[0]
         if not training and not testing:
             if getattr(inputs, "_keras_mask", None) is not None:
                 inputs = tf.reshape(
                     tf.boolean_mask(inputs, inputs._keras_mask), (-1, inputs.shape[-1])
                 )
+        tf.debugging.assert_equal(
+            tf.shape(inputs)[0],
+            batch_size,
+            f"The resulting tensor has {tf.shape(inputs)[0]} rows, which does not match"
+            f" the inputs batch-size {batch_size}. During inference only one position "
+            "candidate (the last one) should be masked per example",
+        )
         return inputs
 
 
