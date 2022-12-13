@@ -19,25 +19,17 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.loader import Loader
 from merlin.models.tf.utils.testing_utils import assert_output_shape
 from merlin.schema import Tags
 
 
-@pytest.mark.parametrize("use_loader", [False, True])
-def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
+def test_seq_predict_next(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_next = mm.SequencePredictNext(schema=seq_schema, target=target, pre=mm.ListToRagged())
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
-    if use_loader:
-        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
-            predict_next
-        )
-        output = next(iter(dataset_transformed))
-    else:
-        output = predict_next(batch)
+    output = predict_next(batch)
     output_x, output_y = output
     output_y = output_y[target]
 
@@ -58,20 +50,13 @@ def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
     )
 
 
-@pytest.mark.parametrize("use_loader", [False, True])
-def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
+def test_seq_predict_last(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
-    if use_loader:
-        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
-            predict_last
-        )
-        output = next(iter(dataset_transformed))
-    else:
-        output = predict_last(batch)
+    output = predict_last(batch)
     output_x, output_y = output
     output_y = output_y[target]
 
@@ -93,20 +78,13 @@ def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
     )
 
 
-@pytest.mark.parametrize("use_loader", [False, True])
-def test_seq_predict_random(sequence_testing_data: Dataset, use_loader: bool):
+def test_seq_predict_random(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_random = mm.SequencePredictRandom(schema=seq_schema, target=target)
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
-    if use_loader:
-        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
-            predict_random
-        )
-        output = next(iter(dataset_transformed))
-    else:
-        output = predict_random(batch)
+    output = predict_random(batch)
     output_x, output_y = output
     output_y = output_y[target]
 
