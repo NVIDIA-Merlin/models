@@ -80,7 +80,7 @@ def test_continuous_features_ragged(sequence_testing_data: Dataset):
     inputs = ml.ContinuousFeatures.from_schema(
         schema, post=ml.BroadcastToSequence(context_schema, seq_schema), aggregation="concat"
     )
-    features, _ = ml.sample_batch(sequence_testing_data, batch_size=100)
+    features, _ = ml.sample_batch(sequence_testing_data, batch_size=100, process_lists=True)
     outputs = inputs(features)
 
     assert outputs.to_tensor().shape == (100, 4, 6)

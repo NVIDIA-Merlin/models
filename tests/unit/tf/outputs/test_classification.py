@@ -99,6 +99,12 @@ def _next_item_loader(sequence_testing_data: Dataset):
         _items = items[:, :-1]
         targets = tf.one_hot(items[:, -1:].flat_values, 51997)
         inputs["item_id_seq"] = _items
+        for k in inputs:
+            if isinstance(inputs[k], tf.RaggedTensor):
+                inputs[k] = (
+                    tf.expand_dims(inputs[k].values, 1),
+                    tf.expand_dims(inputs[k].row_lengths(), 1),
+                )
         return inputs, targets
 
     schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
