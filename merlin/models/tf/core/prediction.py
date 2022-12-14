@@ -25,17 +25,15 @@ TensorLike = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 class PredictionContext(NamedTuple):
     features: Dict[str, TensorLike]
     targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None
-    mask: tf.Tensor = (None,)
     training: bool = False
     testing: bool = False
 
     def with_updates(
-        self, targets=None, features=None, mask=None, training=None, testing=None
+        self, targets=None, features=None, training=None, testing=None
     ) -> "PredictionContext":
         return PredictionContext(
             features if features is not None else self.features,
             targets if targets is not None else self.targets,
-            mask if mask is not None else self.mask,
             training or self.training,
             testing or self.testing,
         )
@@ -48,7 +46,6 @@ class PredictionContext(NamedTuple):
         }
 
         if self.training or self.testing:
-            outputs["mask"] = self.mask
             outputs["targets"] = self.targets
 
         return outputs
@@ -66,6 +63,24 @@ class Prediction(NamedTuple):
     @property
     def predictions(self):
         return self.outputs
+
+    def copy_with_updates(
+        self,
+        outputs=None,
+        targets=None,
+        sample_weight=None,
+        features=None,
+        negative_candidate_ids=None,
+    ) -> "Prediction":
+        return Prediction(
+            outputs if outputs is not None else self.outputs,
+            targets if targets is not None else self.targets,
+            sample_weight if sample_weight is not None else self.sample_weight,
+            features if features is not None else self.features,
+            negative_candidate_ids
+            if negative_candidate_ids is not None
+            else self.negative_candidate_ids,
+        )
 
 
 class TopKPrediction(NamedTuple):
@@ -91,6 +106,9 @@ class TopKPrediction(NamedTuple):
 
     @staticmethod
     def output_names(k: int):
+        """Set column names of scores and identifiers when
+        `to_df` is called
+        """
         score_names = [f"score_{i}" for i in range(k)]
         id_names = [f"id_{i}" for i in range(k)]
 

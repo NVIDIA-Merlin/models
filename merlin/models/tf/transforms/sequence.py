@@ -622,20 +622,65 @@ class SequenceMaskLast(SequenceTargetAsInput):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceMaskLastInference(Block):
+    def call(self, inputs, training=False, testing=False):
+        self.inference_mode = not training and not testing
+        if self.inference_mode:
+            # Extending sequences in one position by copying the last embedding
+            repeat = inputs[:, -1:, :]
+            # repeat = tf.expand_dims(repeat, 1)
+            inputs = tf.concat([inputs, repeat], axis=1)
+        return inputs
+
+    def compute_mask(self, inputs, mask=None):
+        """Selects (masks) the nex position after the
+        last valid (non-padded) position of the sequential targets
+        to be predicted.
+        This method is called by Keras after call()
+        and returns the mask that is going to be assigned
+        to the input tensors, being accessible
+        by tensor._keras_mask
+        """
+
+        targets_mask = None
+        if self.inference_mode:
+            if isinstance(inputs, tf.RaggedTensor):
+                row_lengths = inputs.row_lengths(1) + 1
+                max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+
+                padding_mask = tf.sequence_mask(row_lengths)
+                targets_mask = tf.ragged.boolean_mask(
+                    tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
+                )
+
+        return targets_mask
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ReplaceMaskedEmbeddings(Block):
     """Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
-    by a dummy trainable single embedding at the positions to be masked.
-    This block looks for the Keras mask (`._keras_mask`) in the following order:
-      1. Checks if the input tensor has a mask
-      2. Checks if there is a single target and if it has a mask
-      3. If there are multiple targets (dict) returns the mask of the target
-      that matches the first 2 dims of the input
-    This is useful to be used when PredictMasked() transformation is used in
-    the Loader, which randomly selects some targets to be predicted and uses
-    Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
-    at masked positions we avoid target leakage when training models with
-    Masked Language Modeling (BERT-like)
+     by a dummy trainable single embedding at the positions to be masked.
+     This block looks for the Keras mask (`._keras_mask`) in the following order:
+       1. Checks if the input tensor has a mask
+       2. Checks if there is a single target and if it has a mask
+       3. If there are multiple targets (dict) returns the mask of the target
+       that matches the first 2 dims of the input
+     This is useful to be used when PredictMasked() transformation is used in
+     the Loader, which randomly selects some targets to be predicted and uses
+     Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
+     at masked positions we avoid target leakage when training models with
+     Masked Language Modeling (BERT-like)
+
+     **Note:** To support inference, the input sequence and its corresponding mask should be
+     extended by one position at the end to account for the next-item (`target`) position.
+     To do this, you should set `SequenceMaskLastInference` as a pre-layer of
+    `ReplaceMaskedEmbeddings()` using the sequential-block:
+    ```mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()])```
     """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.supports_masking = True
 
     def build(self, input_shape):
         self.hidden_size = input_shape[-1]

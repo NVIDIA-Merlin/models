@@ -15,6 +15,7 @@
 #
 
 import logging
+import warnings
 from typing import Callable, Dict, Optional, Tuple, Type, Union
 
 from tensorflow.keras.layers import Layer
@@ -93,7 +94,7 @@ def InputBlock(
         Tags to filter the continuous features
         Defaults to  (Tags.CONTINUOUS,)
     continuous_projection: Optional[Block]
-        If set, concatenate all numerical features and projet using the
+        If set, concatenate all numerical features and project using the
         specified Block.
         Defaults to None
     add_embedding_branch: bool
@@ -291,6 +292,14 @@ def InputBlockV2(
         continuous and embeddings
     """
 
+    if "embeddings" in branches:
+        warnings.warn(
+            "The `embeddings` argument is deprecated and should be replaced "
+            "by `categorical` argument",
+            DeprecationWarning,
+        )
+        categorical = branches["embeddings"]
+
     unparsed = {"categorical": categorical, "continuous": continuous, **branches}
     parsed = {}
     for name, branch in unparsed.items():
@@ -305,7 +314,8 @@ def InputBlockV2(
             if branch not in tag_to_block:
                 raise ValueError(f"No default-block provided for {branch}")
             branch_schema: Schema = schema.select_by_tag(branch)
-            parsed[name] = tag_to_block[branch](branch_schema)
+            if branch_schema:
+                parsed[name] = tag_to_block[branch](branch_schema)
 
     if not parsed:
         raise ValueError("No columns selected for the input block")

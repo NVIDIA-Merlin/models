@@ -111,6 +111,7 @@ def test_dlrm_model_with_sample_weights_and_weighted_metrics(music_streaming_dat
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "loss_batch",
             "regularization_loss",
             "binary_accuracy",
             "recall",
@@ -336,7 +337,7 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
         ),
     ]
 
-    batch = mm.sample_batch(ml_dataset, batch_size=100, include_targets=False)
+    batch, _ = mm.sample_batch(ml_dataset, batch_size=100, process_lists=False)
 
     output_wide_features = mm.ParallelBlock(wide_preprocessing_blocks)(batch)
     assert set(output_wide_features.keys()) == set(

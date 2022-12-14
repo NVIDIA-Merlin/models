@@ -94,9 +94,6 @@ class ModelContext(Layer):
     (This is created automatically in the model and doesn't need to be created manually.)
     """
 
-    def add_variable(self, variable):
-        setattr(self, variable.name, variable)
-
     def add_embedding_table(self, name, embedding_table):
         embedding_tables = getattr(self, "embedding_tables", {})
         embedding_tables[name] = embedding_table
@@ -230,7 +227,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         """
         from merlin.models.tf.core.combinators import SequentialBlock
 
-        repeated = []
+        repeated = [self]
         for _ in range(num):
             repeated.append(self.copy())
 

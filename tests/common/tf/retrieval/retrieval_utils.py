@@ -18,6 +18,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, Optional
 
 import numpy as np
@@ -28,8 +29,10 @@ from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
+from merlin.models.tf.outputs.base import DotProduct
 from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
 from merlin.models.utils import schema_utils
+from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema.tags import Tags
 
 
@@ -84,6 +87,14 @@ def get_samplers(schema, neg_sampling="inbatch", cached_negatives_capacity=16):
                 item_id_feature_name=item_id_name,
             ),
         ]
+    else:
+        raise Exception(f"Invalid neg_sampling option: {neg_sampling}")
+    return samplers
+
+
+def get_samplers_v2(schema, neg_sampling="inbatch", cached_negatives_capacity=16):
+    if neg_sampling == "inbatch":
+        samplers = [mm.InBatchSamplerV2()]
     else:
         raise Exception(f"Invalid neg_sampling option: {neg_sampling}")
     return samplers
@@ -252,6 +263,140 @@ def get_dual_encoder_model(
             prediction_tasks=retrieval_task,
             l2_normalization=cosine_similarity_logits,
         )
+    else:
+        raise ValueError(f"Invalid model_type: {model_type}")
+    return model
+
+
+def get_dual_encoder_model_v2(
+    schema,
+    samplers,
+    items_frequencies,
+    model_type,
+    emb_init_distr="truncated_normal",
+    emb_init_range=0.05,
+    logq_correction_factor=0.0,
+    logits_temperature=0.1,
+    mf_dim=128,
+    embeddings_l2_reg=0.0,
+    cosine_similarity_logits=False,
+    two_tower_mlp_layers="64",
+    item_id_emb_size=64,
+    user_id_emb_size=64,
+    two_tower_activation="relu",
+    two_tower_mlp_init="he_normal",
+    two_tower_dropout=0.0,
+    l2_reg=0.0,
+    two_tower_embedding_sizes_multiplier=2.0,
+):
+    post_logits = None
+    if logq_correction_factor > 0:
+        post_logits = PopularityLogitsCorrection(
+            items_frequencies, reg_factor=logq_correction_factor, schema=schema
+        )
+
+    output = mm.ContrastiveOutput(
+        to_call=DotProduct(),
+        logits_temperature=logits_temperature,
+        post=post_logits,
+        negative_samplers=samplers,
+        schema=schema.select_by_tag(Tags.ITEM_ID),
+        store_negative_ids=True,
+    )
+
+    emb_init = get_embeddings_initializer(emb_init_distr, emb_init_range)
+
+    if model_type == "mf":
+        model = mm.MatrixFactorizationModelV2(
+            schema,
+            dim=mf_dim,
+            outputs=output,
+            embeddings_initializers=emb_init,
+            embeddings_l2_batch_regularization=embeddings_l2_reg,
+            post=mm.L2Norm() if cosine_similarity_logits else None,
+        )
+
+    elif model_type == "two_tower":
+        layers_dims = list([int(v.strip()) for v in two_tower_mlp_layers.split(",")])
+
+        embedding_dims = {}
+        if item_id_emb_size:
+            item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+            item_id_domain = schema_utils.categorical_domains(schema)[item_id_feature_name]
+            embedding_dims[item_id_domain] = item_id_emb_size
+        if user_id_emb_size:
+            user_id_feature_name = schema.select_by_tag(Tags.USER_ID).column_names[0]
+            user_id_domain = schema_utils.categorical_domains(schema)[user_id_feature_name]
+            embedding_dims[user_id_domain] = user_id_emb_size
+
+        # define query tower
+        user_schema = schema.select_by_tag(Tags.USER)
+        query_inputs = mm.InputBlockV2(
+            user_schema,
+            categorical=mm.Embeddings(
+                user_schema.select_by_tag(Tags.CATEGORICAL),
+                dim=embedding_dims,
+                infer_dim_fn=partial(
+                    schema_utils.infer_embedding_dim,
+                    multiplier=two_tower_embedding_sizes_multiplier,
+                    ensure_multiple_of_8=True,
+                ),
+                l2_batch_regularization_factor=embeddings_l2_reg,
+                embeddings_initializer=emb_init,
+            ),
+        )
+        query_block = mm.MLPBlock(
+            layers_dims,
+            activation=two_tower_activation,
+            kernel_initializer=two_tower_mlp_init,
+            no_activation_last_layer=True,
+            dropout=two_tower_dropout,
+            kernel_regularizer=regularizers.l2(l2_reg),
+            bias_regularizer=regularizers.l2(l2_reg),
+        )
+        query = mm.Encoder(
+            query_inputs,
+            query_block,
+            post=mm.L2Norm() if cosine_similarity_logits else None,
+        )
+
+        # define candidate tower
+        candidate_schema = schema.select_by_tag(Tags.ITEM)
+        candidate_inputs = mm.InputBlockV2(
+            candidate_schema,
+            categorical=mm.Embeddings(
+                candidate_schema.select_by_tag(Tags.CATEGORICAL),
+                dim=embedding_dims,
+                infer_dim_fn=partial(
+                    schema_utils.infer_embedding_dim,
+                    multiplier=two_tower_embedding_sizes_multiplier,
+                    ensure_multiple_of_8=True,
+                ),
+                l2_batch_regularization_factor=embeddings_l2_reg,
+                embeddings_initializer=emb_init,
+            ),
+        )
+        candidate_block = mm.MLPBlock(
+            layers_dims,
+            activation=two_tower_activation,
+            kernel_initializer=two_tower_mlp_init,
+            no_activation_last_layer=True,
+            dropout=two_tower_dropout,
+            kernel_regularizer=regularizers.l2(l2_reg),
+            bias_regularizer=regularizers.l2(l2_reg),
+        )
+        candidate = mm.Encoder(
+            candidate_inputs,
+            candidate_block,
+            post=mm.L2Norm() if cosine_similarity_logits else None,
+        )
+
+        model = mm.TwoTowerModelV2(
+            query,
+            candidate,
+            outputs=output,
+        )
+
     else:
         raise ValueError(f"Invalid model_type: {model_type}")
     return model
@@ -549,6 +694,118 @@ class RetrievalTrainEvalRunner:
                 return_dict=True,
                 callbacks=self.callbacks,
                 **eval_kwargs,
+            )
+
+            final_metrics = {**train_metrics, **eval_metrics}
+
+            final_time = time.time()
+            final_metrics["runtime_sec"] = final_time - start_time
+
+            examples_per_sec_callback = list(
+                [x for x in self.callbacks if isinstance(x, ExamplesPerSecondCallback)]
+            )[0]
+            avg_examples_per_sec = (
+                examples_per_sec_callback.get_train_batches_mean_of_avg_examples_per_sec()
+            )
+            final_metrics["avg_examples_per_sec"] = avg_examples_per_sec
+
+            final_metrics = {f"{k}-final": v for k, v in final_metrics.items()}
+            self.wandb_logger.log(final_metrics)
+
+            # Marks W&B execution as successfully finished
+            exit_code = 0
+        finally:
+            self.wandb_logger.teardown(exit_code=exit_code)
+
+        return final_metrics
+
+
+@dataclass
+class RetrievalTrainEvalRunnerV2:
+    wandb_logger: Any = None
+    model_type: str = None
+    schema: Any = None
+    train_ds: Any = None
+    eval_ds: Any = None
+    model: Any = None
+    optimizer: Any = None
+    metrics: Any = None
+    loss: Any = None
+    callbacks: Any = None
+    # hparams for actions
+    random_seed: int = 42
+    train_epochs: int = 1
+    train_steps_per_epoch: Optional[int] = None
+    train_batch_size: int = 128
+    train_metrics_steps: int = 100
+    eval_steps: int = 100
+    eval_batch_size: int = 128
+
+    def run(self, hparams):
+        start_time = time.time()
+
+        set_random_seed(self.random_seed)
+
+        self.wandb_logger.config(hparams)
+
+        # Marks W&B execution as failed by default
+        exit_code = 1
+        try:
+            self.model.compile(
+                run_eagerly=False, optimizer=self.optimizer, loss=self.loss, metrics=self.metrics
+            )
+
+            self.model.fit(
+                self.train_ds,
+                epochs=self.train_epochs,
+                steps_per_epoch=self.train_steps_per_epoch,
+                batch_size=self.train_batch_size,
+                shuffle=True,
+                drop_last=True,
+                # validation_data=eval_ds,
+                # validation_steps=args.validation_steps,
+                callbacks=self.callbacks,
+                train_metrics_steps=self.train_metrics_steps,
+            )
+
+            # get encoder for top-k evaluation
+            max_cutoff = self.metrics[0].k
+            item_features = self.schema.select_by_tag(Tags.ITEM).column_names
+            item_dataset = self.train_ds.to_ddf()[item_features].drop_duplicates().compute()
+            item_dataset = Dataset(item_dataset)
+            item_dataset = unique_rows_by_features(item_dataset, Tags.ITEM, Tags.ITEM_ID)
+            recommender = self.model.to_top_k_encoder(
+                item_dataset, batch_size=self.train_batch_size, k=max_cutoff
+            )
+            recommender.compile(run_eagerly=False, metrics=self.metrics)
+            item_id_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+
+            # Evaluate on train set
+            train_loader = mm.Loader(
+                self.train_ds,
+                batch_size=self.eval_batch_size,
+                shuffle=False,
+            ).map(mm.ToTarget(self.train_ds.schema, item_id_name))
+
+            train_metrics = recommender.evaluate(
+                train_loader,
+                steps=self.eval_steps,
+                return_dict=True,
+                callbacks=self.callbacks,
+            )
+            train_metrics = {f"train_{k}": v for k, v in train_metrics.items()}
+
+            # Evaluate on valid set
+            eval_loader = mm.Loader(
+                self.eval_ds,
+                batch_size=self.eval_batch_size,
+                shuffle=False,
+            ).map(mm.ToTarget(self.eval_ds.schema, item_id_name))
+            eval_metrics = recommender.evaluate(
+                eval_loader,
+                batch_size=self.eval_batch_size,
+                return_dict=True,
+                callbacks=self.callbacks,
             )
 
             final_metrics = {**train_metrics, **eval_metrics}

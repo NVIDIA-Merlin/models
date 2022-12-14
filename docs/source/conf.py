@@ -98,16 +98,19 @@ suppress_warnings = ["etoc.toctree", "myst.header", "misc.highlighting_failure"]
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     "navigation_depth": 2,
+    "analytics_id": "G-NVJ1Y1YJHK",
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ["_static"]
+html_css_files = ["css/custom.css"]
 
 source_suffix = [".rst", ".md"]
 
 nbsphinx_allow_errors = True
+html_copy_source = False
 html_show_sourcelink = False
 
 if os.path.exists(gitdir):
@@ -120,6 +123,9 @@ else:
 smv_branch_whitelist = r"^main$"
 
 smv_refs_override_suffix = r"-docs"
+
+html_sidebars = {"**": ["versions.html"]}
+html_baseurl = "https://nvidia-merlin.github.io/models/main"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

@@ -1,7 +1,23 @@
+#
+# Copyright (c) 2022, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 from __future__ import annotations
 
 import collections
 import inspect
+import os
 import sys
 import warnings
 from collections.abc import Sequence as SequenceCollection
@@ -15,10 +31,12 @@ from packaging import version
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
+from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
 from merlin.models.tf.core.tabular import TabularBlock
+from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
@@ -27,7 +45,7 @@ from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.outputs.base import ModelOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.tensor import ListToRagged
+from merlin.models.tf.transforms.tensor import ListToRagged, ProcessList
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -69,6 +87,39 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
 
     def on_train_batch_end(self, batch, logs=None):
         self._is_first_batch = False
+
+
+def get_output_schema(export_path: str) -> Schema:
+    """Compute Output Schema
+
+    Parameters
+    ----------
+    export_path : str
+        Path to saved model directory
+
+    Returns
+    -------
+    Schema
+        Output Schema representing model outputs
+    """
+    model = tf.keras.models.load_model(export_path)
+    signature = model.signatures["serving_default"]
+
+    output_schema = Schema()
+    for output_name, output_spec in signature.structured_outputs.items():
+        col_schema = ColumnSchema(output_name, dtype=output_spec.dtype.as_numpy_dtype)
+        shape = output_spec.shape
+        if shape.rank > 1 and (shape[1] is None or shape[1] > 1):
+            is_ragged = shape[1] is None
+            col_schema = ColumnSchema(
+                output_name,
+                dtype=output_spec.dtype.as_numpy_dtype,
+                is_list=True,
+                is_ragged=is_ragged,
+            )
+        output_schema.column_schemas[output_name] = col_schema
+
+    return output_schema
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -124,7 +175,6 @@ class ModelBlock(Block, tf.keras.Model):
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
-
         fit_kwargs = {
             k: v
             for k, v in locals().items()
@@ -319,8 +369,13 @@ class BaseModel(tf.keras.Model):
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
 
+        if hvd_installed and hvd.size() > 1:
+            # Horovod: Specify `experimental_run_tf_function=False` to ensure TensorFlow
+            # uses hvd.DistributedOptimizer() to compute gradients.
+            kwargs.update({"experimental_run_tf_function": False})
+
         super(BaseModel, self).compile(
-            optimizer=optimizer,
+            optimizer=self._create_optimizer(optimizer),
             loss=self._create_loss(loss),
             metrics=self._create_metrics(metrics),
             weighted_metrics=self._create_weighted_metrics(weighted_metrics),
@@ -331,6 +386,37 @@ class BaseModel(tf.keras.Model):
             from_serialized=from_serialized,
             **kwargs,
         )
+
+    def _create_optimizer(self, optimizer):
+        def _create_single_distributed_optimizer(opt):
+            opt_config = opt.get_config()
+
+            if isinstance(opt.learning_rate, tf.keras.optimizers.schedules.LearningRateSchedule):
+                lr_config = opt.learning_rate.get_config()
+                lr_config["initial_learning_rate"] *= hvd.size()
+                opt_config["lr"] = opt.learning_rate.__class__.from_config(lr_config)
+            else:
+                opt_config["lr"] = opt.learning_rate * hvd.size()
+
+            opt = opt.__class__.from_config(opt_config)
+
+            return hvd.DistributedOptimizer(opt)
+
+        optimizer = tf.keras.optimizers.get(optimizer)
+
+        if hvd_installed and hvd.size() > 1:
+            if optimizer.__module__.startswith("horovod"):
+                # do nothing if the optimizer is already wrapped in hvd.DistributedOptimizer
+                pass
+            elif isinstance(optimizer, merlin.models.tf.MultiOptimizer):
+                for pair in (
+                    optimizer.optimizers_and_blocks + optimizer.update_optimizers_and_blocks
+                ):
+                    pair.optimizer = _create_single_distributed_optimizer(pair.optimizer)
+            else:
+                optimizer = _create_single_distributed_optimizer(optimizer)
+
+        return optimizer
 
     def _create_metrics(self, metrics=None):
         out = {}
@@ -374,6 +460,10 @@ class BaseModel(tf.keras.Model):
         else:
             out = metrics
 
+        for metric in tf.nest.flatten(out):
+            # We ensure metrics passed to `compile()` are reset
+            if metric:
+                metric.reset_state()
         return out
 
     def _create_weighted_metrics(self, weighted_metrics=None):
@@ -397,6 +487,10 @@ class BaseModel(tf.keras.Model):
                 else:
                     for i, block in enumerate(self.model_outputs):
                         out[block.full_name] = weighted_metrics[i]
+
+        for metric in tf.nest.flatten(out):
+            if metric:
+                metric.reset_state()
 
         return out
 
@@ -591,7 +685,7 @@ class BaseModel(tf.keras.Model):
         - Converts ragged targets (and their masks) to dense, so that they are compatible
         with most losses and metrics
         - Copies the targets mask to predictions mask, if defined
-        - One-hot encode targets if their tf.rank(targest) == tf.rank(predictions)-1
+        - One-hot encode targets if their tf.rank(targets) == tf.rank(predictions)-1
         - Ensures targets has the same shape and dtype as predicitnos
 
         Parameters
@@ -642,10 +736,31 @@ class BaseModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
 
+            # Ensure that we don't have any ragged or sparse tensors passed at training time.
+            if isinstance(x, dict):
+                for k in x:
+                    if isinstance(x[k], (tf.RaggedTensor, tf.SparseTensor)):
+                        raise ValueError(
+                            "Training with RaggedTensor or SparseTensor input features is "
+                            "not supported. Please update your dataloader to pass a tuple "
+                            "of dense tensors instead, (corresponding to the values and "
+                            "row lengths of the ragged input feature). This will ensure that "
+                            "the model can be saved with the correct input signature, "
+                            "and served correctly. "
+                            "This is because when ragged or sparse tensors are fed as inputs "
+                            "the input feature names are currently lost in the saved model "
+                            "input signature."
+                        )
+
             if getattr(self, "train_pre", None):
                 out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
                 if isinstance(out, Prediction):
                     x, y = out.outputs, out.targets
+                elif isinstance(out, tuple):
+                    assert (
+                        len(out) == 2
+                    ), "output of `pre` must be a 2-tuple of x, y or `Prediction` tuple"
+                    x, y = out
                 else:
                     x = out
 
@@ -659,8 +774,11 @@ class BaseModel(tf.keras.Model):
 
         metrics = self.train_compute_metrics(outputs, self.compiled_metrics)
 
-        # Adding regularization loss to metrics
+        # Batch regularization loss
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
+        # Batch loss (the default loss metric from Keras is the incremental average per epoch,
+        # not the actual batch loss)
+        metrics["loss_batch"] = loss
 
         return metrics
 
@@ -673,6 +791,11 @@ class BaseModel(tf.keras.Model):
             out = call_layer(self.test_pre, x, targets=y, features=x, testing=True)
             if isinstance(out, Prediction):
                 x, y = out.outputs, out.targets
+            elif isinstance(out, tuple):
+                assert (
+                    len(out) == 2
+                ), "output of `pre` must be a 2-tuple of x, y or `Prediction` tuple"
+                x, y = out
             else:
                 x = out
 
@@ -683,12 +806,15 @@ class BaseModel(tf.keras.Model):
             # so we need to retrieve top-k negative scores to compute the loss
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
-        self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
+        loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
         metrics = self.compute_metrics(outputs)
 
-        # Adding regularization loss to metrics
+        # Batch regularization loss
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
+        # Batch loss (the default loss metric from Keras is the incremental average per epoch,
+        # not the actual batch loss)
+        metrics["loss_batch"] = loss
 
         return metrics
 
@@ -696,9 +822,14 @@ class BaseModel(tf.keras.Model):
         x, _, _ = unpack_x_y_sample_weight(data)
 
         if getattr(self, "predict_pre", None):
-            out = call_layer(self.predict_pr, x, features=x, training=False)
+            out = call_layer(self.predict_pre, x, features=x, training=False)
             if isinstance(out, Prediction):
                 x = out.outputs
+            elif isinstance(out, tuple):
+                assert (
+                    len(out) == 2
+                ), "output of `pre` must be a 2-tuple of x, y or `Prediction` tuple"
+                x, y = out
             else:
                 x = out
 
@@ -810,13 +941,20 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
         # Bind schema from dataset to model in case we can't infer it from the inputs
-        if isinstance(x, Loader):
-            self.schema = x.schema
+        if isinstance(x, Loader) and getattr(self, "schema", None) is None:
+            self.schema = x.schema.excluding_by_tag(Tags.TARGET)
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
+
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
+        if hvd_installed and hvd.size() > 1:
+            callbacks = self._add_horovod_callbacks(callbacks)
+
+        # Horovod: if it's not worker 0, turn off logging.
+        if hvd_installed and hvd.rank() != 0:
+            verbose = 0  # noqa: F841
 
         fit_kwargs = {
             k: v
@@ -835,7 +973,7 @@ class BaseModel(tf.keras.Model):
 
         return out
 
-    def _add_metrics_callback(self, callbacks, train_metrics_steps):
+    def _validate_callbacks(self, callbacks):
         if callbacks is None:
             callbacks = []
 
@@ -844,10 +982,33 @@ class BaseModel(tf.keras.Model):
         else:
             callbacks = [callbacks]
 
+        return callbacks
+
+    def _add_metrics_callback(self, callbacks, train_metrics_steps):
+        callbacks = self._validate_callbacks(callbacks)
+
         callback_types = [type(callback) for callback in callbacks]
         if MetricsComputeCallback not in callback_types:
             # Adding a callback to control metrics computation
             callbacks.append(MetricsComputeCallback(train_metrics_steps))
+
+        return callbacks
+
+    def _add_horovod_callbacks(self, callbacks):
+        if not (hvd_installed and hvd.size() > 1):
+            return callbacks
+
+        callbacks = self._validate_callbacks(callbacks)
+
+        callback_types = [type(callback) for callback in callbacks]
+        # Horovod: broadcast initial variable states from rank 0 to all other processes.
+        # This is necessary to ensure consistent initialization of all workers when
+        # training is started with random weights or restored from a checkpoint.
+        if hvd.callbacks.BroadcastGlobalVariablesCallback not in callback_types:
+            callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
+        # Horovod: average metrics among workers at the end of every epoch.
+        if hvd.callbacks.MetricAverageCallback not in callback_types:
+            callbacks.append(hvd.callbacks.MetricAverageCallback())
 
         return callbacks
 
@@ -959,6 +1120,11 @@ class BaseModel(tf.keras.Model):
 
         return merlin.io.Dataset(predictions)
 
+    def save(self, *args, **kwargs):
+        if hvd_installed and hvd.rank() != 0:
+            return
+        super().save(*args, **kwargs)
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Model(BaseModel):
@@ -989,7 +1155,49 @@ class Model(BaseModel):
             block.schema for block in self.submodules if getattr(block, "is_input", False)
         ]
         self.schema = sum(input_block_schemas, Schema())
+        self.process_list = ProcessList(self.schema)
         self._frozen_blocks = set()
+
+    def save(
+        self,
+        export_path: Union[str, os.PathLike],
+        include_optimizer=True,
+        save_traces=True,
+    ) -> None:
+        """Saves the model to export_path as a Tensorflow Saved Model.
+        Along with merlin model metadata.
+
+        Parameters
+        ----------
+        export_path : Union[str, os.PathLike]
+            Path where model will be saved to
+        include_optimizer : bool, optional
+            If False, do not save the optimizer state, by default True
+        save_traces : bool, optional
+            When enabled, will store the function traces for each layer. This
+            can be disabled, so that only the configs of each layer are
+            stored, by default True
+        """
+        super().save(
+            export_path,
+            include_optimizer=include_optimizer,
+            save_traces=save_traces,
+            save_format="tf",
+        )
+        input_schema = self.schema
+        output_schema = get_output_schema(export_path)
+        save_merlin_metadata(export_path, self, input_schema, output_schema)
+
+    @classmethod
+    def load(cls, export_path: Union[str, os.PathLike]) -> "Model":
+        """Loads a model that was saved with `model.save()`.
+
+        Parameters
+        ----------
+        export_path : Union[str, os.PathLike]
+            The path to the saved model.
+        """
+        return tf.keras.models.load_model(export_path)
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
@@ -1040,7 +1248,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            ListToRagged()(inputs),
+            self.process_list(inputs),
             targets=targets,
             training=training,
             testing=testing,
@@ -1349,9 +1557,20 @@ class RetrievalModel(Model):
         return_dict=False,
         **kwargs,
     ):
-        self.has_item_corpus = False
-
         if item_corpus:
+            if getattr(self, "has_item_corpus", None) is False:
+                raise Exception(
+                    "The model.evaluate() was called before without `item_corpus` argument, "
+                    "(which is done internally by model.fit() with `validation_data` set) "
+                    "and you cannot use model.evaluate() after with `item_corpus` set "
+                    "due to a limitation in graph mode. "
+                    "Classes based on RetrievalModel (MatrixFactorizationModel,TwoTowerModel) "
+                    "are deprecated and we advice using MatrixFactorizationModelV2 and "
+                    "TwoTowerModelV2, where this issue does not happen because the evaluation "
+                    "over the item catalog is done separately by using "
+                    "`model.to_top_k_encoder().evaluate()."
+                )
+
             from merlin.models.tf.core.index import TopKIndexBlock
 
             self.has_item_corpus = True
@@ -1391,6 +1610,8 @@ class RetrievalModel(Model):
 
             if isinstance(self.prediction_tasks[0], ItemRetrievalTask):
                 self.prediction_tasks[0].set_retrieval_cache_query(True)  # type: ignore
+        else:
+            self.has_item_corpus = False
 
         return super().evaluate(
             x,
@@ -1673,6 +1894,39 @@ class RetrievalModelV2(Model):
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post", "_encoder", "_output"])
 
         return config
+
+    def to_top_k_encoder(
+        self,
+        candidates: merlin.io.Dataset = None,
+        candidate_id=Tags.ITEM_ID,
+        strategy: Union[str, tf.keras.layers.Layer] = "brute-force-topk",
+        k: int = 10,
+        **kwargs,
+    ):
+        from merlin.models.tf.core.encoder import TopKEncoder
+
+        """Method to get a top-k encoder
+
+        Parameters
+        ----------
+        candidate : merlin.io.Dataset, optional
+            Dataset of unique candidates, by default None
+        candidate_id:
+            Column to use as the candidates index,
+            by default Tags.ITEM_ID
+        strategy: str
+            Strategy to use for retrieving the top-k candidates of
+            a given query, by default brute-force-topk
+        """
+        candidates_embeddings = self.candidate_embeddings(candidates, index=candidate_id, **kwargs)
+        topk_model = TopKEncoder(
+            self.query_encoder,
+            topk_layer=strategy,
+            k=k,
+            candidates=candidates_embeddings,
+            target=self.encoder._schema.select_by_tag(candidate_id).first.name,
+        )
+        return topk_model
 
 
 def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):

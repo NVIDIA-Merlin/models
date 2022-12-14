@@ -24,30 +24,35 @@ def test_func(tb):
     assert sorted(list(metrics_ncf.keys())) == [
         "auc",
         "loss",
+        "loss_batch",
         "regularization_loss",
     ]
     metrics_mlp = tb.ref("metrics_mlp")
     assert sorted(list(metrics_mlp.keys())) == [
         "auc_1",
         "loss",
+        "loss_batch",
         "regularization_loss",
     ]
     metrics_mlp = tb.ref("metrics_wide_n_deep")
     assert sorted(list(metrics_mlp.keys())) == [
         "auc_2",
         "loss",
+        "loss_batch",
         "regularization_loss",
     ]
     metrics_dlrm = tb.ref("metrics_dlrm")
     assert sorted(list(metrics_dlrm.keys())) == [
         "auc_3",
         "loss",
+        "loss_batch",
         "regularization_loss",
     ]
     metrics_dcn = tb.ref("metrics_dcn")
     assert sorted(list(metrics_dcn.keys())) == [
         "auc_4",
         "loss",
+        "loss_batch",
         "regularization_loss",
     ]
     assert os.path.isfile("results.txt")

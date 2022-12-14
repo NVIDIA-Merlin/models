@@ -25,6 +25,7 @@ import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
 from merlin.models.tf.utils import testing_utils, tf_utils
+from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -47,7 +48,7 @@ def test_fit_compile_twice():
     dataset.schema = Schema(
         [
             ColumnSchema("feature", dtype=np.int32, tags=[Tags.CONTINUOUS]),
-            ColumnSchema("target", dtype=np.int32, tags=[Tags.BINARY_CLASSIFICATION]),
+            ColumnSchema("target", dtype=np.int32, tags=[Tags.TARGET, Tags.BINARY_CLASSIFICATION]),
         ]
     )
     loader = mm.Loader(dataset, batch_size=2, shuffle=False)
@@ -125,14 +126,14 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
 
     def __init__(self, name="update_count_metric", **kwargs):
         super().__init__(name=name, **kwargs)
-        self._built = False
+        self.built = False
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        if not self._built:
+        if not self.built:
             self.call_count = self.add_weight(
                 "call_count", shape=tf.TensorShape([1]), initializer="zeros"
             )
-            self._built = True
+            self.built = True
 
         self.call_count.assign(self.call_count + tf.constant([1.0]))
 
@@ -140,7 +141,8 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
         return self.call_count[0]
 
     def reset_state(self):
-        self.call_count.assign(tf.constant([0.0]))
+        if self.built:
+            self.call_count.assign(tf.constant([0.0]))
 
 
 @pytest.mark.parametrize(
@@ -672,12 +674,55 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
+def test_save_and_load(tmpdir):
+    dataset = generate_data("e-commerce", num_rows=10)
+    dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
+    model = mm.Model(
+        mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+    model.compile()
+    _ = model.fit(
+        dataset,
+        epochs=1,
+        batch_size=10,
+    )
+    model.save(tmpdir)
+    reloaded_model = mm.Model.load(tmpdir)
+
+    saved_input_schema = schema_utils.tensorflow_metadata_json_to_schema(
+        f"{tmpdir}/.merlin/input_schema.json"
+    )
+    saved_output_schema = schema_utils.tensorflow_metadata_json_to_schema(
+        f"{tmpdir}/.merlin/output_schema.json"
+    )
+
+    signature_input_keys = set(
+        reloaded_model.signatures["serving_default"].structured_input_signature[1].keys()
+    )
+    signature_output_keys = set(
+        reloaded_model.signatures["serving_default"].structured_outputs.keys()
+    )
+    assert signature_input_keys == {"user_age"} == set(saved_input_schema.column_names)
+    assert (
+        signature_output_keys
+        == {"click/binary_classification_task"}
+        == set(saved_output_schema.column_names)
+    )
+
+    test_case = TestCase()
+    test_case.assertAllClose(
+        model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
+    )
+
+
 def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
 
-    loader = mm.Loader(
-        ecommerce_data, batch_size=50, transform=mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
+    loader = mm.Loader(ecommerce_data, batch_size=50).map(
+        mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
     )
 
     model = mm.RetrievalModelV2(
@@ -833,3 +878,29 @@ def test_model_compute_loss_metrics_with_without_masking(
     assert not np.isclose(loss1, loss_masked)
     for k in metrics1:
         assert not np.isclose(metrics1[k], metrics_masked[k])
+
+
+def test_categorical_prediction_with_temperature(sequence_testing_data: Dataset):
+    train = sequence_testing_data
+    train.schema = train.schema.select_by_name(["item_id_seq", "user_country"])
+    schema_model = train.schema.select_by_name(["item_id_seq"])
+    inputs = mm.InputBlockV2(
+        schema_model,
+        categorical=mm.Embeddings(
+            schema_model,
+        ),
+    )
+    model = mm.Model(
+        inputs,
+        mm.MLPBlock([32]),
+        mm.CategoricalOutput(
+            to_call=train.schema.select_by_name(["user_country"]), logits_temperature=0.2
+        ),
+    )
+
+    loader = mm.Loader(train, batch_size=1024).map(
+        mm.ToTarget(train.schema, "user_country", one_hot=True)
+    )
+
+    model.compile(run_eagerly=False, optimizer="adam")
+    model.fit(loader, batch_size=1024, epochs=1)

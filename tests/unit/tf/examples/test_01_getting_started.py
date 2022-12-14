@@ -44,6 +44,7 @@ def test_example_01_getting_started(tb):
             "auc",
             "binary_accuracy",
             "loss",
+            "loss_batch",
             "regularization_loss",
             "precision",
             "recall",

@@ -759,6 +759,57 @@ def test_embedding_features_yoochoose_pretrained_initializer(testing_data: Datas
     )
 
 
+def test_embedding_features_from_config():
+    schema = Schema(
+        [
+            ColumnSchema(
+                "name",
+                tags=[Tags.USER, Tags.CATEGORICAL],
+                is_list=False,
+                is_ragged=False,
+                dtype=np.int32,
+                properties={
+                    "num_buckets": None,
+                    "freq_threshold": 0,
+                    "max_size": 0,
+                    "start_index": 0,
+                    "cat_path": ".//categories/unique.name.parquet",
+                    "domain": {"min": 0, "max": 5936, "name": "name"},
+                    "embedding_sizes": {"cardinality": 5937, "dimension": 208},
+                },
+            ),
+            ColumnSchema(
+                "feature",
+                tags=[Tags.USER, Tags.CATEGORICAL],
+                is_list=False,
+                is_ragged=False,
+                dtype=np.int32,
+                properties={
+                    "num_buckets": None,
+                    "freq_threshold": 0,
+                    "max_size": 0,
+                    "start_index": 0,
+                    "cat_path": ".//categories/unique.feature.parquet",
+                    "domain": {"min": 0, "max": 2, "name": "feature"},
+                    "embedding_sizes": {"cardinality": 3, "dimension": 16},
+                },
+            ),
+        ]
+    )
+
+    embedding_features = mm.EmbeddingFeatures.from_schema(
+        schema,
+        tags=(Tags.CATEGORICAL,),
+        embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),
+    )
+    config = embedding_features.get_config()
+    reloaded_embedding_features = mm.EmbeddingFeatures.from_config(config)
+
+    assert set(embedding_features.embedding_tables.keys()) == set(
+        reloaded_embedding_features.embedding_tables.keys()
+    )
+
+
 def test_embedding_features_exporting_and_loading_pretrained_initializer(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     emb_module = mm.EmbeddingFeatures.from_schema(schema)

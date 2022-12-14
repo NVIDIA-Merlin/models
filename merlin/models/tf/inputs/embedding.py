@@ -574,13 +574,17 @@ class EmbeddingTable(EmbeddingTableBase):
             inputs = list_col_to_ragged(inputs)
 
         # Eliminating the last dim==1 of dense tensors before embedding lookup
-        if isinstance(inputs, tf.Tensor):
+        if isinstance(inputs, tf.Tensor) or (
+            isinstance(inputs, tf.RaggedTensor) and inputs.shape[-1] == 1
+        ):
             inputs = tf.squeeze(inputs, axis=-1)
 
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
                 if isinstance(inputs, tf.RaggedTensor):
                     inputs = inputs.to_sparse()
+                if len(inputs.dense_shape) == 3 and inputs.dense_shape[-1] == 1:
+                    inputs = tf.sparse.reshape(inputs, inputs.dense_shape[:-1])
                 out = tf.nn.safe_embedding_lookup_sparse(
                     self.table.embeddings, inputs, None, combiner=self.sequence_combiner
                 )
@@ -630,7 +634,10 @@ class EmbeddingTable(EmbeddingTableBase):
 
         first_dims = input_shape
         if (self.sequence_combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
-            first_dims = input_shape[:-1]
+            if len(input_shape) == 3:
+                first_dims = [input_shape[0]]
+            else:
+                first_dims = input_shape[:-1]
         output_shapes = tf.TensorShape(first_dims + [self.dim])
 
         return output_shapes
@@ -1069,6 +1076,9 @@ class EmbeddingFeatures(TabularBlock):
         table: TableConfig = self.feature_config[name].table
         table_var = self.embedding_tables[table.name].embeddings
         if isinstance(val, tf.SparseTensor):
+            if len(val.dense_shape) == 3 and val.dense_shape[-1] == 1:
+                val = tf.sparse.reshape(val, val.dense_shape[:-1])
+
             out = tf.nn.safe_embedding_lookup_sparse(table_var, val, None, combiner=table.combiner)
         else:
             if output_sequence:
@@ -1212,24 +1222,19 @@ class EmbeddingFeatures(TabularBlock):
             feature_configs[key] = feature_config_dict
 
         config["feature_config"] = feature_configs
+        config["l2_reg"] = self.l2_reg
 
         return config
 
     @classmethod
     def from_config(cls, config):
         # Deserialize feature_config
-        feature_configs, table_configs = {}, {}
+        feature_configs = {}
         for key, val in config["feature_config"].items():
-            feature_params = deepcopy(val)
-            table_params = feature_params["table"]
-            if "name" in table_configs:
-                feature_params["table"] = table_configs["name"]
-            else:
-                table = deserialize_table_config(table_params)
-                if table.name:
-                    table_configs[table.name] = table
-                feature_params["table"] = table
-            feature_configs[key] = FeatureConfig(**feature_params)
+            table = deserialize_table_config(val["table"])
+            feature_config_params = {**val, "table": table}
+            feature_configs[key] = FeatureConfig(**feature_config_params)
+
         config["feature_config"] = feature_configs
 
         # Set `add_default_pre to False` since pre will be provided from the config

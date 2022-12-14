@@ -91,13 +91,19 @@ class TransformerBlock(Block):
             self.transformer = get_tf_main_layer(transformer)
         else:
             self.transformer = transformer
-
+        self.transformer.supports_masking = True
         if "transformer" in inspect.signature(transformer_pre.__init__).parameters:
             transformer_pre = transformer_pre(transformer=self.transformer)
         self.transformer_pre = transformer_pre
         if isinstance(transformer_post, str):
             transformer_post = block_registry.parse(transformer_post)
         self.transformer_post = transformer_post
+
+        if isinstance(pre, str):
+            pre = block_registry.parse(pre)
+
+        if isinstance(post, str):
+            post = block_registry.parse(post)
 
         self.post = post
         self.pre = pre

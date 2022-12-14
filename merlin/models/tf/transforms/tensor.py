@@ -22,6 +22,11 @@ from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
+from merlin.schema import Schema
 
 ONE_HOT = utils.ONE_HOT
 MULTI_HOT = utils.MULTI_HOT
@@ -38,6 +43,8 @@ class ListToRagged(TabularBlock):
         for name, val in inputs.items():
             if isinstance(val, tuple):
                 outputs[name] = list_col_to_ragged(val)
+            elif isinstance(val, tf.SparseTensor):
+                outputs[name] = tf.RaggedTensor.from_sparse(val)
             else:
                 outputs[name] = val
 
@@ -56,6 +63,87 @@ class ListToRagged(TabularBlock):
 
     def compute_call_output_shape(self, input_shapes):
         return self.compute_output_shape(input_shapes)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ProcessList(TabularBlock):
+    """Process all list (multi-hot/sequential) features.add()
+
+    In NVTabular, list-columns are represented as a tuple of (values, offsets).
+    This layer processes those columns and:
+    - Converts them to a `tf.RaggedTensor` if the features has a variable length.
+    - Converts them to a `tf.Tensor` if the feature has a fixed length.
+    """
+
+    def __init__(self, schema: Schema, **kwargs):
+        super().__init__(**kwargs)
+        self.schema = schema
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+
+        for name, val in inputs.items():
+            is_ragged = True
+            if name in self.schema:
+                val_count = self.schema[name].properties.get("value_count")
+                if val_count and val_count["min"] == val_count["max"]:
+                    is_ragged = False
+
+            if isinstance(val, tuple):
+                ragged = list_col_to_ragged(val)
+            elif isinstance(val, tf.SparseTensor):
+                ragged = tf.RaggedTensor.from_sparse(val)
+            else:
+                outputs[name] = val
+                continue
+
+            if is_ragged:
+                if len(ragged.shape) == 2:
+                    ragged = tf.expand_dims(ragged, axis=-1)
+
+                outputs[name] = ragged
+            else:
+                outputs[name] = _ragged_to_dense(ragged)
+
+        return outputs
+
+    def compute_output_shape(self, input_shapes):
+        output_shapes = {}
+        for k, v in input_shapes.items():
+            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                is_ragged = True
+                max_seq_length = None
+                if k in self.schema:
+                    val_count = self.schema[k].properties.get("value_count")
+                    if val_count and val_count["min"] == val_count["max"]:
+                        is_ragged = False
+                        max_seq_length = val_count["min"]
+
+                if is_ragged:
+                    output_shapes[k] = tf.TensorShape([v[1][0], None, 1])
+                else:
+                    output_shapes[k] = tf.TensorShape([v[1][0], max_seq_length])
+            else:
+                output_shapes[k] = v
+
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
+
+    def get_config(self):
+        config = super().get_config()
+
+        config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
+
+        return cls(schema, **config)
 
 
 @Block.registry.register("list-to-sparse")
@@ -102,7 +190,7 @@ class ListToDense(TabularBlock):
         self.max_seq_length = max_seq_length
 
     def call(self, inputs: Union[tuple, tf.RaggedTensor, TabularData], **kwargs) -> TabularData:
-        if isinstance(inputs, (tf.RaggedTensor, tuple)):
+        if isinstance(inputs, (tf.SparseTensor, tf.RaggedTensor, tuple)):
             return self._convert_tensor_to_dense(inputs)
 
         outputs = {}
@@ -133,14 +221,10 @@ class ListToDense(TabularBlock):
     def _convert_tensor_to_dense(self, val):
         if isinstance(val, tuple):
             val = list_col_to_ragged(val)
+        if isinstance(val, tf.SparseTensor):
+            val = tf.RaggedTensor.from_sparse(val)
         if isinstance(val, tf.RaggedTensor):
-            if self.max_seq_length:
-                shape = [None] * val.shape.rank
-                shape[1] = self.max_seq_length
-                val = val.to_tensor(shape=shape)
-            else:
-                val = tf.squeeze(val.to_tensor())
-            return val
+            return _ragged_to_dense(val, self.max_seq_length)
         return tf.squeeze(val)
 
     def get_config(self):
@@ -197,3 +281,11 @@ class ExpandDims(TabularBlock):
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+
+def _ragged_to_dense(ragged_tensor, max_seq_length=None):
+    if max_seq_length:
+        shape = [None] * ragged_tensor.shape.rank
+        shape[1] = max_seq_length
+        return ragged_tensor.to_tensor(shape=shape)
+    return tf.squeeze(ragged_tensor.to_tensor())

@@ -46,11 +46,32 @@ def test_tf_tensors_generation_cpu():
 
     from merlin.models.tf import sample_batch
 
-    tensors = sample_batch(data, batch_size=100, include_targets=False)
+    tensors, _ = sample_batch(data, batch_size=100, process_lists=False)
     assert tensors["user_id"].shape == (100, 1)
     assert tensors["user_age"].dtype == tf.float64
     for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():
         assert len(val) == 2
+
+
+@pytest.mark.parametrize(
+    ["generate_data_kwargs", "expected_sequence_length"],
+    [
+        [{}, 4],  # this is the default value in the generate_data kwargs
+        [{"min_session_length": 6}, 6],
+        [{"max_session_length": 8}, 8],
+        [{"min_session_length": 1, "max_session_length": 8}, 8],
+    ],
+)
+def test_sequence_data_length(generate_data_kwargs, expected_sequence_length):
+    pytest.importorskip("tensorflow")
+    data = generate_data("sequence-testing", num_rows=10, **generate_data_kwargs)
+
+    from merlin.models.tf import sample_batch
+
+    tensors, y = sample_batch(data, batch_size=1, process_lists=False)
+
+    for col in ["item_id_seq", "categories"]:
+        assert all(tensors[col][1] == expected_sequence_length)
 
 
 def test_generate_user_item_interactions_dtypes():

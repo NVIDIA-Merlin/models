@@ -139,11 +139,10 @@ class ModelOutput(Layer):
             outputs = tf_utils.call_layer(self.post, outputs, **kwargs)
 
         if getattr(self, "logits_scaler", None):
-            if isinstance(outputs, Prediction):
-                scaled_outputs = self.logits_scaler(outputs.outputs)
-                outputs = Prediction(scaled_outputs, outputs.targets)
-            else:
-                outputs = self.logits_scaler(outputs)
+            if isinstance(outputs, tf.Tensor):
+                targets = kwargs.pop("targets", None)
+                outputs = Prediction(outputs, targets)
+            outputs = self.logits_scaler(outputs)
 
         return outputs
 
@@ -272,7 +271,7 @@ class DotProduct(Layer):
         Identify item tower for item embeddings, by default 'item'
     """
 
-    def __init__(self, query_name: str = "query", item_name: str = "item", **kwargs):
+    def __init__(self, query_name: str = "query", item_name: str = "candidate", **kwargs):
         super().__init__(**kwargs)
         self.query_name = query_name
         self.item_name = item_name

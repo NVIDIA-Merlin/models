@@ -34,6 +34,7 @@ def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
+        "loss_batch",
         "precision",
         "regularization_loss",
     }
@@ -61,6 +62,27 @@ def test_logits_scaler(ecommerce_data: Dataset):
     assert np.allclose(prediction_1.numpy(), prediction_2.numpy())
 
 
+def test_logits_scaler_v2(ecommerce_data: Dataset):
+    import numpy as np
+    from tensorflow.keras.utils import set_random_seed
+
+    set_random_seed(42)
+    logits_temperature = 0.5
+    model = mm.Model(
+        mm.InputBlockV2(ecommerce_data.schema),
+        mm.MLPBlock([8]),
+        mm.BinaryOutput("click", logits_temperature=logits_temperature),
+    )
+
+    inputs = mm.sample_batch(ecommerce_data, batch_size=10, include_targets=False)
+    prediction_1 = model(inputs)
+
+    model.last.logits_scaler = LogitsTemperatureScaler(temperature=1)
+    prediction_2 = model(inputs)
+
+    assert np.allclose(prediction_1.numpy(), prediction_2.numpy() / 0.5)
+
+
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_parallel_outputs(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
@@ -74,14 +96,17 @@ def test_parallel_outputs(ecommerce_data: Dataset, run_eagerly):
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
-    assert list(history.history.keys()) == [
-        "loss",
-        "click/model_output_loss",
-        "conversion/model_output_loss",
-        "click/model_output/precision",
-        "conversion/model_output/precision",
-        "regularization_loss",
-    ]
+    assert set(list(history.history.keys())) == set(
+        [
+            "loss",
+            "loss_batch",
+            "click/model_output_loss",
+            "conversion/model_output_loss",
+            "click/model_output/precision",
+            "conversion/model_output/precision",
+            "regularization_loss",
+        ]
+    )
 
 
 def _BinaryPrediction(name, **kwargs):

@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from typing import Optional, Union
 
 import tensorflow as tf
@@ -80,7 +96,7 @@ class TopKLayer(Layer):
             Whether to check if `data` has unique indices, by default True
         """
         if hasattr(data, "to_ddf"):
-            data = data.to_ddf()
+            data = data.to_ddf().compute()
         if check_unique_ids:
             self._check_unique_ids(data=data)
         values = tf_utils.df_to_tensor(data)
@@ -90,7 +106,7 @@ class TopKLayer(Layer):
             ids = tf.squeeze(ids)
         return ids, values
 
-    def call(self, inputs: tf.Tensor, targets=None, testing=False, **kwargs) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, targets=None, testing=False, k=None, **kwargs) -> tf.Tensor:
         """Method to return the tuple of top-k (ids, scores)"""
         raise NotImplementedError()
 
@@ -166,9 +182,10 @@ class BruteForce(TopKLayer):
 
     def call(
         self,
-        inputs,
-        targets=None,
-        testing=False,
+        inputs: tf.Tensor,
+        targets: tf.Tensor = None,
+        testing: bool = False,
+        k: int = None,
     ) -> Union[Prediction, TopKPrediction]:
         """Compute the scores between the query inputs and all indexed candidates,
         then retrieve the top-k candidates with the highest scores.
@@ -181,7 +198,10 @@ class BruteForce(TopKLayer):
             The tensor of positive candidates
         testing: bool
             Flag that indicates whether in evaluation mode, by default False
+        k: int
+            Number of candidates to return
         """
+        k = k if k is not None else self._k
         if self._candidates is None:
             raise ValueError(
                 "You should call the `index` method first to " "set the _candidates index."
@@ -195,7 +215,8 @@ class BruteForce(TopKLayer):
             f" dimension of {tf.shape(self._candidates)[1]} ",
         )
         scores = self._score(inputs, self._candidates)
-        top_scores, top_ids = tf.math.top_k(scores, k=self._k)
+        top_scores, top_idx = tf.math.top_k(scores, k=k)
+        top_ids = tf.gather(self._ids, top_idx)
         if testing:
             assert targets is not None, ValueError(
                 "Targets should be provided during the evaluation mode"
@@ -287,4 +308,18 @@ class TopKOutput(ModelOutput):
             post=post,
             logits_temperature=logits_temperature,
             **kwargs,
+        )
+
+    def call(self, inputs, targets=None, training=False, testing=False, **kwargs):
+        if isinstance(targets, dict):
+            if self.target is None:
+                raise ValueError(
+                    "The name of the target for top-k evaluation should be specified"
+                    " when a dictionary of multiple targets is provided"
+                )
+
+            targets = targets[self.target]
+
+        return tf_utils.call_layer(
+            self.to_call, inputs, targets=targets, training=training, testing=testing, **kwargs
         )

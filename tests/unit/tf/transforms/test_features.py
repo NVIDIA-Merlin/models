@@ -741,7 +741,7 @@ class TestBroadcastToSequence(tf.test.TestCase):
     def test_different_sequence_lengths(self):
         context_schema = Schema([ColumnSchema("c1")])
         sequence_schema = Schema([ColumnSchema("s1"), ColumnSchema("s2")])
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(Exception) as exc_info:
             layer = BroadcastToSequence(context_schema, sequence_schema)
             inputs = {
                 "c1": tf.constant([[1], [2]]),
@@ -749,9 +749,33 @@ class TestBroadcastToSequence(tf.test.TestCase):
                 "s2": tf.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
             }
             layer(inputs)
-        assert "All sequential features must share the same shape in the first two dims" in str(
-            exc_info.value
-        )
+        assert "sequence features must share the same sequence lengths" in str(exc_info.value)
+
+    def test_different_sequence_lengths_ragged(self):
+        context_schema = Schema([ColumnSchema("c1")])
+        sequence_schema = Schema([ColumnSchema("s1"), ColumnSchema("s2")])
+        with pytest.raises(Exception) as exc_info:
+            layer = BroadcastToSequence(context_schema, sequence_schema)
+            inputs = {
+                "c1": tf.constant([[1], [2]]),
+                "s1": tf.ragged.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
+                "s2": tf.ragged.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
+            }
+            layer(inputs)
+        assert "sequence features must share the same sequence lengths" in str(exc_info.value)
+
+    def test_ragged_and_dense_features(self):
+        context_schema = Schema([ColumnSchema("c1")])
+        sequence_schema = Schema([ColumnSchema("s1"), ColumnSchema("s2")])
+        with pytest.raises(ValueError) as exc_info:
+            layer = BroadcastToSequence(context_schema, sequence_schema)
+            inputs = {
+                "c1": tf.constant([[1], [2]]),
+                "s1": tf.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
+                "s2": tf.ragged.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
+            }
+            layer(inputs)
+        assert "sequence features must all be ragged or all dense, not both" in str(exc_info.value)
 
     def test_mask_propagation(self):
         masking_layer = tf.keras.layers.Masking(mask_value=0)
@@ -802,16 +826,36 @@ class TestBroadcastToSequence(tf.test.TestCase):
         partially_masked_inputs = {
             "a": tf.constant([[1], [2]]),
             "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
+            "c": masking_layer(tf.ragged.constant([[[1, 2]], [[3, 4], [4, 5]]], ragged_rank=1)),
         }
         context_schema = Schema([ColumnSchema("a")])
-        sequence_schema = Schema([ColumnSchema("b")])
+        sequence_schema = Schema([ColumnSchema("b"), ColumnSchema("c")])
 
         broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        _ = broadcast_layer(partially_masked_inputs)
         input_shape = {k: v.shape for k, v in partially_masked_inputs.items()}
         output_shape = broadcast_layer.compute_output_shape(input_shape)
 
-        self.assertAllEqual(output_shape["a"], tf.TensorShape([2, None, None]))
+        self.assertAllEqual(output_shape["a"], tf.TensorShape([2, None, 1]))
         self.assertAllEqual(output_shape["b"], tf.TensorShape([2, None, None]))
+        self.assertAllEqual(output_shape["c"], tf.TensorShape([2, None, 2]))
+
+    def test_sequence_static_dim(self):
+        inputs = {
+            "sequence_embedding": tf.ragged.constant(
+                [[[0.1, 0.2], [0.2, 0.4]], [[0.2, 0.4]], [[0.4, 0.2], [0.4, 0.4], [0.2, 0.3]]],
+                ragged_rank=1,
+            ),
+            "context_a": tf.constant([[1], [2], [3]]),
+            "context_b": tf.constant([1, 2, 3]),
+        }
+        context_schema = Schema([ColumnSchema("context_a"), ColumnSchema("context_b")])
+        sequence_schema = Schema([ColumnSchema("sequence_embedding")])
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        outputs = broadcast_layer(inputs)
+        self.assertAllEqual(outputs["sequence_embedding"].shape, tf.TensorShape([3, None, 2]))
+        self.assertAllEqual(outputs["context_a"].shape, tf.TensorShape([3, None, 1]))
+        self.assertAllEqual(outputs["context_b"].shape, tf.TensorShape([3, None]))
 
 
 @pytest.mark.parametrize(
@@ -923,7 +967,7 @@ def test_to_target_loader():
     dataset = Dataset(input_df, schema=schema)
 
     # target is passed as a string.
-    loader0 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, "c"))
+    loader0 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, "c"))
     inputs0, targets0 = next(iter(loader0))
     assert sorted(inputs0.keys()) == ["a", "b"]
     assert targets0.numpy().tolist() == [[3], [6]]
@@ -932,7 +976,7 @@ def test_to_target_loader():
     # target is passed as a ColumnSchema
     target_column_schema = ColumnSchema("c", tags=[Tags.CATEGORICAL])
     assert Tags.TARGET not in target_column_schema.tags
-    loader1 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, target_column_schema))
+    loader1 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, target_column_schema))
     inputs1, targets1 = next(iter(loader1))
     assert sorted(inputs1.keys()) == ["a", "b"]
     assert targets1.numpy().tolist() == [[3], [6]]
@@ -941,14 +985,14 @@ def test_to_target_loader():
     # target is passed as a Schema
     target_schema = schema.select_by_name("c")
     assert not target_schema.select_by_tag(Tags.TARGET)
-    loader2 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, target_schema))
+    loader2 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, target_schema))
     inputs2, targets2 = next(iter(loader2))
     assert sorted(inputs2.keys()) == ["a", "b"]
     assert targets2.numpy().tolist() == [[3], [6]]
     assert loader2.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
     # target is passed as a Tag
-    loader3 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, Tags.ITEM))
+    loader3 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, Tags.ITEM))
     inputs3, targets3 = next(iter(loader3))
     assert sorted(inputs3.keys()) == ["a", "b"]
     assert targets3.numpy().tolist() == [[3], [6]]

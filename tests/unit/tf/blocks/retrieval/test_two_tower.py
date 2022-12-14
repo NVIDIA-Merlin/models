@@ -112,7 +112,8 @@ def test_two_tower_block_with_l2_norm_on_towers_outputs(testing_data: Dataset):
 
 def test_two_tower_block_tower_save(testing_data: Dataset, tmp_path):
     two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
-    two_tower(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    features, _ = ml.sample_batch(testing_data, batch_size=100, process_lists=False)
+    two_tower(features)
 
     query_tower = two_tower.query_block()
     query_tower.save(str(tmp_path / "query_tower"))

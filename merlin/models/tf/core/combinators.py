@@ -483,6 +483,10 @@ class ParallelBlock(TabularBlock):
         -------
         ParallelBlock
         """
+
+        if self.schema is not None and self.schema == self.schema.select_by_tag(tags):
+            return self
+
         if not isinstance(tags, (list, tuple)):
             tags = [tags]
 
@@ -508,13 +512,26 @@ class ParallelBlock(TabularBlock):
 
         if not selected_branches:
             return
-        return ParallelBlock(selected_branches, schema=selected_schemas)
+        return ParallelBlock(
+            selected_branches,
+            schema=selected_schemas,
+            is_input=self.is_input,
+            post=self.post,
+            pre=self.pre,
+            aggregation=self.aggregation,
+            strict=self.strict,
+            automatic_pruning=self.automatic_pruning,
+        )
 
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]
 
     def __setitem__(self, key: str, item: "Block"):
         self.parallel_dict[key] = item
+
+    @property
+    def first(self) -> "Block":
+        return self.parallel_values[0]
 
     def add_branch(self, name: str, block: "Block") -> "ParallelBlock":
         if isinstance(self.parallel_layers, dict):

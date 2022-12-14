@@ -25,7 +25,7 @@ import numpy as np
 
 import merlin.io
 from merlin.models.utils import schema_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 LOG = logging.getLogger("merlin-models")
@@ -45,6 +45,9 @@ KNOWN_DATASETS: Dict[str, Path] = {
     "aliccp": HERE / "ecommerce/aliccp/transformed",
     "aliccp-raw": HERE / "ecommerce/aliccp/raw",
     "dressipi2022-preprocessed": HERE / "ecommerce/dressipi/preprocessed/",
+    "booking.com": HERE / "ecommerce/booking/transformed/",
+    "booking.com-raw": HERE / "ecommerce/booking/raw/",
+    "transactions": HERE / "ecommerce/transactions",
 }
 
 
@@ -52,7 +55,7 @@ def generate_data(
     input: Union[Schema, Path, str],
     num_rows: int,
     set_sizes: Sequence[float] = (1.0,),
-    min_session_length=5,
+    min_session_length=4,
     max_session_length=None,
     device="cpu",
 ) -> Union[merlin.io.Dataset, Tuple[merlin.io.Dataset, ...]]:
@@ -112,6 +115,21 @@ def generate_data(
         schema = input
     else:
         raise ValueError(f"Unknown input type: {type(input)}")
+
+    for col in schema.column_names:
+        if not schema[col].is_list:
+            continue
+        new_properties = schema[col].properties
+        new_properties["value_count"] = {"min": min_session_length}
+        if max_session_length:
+            new_properties["value_count"]["max"] = max_session_length
+        schema[col] = ColumnSchema(
+            name=schema[col].name,
+            tags=schema[col].tags,
+            properties=new_properties,
+            dtype=schema[col].dtype,
+            is_list=True,
+        )
 
     df = generate_user_item_interactions(
         schema, num_rows, min_session_length, max_session_length, device=device
@@ -230,7 +248,7 @@ def generate_user_item_interactions(
     if not is_list_feature:
         shape = num_interactions
     else:
-        shape = (num_interactions, item_id_col.value_count.max)  # type: ignore
+        shape = (num_interactions, max_session_length or min_session_length)  # type: ignore
     tmp = _array.clip(
         _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
         1,
@@ -371,7 +389,7 @@ def generate_random_list_feature(
                 )
             return list(_array.stack(padded_array, axis=0))
         else:
-            list_length = feature.value_count.max
+            list_length = min_session_length
             return list(
                 _array.random.randint(
                     1, feature.int_domain.max, (num_interactions, list_length)
@@ -395,7 +413,7 @@ def generate_random_list_feature(
                 )
             return list(_array.stack(padded_array, axis=0))
         else:
-            list_length = feature.value_count.max
+            list_length = min_session_length
             return list(
                 _array.random.uniform(
                     feature.float_domain.min,

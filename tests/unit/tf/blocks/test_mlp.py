@@ -20,6 +20,7 @@ from tensorflow.keras import regularizers
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.tf.utils import testing_utils
 
 
 @pytest.mark.parametrize("dim", [32, 64])
@@ -28,7 +29,7 @@ from merlin.io import Dataset
 @pytest.mark.parametrize(
     "normalization", [None, "batch_norm", tf.keras.layers.BatchNormalization()]
 )
-def test_mlp_block_yoochoose(
+def test_mlp_block(
     testing_data: Dataset,
     dim,
     activation,
@@ -116,3 +117,85 @@ def test_mlp_block_activation_dimensions_length_mismatch():
     with pytest.raises(ValueError) as excinfo:
         _ = ml.MLPBlock(dimensions=[32], activation=["relu", "linear"])
     assert "Activation and Dimensions length mismatch." in str(excinfo.value)
+
+
+@pytest.mark.parametrize("low_rank_dim", [None, 32])
+@pytest.mark.parametrize("depth", [1, 2])
+@pytest.mark.parametrize("dropout", [0.5, None])
+@pytest.mark.parametrize("use_bias", [False, True])
+@pytest.mark.parametrize("normalization", [None, tf.keras.layers.BatchNormalization()])
+def test_dense_residual_block(
+    testing_data: Dataset,
+    low_rank_dim,
+    depth,
+    use_bias,
+    normalization,
+    dropout,
+    activation="selu",
+    kernel_initializer="glorot_uniform",
+    bias_initializer="zeros",
+    kernel_regularizer=regularizers.l2(1e-5),
+    bias_regularizer=regularizers.l2(1e-5),
+):
+    inputs = ml.InputBlockV2(testing_data.schema)
+
+    residual_block = ml.DenseResidualBlock(
+        low_rank_dim=low_rank_dim,
+        activation=activation,
+        use_bias=use_bias,
+        dropout=dropout,
+        normalization=normalization,
+        depth=depth,
+        kernel_initializer=kernel_initializer,
+        bias_initializer=bias_initializer,
+        kernel_regularizer=kernel_regularizer,
+        bias_regularizer=bias_regularizer,
+    )
+
+    batch = ml.sample_batch(testing_data, batch_size=100, include_targets=False)
+    outputs = inputs(batch)
+    input_dim = outputs.shape[-1]
+    outputs = residual_block(outputs)
+
+    assert list(outputs.shape) == [100, input_dim]
+
+    res_block = residual_block
+    if depth > 1:
+        # Checks properties of the last stacked ResidualBlock
+        res_block = residual_block.layers[-1]
+
+    assert res_block.aggregation.activation.__name__ == activation
+    assert res_block.layers[0].layers[0].dense.units == input_dim
+    if low_rank_dim is not None:
+        assert res_block.layers[0].layers[0].dense_u.units == low_rank_dim
+    else:
+        assert res_block.layers[0].layers[0].dense_u is None
+
+    if dropout:
+        assert res_block.layers[0].layers[1].rate == dropout
+    if normalization:
+        if normalization == "batch_norm":
+            normalization = tf.keras.layers.BatchNormalization()
+
+        assert res_block.layers[0].layers[-1].__class__.__name__ == normalization.__class__.__name__
+
+
+@pytest.mark.parametrize("run_eagerly", [False, True])
+def test_model_with_dense_residual(ecommerce_data: Dataset, run_eagerly: bool):
+    model = ml.Model.from_block(
+        ml.DenseResidualBlock(
+            low_rank_dim=32,
+            activation="relu",
+            use_bias=True,
+            dropout=0.5,
+            normalization=tf.keras.layers.BatchNormalization(),
+            depth=2,
+            kernel_initializer="glorot_uniform",
+            bias_initializer="zeros",
+            kernel_regularizer=regularizers.l2(1e-5),
+            bias_regularizer=regularizers.l2(1e-5),
+        ),
+        ecommerce_data.schema,
+    )
+
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly, reload_model=False)
