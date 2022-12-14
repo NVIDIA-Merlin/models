@@ -252,7 +252,7 @@ def test_replace_masked_input_embeddings_no_target():
     targets = None
 
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
-    output = masked_embeddings(item_id_emb_seq, targets=targets)
+    output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
     # Checks that no input embedding was replaced, as there was no masking defined
     tf.Assert(tf.logical_not(tf.reduce_all(output == item_id_emb_seq)), [])
 
@@ -262,7 +262,7 @@ def test_not_replace_unmasked_sequence_embeddings():
     targets = tf.random.uniform((8, 10), dtype=tf.float32)
 
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
-    output = masked_embeddings(item_id_emb_seq, targets=targets)
+    output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
     # Checks that no input embedding was replaced, as there was no masking defined
     tf.Assert(tf.reduce_all(output == item_id_emb_seq), [])
 
@@ -275,7 +275,7 @@ def test_replace_masked_input_2d_embeddings_incompatible_2d_mask():
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
 
     with pytest.raises(Exception) as exc_info:
-        _ = masked_embeddings(item_id_emb_seq)
+        _ = masked_embeddings(item_id_emb_seq, training=True)
     assert "The inputs and mask need to be compatible" in str(exc_info.value)
 
 
@@ -287,7 +287,7 @@ def test_replace_masked_input_2d_embeddings_incompatible_ragged_2d_mask():
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
 
     with pytest.raises(Exception) as exc_info:
-        _ = masked_embeddings(item_id_emb_seq)
+        _ = masked_embeddings(item_id_emb_seq, training=True)
     assert "The inputs and mask need to be compatible" in str(exc_info.value)
 
 
