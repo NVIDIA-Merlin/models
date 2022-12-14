@@ -1,5 +1,6 @@
 from typing import Union
 
+import sparse_operation_kit as sok
 import tensorflow as tf
 
 from merlin.models.tf.inputs.embedding import EmbeddingTableBase
@@ -15,13 +16,13 @@ class SOKEmbedding(EmbeddingTableBase):
     """
     Wrap GPU accelerated opererations dedicated for sparse training / inference case.
     dim: int The last dimension of the variable
-    vocab_sizes: list, rows of the variable list 
+    vocab_sizes: list, rows of the variable list
     initializer: string, list = "uniform"
             When it's string, it specifies the initializer used to generate initial values.
             For sok.DynamicVariable, currently, only support "random" or string of a float
             value(meaning const initializer).
             For sok.Variable, it is compatible with tf.Variable.
-            Default value is "uniform". 
+            Default value is "uniform".
             When it's list, it specifies the values in the embedding table.
             For sok.DynamicVariable, initializer[i] must be list of [index, value],
             and will be used as the initial indices and value for i-th sok.DynamicVariable.
@@ -30,57 +31,59 @@ class SOKEmbedding(EmbeddingTableBase):
     use_dynamic_variable: bool = "False" use sok.DynamicVariable or sok.Variable. DynamicVariable
             can allocates memory dynamically. Variable is a model-parallel distributed variable
     localized: When utilizing sok.Variable, we change choose two mode: distributed(Distributed Va
-            riable) and localized(Localized Variable). If set to None, use Distributed Variable, 
+            riable) and localized(Localized Variable). If set to None, use Distributed Variable,
             otherwise Localized Variable. where the list indicates which GPU you want to put this
             variable on.
-            Default is None. 
+            Default is None.
     Examples
     --------
     .. code-block:: python
     Notes
     -----
     """
-    def __init__(self,
+
+    def __init__(
+        self,
         dim: int,
         *col_schemas: ColumnSchema,
         vocab_sizes: list,
         initializer: Union[str, tf.Tensor, list] = "uniform",
-        use_dynamic_variable = False,
-        localized = None,
-        name = None,
-        **kwargs
-        ):
+        use_dynamic_variable=False,
+        localized=None,
+        name=None,
+        **kwargs,
+    ):
         super(SOKEmbedding, self).__init__(
-             dim,
-             *col_schemas,
-             trainable=trainable,
-             name=name,
-             dtype=dtype,
-             **kwargs)
+            dim, *col_schemas, trainable=trainable, name=name, dtype=dtype, **kwargs
+        )
         self._embedding_vec_size = dim
         self._vocab_sizes = vocab_sizes
         self._use_dynamic_variable = use_dynamic_variable
         self._localized = localized
         self._vars = []
-        if self._localized is None and self._use_dynamic_variable == False :
+        if self._localized is None and self._use_dynamic_variable == False:
             for i in range(len(vocab_sizes)):
                 if isinstance(initializer, str):
                     v = sok.Variable(
-                        shape=[self._vocab_sizes[i], self._embedding_vec_size], initializer=tf.keras.initializers.get(initializer), dtype=tf.float32
+                        shape=[self._vocab_sizes[i], self._embedding_vec_size],
+                        initializer=tf.keras.initializers.get(initializer),
+                        dtype=tf.float32,
                     )
                 else:
                     v = sok.Variable(initializer[i])
         else:
             for i in range(len(vocab_sizes)):
                 if _use_dynamic_variable:
-                    if isinstance(initializer, str): 
-                        v = sok.DynamicVariable(dimension=self._embedding_vec_size, initializer=initializer)
+                    if isinstance(initializer, str):
+                        v = sok.DynamicVariable(
+                            dimension=self._embedding_vec_size, initializer=initializer
+                        )
                     else:
                         indices = tf.convert_to_tensor(initializer[i][0])
                         values = tf.convert_to_tensor(initializer[i][1])
                         sok.assign(v, indices, values)
                 elif self._localized is not None:
-                    if isinstance(initializer, str): 
+                    if isinstance(initializer, str):
                         v = sok.Variable(
                             shape=[self._vocab_sizes[i], self._embedding_vec_size],
                             initializer=tf.keras.initializers.get(intializer),
@@ -109,17 +112,21 @@ class SOKEmbedding(EmbeddingTableBase):
             for cur_input in inputs:
                 if not isinstance(cur_input, tf.SparseTensor):
                     if not isinstance(cur_input, tf.RaggedTensor):
-                        raise ValueError("The input must be a list of tf.SparseTensor or tf.RaggedTensor")
+                        raise ValueError(
+                            "The input must be a list of tf.SparseTensor or tf.RaggedTensor"
+                        )
                     else:
-                        if not len(cur_input.shape)==2:
-                            raise ValueError ("The rank of input RaggedTensor must be 2")
+                        if not len(cur_input.shape) == 2:
+                            raise ValueError("The rank of input RaggedTensor must be 2")
         else:
             if not isinstance(cur_input, tf.SparseTensor):
                 if not isinstance(cur_input, tf.RaggedTensor):
-                    raise ValueError("The input must be a list of tf.SparseTensor or tf.RaggedTensor")
+                    raise ValueError(
+                        "The input must be a list of tf.SparseTensor or tf.RaggedTensor"
+                    )
                 else:
-                    if not len(cur_input.shape)==2:
-                        raise ValueError ("The rank of input RaggedTensor must be 2")           
+                    if not len(cur_input.shape) == 2:
+                        raise ValueError("The rank of input RaggedTensor must be 2")
         emb_vectors = sok.lookup_sparse(
             self._vars,
             inputs,
@@ -134,8 +141,8 @@ class SOKEmbedding(EmbeddingTableBase):
         trainable=True,
         name=None,
         col_schema=None,
-        use_dynamic_variable = False,
-        localized = None,
+        use_dynamic_variable=False,
+        localized=None,
         **kwargs,
     ) -> "SOKEmbedding":
         """Create From pre-trained embeddings from a Dataset or DataFrame.
@@ -147,7 +154,7 @@ class SOKEmbedding(EmbeddingTableBase):
         name : str
             The name of the layer.
         """
-        vocab_size=[]
+        vocab_size = []
         weights = []
         for i, item in enumerate(data):
             if use_dynamic_variable:
@@ -163,11 +170,12 @@ class SOKEmbedding(EmbeddingTableBase):
             col_schema,
             name=name,
             initializer=weights,
-            use_dynamic_variable = use_dynamic_variable,
-            localized = localized,
+            use_dynamic_variable=use_dynamic_variable,
+            localized=localized,
             trainable=trainable,
             **kwargs,
         )
+
     def get_config(self):
         config = super().get_config()
         config["dim"] = self.dim

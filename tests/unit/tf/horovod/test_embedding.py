@@ -23,13 +23,9 @@ class TestSOKEmbedding:
             mm.EmbeddingTable(16, column_schema)
         assert "needs to have an int-domain" in str(exc_info.value)
 
+    @pytest.mark.parametrize("dim", [16, 32])
     def test_sok_dynamic_variables(self, dim):
         hvd.init()
-        gpus = tf.config.experimental.list_physical_devices("GPU")
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-        if gpus:
-            tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
         sok.init()
 
         rows = [65536 * 10, 65536]
@@ -72,13 +68,9 @@ class TestSOKEmbedding:
         print("[SOK INFO] diff:", diff)
         assert diff < 1e-6
 
+    @pytest.mark.parametrize("dim", [16, 32])
     def test_distributed_variables(self, dim):
         hvd.init()
-        gpus = tf.config.experimental.list_physical_devices("GPU")
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-        if gpus:
-            tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
         sok.init()
 
         rows = [65536 * 10, 65536]
