@@ -26,7 +26,8 @@ class SOKEmbedding(EmbeddingTableBase):
             When it's list, it specifies the values in the embedding table.
             For sok.DynamicVariable, initializer[i] must be list of [index, value],
             and will be used as the initial indices and value for i-th sok.DynamicVariable.
-            For sok.Variable, initializer[i] must be a numpy with shape [vocab_size[i], embedding_vec_size],
+            For sok.Variable, initializer[i] must be a numpy with shape
+            [vocab_size[i], embedding_vec_size],
             and will be used as the initial value for i-th sok.Variable.
     use_dynamic_variable: bool = "False" use sok.DynamicVariable or sok.Variable. DynamicVariable
             can allocates memory dynamically. Variable is a model-parallel distributed variable
@@ -61,7 +62,7 @@ class SOKEmbedding(EmbeddingTableBase):
         self._use_dynamic_variable = use_dynamic_variable
         self._localized = localized
         self._vars = []
-        if self._localized is None and self._use_dynamic_variable == False:
+        if self._localized is None and self._use_dynamic_variable is False:
             for i in range(len(vocab_sizes)):
                 if isinstance(initializer, str):
                     v = sok.Variable(
@@ -86,7 +87,7 @@ class SOKEmbedding(EmbeddingTableBase):
                     if isinstance(initializer, str):
                         v = sok.Variable(
                             shape=[self._vocab_sizes[i], self._embedding_vec_size],
-                            initializer=tf.keras.initializers.get(intializer),
+                            initializer=tf.keras.initializers.get(initializer),
                             dtype=tf.float32,
                             mode="localized:%d" % self._localized[i],
                         )
@@ -148,17 +149,17 @@ class SOKEmbedding(EmbeddingTableBase):
         """Create From pre-trained embeddings from a Dataset or DataFrame.
         Parameters
         ----------
-        data : A list of numpy.array or A list of dict {"indice": numpy.array, "values": numpy.array}
+        data :
+            A list of numpy.array or A list of dict {"indice": numpy.array, "values": numpy.array}
         trainable : bool
             Whether the layer should be trained or not.
         name : str
             The name of the layer.
         """
-        vocab_size = []
         weights = []
         for i, item in enumerate(data):
             if use_dynamic_variable:
-                if isinstance(item, dict) and item.has_key("indice") and item.has_key("values"):
+                if isinstance(item, dict) and "indice" in item and "values" in item:
                     weights.append([item["indice"], item["values"]])
                 else:
                     raise ValueError("DynamicVariable should be initialized with indice and values")
