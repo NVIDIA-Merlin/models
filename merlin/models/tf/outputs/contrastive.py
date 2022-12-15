@@ -48,7 +48,7 @@ class ContrastiveOutput(ModelOutput):
 
     Parameters
     ----------
-    prediction: Union[Schema, ColumnSchema,
+    to_call: Union[Schema, ColumnSchema,
                 EmbeddingTable, 'CategoricalTarget',
                 'EmbeddingTablePrediction']
         The target feature to predict. To perform weight-tying [1] technique, you should provide
