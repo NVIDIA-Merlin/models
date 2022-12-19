@@ -25,7 +25,6 @@ import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
 from merlin.models.tf.utils import testing_utils, tf_utils
-from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
