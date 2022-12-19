@@ -193,6 +193,10 @@ class SequenceSummary(TFSequenceSummary):
         config = SimpleNamespace(summary_type=summary)
         super().__init__(config, initializer_range=initializer_range, **kwargs)
 
+    def get_config(self):
+        config = super().get_config()
+        return config
+
 
 @Block.registry.register("sequence_last")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
