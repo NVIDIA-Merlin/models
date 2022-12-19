@@ -2,9 +2,10 @@ name: release-drafter
 
 on:
   push:
-    # trigger on tags only
     tags:
       - v*
+    branches:
+      - 'release*'
 
   workflow_dispatch:
 
