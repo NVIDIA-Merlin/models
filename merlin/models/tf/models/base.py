@@ -31,7 +31,6 @@ from packaging import version
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
-from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
@@ -1184,9 +1183,6 @@ class Model(BaseModel):
             save_traces=save_traces,
             save_format="tf",
         )
-        input_schema = self.schema
-        output_schema = get_output_schema(export_path)
-        save_merlin_metadata(export_path, self, input_schema, output_schema)
 
     @classmethod
     def load(cls, export_path: Union[str, os.PathLike]) -> "Model":

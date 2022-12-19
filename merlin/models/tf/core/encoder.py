@@ -22,7 +22,6 @@ import tensorflow as tf
 from packaging import version
 
 import merlin.io
-from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
@@ -234,9 +233,6 @@ class Encoder(tf.keras.Model):
             save_traces=save_traces,
             save_format="tf",
         )
-        input_schema = self.schema
-        output_schema = get_output_schema(export_path)
-        save_merlin_metadata(export_path, self, input_schema, output_schema)
 
     @property
     def to_call(self):
