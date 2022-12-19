@@ -6,7 +6,11 @@ from tests.conftest import REPO_ROOT
 pytest.importorskip("transformers")
 
 
-@testbook(REPO_ROOT / "examples/usecases/transformers-next-item-prediction.ipynb", execute=False)
+@testbook(
+    REPO_ROOT / "examples/usecases/transformers-next-item-prediction.ipynb",
+    timeout=180,
+    execute=False,
+)
 def test_next_item_prediction(tb):
     tb.inject(
         """
