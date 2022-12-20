@@ -345,6 +345,8 @@ def test_two_tower_model_v2_save(tmpdir, ecommerce_data: Dataset):
 
 
 def test_two_tower_model_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.excluding_by_name(["event_timestamp"])
+
     model = mm.TwoTowerModel(
         testing_data.schema,
         query_tower=mm.MLPBlock([2]),
@@ -367,6 +369,8 @@ def test_two_tower_model_l2_reg(testing_data: Dataset):
 
 
 def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.excluding_by_name(["event_timestamp"])
+
     user_schema = testing_data.schema.select_by_tag(Tags.USER)
     user_inputs = mm.InputBlockV2(
         user_schema,
