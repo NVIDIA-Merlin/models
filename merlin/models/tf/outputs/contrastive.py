@@ -50,7 +50,7 @@ class ContrastiveOutput(ModelOutput):
     ----------
     to_call: Union[Schema, ColumnSchema,
                 EmbeddingTable, 'CategoricalTarget',
-                'EmbeddingTablePrediction']
+                'EmbeddingTablePrediction', 'DotProduct']
         The target feature to predict. To perform weight-tying [1] technique, you should provide
         the `EmbeddingTable` or `EmbeddingTablePrediction` related to the
         target feature.
@@ -84,6 +84,20 @@ class ContrastiveOutput(ModelOutput):
     and word classifiers: A loss framework for language modeling. arXiv preprint
     arXiv:1611.01462 (2016).
 
+    Notes:
+    ----------
+    In case `to_call` is set as `DotProduct()`, schema of target couldn't be inferred
+    therefore, the user should feed a schema only with ITEM_ID feature as schema arg,
+    which is treated as a `kwargs` arg below.
+
+    Example usage::
+        outputs=mm.ContrastiveOutput(
+            to_call=DotProduct(),
+            negative_samplers="in-batch",
+            schema=schema.select_by_tag(Tags.ITEM_ID),
+            post=post_logits,
+            logits_temperature = 0.2,
+        )
     """
 
     def __init__(
