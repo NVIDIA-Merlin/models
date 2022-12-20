@@ -895,6 +895,13 @@ class BaseModel(tf.keras.Model):
 
     @property
     def input_schema(self) -> Optional[Schema]:
+        """Get the input schema if it's defined.
+
+        Returns
+        -------
+        Optional[Schema]
+            Schema corresponding to the inputs of the model
+        """
         schema = getattr(self, "schema", None)
         if isinstance(schema, Schema) and schema.column_names:
             return schema
