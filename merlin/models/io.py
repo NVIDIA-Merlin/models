@@ -31,6 +31,16 @@ def save_merlin_metadata(
     output_schema: Optional[Schema],
 ) -> None:
     """Saves data to Merlin Metadata Directory."""
+
+    # When we're asked to save to a path starting with 'ram://'
+    # The use-case is for Keras 2.10 and below to serizlize
+    # the model with pickle.
+    # In this case we don't need to save the Merlin Schema.
+    # If we wanted to, we'd need to use the tf.io.gfile API
+    # https://github.com/keras-team/keras/blob/v2.10.0/keras/saving/pickle_utils.py#L62
+    if isinstance(export_path, str) and export_path.startswith("ram://"):
+        return
+
     export_path = pathlib.Path(export_path)
     merlin_metadata_dir = export_path / _MERLIN_METADATA_DIR_NAME
     merlin_metadata_dir.mkdir(exist_ok=True)

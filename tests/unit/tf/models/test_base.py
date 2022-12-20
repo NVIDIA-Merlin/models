@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import copy
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -672,6 +673,29 @@ def test_unfreeze_all_blocks(ecommerce_data):
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
+
+
+def test_pickle():
+    dataset = generate_data("e-commerce", num_rows=10)
+    dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
+    model = mm.Model(
+        mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+    model.compile()
+    _ = model.fit(
+        dataset,
+        epochs=1,
+        batch_size=10,
+    )
+    pickled = pickle.dumps(model)
+    reloaded_model = pickle.loads(pickled)
+
+    test_case = TestCase()
+    test_case.assertAllClose(
+        model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
+    )
 
 
 def test_save_and_load(tmpdir):
