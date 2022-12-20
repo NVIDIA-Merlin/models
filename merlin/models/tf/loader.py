@@ -350,8 +350,15 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         return output_schema
 
     @property
-    def has_transforms(self):
-        return len(self._map_fns) > 0
+    def has_transforms(self) -> bool:
+        """Returns True if Loader has transforms or map functions.
+
+        Returns
+        -------
+        bool
+            True if Loader has transforms or map functions, otherwise False.
+        """
+        return len(self._map_fns) > 0 or self.transforms is not None
 
 
 KerasSequenceValidater = (
