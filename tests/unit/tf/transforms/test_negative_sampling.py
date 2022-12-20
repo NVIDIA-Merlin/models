@@ -185,7 +185,7 @@ class TestAddRandomNegativesToBatch:
         testing_utils.model_test(model, dataset, run_eagerly=run_eagerly, reload_model=True)
 
         batch_size = 10
-        features, targets = mm.sample_batch(dataset, batch_size=batch_size)
+        features, targets = mm.sample_batch(dataset, batch_size=batch_size, process_lists=True)
 
         with_negatives = model(features, targets=targets, training=True)
         assert with_negatives.predictions.shape[0] >= 50
