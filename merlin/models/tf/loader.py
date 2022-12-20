@@ -335,10 +335,6 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         self.sparse_as_dense = sparse_as_dense
 
     @property
-    def input_schema(self) -> Schema:
-        return self.dataset.schema
-
-    @property
     def output_schema(self) -> Schema:
         schema = self.input_schema
 
