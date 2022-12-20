@@ -931,42 +931,11 @@ class BaseModel(tf.keras.Model):
                 model_input_features = set(self.input_schema.column_names)
                 schemas_match = loader_output_features == model_input_features
                 loader_is_superset = loader_output_features.issuperset(model_input_features)
-                if not schemas_match:
-                    if loader_is_superset:
-                        # if the dataloader output schema does not match the model input schema
-                        # and the dataloader features are a superset of the expected model inputs
-                        # and the dataloader doesn't have any custom transforms
-                        # then we can change the schema of the dataloader.
-                        # To ensure that the model receives only the features it requires.
-                        if not loader.has_transforms:
-
-                            loader.schema = self.input_schema + loader.schema.select_by_tag(
-                                target_tags
-                            )
-                        else:
-                            raise ValueError(
-                                "Dataloader features do not match the inputs expected  "
-                                "by the model. The dataloader has transformations that  "
-                                "prevent us from automatically configuring the dataloader "
-                                "to filter out these features."
-                                f"\nModel input features:\n\t{model_input_features} "
-                                f"\nDataloader output features:\n\t{loader_output_features} "
-                                f"\nFeatures in model only:"
-                                f"\n\t{model_input_features.difference(loader_output_features)}"
-                                f"\nFeatures in dataloader only:"
-                                f"\n\t{loader_output_features.difference(model_input_features)}"
-                            )
-                    else:
-                        raise ValueError(
-                            "Dataloader features do not match the inputs expected by the model. "
-                            "\nDataloader features are not a superset of the model input features. "
-                            f"\nModel input features:\n\t{model_input_features} "
-                            f"\nDataloader output features:\n\t{loader_output_features} "
-                            f"\nFeatures in model only:"
-                            f"\n\t{model_input_features.difference(loader_output_features)}"
-                            f"\nFeatures in dataloader only:"
-                            f"\n\t{loader_output_features.difference(model_input_features)}"
-                        )
+                if not schemas_match and loader_is_superset and not loader.transforms:
+                    # To ensure that the model receives only the features it requires.
+                    loader.input_schema = self.input_schema + loader.input_schema.select_by_tag(
+                        target_tags
+                    )
             else:
                 # Bind input schema from dataset to model,
                 # to handle the case where this hasn't been set on an input block
