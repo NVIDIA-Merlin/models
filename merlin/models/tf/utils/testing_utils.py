@@ -93,8 +93,6 @@ def model_test(
     else:
         dataloader = dataset_or_loader
 
-    batch = sample_batch(dataloader, to_ragged=reload_model)
-
     fit_kwargs = fit_kwargs or {}
     losses = model.fit(dataloader, epochs=epochs, steps_per_epoch=1, **fit_kwargs)
 
