@@ -292,7 +292,13 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        BertBlock(
+            d_model=48,
+            n_head=8,
+            n_layer=2,
+            pre=mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()]),
+            post="inference_hidden_state",
+        ),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
@@ -316,10 +322,9 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
     metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=seq_mask_last)
     assert len(metrics) > 0
 
+    # Get predictions for next-item position
     predictions = model.predict(loader, batch_size=8, steps=1)
-    # TODO: Decide what should be the output of predictions for MLM (currently it predicts for all
-    # positions of the sequence, but typically you want a single next-item prediction)
-    assert predictions.shape == (8, 4, 51997)
+    assert predictions.shape == (8, 51997)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

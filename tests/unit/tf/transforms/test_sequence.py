@@ -19,25 +19,17 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.loader import Loader
 from merlin.models.tf.utils.testing_utils import assert_output_shape
 from merlin.schema import Tags
 
 
-@pytest.mark.parametrize("use_loader", [False, True])
-def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
+def test_seq_predict_next(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_next = mm.SequencePredictNext(schema=seq_schema, target=target, pre=mm.ListToRagged())
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
-    if use_loader:
-        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
-            predict_next
-        )
-        output = next(iter(dataset_transformed))
-    else:
-        output = predict_next(batch)
+    output = predict_next(batch)
     output_x, output_y = output
     output_y = output_y[target]
 
@@ -58,20 +50,13 @@ def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
     )
 
 
-@pytest.mark.parametrize("use_loader", [False, True])
-def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
+def test_seq_predict_last(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
-    if use_loader:
-        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
-            predict_last
-        )
-        output = next(iter(dataset_transformed))
-    else:
-        output = predict_last(batch)
+    output = predict_last(batch)
     output_x, output_y = output
     output_y = output_y[target]
 
@@ -93,20 +78,13 @@ def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
     )
 
 
-@pytest.mark.parametrize("use_loader", [False, True])
-def test_seq_predict_random(sequence_testing_data: Dataset, use_loader: bool):
+def test_seq_predict_random(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_random = mm.SequencePredictRandom(schema=seq_schema, target=target)
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
-    if use_loader:
-        dataset_transformed = Loader(sequence_testing_data, batch_size=8, shuffle=False).map(
-            predict_random
-        )
-        output = next(iter(dataset_transformed))
-    else:
-        output = predict_random(batch)
+    output = predict_random(batch)
     output_x, output_y = output
     output_y = output_y[target]
 
@@ -274,7 +252,7 @@ def test_replace_masked_input_embeddings_no_target():
     targets = None
 
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
-    output = masked_embeddings(item_id_emb_seq, targets=targets)
+    output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
     # Checks that no input embedding was replaced, as there was no masking defined
     tf.Assert(tf.logical_not(tf.reduce_all(output == item_id_emb_seq)), [])
 
@@ -284,7 +262,7 @@ def test_not_replace_unmasked_sequence_embeddings():
     targets = tf.random.uniform((8, 10), dtype=tf.float32)
 
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
-    output = masked_embeddings(item_id_emb_seq, targets=targets)
+    output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
     # Checks that no input embedding was replaced, as there was no masking defined
     tf.Assert(tf.reduce_all(output == item_id_emb_seq), [])
 
@@ -297,7 +275,7 @@ def test_replace_masked_input_2d_embeddings_incompatible_2d_mask():
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
 
     with pytest.raises(Exception) as exc_info:
-        _ = masked_embeddings(item_id_emb_seq)
+        _ = masked_embeddings(item_id_emb_seq, training=True)
     assert "The inputs and mask need to be compatible" in str(exc_info.value)
 
 
@@ -309,7 +287,7 @@ def test_replace_masked_input_2d_embeddings_incompatible_ragged_2d_mask():
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
 
     with pytest.raises(Exception) as exc_info:
-        _ = masked_embeddings(item_id_emb_seq)
+        _ = masked_embeddings(item_id_emb_seq, training=True)
     assert "The inputs and mask need to be compatible" in str(exc_info.value)
 
 

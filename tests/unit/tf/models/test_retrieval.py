@@ -981,7 +981,7 @@ def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly
         schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
     )
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50).map(predict_next)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
 
     model, _ = testing_utils.model_test(
         model, dataloader, reload_model=False, fit_kwargs=dict(pre=predict_next)
