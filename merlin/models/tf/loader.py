@@ -336,11 +336,10 @@ class Loader(merlin.dataloader.tensorflow.Loader):
 
     @property
     def output_schema(self) -> Schema:
-        schema = self.input_schema
-
+        output_schema = super().output_schema
         for map_fn in self._map_fns:
             if hasattr(map_fn, "compute_output_schema"):
-                schema = map_fn.compute_output_schema(schema)
+                output_schema = map_fn.compute_output_schema(output_schema)
             else:
                 raise ValueError(
                     f"Couldn't infer schema from transform {map_fn}. "
@@ -348,7 +347,7 @@ class Loader(merlin.dataloader.tensorflow.Loader):
                     "the transform layer."
                 )
 
-        return schema
+        return output_schema
 
     @property
     def has_transforms(self):
