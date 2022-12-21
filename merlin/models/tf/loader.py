@@ -198,8 +198,6 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         `reader_kwargs` will be ignored
     batch_size: int
         Number of samples to yield at each iteration
-    transform: Union[Callable, SchemaAwareTransform], optional
-        Transformation to apply to each batch of data.
     label_names: list(str)
         Column name of the target variable in the dataframe specified by
         `paths_or_dataset`
@@ -250,7 +248,6 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         self,
         paths_or_dataset,
         batch_size,
-        transform=None,
         label_names=None,
         feature_columns=None,
         cat_names=None,
