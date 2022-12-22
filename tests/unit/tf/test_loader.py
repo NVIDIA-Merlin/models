@@ -42,7 +42,7 @@ def test_lazy_dataset_map():
         time.sleep(sleep_time_seconds)
         return (x, y)
 
-    loader = mm.Loader(dataset, batch_size=10, transform=identity)
+    loader = mm.Loader(dataset, batch_size=10).map(identity)
 
     elapsed_time_seconds = timeit.timeit(lambda: next(iter(loader)), number=1)
 
