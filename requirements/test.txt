@@ -1,0 +1,5 @@
+-r dev.txt
+-r pytorch.txt
+
+tensorflow<2.10
+numpy<1.24
