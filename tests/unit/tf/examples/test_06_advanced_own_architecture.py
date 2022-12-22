@@ -1,5 +1,6 @@
 import os
 
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
@@ -8,6 +9,7 @@ from tests.conftest import REPO_ROOT
 @testbook(
     REPO_ROOT / "examples/06-Define-your-own-architecture-with-Merlin-Models.ipynb", execute=False
 )
+@pytest.mark.notebook
 def test_example_06_defining_own_architecture(tb, tmpdir):
     tb.inject(
         f"""

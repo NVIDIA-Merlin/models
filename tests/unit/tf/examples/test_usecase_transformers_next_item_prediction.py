@@ -11,6 +11,7 @@ pytest.importorskip("transformers")
     timeout=180,
     execute=False,
 )
+@pytest.mark.notebook
 def test_next_item_prediction(tb):
     tb.inject(
         """
