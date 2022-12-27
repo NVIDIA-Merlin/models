@@ -14,6 +14,7 @@ p = "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.
     timeout=180,
     execute=False,
 )
+@pytest.mark.notebook
 def test_usecase_ecommerce_session_based(tb, tmpdir):
     tb.inject(
         f"""

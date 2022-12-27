@@ -14,6 +14,7 @@ p = "examples/usecases/accelerate-training-of-large-embedding-tables-by-LazyAdam
     timeout=180,
     execute=False,
 )
+@pytest.mark.notebook
 @pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
 def test_usecase_accelerate_training_by_lazyadam(tb):
     tb.inject(
