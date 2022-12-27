@@ -1,6 +1,7 @@
 from typing import Union
 
-import sparse_operation_kit as sok
+#import sparse_operation_kit as sok
+from sparse_operation_kit import experiment as sok
 import tensorflow as tf
 
 from merlin.models.tf.inputs.embedding import EmbeddingTableBase
@@ -51,7 +52,9 @@ class SOKEmbedding(EmbeddingTableBase):
         initializer: Union[str, tf.Tensor, list] = "uniform",
         use_dynamic_variable=False,
         localized=None,
+        trainable=True,
         name=None,
+        dtype=None,
         **kwargs,
     ):
         super(SOKEmbedding, self).__init__(
@@ -74,7 +77,7 @@ class SOKEmbedding(EmbeddingTableBase):
                     v = sok.Variable(initializer[i])
         else:
             for i in range(len(vocab_sizes)):
-                if _use_dynamic_variable:
+                if self._use_dynamic_variable:
                     if isinstance(initializer, str):
                         v = sok.DynamicVariable(
                             dimension=self._embedding_vec_size, initializer=initializer
