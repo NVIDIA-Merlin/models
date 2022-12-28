@@ -95,9 +95,18 @@ class ContrastiveOutput(ModelOutput):
             to_call=DotProduct(),
             negative_samplers="in-batch",
             schema=schema.select_by_tag(Tags.ITEM_ID),
-            post=post_logits,
             logits_temperature = 0.2,
         )
+
+    The schema arg is not needed when we pass the schema to `to_call` arg.
+
+    Example usage::
+        outputs=mm.ContrastiveOutput(
+            to_call=schema.select_by_tag(Tags.ITEM_ID),
+            negative_samplers="in-batch",
+            logits_temperature = 0.2,
+        )
+
     """
 
     def __init__(
