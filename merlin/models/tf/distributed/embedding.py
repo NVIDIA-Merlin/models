@@ -1,7 +1,7 @@
 from typing import Union
 
-from sparse_operation_kit import experiment as sok
 import tensorflow as tf
+from sparse_operation_kit import experiment as sok
 
 from merlin.models.tf.inputs.embedding import EmbeddingTableBase
 from merlin.models.utils.schema_utils import (
