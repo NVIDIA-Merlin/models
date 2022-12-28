@@ -30,9 +30,6 @@ class TestSOKEmbedding:
 
         rows = [65536 * 10, 65536]
         cols = [128, 4]
-        combiners = ["sum", "sum"]
-        batch_size = 65536
-        iters = 100
         initial_vals = [13, 17]
 
         # sok variables
@@ -75,10 +72,6 @@ class TestSOKEmbedding:
 
         rows = [65536 * 10, 65536]
         cols = [128, 4]
-        hotness = [10, 3]
-        combiners = ["sum", "sum"]
-        batch_size = 65536
-        iters = 100
         initial_vals = [13, 17]
 
         # initial value of embedding table

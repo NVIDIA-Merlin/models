@@ -141,6 +141,7 @@ class SOKEmbedding(EmbeddingTableBase):
     @classmethod
     def from_pretrained(
         cls,
+        dim: int,
         data: list,
         trainable=True,
         name=None,
