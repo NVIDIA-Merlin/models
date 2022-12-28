@@ -1,6 +1,5 @@
 from typing import Union
 
-#import sparse_operation_kit as sok
 from sparse_operation_kit import experiment as sok
 import tensorflow as tf
 
