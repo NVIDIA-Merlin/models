@@ -101,7 +101,10 @@ def DLRMBlock(
             )
         con = ContinuousFeatures.from_schema(con_schema)
         bottom_block = con.connect(bottom_block)  # type: ignore
-        interaction_inputs = ParallelBlock({"embeddings": embeddings, "bottom_block": bottom_block})
+        interaction_inputs = ParallelBlock(
+            {"embeddings": embeddings, "bottom_block": bottom_block},
+            is_input=True,
+        )
     else:
         interaction_inputs = embeddings  # type: ignore
         bottom_block = None
