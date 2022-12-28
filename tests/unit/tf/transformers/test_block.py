@@ -227,7 +227,7 @@ def classification_loader(sequence_testing_data: Dataset):
         sequence_testing_data,
         batch_size=50,
     ).map(mm.ToTarget(schema, "user_country", one_hot=True))
-    return dataloader, schema
+    return dataloader, dataloader.output_schema
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -236,21 +236,25 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
     )
-    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
+    target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)
+    target = target_schema.column_names[0]
 
+    sequence_testing_data.schema = seq_schema + target_schema
+
+    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
+    model_schema = sequence_testing_data.schema
 
     model = mm.Model(
         mm.InputBlockV2(
-            seq_schema,
+            model_schema,
             categorical=mm.Embeddings(
-                seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+                model_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
         GPT2Block(d_model=48, n_head=8, n_layer=2),
         mm.CategoricalOutput(
-            seq_schema.select_by_name(target), default_loss="categorical_crossentropy"
+            model_schema.select_by_name(target), default_loss="categorical_crossentropy"
         ),
     )
 
@@ -274,7 +278,11 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
     )
-    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)
+    model_schema = seq_schema + target_schema
+    target = target_schema.column_names[0]
+
+    sequence_testing_data.schema = model_schema
 
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
     model = mm.Model(
@@ -327,7 +335,10 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
     )
-    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)
+    target = target_schema.column_names[0]
+    model_schema = seq_schema + target_schema
+    sequence_testing_data.schema = model_schema
 
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
     model = mm.Model(

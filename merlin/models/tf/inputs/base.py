@@ -117,6 +117,9 @@ def InputBlock(
         aggregate the sparse features tensor along the sequence axis.
         Defaults to SequenceAggregator('mean')
     """
+    # If targets are passed, exclude these from the input block schema
+    schema = schema.excluding_by_tag([Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION])
+
     branches = branches or {}
 
     if split_sparse:
@@ -291,6 +294,8 @@ def InputBlockV2(
         Returns a ParallelBlock with a Dict with two branches:
         continuous and embeddings
     """
+    # If targets are passed, exclude these from the input block schema
+    schema = schema.excluding_by_tag([Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION])
 
     if "embeddings" in branches:
         warnings.warn(

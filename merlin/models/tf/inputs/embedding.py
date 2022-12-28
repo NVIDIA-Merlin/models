@@ -15,7 +15,7 @@
 #
 import collections
 import inspect
-from copy import copy, deepcopy
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
 
@@ -794,10 +794,9 @@ class EmbeddingFeatures(TabularBlock):
             An instance of EmbeddingFeatures block, with the embedding
             layers created under-the-hood
         """
-        schema_copy = copy(schema)
 
         if tags:
-            schema_copy = schema_copy.select_by_tag(tags)
+            schema = schema.select_by_tag(tags)
 
         embedding_dims = embedding_options.embedding_dims or {}
         if embedding_options.infer_embedding_sizes:
@@ -847,9 +846,11 @@ class EmbeddingFeatures(TabularBlock):
         if not feature_config:
             return None
 
+        schema = schema.select_by_name(list(feature_config.keys()))
+
         output = cls(
             feature_config,
-            schema=schema_copy,
+            schema=schema,
             l2_reg=embedding_options.embeddings_l2_reg,
             **kwargs,
         )
