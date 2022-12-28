@@ -72,7 +72,6 @@ class TestSOKEmbedding:
 
         rows = [65536 * 10, 65536]
         cols = [128, 4]
-        initial_vals = [13, 17]
 
         # initial value of embedding table
         weights = []
