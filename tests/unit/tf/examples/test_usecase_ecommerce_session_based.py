@@ -15,9 +15,9 @@ p = "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.
     execute=False,
 )
 @pytest.mark.notebook
-def test_usecase_ecommerce_session_based(tb):
+def test_usecase_ecommerce_session_based(tb, tmpdir):
     tb.inject(
-        """
+        f"""
         import os
         from unittest.mock import patch
         from merlin.datasets.synthetic import generate_data
@@ -31,7 +31,7 @@ def test_usecase_ecommerce_session_based(tb):
             return_value=[mock_train, mock_valid]
         )
         p1.start()
-        os.environ["DATA_FOLDER"] = "/tmp/dressipi2022/"
+        os.environ["DATA_FOLDER"] = "{tmpdir}"
         os.environ["EPOCHS"] = "1"
         os.environ["dmodel"] = "32"
         """

@@ -155,6 +155,10 @@ class InBatchNegatives(tf.keras.layers.Layer):
         config["run_when_testing"] = self.run_when_testing
         return config
 
+    def compute_output_schema(self, input_schema):
+        """Compute the output schema of the layer provided schema for inputs"""
+        return input_schema
+
     @classmethod
     def from_config(cls, config):
         """Creates layer from its config. Returning the instance."""
