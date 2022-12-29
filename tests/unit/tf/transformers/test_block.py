@@ -141,7 +141,7 @@ def test_transformer_encoder_with_post():
         post="sequence_mean",
     )
     outputs = transformer_encod(inputs)
-
+    testing_utils.assert_serialization(transformer_encod)
     assert list(outputs.shape) == [NUM_ROWS, EMBED_DIM]
 
 
