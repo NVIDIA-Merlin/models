@@ -127,6 +127,8 @@
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                 <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">list_col_to_ragged</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
+                <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_sparse</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
 
@@ -173,16 +175,19 @@
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                 <span class="n">ragged</span> <span class="o">=</span> <span class="n">list_col_to_ragged</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-
-                <span class="k">if</span> <span class="n">is_ragged</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ragged</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                        <span class="n">ragged</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ragged</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
-                    <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ragged</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_ragged_to_dense</span><span class="p">(</span><span class="n">ragged</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
+                <span class="n">ragged</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_sparse</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">is_ragged</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ragged</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">ragged</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ragged</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ragged</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_ragged_to_dense</span><span class="p">(</span><span class="n">ragged</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">outputs</span>
 
@@ -269,7 +274,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">max_seq_length</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_tensor_to_dense</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -300,6 +305,8 @@
     <span class="k">def</span> <span class="nf">_convert_tensor_to_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">val</span> <span class="o">=</span> <span class="n">list_col_to_ragged</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_sparse</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">_ragged_to_dense</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_length</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
@@ -399,7 +406,7 @@
     <dl>
       <dt>Tags</dt>
       <dd><a href="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
-      <dd><a href="../../../../../../v0.5.0/index.html">v0.5.0</a></dd>
+      <dd><a href="../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../../../../../v0.6.0/index.html">v0.6.0</a></dd>
       <dd><a href="../../../../../../v0.7.0/index.html">v0.7.0</a></dd>
       <dd><a href="../../../../../../v0.8.0/index.html">v0.8.0</a></dd>

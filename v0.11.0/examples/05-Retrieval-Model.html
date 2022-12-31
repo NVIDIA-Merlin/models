@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Building a Retrieval Model with Merlin Models &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/05-Retrieval-Model.html" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Taking the Next Step with Merlin Models: Define Your Own Architecture" href="06-Define-your-own-architecture-with-Merlin-Models.html" />
+    <link rel="prev" title="Exporting Ranking Models" href="04-Exporting-ranking-models.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="banner">
+    <p class="banner">
+      Beginning in January 2023, versions for all NVIDIA Merlin projects
+      will change from semantic versioning like <code>4.0</code>
+      to calendar versioning like <code>23.01</code>.</p>
+  </div>
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Example Notebooks</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#inventory">Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#running-the-example-notebooks">Running the Example Notebooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="04-Exporting-ranking-models.html">Exporting Ranking Models</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Building a Retrieval Model with Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="06-Define-your-own-architecture-with-Merlin-Models.html">Taking the Next Step with Merlin Models: Define Your Own Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Merlin Models Example Notebooks</a> &raquo;</li>
+      <li>Building a Retrieval Model with Merlin Models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2021 NVIDIA Corporation. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ================================
+</pre></div>
+</div>
+</div>
+</div>
+<img alt="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_05-retrieval-model/nvidia_logo.png" src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_05-retrieval-model/nvidia_logo.png" />
+<div class="tex2jax_ignore mathjax_ignore section" id="building-a-retrieval-model-with-merlin-models">
+<h1>Building a Retrieval Model with Merlin Models<a class="headerlink" href="#building-a-retrieval-model-with-merlin-models" title="Permalink to this headline"></a></h1>
+<p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
+<p>In large scale recommender systems pipelines, the size of the item catalog (number of unique items) might be in the order of millions. At such scale, a typical setup is having two-stage pipeline, where a faster candidate retrieval model quickly extracts thousands of relevant items and a then a more powerful ranking model (i.e. with more features and more powerful architecture) ranks the top-k items that are going to be displayed to the user. For ML-based candidate retrieval model, as it needs to quickly score millions of items for a given user, a popular choices are models that can produce recommendation scores by just computing the dot product the user embeddings and item embeddings. Popular choices of such models are <strong>Matrix Factorization</strong>, which learns low-rank user and item embeddings, and the <strong>Two-Tower architecture</strong>, which is a neural network with two MLP towers where both user and item features are fed to generate user and item embeddings in the output.</p>
+<div class="section" id="dataset">
+<h2>Dataset<a class="headerlink" href="#dataset" title="Permalink to this headline"></a></h2>
+<p>In this notebook, we are building a Two-Tower model for Item Retrieval task using synthetic datasets that are mimicking the real <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">Ali-CCP: Alibaba Click and Conversion Prediction</a> dataset.</p>
+</div>
+<div class="section" id="learning-objectives">
+<h2>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>Preparing the data with NVTabular</p></li>
+<li><p>Training and evaluating Two-Tower model with Merlin Models</p></li>
+<li><p>Exporting the model for deployment</p></li>
+<li><p>Generating the top K recommendations from the trained model</p></li>
+</ul>
+</div>
+<div class="section" id="importing-libraries">
+<h2>Importing Libraries<a class="headerlink" href="#importing-libraries" title="Permalink to this headline"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
+
+import nvtabular as nvt
+from nvtabular.ops import *
+from merlin.models.utils.example_utils import workflow_fit_transform
+
+from merlin.schema.tags import Tags
+
+import merlin.models.tf as mm
+from merlin.io.dataset import Dataset
+from merlin.models.utils.dataset import unique_rows_by_features
+
+import tensorflow as tf
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (1.26.12) or chardet (3.0.4) doesn&#39;t match a supported version!
+  warnings.warn(&quot;urllib3 ({}) or chardet ({}) doesn&#39;t match a supported &quot;
+2022-11-30 18:38:41.379796: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2022-11-30 18:38:42.590379: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+/usr/local/lib/python3.8/dist-packages/tqdm/auto.py:22: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># disable INFO and DEBUG logging everywhere
+import logging
+
+logging.disable(logging.WARNING)
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="feature-engineering-with-nvtabular">
+<h2>Feature Engineering with NVTabular<a class="headerlink" href="#feature-engineering-with-nvtabular" title="Permalink to this headline"></a></h2>
+<p>Let’s generate synthetic train and validation dataset objects.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.datasets.synthetic import generate_data
+
+DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
+NUM_ROWS = os.environ.get(&quot;NUM_ROWS&quot;, 1000000)
+SYNTHETIC_DATA = eval(os.environ.get(&quot;SYNTHETIC_DATA&quot;, &quot;True&quot;))
+
+if SYNTHETIC_DATA:
+    train, valid = generate_data(&quot;aliccp-raw&quot;, int(NUM_ROWS), set_sizes=(0.7, 0.3))
+else:
+    train = nvt.Dataset(DATA_FOLDER + &quot;/train/*.parquet&quot;)
+    valid = nvt.Dataset(DATA_FOLDER + &quot;/valid/*.parquet&quot;)
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = train.to_ddf().compute()
+valid = valid.to_ddf().compute()
+</pre></div>
+</div>
+</div>
+</div>
+<p>We keep only positive interactions where clicks==1 in the dataset.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = train.loc[train[&#39;click&#39;]==1].reset_index(drop=True)
+valid = valid.loc[valid[&#39;click&#39;]==1].reset_index(drop=True)
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can drop the target column since in this example we will only use positive interactions and then generate negative samples via negative sampling technique.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = train.drop([&#39;click&#39;, &#39;conversion&#39;], axis=1)
+valid = valid.drop([&#39;click&#39;, &#39;conversion&#39;], axis=1)
+</pre></div>
+</div>
+</div>
+</div>
+<p>Create Dataset objects</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(train)
+valid = Dataset(valid)
+</pre></div>
+</div>
+</div>
+</div>
+<p>Define output path for the processed parquet files</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>output_path = os.path.join(DATA_FOLDER, &quot;processed&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>category_temp_directory = os.path.join(DATA_FOLDER, &quot;categories&quot;)
+user_id = [&quot;user_id&quot;] &gt;&gt; Categorify(out_path=category_temp_directory) &gt;&gt; TagAsUserID()
+item_id = [&quot;item_id&quot;] &gt;&gt; Categorify(out_path=category_temp_directory) &gt;&gt; TagAsItemID()
+
+item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify(out_path=category_temp_directory) &gt;&gt; TagAsItemFeatures()
+
+user_features = (
+    [
+        &quot;user_shops&quot;,
+        &quot;user_profile&quot;,
+        &quot;user_group&quot;,
+        &quot;user_gender&quot;,
+        &quot;user_age&quot;,
+        &quot;user_consumption_2&quot;,
+        &quot;user_is_occupied&quot;,
+        &quot;user_geography&quot;,
+        &quot;user_intentions&quot;,
+        &quot;user_brands&quot;,
+        &quot;user_categories&quot;,
+    ]
+    &gt;&gt; Categorify(out_path=category_temp_directory)
+    &gt;&gt; TagAsUserFeatures()
+)
+
+outputs = user_id + item_id + item_features + user_features
+</pre></div>
+</div>
+</div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">transform_aliccp</span></code> function, we can execute fit() and transform() on the raw dataset applying the operators defined in the NVTabular workflow pipeline above. The processed parquet files are saved to output_path.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.datasets.ecommerce import transform_aliccp
+
+transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="building-a-two-tower-model-with-merlin-models">
+<h2>Building a Two-Tower Model with Merlin Models<a class="headerlink" href="#building-a-two-tower-model-with-merlin-models" title="Permalink to this headline"></a></h2>
+<p>We will use Two-Tower Model for item retrieval task. Real-world large scale recommender systems have hundreds of millions of items (products) and users. Thus, these systems often composed of two stages: candidate generation (retrieval) and ranking (scoring the retrieved items). At candidate generation step, a subset of relevant items from large item corpus is retrieved. You can read more about two stage Recommender Systems here. In this example, we’re going to focus on the retrieval stage.</p>
+<p>A Two-Tower Model consists of item (candidate) and user (query) encoder towers. With two towers, the model can learn representations (embeddings) for queries and candidates separately.</p>
+<a class="reference internal image-reference" href="../_images/TwoTower.png"><img alt="../_images/TwoTower.png" src="../_images/TwoTower.png" style="width: 30%;" /></a>
+<p>Image Adapted from: <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3366423.3380130">Off-policy Learning in Two-stage Recommender Systems</a></p>
+<p>We use the <code class="docutils literal notranslate"><span class="pre">schema</span></code> object to define our model.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path, &quot;train&quot;, &quot;*.parquet&quot;))
+valid = Dataset(os.path.join(output_path, &quot;valid&quot;, &quot;*.parquet&quot;))
+</pre></div>
+</div>
+</div>
+</div>
+<p>Select features with user and item tags, and be sure to exclude target column.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema = train.schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])
+train.schema = schema
+valid.schema = schema
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can print out the feature column names.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>name</th>
+      <th>tags</th>
+      <th>dtype</th>
+      <th>is_list</th>
+      <th>is_ragged</th>
+      <th>properties.num_buckets</th>
+      <th>properties.freq_threshold</th>
+      <th>properties.max_size</th>
+      <th>properties.start_index</th>
+      <th>properties.cat_path</th>
+      <th>properties.embedding_sizes.cardinality</th>
+      <th>properties.embedding_sizes.dimension</th>
+      <th>properties.domain.min</th>
+      <th>properties.domain.max</th>
+      <th>properties.domain.name</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>user_id</td>
+      <td>(Tags.USER, Tags.ID, Tags.CATEGORICAL, Tags.US...</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>663.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>662</td>
+      <td>user_id</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>item_id</td>
+      <td>(Tags.ID, Tags.ITEM, Tags.CATEGORICAL, Tags.IT...</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.i...</td>
+      <td>662.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>661</td>
+      <td>item_id</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>item_category</td>
+      <td>(Tags.CATEGORICAL, Tags.ITEM)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.i...</td>
+      <td>662.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>661</td>
+      <td>item_category</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>item_shop</td>
+      <td>(Tags.CATEGORICAL, Tags.ITEM)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.i...</td>
+      <td>662.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>661</td>
+      <td>item_shop</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>item_brand</td>
+      <td>(Tags.CATEGORICAL, Tags.ITEM)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.i...</td>
+      <td>662.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>661</td>
+      <td>item_brand</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>user_shops</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>663.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>662</td>
+      <td>user_shops</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>user_profile</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>48.0</td>
+      <td>16.0</td>
+      <td>0</td>
+      <td>47</td>
+      <td>user_profile</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>user_group</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>10.0</td>
+      <td>16.0</td>
+      <td>0</td>
+      <td>9</td>
+      <td>user_group</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>user_gender</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>3.0</td>
+      <td>16.0</td>
+      <td>0</td>
+      <td>2</td>
+      <td>user_gender</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>user_age</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>7.0</td>
+      <td>16.0</td>
+      <td>0</td>
+      <td>6</td>
+      <td>user_age</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>user_consumption_2</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>4.0</td>
+      <td>16.0</td>
+      <td>0</td>
+      <td>3</td>
+      <td>user_consumption_2</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>user_is_occupied</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>3.0</td>
+      <td>16.0</td>
+      <td>0</td>
+      <td>2</td>
+      <td>user_is_occupied</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>user_geography</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>5.0</td>
+      <td>16.0</td>
+      <td>0</td>
+      <td>4</td>
+      <td>user_geography</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>user_intentions</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>663.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>662</td>
+      <td>user_intentions</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>user_brands</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>663.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>662</td>
+      <td>user_brands</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>user_categories</td>
+      <td>(Tags.USER, Tags.CATEGORICAL)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>/workspace/data/categories/categories/unique.u...</td>
+      <td>663.0</td>
+      <td>61.0</td>
+      <td>0</td>
+      <td>662</td>
+      <td>user_categories</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>We expect the label names to be empty.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>label_names = schema.select_by_tag(Tags.TARGET).column_names
+label_names
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[]
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="negative-sampling">
+<h3>Negative sampling<a class="headerlink" href="#negative-sampling" title="Permalink to this headline"></a></h3>
+<p>Many datasets for recommender systems contain implicit feedback with logs of user interactions like clicks, add-to-cart, purchases, music listening events, rather than explicit ratings that reflects user preferences over items. To be able to learn from implicit feedback, we use the general (and naive) assumption that the interacted items are more relevant for the user than the non-interacted ones.
+In Merlin Models we provide some scalable negative sampling algorithms for the Item Retrieval Task. In particular, in this example, we use the <code class="docutils literal notranslate"><span class="pre">in-batch</span></code> sampling algorithm which uses the items interacted by other users as negatives within the same mini-batch.</p>
+</div>
+<div class="section" id="building-the-model">
+<h3>Building the Model<a class="headerlink" href="#building-the-model" title="Permalink to this headline"></a></h3>
+<p>Now, let’s build our Two-Tower model. In a nutshell, we aggregate all user features to feed in user tower and feed the item features to the item tower. Then we compute the positive score by multiplying the user embedding with the item embedding and sample negative items (read more about negative sampling <a class="reference external" href="https://openreview.net/pdf?id=824xC-SgWgU">here</a> and <a class="reference external" href="https://medium.com/mlearning-ai/overview-negative-sampling-on-recommendation-systems-230a051c6cd7">here</a>), whose item embeddings are also multiplied by the user embedding. Then we apply the loss function on top of the positive and negative scores.</p>
+<p>We make sure that the mlp blocks used for the user and query towers have the same last dimension. This is needed because we will compute the dot product between the two towers’ outputs to get the similarity scores.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>tower_dim = 64 
+
+# create user schema using USER tag
+user_schema = schema.select_by_tag(Tags.USER)
+# create user (query) tower input block
+user_inputs = mm.InputBlockV2(user_schema)
+# create user (query) encoder block
+query = mm.Encoder(user_inputs, mm.MLPBlock([128, tower_dim], no_activation_last_layer=True))
+
+# create item schema using ITEM tag
+item_schema = schema.select_by_tag(Tags.ITEM)
+# create item (candidate) tower input block
+item_inputs = mm.InputBlockV2(item_schema)
+# create item (candidate) encoder block
+candidate = mm.Encoder(item_inputs, mm.MLPBlock([128, tower_dim], no_activation_last_layer=True))
+</pre></div>
+</div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">no_activation_last_layer:</span></code> when set True, no activation is used for top hidden layer. Learn more <a class="reference external" href="https://storage.googleapis.com/pub-tools-public-publication-data/pdf/b9f4e78a8830fe5afcf2f0452862fb3c0d6584ea.pdf">here</a>.</p>
+<p>Build the model class.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.TwoTowerModelV2(query, candidate)
+</pre></div>
+</div>
+</div>
+</div>
+<p>Note that in the <code class="docutils literal notranslate"><span class="pre">TwoTowerModelV2</span></code> function we did not set <code class="docutils literal notranslate"><span class="pre">negative_samplers</span></code> arg, that means it is set to None. In that case, Two-tower model is trained with contrastive learning and <code class="docutils literal notranslate"><span class="pre">in-batch</span></code> negative sampling strategy.</p>
+<p><strong>Metrics:</strong></p>
+<p>The following information retrieval metrics are used to compute the Top-10 accuracy of recommendation lists containing all items:</p>
+<ul class="simple">
+<li><p><strong>Normalized Discounted Cumulative Gain (NDCG&#64;10)</strong>: NDCG accounts for rank of the relevant item in the recommendation list and is a more fine-grained metric than HR, which only verifies whether the relevant item is among the top-k items.</p></li>
+<li><p><strong>Recall&#64;10</strong>: Also known as HitRate&#64;n when there is only one relevant item in the recommendation list. Recall just verifies whether the relevant item is among the top-n items.</p></li>
+</ul>
+<p>We need to initialize the dataloaders.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.compile(optimizer=&quot;adam&quot;, run_eagerly=False, metrics=[mm.RecallAt(10), mm.NDCGAt(10)])
+model.fit(train, validation_data=valid, batch_size=4096, epochs=2)
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 1/2
+86/86 [==============================] - 12s 48ms/step - loss: 8.2954 - recall_at_10: 0.0246 - ndcg_at_10: 0.0220 - regularization_loss: 0.0000e+00 - loss_batch: 8.2847 - val_loss: 8.2915 - val_recall_at_10: 0.0308 - val_ndcg_at_10: 0.0308 - val_regularization_loss: 0.0000e+00 - val_loss_batch: 7.8375
+Epoch 2/2
+86/86 [==============================] - 3s 34ms/step - loss: 8.2950 - recall_at_10: 0.0300 - ndcg_at_10: 0.0298 - regularization_loss: 0.0000e+00 - loss_batch: 8.2842 - val_loss: 8.2922 - val_recall_at_10: 0.0217 - val_ndcg_at_10: 0.0198 - val_regularization_loss: 0.0000e+00 - val_loss_batch: 7.8383
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f8af54c8730&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<p>The validation metric values are calculated given the positive and negative scores in each batch, and then averaged over batches per epoch. That means validation metrics are not computed using the entire item catalog.</p>
+</div>
+<div class="section" id="evaluate-the-model-accuracy">
+<h3>Evaluate the model accuracy<a class="headerlink" href="#evaluate-the-model-accuracy" title="Permalink to this headline"></a></h3>
+<p>Note that above when we  set <code class="docutils literal notranslate"><span class="pre">validation_data=valid</span></code> in the <code class="docutils literal notranslate"><span class="pre">model.fit()</span></code>, we compute evaluation metrics on validation set using the negative sampling strategy used for training. To determine the exact accuracy of our trained retrieval model, we need to compute the similarity score between a given query and all possible candidates. The higher the score of the positive candidate (the one that is already interacted with, i.e. target item_id returned by dataloader), the more accurate the model is. We can do this using the <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> model that we create below via <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder</span></code> method, and the following section shows how to instantiate it. The <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder()</span></code> is a method of the <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/models/base.py">RetrievalModelV2</a> class.</p>
+<p>Below, by using the <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> we can evaluate the trained retrieval model using the entire item catalog. This is applying dot product for entire catalog, and by default it is brute force.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Top-K evaluation
+candidate_features = unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID)
+candidate_features.head()
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>item_id</th>
+      <th>item_category</th>
+      <th>item_shop</th>
+      <th>item_brand</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>93</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>39</th>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>topk = 20
+topk_model = model.to_top_k_encoder(candidate_features, k=topk, batch_size=128)
+
+# we can set `metrics` param in the `compile(), if we want
+topk_model.compile(run_eagerly=False)
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>eval_loader = mm.Loader(valid, batch_size=1024).map(mm.ToTarget(schema, &quot;item_id&quot;))
+
+metrics = topk_model.evaluate(eval_loader, return_dict=True)
+metrics
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>147/147 [==============================] - 4s 15ms/step - loss: 0.4212 - recall_at_10: 0.0934 - mrr_at_10: 0.0341 - ndcg_at_10: 0.0478 - map_at_10: 0.0341 - precision_at_10: 0.0093 - regularization_loss: 0.0000e+00 - loss_batch: 0.4209
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.4212242662906647,
+ &#39;recall_at_10&#39;: 0.09342904388904572,
+ &#39;mrr_at_10&#39;: 0.03406976908445358,
+ &#39;ndcg_at_10&#39;: 0.047799430787563324,
+ &#39;map_at_10&#39;: 0.03406976908445358,
+ &#39;precision_at_10&#39;: 0.009342900477349758,
+ &#39;regularization_loss&#39;: 0.0,
+ &#39;loss_batch&#39;: 0.3857615888118744}
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="generate-top-k-recommendations">
+<h3>Generate top-K recommendations<a class="headerlink" href="#generate-top-k-recommendations" title="Permalink to this headline"></a></h3>
+<p>We trained a model, now we can generate recommendations offline using <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder</span></code> method. The <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder()</span></code> uses the pre-trained candidate and query encoders to initialize a top-k encoder model, called as <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> in this example. Practically, this method applies the candidate_encoder on the provided candidate_features dataset to set the top-k index of the <code class="docutils literal notranslate"><span class="pre">topk_model</span></code>. Therefore, topk_model object is the one responsible of generating the top-k predictions.</p>
+<p>Let’s generate top-K (k=20 in our example) recommendations for a given batch of 8 samples. The <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder()</span></code> method uses the candidate (item) features dataset as the identifiers, i.e., we extract the<code class="docutils literal notranslate">&#160; <span class="pre">candidate_id</span></code> arg using <code class="docutils literal notranslate"><span class="pre">Tags.ITEM_ID</span></code> tag by default and set it as <code class="docutils literal notranslate"><span class="pre">index</span></code> when calculating the candidate embeddings. The forward method of <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> takes as the query features as input, and computes the dot product scores between the given query embeddings and all the candidates of the top-k index. Then, it returns the top-k (k=20) item ids with the highest scores. Note that instead of calculating the candidate (item) tower embeddings for each user query, we compute the output of the item tower once and store it in the <code class="docutils literal notranslate"><span class="pre">TopKEncoder</span></code> class  to use for the Top-k index. This is computationally more efficient.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>eval_loader = mm.Loader(valid, batch_size=8, shuffle=False)
+batch =next(iter(eval_loader))
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s check the <code class="docutils literal notranslate"><span class="pre">user_id</span></code> column in a given batch.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>batch[0][&#39;user_id&#39;]
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;tf.Tensor: shape=(8, 1), dtype=int64, numpy=
+array([[ 48],
+       [  6],
+       [  2],
+       [184],
+       [ 22],
+       [  6],
+       [ 30],
+       [ 36]])&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<p>The recommended top 20 item ids are returned below. The output of the method is a named tuple <code class="docutils literal notranslate"><span class="pre">TopKPrediction</span></code>, where the first element is the dot product scores and the second element is the encoded item ids (not the original ids).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>topk_model(batch[0])
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>TopKPrediction(scores=&lt;tf.Tensor: shape=(8, 20), dtype=float32, numpy=
+array([[0.07914167, 0.06689327, 0.06665718, 0.0558873 , 0.05419895,
+        0.05162647, 0.05141887, 0.04779754, 0.04400383, 0.04338987,
+        0.04314638, 0.04218695, 0.04206986, 0.03964205, 0.03870573,
+        0.03738754, 0.03681045, 0.03679563, 0.03595291, 0.03488279],
+       [0.11142829, 0.1087153 , 0.09285022, 0.09184089, 0.09017296,
+        0.0819862 , 0.07968194, 0.07311831, 0.07131816, 0.06624649,
+        0.0660262 , 0.06577689, 0.06359623, 0.06272355, 0.06217033,
+        0.05999621, 0.05986039, 0.05904868, 0.05829312, 0.05809326],
+       [0.04108726, 0.03786915, 0.03679999, 0.03606556, 0.0341182 ,
+        0.03333249, 0.03283013, 0.03179491, 0.03027055, 0.03001958,
+        0.02996242, 0.02868335, 0.02752452, 0.02751509, 0.02742849,
+        0.02658201, 0.02591877, 0.02579155, 0.02546304, 0.02458519],
+       [0.03614997, 0.03377194, 0.03346077, 0.03037825, 0.02977451,
+        0.02895313, 0.02835435, 0.02678858, 0.02556792, 0.02539463,
+        0.02518579, 0.0251436 , 0.02497348, 0.02443891, 0.02432298,
+        0.02418283, 0.02345275, 0.02344878, 0.02332238, 0.0229562 ],
+       [0.08556695, 0.08040293, 0.08004925, 0.07905072, 0.07071923,
+        0.06996118, 0.06975519, 0.06796281, 0.06512717, 0.06391992,
+        0.06375775, 0.06356508, 0.06197023, 0.06085409, 0.05857427,
+        0.05686603, 0.05492353, 0.05487213, 0.05287076, 0.05180455],
+       [0.11142829, 0.1087153 , 0.09285022, 0.09184089, 0.09017296,
+        0.0819862 , 0.07968194, 0.07311831, 0.07131816, 0.06624649,
+        0.0660262 , 0.06577689, 0.06359623, 0.06272355, 0.06217033,
+        0.05999621, 0.05986039, 0.05904868, 0.05829312, 0.05809326],
+       [0.10821203, 0.09383179, 0.06738893, 0.06365363, 0.05353299,
+        0.04497425, 0.04346779, 0.04234669, 0.04175502, 0.04119734,
+        0.0407769 , 0.04059385, 0.04049742, 0.04042677, 0.03921955,
+        0.03844847, 0.03626748, 0.03532993, 0.03404151, 0.03349668],
+       [0.11652211, 0.11571186, 0.09148473, 0.08903328, 0.08306861,
+        0.08037847, 0.08032752, 0.0744494 , 0.07389667, 0.07335471,
+        0.07194579, 0.07136803, 0.06793442, 0.06658586, 0.06494202,
+        0.06410206, 0.06317658, 0.06307507, 0.05969208, 0.05949583]],
+      dtype=float32)&gt;, identifiers=&lt;tf.Tensor: shape=(8, 20), dtype=int32, numpy=
+array([[ 27, 119, 145,  17, 130, 112,  28, 192, 222, 122, 307,  25, 125,
+        247, 118, 335, 601, 584, 398,  41],
+       [  2,   3,   5,   9, 220, 301, 305, 308,  36, 277, 559, 545, 230,
+         13,  10, 615, 518, 132, 185, 468],
+       [144, 303,  18,  22, 209, 117,  14,  51,  37, 101, 331,  23, 404,
+         21,  26, 388, 156, 307,  15, 164],
+       [164, 121,  14, 117, 175, 118,  70, 100, 567, 368,   1,   4, 330,
+        554,  25, 207,  22, 206,  37, 248],
+       [ 26,  76,  35, 404,  59,  23, 117, 127, 430,  33,  87, 217, 158,
+        328,  96, 295, 167, 203, 169, 289],
+       [  2,   3,   5,   9, 220, 301, 305, 308,  36, 277, 559, 545, 230,
+         13,  10, 615, 518, 132, 185, 468],
+       [  4,  16,  68, 195, 324,  30, 334, 231, 128, 459, 114, 238, 120,
+          2, 660,  86,  89, 192, 255,  83],
+       [ 27,  21, 307,  11, 207,  76, 178, 138, 139,  48,  26,  78, 246,
+        146, 479,  67, 590, 188,   7, 169]], dtype=int32)&gt;)
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="exporting-retrieval-models">
+<h2>Exporting Retrieval Models<a class="headerlink" href="#exporting-retrieval-models" title="Permalink to this headline"></a></h2>
+<p>So far we have trained and evaluated our Retrieval model. Now, the next step is to deploy our model and generate top-K recommendations given a user (query). We can efficiently serve our model by indexing the trained item embeddings into an <strong>Approximate Nearest Neighbors (ANN)</strong> engine. Basically, for a given user query vector, that is generated passing the user features into user tower of retrieval model, we do an ANN search query to find the ids of nearby item vectors, and at serve time, we score user embeddings over all indexed top-K item embeddings within the ANN engine.</p>
+<p>In doing so, we need to export</p>
+<ul class="simple">
+<li><p>user (query) tower</p></li>
+<li><p>item and user features</p></li>
+<li><p>item embeddings</p></li>
+</ul>
+<div class="section" id="save-and-load-user-query-tower">
+<h3>Save and Load User (query) tower<a class="headerlink" href="#save-and-load-user-query-tower" title="Permalink to this headline"></a></h3>
+<p>We are able to save the user tower model as a TF model to disk. The user tower model is needed to generate a user embedding vector when a user feature vector <i>x</i> is fed into that model.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>query_tower = model.query_encoder
+query_tower.save(os.path.join(DATA_FOLDER, &quot;query_tower&quot;))
+
+## we can load back the saved model via the following script.
+#query_tower_loaded = tf.keras.models.load_model(os.path.join(DATA_FOLDER, &#39;query_tower&#39;))
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="extract-and-save-user-features">
+<h3>Extract and save User features<a class="headerlink" href="#extract-and-save-user-features" title="Permalink to this headline"></a></h3>
+<p>With <code class="docutils literal notranslate"><span class="pre">unique_rows_by_features</span></code> utility function we can easily extract both unique user and item features tables as cuDF dataframes. Note that for user features table, we use <code class="docutils literal notranslate"><span class="pre">USER</span></code> and <code class="docutils literal notranslate"><span class="pre">USER_ID</span></code> tags.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_features = (
+    unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)
+)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_features.head()
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>user_id</th>
+      <th>user_shops</th>
+      <th>user_profile</th>
+      <th>user_group</th>
+      <th>user_gender</th>
+      <th>user_age</th>
+      <th>user_consumption_2</th>
+      <th>user_is_occupied</th>
+      <th>user_geography</th>
+      <th>user_intentions</th>
+      <th>user_brands</th>
+      <th>user_categories</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>2</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>3</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>5</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
+user_features.to_parquet(os.path.join(DATA_FOLDER, &quot;user_features.parquet&quot;))
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="generate-query-embeddings-for-entire-user-catalog">
+<h3>Generate Query embeddings for entire user catalog<a class="headerlink" href="#generate-query-embeddings-for-entire-user-catalog" title="Permalink to this headline"></a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>queries = model.query_embeddings(Dataset(user_features, schema=schema), batch_size=1024, index=Tags.USER_ID)
+query_embs_df = queries.compute(scheduler=&quot;synchronous&quot;).reset_index()
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>query_embs_df.head()
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>user_id</th>
+      <th>0</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+      <th>5</th>
+      <th>6</th>
+      <th>7</th>
+      <th>8</th>
+      <th>...</th>
+      <th>54</th>
+      <th>55</th>
+      <th>56</th>
+      <th>57</th>
+      <th>58</th>
+      <th>59</th>
+      <th>60</th>
+      <th>61</th>
+      <th>62</th>
+      <th>63</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>0.041951</td>
+      <td>-0.020223</td>
+      <td>0.004236</td>
+      <td>-0.019033</td>
+      <td>0.002884</td>
+      <td>-0.080953</td>
+      <td>0.060585</td>
+      <td>0.052524</td>
+      <td>-0.029782</td>
+      <td>...</td>
+      <td>0.099736</td>
+      <td>-0.028312</td>
+      <td>0.038981</td>
+      <td>-0.098385</td>
+      <td>-0.101973</td>
+      <td>-0.051495</td>
+      <td>0.024279</td>
+      <td>-0.053948</td>
+      <td>-0.080442</td>
+      <td>0.004703</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>0.053807</td>
+      <td>-0.033114</td>
+      <td>-0.038405</td>
+      <td>-0.050862</td>
+      <td>0.040319</td>
+      <td>-0.060739</td>
+      <td>0.003956</td>
+      <td>0.012470</td>
+      <td>-0.063603</td>
+      <td>...</td>
+      <td>0.056157</td>
+      <td>0.034962</td>
+      <td>-0.003549</td>
+      <td>-0.070555</td>
+      <td>-0.023475</td>
+      <td>-0.058738</td>
+      <td>0.057749</td>
+      <td>-0.013966</td>
+      <td>-0.001620</td>
+      <td>-0.030841</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>-0.009804</td>
+      <td>0.025582</td>
+      <td>-0.070978</td>
+      <td>-0.062639</td>
+      <td>0.034251</td>
+      <td>-0.105107</td>
+      <td>0.072854</td>
+      <td>0.016531</td>
+      <td>-0.029134</td>
+      <td>...</td>
+      <td>0.107710</td>
+      <td>-0.068276</td>
+      <td>0.050339</td>
+      <td>-0.135261</td>
+      <td>-0.115445</td>
+      <td>-0.076873</td>
+      <td>0.058914</td>
+      <td>-0.050154</td>
+      <td>-0.071277</td>
+      <td>-0.031820</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>-0.054897</td>
+      <td>-0.090031</td>
+      <td>0.010316</td>
+      <td>0.045851</td>
+      <td>-0.019615</td>
+      <td>0.002119</td>
+      <td>0.034532</td>
+      <td>0.125433</td>
+      <td>-0.134117</td>
+      <td>...</td>
+      <td>0.073807</td>
+      <td>-0.021637</td>
+      <td>0.013071</td>
+      <td>-0.145496</td>
+      <td>-0.091502</td>
+      <td>0.029946</td>
+      <td>0.058051</td>
+      <td>-0.018283</td>
+      <td>0.038066</td>
+      <td>-0.105121</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>0.066658</td>
+      <td>0.028629</td>
+      <td>0.027072</td>
+      <td>-0.024320</td>
+      <td>0.035782</td>
+      <td>-0.049752</td>
+      <td>0.026108</td>
+      <td>0.030448</td>
+      <td>-0.002598</td>
+      <td>...</td>
+      <td>0.067228</td>
+      <td>0.029789</td>
+      <td>0.096082</td>
+      <td>-0.076030</td>
+      <td>-0.118867</td>
+      <td>-0.053601</td>
+      <td>0.025621</td>
+      <td>-0.001777</td>
+      <td>-0.025906</td>
+      <td>0.021156</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 65 columns</p>
+</div></div></div>
+</div>
+</div>
+<div class="section" id="extract-and-save-item-features">
+<h3>Extract and save Item features<a class="headerlink" href="#extract-and-save-item-features" title="Permalink to this headline"></a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_features = (
+    unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)
+)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_features.head()
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>item_id</th>
+      <th>item_category</th>
+      <th>item_shop</th>
+      <th>item_brand</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
+item_features.to_parquet(os.path.join(DATA_FOLDER, &quot;item_features.parquet&quot;))
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="extract-and-save-item-embeddings">
+<h3>Extract and save Item embeddings<a class="headerlink" href="#extract-and-save-item-embeddings" title="Permalink to this headline"></a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embs = model.candidate_embeddings(Dataset(item_features, schema=schema), batch_size=1024, index=Tags.ITEM_ID)
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embs_df
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+      <th>5</th>
+      <th>6</th>
+      <th>7</th>
+      <th>8</th>
+      <th>9</th>
+      <th>...</th>
+      <th>54</th>
+      <th>55</th>
+      <th>56</th>
+      <th>57</th>
+      <th>58</th>
+      <th>59</th>
+      <th>60</th>
+      <th>61</th>
+      <th>62</th>
+      <th>63</th>
+    </tr>
+    <tr>
+      <th>item_id</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>1</th>
+      <td>-0.021552</td>
+      <td>0.009041</td>
+      <td>0.039659</td>
+      <td>-0.115629</td>
+      <td>0.060703</td>
+      <td>-0.025404</td>
+      <td>0.001678</td>
+      <td>-0.022630</td>
+      <td>-0.043372</td>
+      <td>-0.043020</td>
+      <td>...</td>
+      <td>0.055401</td>
+      <td>-0.020197</td>
+      <td>0.091445</td>
+      <td>-0.031282</td>
+      <td>-0.038851</td>
+      <td>0.003069</td>
+      <td>0.018751</td>
+      <td>0.007528</td>
+      <td>-0.035626</td>
+      <td>-0.057195</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>-0.083753</td>
+      <td>-0.116476</td>
+      <td>0.073937</td>
+      <td>-0.021895</td>
+      <td>-0.037875</td>
+      <td>0.079780</td>
+      <td>0.004227</td>
+      <td>-0.062871</td>
+      <td>0.067589</td>
+      <td>-0.113532</td>
+      <td>...</td>
+      <td>0.016558</td>
+      <td>-0.062858</td>
+      <td>0.007280</td>
+      <td>-0.145148</td>
+      <td>-0.073590</td>
+      <td>0.060061</td>
+      <td>0.042919</td>
+      <td>-0.088881</td>
+      <td>0.045371</td>
+      <td>-0.048104</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>-0.022572</td>
+      <td>-0.143781</td>
+      <td>0.095565</td>
+      <td>-0.072755</td>
+      <td>-0.024208</td>
+      <td>0.016993</td>
+      <td>-0.063992</td>
+      <td>-0.016109</td>
+      <td>-0.046727</td>
+      <td>-0.076944</td>
+      <td>...</td>
+      <td>-0.016716</td>
+      <td>-0.120303</td>
+      <td>-0.027779</td>
+      <td>-0.030434</td>
+      <td>0.003762</td>
+      <td>0.044557</td>
+      <td>0.028406</td>
+      <td>-0.097061</td>
+      <td>0.047091</td>
+      <td>-0.070876</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>-0.034698</td>
+      <td>0.046747</td>
+      <td>0.050764</td>
+      <td>-0.054780</td>
+      <td>0.049690</td>
+      <td>-0.054132</td>
+      <td>0.044862</td>
+      <td>-0.051085</td>
+      <td>0.025827</td>
+      <td>-0.008969</td>
+      <td>...</td>
+      <td>0.034949</td>
+      <td>-0.009016</td>
+      <td>-0.010063</td>
+      <td>-0.007224</td>
+      <td>0.004805</td>
+      <td>-0.033879</td>
+      <td>0.026008</td>
+      <td>0.066739</td>
+      <td>-0.081608</td>
+      <td>0.002007</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>0.017667</td>
+      <td>-0.093071</td>
+      <td>0.119211</td>
+      <td>-0.039053</td>
+      <td>-0.044223</td>
+      <td>-0.002900</td>
+      <td>-0.011234</td>
+      <td>0.021149</td>
+      <td>0.006894</td>
+      <td>-0.073159</td>
+      <td>...</td>
+      <td>0.041408</td>
+      <td>-0.068992</td>
+      <td>0.081714</td>
+      <td>0.003833</td>
+      <td>-0.015269</td>
+      <td>-0.011885</td>
+      <td>0.041777</td>
+      <td>-0.039943</td>
+      <td>0.100604</td>
+      <td>-0.012898</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>657</th>
+      <td>-0.008736</td>
+      <td>-0.025814</td>
+      <td>0.021996</td>
+      <td>-0.067662</td>
+      <td>0.038304</td>
+      <td>-0.039822</td>
+      <td>-0.014580</td>
+      <td>-0.014729</td>
+      <td>-0.051024</td>
+      <td>-0.017028</td>
+      <td>...</td>
+      <td>0.036276</td>
+      <td>-0.017140</td>
+      <td>0.026932</td>
+      <td>-0.039948</td>
+      <td>-0.042317</td>
+      <td>0.036567</td>
+      <td>0.014907</td>
+      <td>-0.069974</td>
+      <td>0.014789</td>
+      <td>-0.000786</td>
+    </tr>
+    <tr>
+      <th>658</th>
+      <td>0.027235</td>
+      <td>-0.055484</td>
+      <td>0.100215</td>
+      <td>-0.022288</td>
+      <td>-0.015791</td>
+      <td>-0.013113</td>
+      <td>-0.011211</td>
+      <td>-0.060337</td>
+      <td>-0.005251</td>
+      <td>-0.066255</td>
+      <td>...</td>
+      <td>-0.007403</td>
+      <td>0.035502</td>
+      <td>0.051252</td>
+      <td>0.036262</td>
+      <td>-0.033077</td>
+      <td>0.054807</td>
+      <td>-0.015973</td>
+      <td>-0.037896</td>
+      <td>0.036095</td>
+      <td>-0.012522</td>
+    </tr>
+    <tr>
+      <th>659</th>
+      <td>0.000050</td>
+      <td>-0.083014</td>
+      <td>-0.003769</td>
+      <td>-0.016448</td>
+      <td>0.058482</td>
+      <td>0.003810</td>
+      <td>0.002106</td>
+      <td>-0.021589</td>
+      <td>-0.029082</td>
+      <td>-0.005173</td>
+      <td>...</td>
+      <td>-0.014442</td>
+      <td>-0.045111</td>
+      <td>0.025007</td>
+      <td>0.011599</td>
+      <td>-0.026002</td>
+      <td>0.031850</td>
+      <td>0.043968</td>
+      <td>-0.053928</td>
+      <td>0.040387</td>
+      <td>0.037862</td>
+    </tr>
+    <tr>
+      <th>660</th>
+      <td>0.000492</td>
+      <td>-0.041255</td>
+      <td>0.081524</td>
+      <td>-0.083455</td>
+      <td>-0.020575</td>
+      <td>-0.030294</td>
+      <td>-0.026690</td>
+      <td>-0.076162</td>
+      <td>0.006011</td>
+      <td>-0.035908</td>
+      <td>...</td>
+      <td>-0.015531</td>
+      <td>0.006367</td>
+      <td>0.016362</td>
+      <td>0.038916</td>
+      <td>-0.027108</td>
+      <td>-0.009466</td>
+      <td>0.007149</td>
+      <td>0.016705</td>
+      <td>0.010482</td>
+      <td>0.012888</td>
+    </tr>
+    <tr>
+      <th>661</th>
+      <td>-0.022624</td>
+      <td>-0.034587</td>
+      <td>0.018065</td>
+      <td>-0.007772</td>
+      <td>-0.001248</td>
+      <td>0.064035</td>
+      <td>0.059197</td>
+      <td>0.004046</td>
+      <td>-0.047599</td>
+      <td>-0.050420</td>
+      <td>...</td>
+      <td>0.067813</td>
+      <td>0.057818</td>
+      <td>0.074110</td>
+      <td>-0.052934</td>
+      <td>-0.015619</td>
+      <td>0.083385</td>
+      <td>-0.017303</td>
+      <td>0.056356</td>
+      <td>0.062265</td>
+      <td>-0.011084</td>
+    </tr>
+  </tbody>
+</table>
+<p>661 rows × 64 columns</p>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
+item_embs_df.to_parquet(os.path.join(DATA_FOLDER, &quot;item_embeddings.parquet&quot;))
+</pre></div>
+</div>
+</div>
+</div>
+<p>That’s it. You have learned how to train and evaluate your Two-Tower retrieval model, and then how to export the required components to be able to deploy this model to generate recommendations. In order to learn more on serving a model to <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a>, please explore the examples in the <a class="reference external" href="https://github.com/NVIDIA-Merlin/Merlin">Merlin</a> and <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> repos.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="04-Exporting-ranking-models.html" class="btn btn-neutral float-left" title="Exporting Ranking Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="06-Define-your-own-architecture-with-Merlin-Models.html" class="btn btn-neutral float-right" title="Taking the Next Step with Merlin Models: Define Your Own Architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.11.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
+      <dd><a href="05-Retrieval-Model.html">v0.11.0</a></dd>
+      <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+      <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+      <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+      <dd><a href="../../v0.9.0/index.html">v0.9.0</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../main/index.html">main</a></dd>
+    </dl>
+  </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NVJ1Y1YJHK"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NVJ1Y1YJHK', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

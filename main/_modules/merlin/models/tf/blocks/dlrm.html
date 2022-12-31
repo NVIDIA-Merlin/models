@@ -185,7 +185,10 @@
             <span class="p">)</span>
         <span class="n">con</span> <span class="o">=</span> <span class="n">ContinuousFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">con_schema</span><span class="p">)</span>
         <span class="n">bottom_block</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">bottom_block</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
-        <span class="n">interaction_inputs</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">({</span><span class="s2">&quot;embeddings&quot;</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span> <span class="s2">&quot;bottom_block&quot;</span><span class="p">:</span> <span class="n">bottom_block</span><span class="p">})</span>
+        <span class="n">interaction_inputs</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;embeddings&quot;</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span> <span class="s2">&quot;bottom_block&quot;</span><span class="p">:</span> <span class="n">bottom_block</span><span class="p">},</span>
+            <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">interaction_inputs</span> <span class="o">=</span> <span class="n">embeddings</span>  <span class="c1"># type: ignore</span>
         <span class="n">bottom_block</span> <span class="o">=</span> <span class="kc">None</span>
@@ -276,7 +279,7 @@
     <dl>
       <dt>Tags</dt>
       <dd><a href="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
-      <dd><a href="../../../../../../v0.5.0/index.html">v0.5.0</a></dd>
+      <dd><a href="../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../../../../../v0.6.0/index.html">v0.6.0</a></dd>
       <dd><a href="../../../../../../v0.7.0/index.html">v0.7.0</a></dd>
       <dd><a href="../../../../../../v0.8.0/index.html">v0.8.0</a></dd>

@@ -178,7 +178,7 @@
 <span class="sd">        Tags to filter the continuous features</span>
 <span class="sd">        Defaults to  (Tags.CONTINUOUS,)</span>
 <span class="sd">    continuous_projection: Optional[Block]</span>
-<span class="sd">        If set, concatenate all numerical features and projet using the</span>
+<span class="sd">        If set, concatenate all numerical features and project using the</span>
 <span class="sd">        specified Block.</span>
 <span class="sd">        Defaults to None</span>
 <span class="sd">    add_embedding_branch: bool</span>
@@ -201,6 +201,9 @@
 <span class="sd">        aggregate the sparse features tensor along the sequence axis.</span>
 <span class="sd">        Defaults to SequenceAggregator(&#39;mean&#39;)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If targets are passed, exclude these from the input block schema</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">([</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">REGRESSION</span><span class="p">])</span>
+
     <span class="n">branches</span> <span class="o">=</span> <span class="n">branches</span> <span class="ow">or</span> <span class="p">{}</span>
 
     <span class="k">if</span> <span class="n">split_sparse</span><span class="p">:</span>
@@ -375,6 +378,8 @@
 <span class="sd">        Returns a ParallelBlock with a Dict with two branches:</span>
 <span class="sd">        continuous and embeddings</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If targets are passed, exclude these from the input block schema</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">([</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">REGRESSION</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="s2">&quot;embeddings&quot;</span> <span class="ow">in</span> <span class="n">branches</span><span class="p">:</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
@@ -445,7 +450,7 @@
     <dl>
       <dt>Tags</dt>
       <dd><a href="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
-      <dd><a href="../../../../../../v0.5.0/index.html">v0.5.0</a></dd>
+      <dd><a href="../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../../../../../v0.6.0/index.html">v0.6.0</a></dd>
       <dd><a href="../../../../../../v0.7.0/index.html">v0.7.0</a></dd>
       <dd><a href="../../../../../../v0.8.0/index.html">v0.8.0</a></dd>
