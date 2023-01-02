@@ -125,7 +125,7 @@
     <span class="n">samplers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ItemSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalModel</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Builds a matrix factorization model.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds a matrix factorization model.</span>
 
 <span class="sd">    Example Usage::</span>
 <span class="sd">        mf = MatrixFactorizationModel(schema, dim=128)</span>
@@ -210,7 +210,7 @@
     <span class="n">samplers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ItemSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalModel</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Builds the Two-tower architecture, as proposed in [1].</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds the Two-tower architecture, as proposed in [1].</span>
 
 <span class="sd">    Example Usage::</span>
 <span class="sd">        two_tower = TwoTowerModel(schema, MLPBlock([256, 64]))</span>
@@ -308,7 +308,7 @@
         <span class="n">infer_embedding_sizes_multiplier</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
     <span class="p">),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Build the Youtube-DNN retrieval model.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the Youtube-DNN retrieval model.</span>
 <span class="sd">    More details of the architecture can be found in [1]_.</span>
 <span class="sd">    The sampled_softmax is enabled by default [2]_ [3]_ [4]_.</span>
 
@@ -410,7 +410,7 @@
     <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalModelV2</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Builds a matrix factorization (MF) model.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds a matrix factorization (MF) model.</span>
 
 <span class="sd">    Example Usage::</span>
 <span class="sd">        mf = MatrixFactorizationModelV2(schema, dim=128)</span>
@@ -502,7 +502,7 @@
     <span class="n">negative_samplers</span><span class="p">:</span> <span class="n">ItemSamplersType</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalModelV2</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Builds the Two-tower architecture, as proposed in [1].</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds the Two-tower architecture, as proposed in [1].</span>
 
 <span class="sd">    Example Usage::</span>
 <span class="sd">        query = mm.Encoder(user_schema, mm.MLPBlock([128]))</span>
@@ -581,7 +581,7 @@
     <span class="n">min_sampled_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalModelV2</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Build the Youtube-DNN retrieval model.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the Youtube-DNN retrieval model.</span>
 <span class="sd">    More details of the architecture can be found in [1]_.</span>
 <span class="sd">    Training with sampled_softmax is enabled by default [2]_ [3]_ [4]_.</span>
 

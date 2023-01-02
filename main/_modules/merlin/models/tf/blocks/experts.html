@@ -119,7 +119,7 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ExpertsGate</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;MMoE Gate, which uses input features to generate softmax weights</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MMoE Gate, which uses input features to generate softmax weights</span>
 <span class="sd">    in a weighted sum of expert outputs.</span>
 
 <span class="sd">    Parameters</span>
@@ -162,7 +162,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;MMOE call</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;MMOE call</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -225,7 +225,7 @@
     <span class="n">gate_softmax_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="o">**</span><span class="n">gate_kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SequentialBlock</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Implements the Multi-gate Mixture-of-Experts (MMoE) introduced in [1].</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Implements the Multi-gate Mixture-of-Experts (MMoE) introduced in [1].</span>
 
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
@@ -294,7 +294,7 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">CGCGateTransformation</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Use the tasks (and shared) gates to aggregate</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use the tasks (and shared) gates to aggregate</span>
 <span class="sd">    the outputs of the experts.</span>
 
 <span class="sd">    Parameters</span>
@@ -422,7 +422,7 @@
 
 <div class="viewcode-block" id="CGCBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.CGCBlock.html#merlin.models.tf.CGCBlock">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">CGCBlock</span><span class="p">(</span><span class="n">ParallelBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Implements the Customized Gate Control (CGC) proposed in [1].</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Implements the Customized Gate Control (CGC) proposed in [1].</span>
 
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
@@ -554,7 +554,7 @@
 
 
 <span class="k">def</span> <span class="nf">create_expert</span><span class="p">(</span><span class="n">expert_block</span><span class="p">:</span> <span class="n">Block</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TabularBlock</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Creates an expert from a block</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates an expert from a block</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -583,7 +583,7 @@
     <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Implements the Progressive Layered Extraction (PLE) model from [1],</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Implements the Progressive Layered Extraction (PLE) model from [1],</span>
 <span class="sd">    by stacking CGC blocks (CGCBlock).</span>
 
 <span class="sd">    References</span>

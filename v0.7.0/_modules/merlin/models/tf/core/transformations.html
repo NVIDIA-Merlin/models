@@ -127,7 +127,7 @@
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;as-ragged&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">AsRaggedFeatures</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convert all list (multi-hot/sequential) features to tf.RaggedTensor&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert all list (multi-hot/sequential) features to tf.RaggedTensor&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -157,7 +157,7 @@
 <div class="viewcode-block" id="AsSparseFeatures"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.AsSparseFeatures.html#merlin.models.tf.AsSparseFeatures">[docs]</a><span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;as-sparse&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">AsSparseFeatures</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convert all list-inputs to sparse-tensors.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert all list-inputs to sparse-tensors.</span>
 
 <span class="sd">    By default, the dataloader will represent list-columns as a tuple of values &amp; row-lengths.</span>
 
@@ -182,7 +182,7 @@
 <div class="viewcode-block" id="AsDenseFeatures"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.AsDenseFeatures.html#merlin.models.tf.AsDenseFeatures">[docs]</a><span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;as-dense&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">AsDenseFeatures</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convert all list-inputs to dense-tensors.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert all list-inputs to dense-tensors.</span>
 
 <span class="sd">    By default, the dataloader will represent list-columns as a tuple of values &amp; row-lengths.</span>
 
@@ -233,7 +233,7 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">RenameFeatures</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Rename input features</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rename input features</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -291,7 +291,7 @@
 
 <div class="viewcode-block" id="ExpandDims"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ExpandDims.html#merlin.models.tf.ExpandDims">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ExpandDims</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Expand dims of selected input tensors.</span>
 <span class="sd">    Example::</span>
 
@@ -308,7 +308,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ExpandDims.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ExpandDims.html#merlin.models.tf.ExpandDims.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expand_dims</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Instantiates the `ExpandDims` transformation, which allows to expand dims</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Instantiates the `ExpandDims` transformation, which allows to expand dims</span>
 <span class="sd">        of the input tensors</span>
 
 <span class="sd">        Parameters</span>
@@ -344,7 +344,7 @@
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;l2-norm&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">L2Norm</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Apply L2-normalization to input tensors along a given axis&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply L2-normalization to input tensors along a given axis&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">L2Norm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -364,7 +364,7 @@
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;remove_pad_3d&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">RemovePad3D</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Flatten the sequence of labels and filter out non-targets positions</span>
 
 <span class="sd">    Parameters</span>
@@ -409,7 +409,7 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Scale the logits higher or lower,</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Scale the logits higher or lower,</span>
 <span class="sd">    this is often used to reduce the overconfidence of the model.</span>
 
 <span class="sd">    Parameters</span>
@@ -452,7 +452,7 @@
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;weight-tying&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ItemsPredictionWeightTying</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Tying the item embedding weights with the output projection layer matrix [1]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tying the item embedding weights with the output projection layer matrix [1]</span>
 <span class="sd">    The output logits are obtained by multiplying the output vector by the item-ids embeddings.</span>
 
 <span class="sd">    Parameters</span>
@@ -529,7 +529,7 @@
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="nd">@requires_schema</span>
 <span class="k">class</span> <span class="nc">CategoryEncoding</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A preprocessing layer which encodes integer features.</span>
 
 <span class="sd">    This layer provides options for condensing data into a categorical encoding. It accepts integer</span>
@@ -694,7 +694,7 @@
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;label_to_onehot&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LabelToOneHot</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Transform the categorical encoded labels into a one-hot representation&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transform the categorical encoded labels into a one-hot representation&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -716,7 +716,7 @@
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="nd">@requires_schema</span>
 <span class="k">class</span> <span class="nc">PopularityLogitsCorrection</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Correct the predicted logit scores based on the item frequency,</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Correct the predicted logit scores based on the item frequency,</span>
 <span class="sd">    using the logQ correction proposed in sampled softmax [1]_ [2]_.</span>
 <span class="sd">    The correction is done as `logits -= log(item_prob)`,</span>
 <span class="sd">    where `item_prob = item_freq_count / sum(item_freq_count)` is</span>
@@ -786,7 +786,7 @@
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Load the item frequency table from a parquet file</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the item frequency table from a parquet file</span>
 <span class="sd">        (in the format automatically generated by NVTabular with workflow.fit()).</span>
 <span class="sd">        It supposed the parquet file has a single column with the item frequencies</span>
 <span class="sd">        and is indexed by item ids.</span>
@@ -835,7 +835,7 @@
     <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">item_freq_probs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">],</span> <span class="n">is_prob_distribution</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Updates the item frequencies / probabilities</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the item frequencies / probabilities</span>
 
 <span class="sd">        Parameters:</span>
 <span class="sd">        ----------</span>
@@ -895,7 +895,7 @@
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;hashed_cross&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">HashedCross</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A transformation block which crosses categorical features using the &quot;hashing trick&quot;.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A transformation block which crosses categorical features using the &quot;hashing trick&quot;.</span>
 <span class="sd">    Conceptually, the transformation can be thought of as: hash(concatenation of features) %</span>
 <span class="sd">    num_bins</span>
 <span class="sd">    Example usage::</span>
@@ -1096,7 +1096,7 @@
     <span class="n">output_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;one_hot&quot;</span><span class="p">,</span>
     <span class="n">ignore_combinations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Block</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Parallel block consists of HashedCross blocks for all combinations of schema with all levels</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parallel block consists of HashedCross blocks for all combinations of schema with all levels</span>
 <span class="sd">        through level 2 to max_level.</span>
 
 <span class="sd">    Parameters:</span>

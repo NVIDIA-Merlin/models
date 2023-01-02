@@ -107,7 +107,7 @@
 
 <div class="viewcode-block" id="DotProductInteraction"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.DotProductInteraction.html#merlin.models.tf.DotProductInteraction">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">DotProductInteraction</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Layer implementing the factorization machine style feature</span>
 <span class="sd">    interaction layer suggested by the DLRM and DeepFM architectures,</span>
 <span class="sd">    generalized to include a dot-product version of the parameterized</span>
@@ -205,7 +205,7 @@
 
 
 <span class="k">class</span> <span class="nc">XDeepFmOuterProduct</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Layer implementing the outer product transformation used in</span>
 <span class="sd">    the Compressed Interaction Network (CIN) proposed in</span>
 <span class="sd">    in https://arxiv.org/abs/1803.05170. Treats the feature dimension</span>
@@ -248,7 +248,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">built</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ------------</span>
 <span class="sd">        inputs : array-like(tf.Tensor)</span>
@@ -277,7 +277,7 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">FMPairwiseInteraction</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute pairwise (2nd-order) feature interactions like defined in</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute pairwise (2nd-order) feature interactions like defined in</span>
 <span class="sd">    Factorized Machine [1].</span>
 
 <span class="sd">    References</span>
@@ -295,7 +295,7 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">FMPairwiseInteraction</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        inputs : array-like(tf.Tensor)</span>

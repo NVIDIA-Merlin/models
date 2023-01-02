@@ -114,7 +114,7 @@
 
 <div class="viewcode-block" id="SequentialBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">SequentialBlock</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The SequentialLayer represents a sequence of Keras layers.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The SequentialLayer represents a sequence of Keras layers.</span>
 <span class="sd">    It is a Keras Layer that can be used instead of tf.keras.layers.Sequential,</span>
 <span class="sd">    which is actually a Keras Model.  In contrast to keras Sequential, this</span>
 <span class="sd">    layer can be used as a pure Layer in tf.functions and when exporting</span>
@@ -136,7 +136,7 @@
         <span class="n">copy_layers</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create a sequential composition.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a sequential composition.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -184,7 +184,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SequentialBlock.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the output shape based on the input shape</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the output shape based on the input shape</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -202,7 +202,7 @@
         <span class="k">return</span> <span class="n">compute_output_signature_sequentially</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">input_signature</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SequentialBlock.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Builds the sequential block</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Builds the sequential block</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -223,7 +223,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns the InputBlock, if it is the first</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the InputBlock, if it is the first</span>
 <span class="sd">        block within SequenceBlock</span>
 
 <span class="sd">        Returns</span>
@@ -239,7 +239,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">first</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns the first block in the SequenceBlock</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the first block in the SequenceBlock</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -250,7 +250,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">last</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns the last block in the SequenceBlock</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the last block in the SequenceBlock</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -270,7 +270,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">trainable_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns trainable weights of all layers</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns trainable weights of all layers</span>
 <span class="sd">        of this block</span>
 
 <span class="sd">        Returns</span>
@@ -288,7 +288,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">non_trainable_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns non-trainable weights of all layers</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns non-trainable weights of all layers</span>
 <span class="sd">        of this block</span>
 
 <span class="sd">        Returns</span>
@@ -304,7 +304,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">trainable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns whether all layer within SequentialBlock are trainable</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns whether all layer within SequentialBlock are trainable</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -315,7 +315,7 @@
 
     <span class="nd">@trainable</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">trainable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Makes all block layers trainable or not</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Makes all block layers trainable or not</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -400,7 +400,7 @@
 <div class="viewcode-block" id="ParallelBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock">[docs]</a><span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">tabular_module_parameters</span><span class="o">=</span><span class="n">TABULAR_MODULE_PARAMS_DOCSTRING</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ParallelBlock</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Merge multiple layers or TabularModule&#39;s into a single output of TabularData.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge multiple layers or TabularModule&#39;s into a single output of TabularData.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -512,7 +512,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_values</span>
 
 <div class="viewcode-block" id="ParallelBlock.select_by_name"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.select_by_name">[docs]</a>    <span class="k">def</span> <span class="nf">select_by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Block&quot;</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Select a parallel block by name</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Select a parallel block by name</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -522,7 +522,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ParallelBlock.select_by_names"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.select_by_names">[docs]</a>    <span class="k">def</span> <span class="nf">select_by_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Block</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Select a list of parallel blocks by names</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Select a list of parallel blocks by names</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -541,7 +541,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tags</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">]]],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;ParallelBlock&quot;</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Select layers of parallel blocks by tags.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Select layers of parallel blocks by tags.</span>
 
 <span class="sd">        This method will return a ParallelBlock instance with all the branches that</span>
 <span class="sd">        have at least one feature that matches any of the tags provided.</span>
@@ -628,7 +628,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span><span class="p">[</span><span class="n">branch_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span><span class="p">[</span><span class="n">branch_name</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="o">*</span><span class="n">block</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ParallelBlock.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The call method for ParallelBlock</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The call method for ParallelBlock</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -807,7 +807,7 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">Cond</span><span class="p">(</span><span class="n">Layer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Layer to enable conditionally apply layers.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Layer to enable conditionally apply layers.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">Layer</span><span class="p">,</span> <span class="n">true</span><span class="p">:</span> <span class="n">Layer</span><span class="p">,</span> <span class="n">false</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Cond</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -816,7 +816,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">false</span> <span class="o">=</span> <span class="n">false</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Call layers conditionally.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Call layers conditionally.&quot;&quot;&quot;</span>
         <span class="n">condition</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">true_fn</span><span class="p">():</span>
@@ -830,7 +830,7 @@
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">condition</span><span class="p">),</span> <span class="n">true_fn</span><span class="p">,</span> <span class="n">false_fn</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the output shape of the layer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the output shape of the layer.&quot;&quot;&quot;</span>
         <span class="n">true_output_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">true</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">false</span><span class="p">:</span>
@@ -852,7 +852,7 @@
         <span class="k">return</span> <span class="n">true_output_shape</span>
 
     <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns the config of the layer as a Python dictionary.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the config of the layer as a Python dictionary.&quot;&quot;&quot;</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Cond</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">)</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;true&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">true</span><span class="p">)</span>
@@ -862,7 +862,7 @@
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Creates a Cond layer from its config. Returning the instance.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a Cond layer from its config. Returning the instance.&quot;&quot;&quot;</span>
         <span class="n">condition</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;condition&quot;</span><span class="p">))</span>
         <span class="n">true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;true&quot;</span><span class="p">))</span>
         <span class="n">false</span> <span class="o">=</span> <span class="kc">None</span>
@@ -871,7 +871,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">false</span><span class="o">=</span><span class="n">false</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Creates the variables of the layer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the variables of the layer.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">true</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">false</span><span class="p">:</span>
@@ -881,7 +881,7 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">MapValues</span><span class="p">(</span><span class="n">Layer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Layer to map values of a dictionary of tensors.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Layer to map values of a dictionary of tensors.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">:</span> <span class="n">Layer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">MapValues</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -913,7 +913,7 @@
 
 
 <span class="k">def</span> <span class="nf">call_sequentially</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Call layers sequentially.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Call layers sequentially.&quot;&quot;&quot;</span>
 
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
     <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
@@ -923,7 +923,7 @@
 
 
 <span class="k">def</span> <span class="nf">build_sequentially</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Build layers sequentially.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build layers sequentially.&quot;&quot;&quot;</span>
     <span class="n">last_layer</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
@@ -942,7 +942,7 @@
 
 
 <span class="k">def</span> <span class="nf">compute_output_signature_sequentially</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">input_signature</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute output signature sequentially.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute output signature sequentially.&quot;&quot;&quot;</span>
     <span class="n">output_signature</span> <span class="o">=</span> <span class="n">input_signature</span>
     <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
         <span class="n">output_signature</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">compute_output_signature</span><span class="p">(</span><span class="n">output_signature</span><span class="p">)</span>
@@ -951,7 +951,7 @@
 
 
 <span class="k">def</span> <span class="nf">compute_output_shape_sequentially</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute output shape sequentially.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute output shape sequentially.&quot;&quot;&quot;</span>
     <span class="n">output_shape</span> <span class="o">=</span> <span class="n">input_shape</span>
     <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
         <span class="n">output_shape</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">output_shape</span><span class="p">)</span>
