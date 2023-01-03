@@ -23,7 +23,7 @@ from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import MapValues, ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import Filter
-from merlin.models.tf.inputs.block import InputBlockV2
+from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import Embeddings
 from merlin.models.tf.transforms.features import CategoryEncoding, ToSparse
 from merlin.schema import Schema, Tags
