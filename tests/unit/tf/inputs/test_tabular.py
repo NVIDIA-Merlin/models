@@ -16,11 +16,12 @@
 
 
 import pytest
+import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 def test_tabular_features(testing_data: Dataset):
@@ -115,7 +116,8 @@ def test_tabular_seq_features_ragged_embeddings(sequence_testing_data: Dataset):
 
 
 @pytest.mark.parametrize(
-    "seq_combiner", [tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)), "mean"],
+    "seq_combiner",
+    [tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)), "mean"],
 )
 def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset, seq_combiner):
     con2d = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS).remove_by_tag(Tags.SEQUENCE)
@@ -198,7 +200,9 @@ def test_tabular_seq_features_avg_embeddings_with_mapvalues(sequence_testing_dat
 
     input_block = mm.InputBlockV2(
         cat_schema,
-        categorical=mm.Embeddings(cat_schema,),
+        categorical=mm.Embeddings(
+            cat_schema,
+        ),
         post=mm.MapValues(
             tf.keras.layers.Lambda(
                 lambda x: tf.math.reduce_mean(x, axis=1) if isinstance(x, tf.RaggedTensor) else x

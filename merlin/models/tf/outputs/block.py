@@ -14,11 +14,11 @@
 # limitations under the License.
 #
 
-from typing import Optional, Set, Union
+from typing import Dict, Optional, Set, Union
 
 from tensorflow.keras.layers import Layer
 
-from merlin.models.tf.core.combinators import ParallelBlock
+from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.outputs.base import ModelOutput
 from merlin.models.tf.outputs.classification import BinaryOutput, CategoricalOutput
 from merlin.models.tf.outputs.regression import RegressionOutput
@@ -26,7 +26,11 @@ from merlin.schema import Schema, Tags
 
 
 def OutputBlock(
-    schema: Schema, pre: Optional[Layer] = None, post: Optional[Layer] = None, **branches
+    schema: Schema,
+    pre: Optional[Layer] = None,
+    post: Optional[Layer] = None,
+    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+    **branches
 ) -> Union[ModelOutput, ParallelBlock]:
     """Creates model output(s) based on the columns tagged as target in the schema.
 
@@ -43,7 +47,10 @@ def OutputBlock(
         Transformation block to apply before the embeddings lookup, by default None
     post : Optional[Layer], optional
         Transformation block to apply after the embeddings lookup, by default None
-
+    task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional
+        Task blocks to be used as task towers. If a single Layer, it is copied to all
+        tasks. If a dict, the keys must match the task names
+        (e.g. "click/binary_output", rating/regression_output", "item_id/categorical_output").
 
     Raises
     -------
@@ -52,47 +59,69 @@ def OutputBlock(
     Returns
     -------
     Union[ModelOutput, ParallelBlock]
-        Returns a single output block or a parallel block depending on the number of target columns.
+        Returns a single output block or a parallel block if there is more than one target column.
     """
 
     targets_schema = schema.select_by_tag(Tags.TARGET)
-    cols = []
-
-    if schema:
-        con = _get_col_set_by_tags(targets_schema, [Tags.CONTINUOUS, Tags.REGRESSION])
-        cat = _get_col_set_by_tags(
-            targets_schema, [Tags.CATEGORICAL, Tags.MULTI_CLASS_CLASSIFICATION]
-        )
-        bin = _get_col_set_by_tags(targets_schema, [Tags.BINARY_CLASSIFICATION, "binary"])
-
-        outputs = {**branches}
-
-        for col in targets_schema:
-            if col.name in branches:
-                continue
-            if col.name in con:
-                outputs[col.name] = RegressionOutput(col)
-            elif col.name in bin:
-                outputs[col.name] = BinaryOutput(col)
-            elif col.name in cat:
-                if col.int_domain.max == 1:
-                    outputs[col.name] = BinaryOutput(col)
-                else:
-                    outputs[col.name] = CategoricalOutput(col)
-
-            if col.name in outputs:
-                cols.append(col)
-
-    if not outputs:
+    if len(targets_schema) == 0:
         raise ValueError(
             "No targets found in schema. Please tag your targets or provide them as branches."
         )
 
+    con = _get_col_set_by_tags(targets_schema, [Tags.CONTINUOUS, Tags.REGRESSION])
+    cat = _get_col_set_by_tags(targets_schema, [Tags.CATEGORICAL, Tags.MULTI_CLASS_CLASSIFICATION])
+    bin = _get_col_set_by_tags(targets_schema, [Tags.BINARY_CLASSIFICATION, "binary"])
+
+    outputs = {**branches}
+
+    cols = []
+    for col in targets_schema:
+        cols.append(col)
+        if col.name in branches:
+            continue
+        if col.name in con:
+            output_block = RegressionOutput(col)
+        elif col.name in bin:
+            output_block = BinaryOutput(col)
+        elif col.name in cat:
+            if col.int_domain.max == 1:
+                output_block = BinaryOutput(col)
+            else:
+                output_block = CategoricalOutput(col)
+
+        task_name = output_block.name
+        output_block = _add_output_task_block(output_block, col.name, task_blocks)
+        outputs[task_name] = output_block
+
     if len(outputs) == 1:
         return list(outputs.values())[0]
 
-    return ParallelBlock(*list(outputs.values()), pre=pre, post=post, schema=Schema(cols))
+    return ParallelBlock(outputs, pre=pre, post=post, schema=Schema(cols), use_layer_name=True)
 
 
 def _get_col_set_by_tags(schema: Schema, tags) -> Set[str]:
     return set(schema.select_by_tag(tags).column_names)
+
+
+def _add_output_task_block(
+    output_block: OutputBlock,
+    col_name: str,
+    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+):
+    task_block = None
+    if task_blocks is not None:
+        if isinstance(task_blocks, dict):
+            if output_block.name in task_blocks:
+                task_block = task_blocks[output_block.name]
+            elif col_name in task_blocks:
+                task_block = task_blocks[col_name]
+        elif isinstance(task_blocks, Layer):
+            # Cloning the layer for every task
+            task_block = task_blocks.from_config(task_blocks.get_config())
+        else:
+            raise ValueError("If provided, task_blocks must be either a Layer or Dict[str, Layer]")
+
+    if task_block:
+        return SequentialBlock([task_block, output_block])
+    else:
+        return output_block
