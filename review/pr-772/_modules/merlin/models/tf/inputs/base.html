@@ -143,8 +143,8 @@
 
 <span class="sd">    This function creates continuous and embedding layers, and connects them via `ParallelBlock`.</span>
 <span class="sd">        If aggregation argument is not set, it returns a dictionary of multiple tensors</span>
-<span class="sd">        each corresponds to an input feature.</span>
-<span class="sd">        Otherwise, it merges the tensors into one using the aggregation method.</span>
+<span class="sd">        each corresponds to an input feature. Otherwise, it merges the tensors</span>
+<span class="sd">        into one using the aggregation method.</span>
 
 <span class="sd">    Example usage::</span>
 
@@ -267,7 +267,9 @@
         <span class="k">if</span> <span class="n">max_seq_length</span> <span class="ow">and</span> <span class="n">seq</span><span class="p">:</span>
             <span class="n">pre</span> <span class="o">=</span> <span class="n">ListToDense</span><span class="p">(</span><span class="n">max_seq_length</span><span class="p">)</span>
         <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;continuous&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ContinuousFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
-            <span class="n">schema</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">continuous_tags</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
+            <span class="n">schema</span><span class="p">,</span>
+            <span class="n">tags</span><span class="o">=</span><span class="n">continuous_tags</span><span class="p">,</span>
+            <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span>
         <span class="n">add_embedding_branch</span>
@@ -408,7 +410,12 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No columns selected for the input block&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
-        <span class="n">parsed</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+        <span class="n">parsed</span><span class="p">,</span>
+        <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
+        <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
+        <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
+        <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
     <span class="p">)</span>
 </pre></div>
 
