@@ -28,6 +28,7 @@ import tensorflow as tf
 from keras.engine.compile_utils import MetricsContainer
 from keras.utils.losses_utils import cast_losses_to_common_dtype
 from packaging import version
+from tensorflow.keras.metrics import Metric
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
@@ -382,8 +383,8 @@ class BaseModel(tf.keras.Model):
         super(BaseModel, self).compile(
             optimizer=self._create_optimizer(optimizer),
             loss=self._create_loss(loss),
-            metrics=self._create_metrics(metrics),
-            weighted_metrics=self._create_weighted_metrics(weighted_metrics),
+            metrics=self._create_metrics(metrics, weighted=False),
+            weighted_metrics=self._create_metrics(weighted_metrics, weighted=True),
             run_eagerly=run_eagerly,
             loss_weights=loss_weights,
             steps_per_execution=steps_per_execution,
@@ -423,12 +424,17 @@ class BaseModel(tf.keras.Model):
 
         return optimizer
 
-    def _create_metrics(self, metrics=None):
+    def _create_metrics(
+        self,
+        metrics: Optional[Union[Metric, Sequence[Metric], Dict[str, Metric]]] = None,
+        weighted: bool = False,
+    ):
         out = {}
 
         num_v1_blocks = len(self.prediction_tasks)
         if isinstance(metrics, dict):
             out = metrics
+            out = {k: [v] if isinstance(v, Metric) else v for k, v in out.items()}
 
         elif isinstance(metrics, (list, tuple)):
             # Retrieve top-k metrics & wrap them in TopKMetricsAggregator
@@ -444,59 +450,61 @@ class BaseModel(tf.keras.Model):
                 if num_v1_blocks == 1:
                     out[self.prediction_tasks[0].task_name] = metrics
                 else:
-                    for i, task in enumerate(self.prediction_tasks):
-                        out[task.task_name] = metrics[i]
+                    for task in self.prediction_tasks:
+                        # Cloning metrics for each task
+                        out[task.task_name] = list([m.from_config(m.get_config()) for m in metrics])
             else:
                 if len(self.model_outputs) == 1:
                     out[self.model_outputs[0].full_name] = metrics
                 else:
-                    for i, block in enumerate(self.model_outputs):
-                        out[block.full_name] = metrics[i]
+                    for block in self.model_outputs:
+                        # Cloning metrics for each task
+                        out[block.full_name] = list(
+                            [m.from_config(m.get_config()) for m in metrics]
+                        )
+
+        elif isinstance(metrics, Metric):
+            if num_v1_blocks == 0:
+                for prediction_name, prediction_block in self.outputs_by_name().items():
+                    # Cloning the metric for every task
+                    out[prediction_name] = [metrics.from_config(metrics.get_config())]
+            else:
+                out = metrics
 
         elif metrics is None:
-            for task_name, task in self.prediction_tasks_by_name().items():
-                out[task_name] = [m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS]
+            if not weighted:
+                # Get default metrics
+                for task_name, task in self.prediction_tasks_by_name().items():
+                    out[task_name] = [
+                        m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS
+                    ]
 
-            for prediction_name, prediction_block in self.outputs_by_name().items():
-                out[prediction_name] = prediction_block.default_metrics_fn()
-                if len(self.model_outputs) > 1:
-                    for metric in out[prediction_name]:
-                        metric._name = "/".join([prediction_block.full_name, metric.name])
+                for prediction_name, prediction_block in self.outputs_by_name().items():
+                    out[prediction_name] = prediction_block.default_metrics_fn()
+
         else:
-            out = metrics
+            raise ValueError(
+                "Invalid metrics value. It should be either a Metric object or"
+                "a Dict or List of Metrics objects."
+            )
 
-        for metric in tf.nest.flatten(out):
-            # We ensure metrics passed to `compile()` are reset
-            if metric:
-                metric.reset_state()
-        return out
+        if out:
+            if num_v1_blocks == 0:  # V2
+                for prediction_name, prediction_block in self.outputs_by_name().items():
+                    if len(self.model_outputs) > 1:
+                        for metric in out[prediction_name]:
+                            # Setting hierarchical metric names (column/task/metric_name)
+                            metric._name = "/".join(
+                                [
+                                    prediction_block.full_name,
+                                    f"weighted_{metric._name}" if weighted else metric._name,
+                                ]
+                            )
 
-    def _create_weighted_metrics(self, weighted_metrics=None):
-        out = {}
-
-        num_v1_blocks = len(self.prediction_tasks)
-
-        if isinstance(weighted_metrics, dict):
-            out = weighted_metrics
-
-        elif isinstance(weighted_metrics, (list, tuple)):
-            if num_v1_blocks > 0:
-                if num_v1_blocks == 1:
-                    out[self.prediction_tasks[0].task_name] = weighted_metrics
-                else:
-                    for i, task in enumerate(self.prediction_tasks):
-                        out[task.task_name] = weighted_metrics[i]
-            else:
-                if len(self.model_outputs) == 1:
-                    out[self.model_outputs[0].full_name] = weighted_metrics
-                else:
-                    for i, block in enumerate(self.model_outputs):
-                        out[block.full_name] = weighted_metrics[i]
-
-        for metric in tf.nest.flatten(out):
-            if metric:
-                metric.reset_state()
-
+            for metric in tf.nest.flatten(out):
+                # We ensure metrics passed to `compile()` are reset
+                if metric:
+                    metric.reset_state()
         return out
 
     def _create_loss(self, loss=None):
@@ -527,6 +535,9 @@ class BaseModel(tf.keras.Model):
         from merlin.models.tf.prediction_tasks.base import PredictionTask
 
         results = find_all_instances_in_layers(self, PredictionTask)
+        # Ensures tasks are sorted by name, so that they match the metrics
+        # which are sorted the same way by Keras
+        results = list(sorted(results, key=lambda x: x.task_name))
 
         return results
 
@@ -555,6 +566,9 @@ class BaseModel(tf.keras.Model):
     @property
     def model_outputs(self) -> List[ModelOutput]:
         results = find_all_instances_in_layers(self, ModelOutput)
+        # Ensures tasks are sorted by name, so that they match the metrics
+        # which are sorted the same way by Keras
+        results = list(sorted(results, key=lambda x: x.full_name))
 
         return results
 
