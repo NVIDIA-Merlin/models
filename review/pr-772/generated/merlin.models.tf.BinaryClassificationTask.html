@@ -327,7 +327,7 @@
 
 <dl class="py attribute">
 <dt id="merlin.models.tf.BinaryClassificationTask.DEFAULT_METRICS">
-<code class="sig-name descname"><span class="pre">DEFAULT_METRICS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">(&lt;class</span> <span class="pre">'keras.metrics.metrics.Precision'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'keras.metrics.metrics.Recall'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'keras.metrics.metrics.BinaryAccuracy'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'keras.metrics.metrics.AUC'&gt;)</span></em><a class="headerlink" href="#merlin.models.tf.BinaryClassificationTask.DEFAULT_METRICS" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">DEFAULT_METRICS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">(functools.partial(&lt;class</span> <span class="pre">'keras.metrics.metrics.Precision'&gt;,</span> <span class="pre">name='precision'),</span> <span class="pre">functools.partial(&lt;class</span> <span class="pre">'keras.metrics.metrics.Recall'&gt;,</span> <span class="pre">name='recall'),</span> <span class="pre">functools.partial(&lt;class</span> <span class="pre">'keras.metrics.metrics.BinaryAccuracy'&gt;,</span> <span class="pre">name='binary_accuracy'),</span> <span class="pre">functools.partial(&lt;class</span> <span class="pre">'keras.metrics.metrics.AUC'&gt;,</span> <span class="pre">name='auc'))</span></em><a class="headerlink" href="#merlin.models.tf.BinaryClassificationTask.DEFAULT_METRICS" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
