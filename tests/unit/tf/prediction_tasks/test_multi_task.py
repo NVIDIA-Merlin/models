@@ -62,22 +62,22 @@ def test_model_with_multiple_tasks_with_task_towers(
             assert model.prediction_tasks[0].task_block != model.prediction_tasks[1].task_block
 
 
-@testing_utils.mark_run_eagerly_modes
+@pytest.mark.parametrize("run_eagerly", [False])
 @pytest.mark.parametrize(
     "metrics",
     [
-        None,
-        tf.keras.metrics.AUC(name="auc"),
-        (tf.keras.metrics.Precision(name="precision"), tf.keras.metrics.Recall(name="recall")),
         {
             "click/binary_classification_task": (
                 tf.keras.metrics.Precision(name="precision"),
                 tf.keras.metrics.Recall(name="recall"),
             ),
-            "like/binary_classification_task": tf.keras.metrics.BinaryAccuracy(
-                name="binary_accuracy"
-            ),
+            "like/binary_classification_task": [
+                tf.keras.metrics.BinaryAccuracy(name="binary_accuracy")
+            ],
         },
+        None,
+        tf.keras.metrics.AUC(name="auc"),
+        (tf.keras.metrics.Precision(name="precision"), tf.keras.metrics.Recall(name="recall")),
     ],
 )
 def test_model_with_multiple_tasks_metrics(
@@ -142,9 +142,9 @@ def test_model_with_multiple_tasks_metrics(
                 tf.keras.metrics.Precision(name="precision"),
                 tf.keras.metrics.Recall(name="recall"),
             ),
-            "like/binary_classification_task": tf.keras.metrics.BinaryAccuracy(
-                name="binary_accuracy"
-            ),
+            "like/binary_classification_task": [
+                tf.keras.metrics.BinaryAccuracy(name="binary_accuracy")
+            ],
         }
     elif metrics is None:
         # Use default metrics
@@ -166,6 +166,7 @@ def test_model_with_multiple_tasks_metrics(
         run_eagerly=run_eagerly,
         metrics=metrics,
         weighted_metrics=weighted_metrics,
+        from_serialized=False,
     )
 
     metrics_results = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))

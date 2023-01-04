@@ -487,7 +487,7 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
     inputs = mm.InputBlockV2(music_streaming_data.schema)
     output_block = mm.OutputBlock(
         music_streaming_data.schema,
-        task_blocks={
+        task_pre_blocks={
             "click/binary_output": mm.MLPBlock([32]),
             # "like/binary_output": CustomSampleWeight(),
         },

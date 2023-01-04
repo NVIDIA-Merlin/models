@@ -35,7 +35,7 @@ from merlin.schema import ColumnSchema, Schema, Tags
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Encoder(tf.keras.Model):
-    """Block that can be used for prediction & evaluation but not for training
+    """Block that can be used for prediction and evaluation but not for training
 
     Parameters
     ----------
@@ -209,7 +209,10 @@ class Encoder(tf.keras.Model):
             self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
 
     def save(
-        self, export_path: Union[str, os.PathLike], include_optimizer=True, save_traces=True,
+        self,
+        export_path: Union[str, os.PathLike],
+        include_optimizer=True,
+        save_traces=True,
     ) -> None:
         """Saves the model to export_path as a Tensorflow Saved Model.
         Along with merlin model metadata.

@@ -59,8 +59,8 @@ def InputBlock(
 
     This function creates continuous and embedding layers, and connects them via `ParallelBlock`.
         If aggregation argument is not set, it returns a dictionary of multiple tensors
-        each corresponds to an input feature.
-        Otherwise, it merges the tensors into one using the aggregation method.
+        each corresponds to an input feature. Otherwise, it merges the tensors
+        into one using the aggregation method.
 
     Example usage::
 
@@ -183,7 +183,9 @@ def InputBlock(
         if max_seq_length and seq:
             pre = ListToDense(max_seq_length)
         branches["continuous"] = ContinuousFeatures.from_schema(  # type: ignore
-            schema, tags=continuous_tags, pre=pre,
+            schema,
+            tags=continuous_tags,
+            pre=pre,
         )
     if (
         add_embedding_branch
@@ -324,5 +326,10 @@ def InputBlockV2(
         raise ValueError("No columns selected for the input block")
 
     return ParallelBlock(
-        parsed, pre=pre, post=post, aggregation=aggregation, is_input=True, schema=schema,
+        parsed,
+        pre=pre,
+        post=post,
+        aggregation=aggregation,
+        is_input=True,
+        schema=schema,
     )
