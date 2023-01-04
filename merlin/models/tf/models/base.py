@@ -21,6 +21,7 @@ import os
 import sys
 import warnings
 from collections.abc import Sequence as SequenceCollection
+from functools import partial
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Union, runtime_checkable
 
 import six
@@ -28,6 +29,7 @@ import tensorflow as tf
 from keras.engine.compile_utils import MetricsContainer
 from keras.utils.losses_utils import cast_losses_to_common_dtype
 from packaging import version
+from tensorflow.keras.losses import Loss
 from tensorflow.keras.metrics import Metric
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
@@ -41,6 +43,8 @@ from merlin.models.tf.distributed.backend import hvd, hvd_installed
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
+from merlin.models.tf.metrics import metrics_registry
+from merlin.models.tf.metrics.evaluation import MetricType
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.outputs.base import ModelOutput
@@ -61,6 +65,33 @@ from merlin.schema import ColumnSchema, Schema, Tags
 if TYPE_CHECKING:
     from merlin.models.tf.core.encoder import Encoder
     from merlin.models.tf.core.index import TopKIndexBlock
+
+METRICS_PARAMETERS_DOCSTRING = """
+            The tasks metrics can be provided in different ways.
+            If there is a single task, all metrics are assigned to that task.
+            If there is more than one task, then we accept different ways to assign
+            metrics for each task:
+              1. If a single tf.keras.metrics.Metric or a list/tuple of Metric is provided,
+                 the metrics are cloned for each task.
+              2. If a list/tuple of list/tuple of Metric is provided and the number of nested
+                 lists is the same as the number of tasks, it is assumed that each nested list
+                 is associated to a task. By convention, Keras sorts tasks by name, so keep
+                 that in mind when ordering your nested lists of metrics.
+              3. If a dict of metrics is passed, it is expected that the keys match the name
+                 of the tasks and values are Metric or list/tuple of Metric.
+                 For example, if PredictionTask (V1) is being used, the task names should
+                 be like "click/binary_classification_task", "rating/regression_task".
+                 If OutputBlock (V2) is used, the task names should be like
+                 "click/binary_output", "rating/regression_output"
+"""
+
+LOSS_PARAMETERS_DOCSTRINGS = """Can be either a single loss (str or tf.keras.losses.Loss)
+            or a dict whose keys match the model tasks names.
+            For example, if PredictionTask (V1) is being used, the task names should
+            be like "click/binary_classification_task", "rating/regression_task".
+            If OutputBlock (V2) is used, the task names should be like
+            "click/binary_output", "rating/regression_output"
+"""
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
@@ -252,10 +283,26 @@ class BaseModel(tf.keras.Model):
     def compile(
         self,
         optimizer="rmsprop",
-        loss=None,
-        metrics=None,
+        loss: Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]] = None,
+        metrics: Optional[
+            Union[
+                MetricType,
+                Sequence[MetricType],
+                Sequence[Sequence[MetricType]],
+                Dict[str, MetricType],
+                Dict[str, Sequence[MetricType]],
+            ]
+        ] = None,
         loss_weights=None,
-        weighted_metrics=None,
+        weighted_metrics: Optional[
+            Union[
+                MetricType,
+                Sequence[MetricType],
+                Sequence[Sequence[MetricType]],
+                Dict[str, MetricType],
+                Dict[str, Sequence[MetricType]],
+            ]
+        ] = None,
         run_eagerly=None,
         steps_per_execution=None,
         jit_compile=None,
@@ -272,8 +319,10 @@ class BaseModel(tf.keras.Model):
         Args:
             optimizer: String (name of optimizer) or optimizer instance. See
               `tf.keras.optimizers`.
-            loss: Loss function. Maybe be a string (name of loss function), or
-              a `tf.keras.losses.Loss` instance. See `tf.keras.losses`. A loss
+            loss: Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]] = None
+              losses : Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]], optional
+              {LOSS_PARAMETERS_DOCSTRINGS}
+              See `tf.keras.losses`. A loss
               function is any callable with the signature `loss = fn(y_true,
               y_pred)`, where `y_true` are the ground truth values, and
               `y_pred` are the model's predictions.
@@ -292,33 +341,25 @@ class BaseModel(tf.keras.Model):
               or a list of losses. The loss value that will be minimized by the
               model will then be the sum of all individual losses, unless
               `loss_weights` is specified.
-            metrics: List of metrics to be evaluated by the model during training
-              and testing. Each of this can be a string (name of a built-in
-              function), function or a `tf.keras.metrics.Metric` instance. See
-              `tf.keras.metrics`. Typically you will use `metrics=['accuracy']`. A
-              function is any callable with the signature `result = fn(y_true,
-              y_pred)`. To specify different metrics for different outputs of a
-              multi-output model, you could also pass a dictionary, such as
-              `metrics={'output_a': 'accuracy', 'output_b': ['accuracy', 'mse']}`.
-              You can also pass a list to specify a metric or a list of metrics
-              for each output, such as `metrics=[['accuracy'], ['accuracy', 'mse']]`
-              or `metrics=['accuracy', ['accuracy', 'mse']]`. When you pass the
-              strings 'accuracy' or 'acc', we convert this to one of
-              `tf.keras.metrics.BinaryAccuracy`,
-              `tf.keras.metrics.CategoricalAccuracy`,
-              `tf.keras.metrics.SparseCategoricalAccuracy` based on the loss
-              function used and the model output shape. We do a similar
-              conversion for the strings 'crossentropy' and 'ce' as well.
             loss_weights: Optional list or dictionary specifying scalar coefficients
               (Python floats) to weight the loss contributions of different model
               outputs. The loss value that will be minimized by the model will then
               be the *weighted sum* of all individual losses, weighted by the
               `loss_weights` coefficients.
                 If a list, it is expected to have a 1:1 mapping to the model's
-                  outputs. If a dict, it is expected to map output names (strings)
+                  outputs (Keras sorts tasks by name).
+                  If a dict, it is expected to map output names (strings)
                   to scalar coefficients.
-            weighted_metrics: List of metrics to be evaluated and weighted by
-              `sample_weight` or `class_weight` during training and testing.
+            metrics: Optional[ Union[ MetricType, Sequence[MetricType],
+                  Sequence[Sequence[MetricType]],
+                  Dict[str, MetricType], Dict[str, Sequence[MetricType]], ] ], optional
+                  {METRICS_PARAMETERS_DOCSTRING}
+            weighted_metrics: Optional[ Union[ MetricType, Sequence[MetricType],
+                  Sequence[Sequence[MetricType]],
+                  Dict[str, MetricType], Dict[str, Sequence[MetricType]], ] ], optional
+                  List of metrics to be evaluated and weighted by
+                 `sample_weight` or `class_weight` during training and testing.
+                 {METRICS_PARAMETERS_DOCSTRING}
             run_eagerly: Bool. Defaults to `False`. If `True`, this `Model`'s
               logic will not be wrapped in a `tf.function`. Recommended to leave
               this as `None` unless your `Model` cannot be run inside a
@@ -426,15 +467,49 @@ class BaseModel(tf.keras.Model):
 
     def _create_metrics(
         self,
-        metrics: Optional[Union[Metric, Sequence[Metric], Dict[str, Metric]]] = None,
+        metrics: Optional[
+            Union[
+                MetricType,
+                Sequence[MetricType],
+                Sequence[Sequence[MetricType]],
+                Dict[str, MetricType],
+                Dict[str, Sequence[MetricType]],
+            ]
+        ] = None,
         weighted: bool = False,
-    ):
+    ) -> Union[MetricType, Dict[str, Sequence[MetricType]]]:
+        """Creates metrics for the model tasks (defined by using either
+           PredictionTask (V1) or OutputBlock (V2)).
+
+        Parameters
+        ----------
+        metrics : {METRICS_PARAMETERS_DOCSTRING}
+        weighted : bool, optional
+            Whether these are the metrics or weighted_metrics, by default False (metrics)
+
+        Returns
+        -------
+        Union[MetricType, Dict[str, Sequence[MetricType]]]
+            Returns the metrics organized by task
+        """
         out = {}
+
+        def parse_str_metrics(metrics):
+            if isinstance(metrics, str):
+                metrics = metrics_registry.parse(metrics)
+            elif isinstance(metrics, (tuple, list)):
+                metrics = list([parse_str_metrics(m) for m in metrics])
+            elif isinstance(metrics, dict):
+                metrics = {k: parse_str_metrics(v) for k, v in metrics.items()}
+            return metrics
 
         num_v1_blocks = len(self.prediction_tasks)
         if isinstance(metrics, dict):
             out = metrics
-            out = {k: [v] if isinstance(v, Metric) else v for k, v in out.items()}
+            out = {
+                k: parse_str_metrics([(v)] if isinstance(v, (str, Metric)) else v)
+                for k, v in out.items()
+            }
 
         elif isinstance(metrics, (list, tuple)):
             # Retrieve top-k metrics & wrap them in TopKMetricsAggregator
@@ -446,24 +521,44 @@ class BaseModel(tf.keras.Model):
                 else:
                     metrics.append(TopKMetricsAggregator(*topk_metrics))
 
+            def task_metrics(metrics, tasks):
+                out_task_metrics = {}
+                for i, task in enumerate(tasks):
+                    if any([isinstance(m, (tuple, list)) for m in metrics]):
+                        if len(metrics) == len(tasks):
+                            task_metrics = metrics[i]
+                            task_metrics = parse_str_metrics(task_metrics)
+                            if isinstance(task_metrics, (str, Metric)):
+                                task_metrics = [task_metrics]
+                        else:
+                            raise ValueError(
+                                "If metrics are lists of lists, the number of"
+                                "sub-lists must match number of tasks."
+                            )
+                    else:
+                        task_metrics = list(parse_str_metrics(m) for m in metrics)
+                        # Cloning metrics for each task
+                        task_metrics = list([m.from_config(m.get_config()) for m in task_metrics])
+
+                    task_name = (
+                        task.full_name if isinstance(tasks[0], ModelOutput) else task.task_name
+                    )
+                    out_task_metrics[task_name] = task_metrics
+                return out_task_metrics
+
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:
-                    out[self.prediction_tasks[0].task_name] = metrics
+                    out[self.prediction_tasks[0].task_name] = parse_str_metrics(metrics)
                 else:
-                    for task in self.prediction_tasks:
-                        # Cloning metrics for each task
-                        out[task.task_name] = list([m.from_config(m.get_config()) for m in metrics])
+                    out = task_metrics(metrics, self.prediction_tasks)
             else:
                 if len(self.model_outputs) == 1:
-                    out[self.model_outputs[0].full_name] = metrics
+                    out[self.model_outputs[0].full_name] = parse_str_metrics(metrics)
                 else:
-                    for block in self.model_outputs:
-                        # Cloning metrics for each task
-                        out[block.full_name] = list(
-                            [m.from_config(m.get_config()) for m in metrics]
-                        )
+                    out = task_metrics(metrics, self.model_outputs)
 
-        elif isinstance(metrics, Metric):
+        elif isinstance(metrics, (str, Metric)):
+            metrics = parse_str_metrics(metrics)
             if num_v1_blocks == 0:
                 for prediction_name, prediction_block in self.outputs_by_name().items():
                     # Cloning the metric for every task
@@ -476,17 +571,17 @@ class BaseModel(tf.keras.Model):
                 # Get default metrics
                 for task_name, task in self.prediction_tasks_by_name().items():
                     out[task_name] = [
-                        m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS
+                        m()
+                        if inspect.isclass(m) or type(task.DEFAULT_METRICS[0]) == partial
+                        else parse_str_metrics(m)
+                        for m in task.DEFAULT_METRICS
                     ]
 
                 for prediction_name, prediction_block in self.outputs_by_name().items():
-                    out[prediction_name] = prediction_block.default_metrics_fn()
+                    out[prediction_name] = parse_str_metrics(prediction_block.default_metrics_fn())
 
         else:
-            raise ValueError(
-                "Invalid metrics value. It should be either a Metric object or"
-                "a Dict or List of Metrics objects."
-            )
+            raise ValueError("Invalid metrics value.")
 
         if out:
             if num_v1_blocks == 0:  # V2
@@ -507,17 +602,35 @@ class BaseModel(tf.keras.Model):
                     metric.reset_state()
         return out
 
-    def _create_loss(self, loss=None):
+    def _create_loss(
+        self, losses: Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]] = None
+    ) -> Dict[str, Loss]:
+        """Creates the losses for model tasks (defined by using either
+           PredictionTask (V1) or OutputBlock (V2)).
+
+        Parameters
+        ----------
+        losses : Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]], optional
+            {LOSS_PARAMETERS_DOCSTRINGS}
+
+        Returns
+        -------
+        Dict[str, Loss]
+            Returns a dict with the losses per task
+        """
         out = {}
 
-        if isinstance(loss, (tf.keras.losses.Loss, str)):
+        if isinstance(losses, dict):
+            out = losses
+
+        elif isinstance(losses, (Loss, str)):
             if len(self.prediction_tasks) == 1:
-                out = {task.task_name: loss for task in self.prediction_tasks}
+                out = {task.task_name: losses for task in self.prediction_tasks}
             elif len(self.model_outputs) == 1:
-                out = {task.name: loss for task in self.model_outputs}
+                out = {task.name: losses for task in self.model_outputs}
 
         # If loss is not provided, use the defaults from the prediction-tasks.
-        if not loss:
+        elif not losses:
             for task_name, task in self.prediction_tasks_by_name().items():
                 out[task_name] = task.DEFAULT_LOSS
 

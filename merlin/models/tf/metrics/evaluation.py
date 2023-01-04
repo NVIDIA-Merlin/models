@@ -19,7 +19,7 @@ from typing import Optional, Sequence, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
-from tensorflow.keras.metrics import Mean
+from tensorflow.keras.metrics import Mean, Metric
 from tensorflow.keras.metrics import get as get_metric
 
 from merlin.models.tf.metrics import metrics_registry
@@ -35,6 +35,8 @@ METRIC_PARAMETERS_DOCSTRING = """
     k : int
         The cut-off for popularity metrics
 """
+
+MetricType = Union[Metric, str]
 
 
 def novelty_at(

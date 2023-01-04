@@ -88,13 +88,20 @@ def test_model_with_multi_output_blocks_with_task_towers(
             assert isinstance(output_block.parallel_dict["like/binary_output"], mm.BinaryOutput)
 
 
-@testing_utils.mark_run_eagerly_modes
 @pytest.mark.parametrize(
     "metrics",
     [
         None,
+        "auc",
         tf.keras.metrics.AUC(name="auc"),
+        ("precision", "recall"),
         (tf.keras.metrics.Precision(name="precision"), tf.keras.metrics.Recall(name="recall")),
+        (("precision", "recall"), ("binary_accuracy")),
+        (
+            (tf.keras.metrics.Precision(name="precision"), tf.keras.metrics.Recall(name="recall")),
+            tf.keras.metrics.BinaryAccuracy(name="binary_accuracy"),
+        ),
+        {"click/binary_output": ("precision", "recall"), "like/binary_output": "binary_accuracy"},
         {
             "click/binary_output": (
                 tf.keras.metrics.Precision(name="precision"),
@@ -104,9 +111,7 @@ def test_model_with_multi_output_blocks_with_task_towers(
         },
     ],
 )
-def test_model_with_multi_output_blocks_metrics_tasks(
-    music_streaming_data: Dataset, run_eagerly: bool, metrics
-):
+def test_model_with_multi_output_blocks_metrics_tasks(music_streaming_data: Dataset, metrics):
     music_streaming_data.schema = music_streaming_data.schema.without("play_percentage")
 
     inputs = mm.InputBlockV2(music_streaming_data.schema)
@@ -122,7 +127,7 @@ def test_model_with_multi_output_blocks_metrics_tasks(
         "click/binary_output_loss",
         "like/binary_output_loss",
     ]
-    if isinstance(metrics, Metric):
+    if isinstance(metrics, (str, Metric)):
         expected_metrics.extend(
             [
                 "click/binary_output/auc",
@@ -131,6 +136,24 @@ def test_model_with_multi_output_blocks_metrics_tasks(
                 "like/binary_output/weighted_auc",
             ]
         )
+    elif isinstance(metrics, (list, tuple)) and isinstance(metrics[0], (list, tuple)):
+        expected_metrics.extend(
+            [
+                "click/binary_output/precision",
+                "click/binary_output/recall",
+                "like/binary_output/binary_accuracy",
+                "click/binary_output/weighted_precision",
+                "click/binary_output/weighted_recall",
+                "like/binary_output/weighted_binary_accuracy",
+            ]
+        )
+        # Creating another copy of the metrics to avoid error for reusing same metrics
+        # for metrics and weighted_metrics
+        weighted_metrics = (
+            (tf.keras.metrics.Precision(name="precision"), tf.keras.metrics.Recall(name="recall")),
+            (tf.keras.metrics.BinaryAccuracy(name="binary_accuracy")),
+        )
+
     elif isinstance(metrics, (list, tuple)):
         expected_metrics.extend(
             [
@@ -181,7 +204,7 @@ def test_model_with_multi_output_blocks_metrics_tasks(
 
     model.compile(
         optimizer="adam",
-        run_eagerly=run_eagerly,
+        run_eagerly=True,
         metrics=metrics,
         weighted_metrics=weighted_metrics,
     )

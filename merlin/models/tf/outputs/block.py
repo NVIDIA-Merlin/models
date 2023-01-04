@@ -96,7 +96,7 @@ def OutputBlock(
     if len(outputs) == 1:
         return list(outputs.values())[0]
 
-    return ParallelBlock(outputs, pre=pre, post=post, schema=Schema(cols), use_layer_name=True)
+    return ParallelBlock(outputs, pre=pre, post=post, schema=Schema(cols))
 
 
 def _get_col_set_by_tags(schema: Schema, tags) -> Set[str]:
