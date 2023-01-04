@@ -600,6 +600,8 @@ class BaseModel(tf.keras.Model):
                 # We ensure metrics passed to `compile()` are reset
                 if metric:
                     metric.reset_state()
+        else:
+            out = None
         return out
 
     def _create_loss(
@@ -2148,3 +2150,28 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
             kwargs.pop("shuffle", None)
 
     return data
+
+
+def get_task_names_from_outputs(
+    outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock, List[ParallelBlock]]
+):
+    "Extracts tasks names from outputs"
+    if isinstance(outputs, ParallelPredictionBlock):
+        output_names = outputs.task_names
+    elif isinstance(outputs, ParallelBlock):
+        if all(isinstance(x, ModelOutput) for x in outputs.parallel_values):
+            output_names = [o.full_name for o in outputs.parallel_values]
+        else:
+            raise ValueError("The blocks within ParallelBlock must be ModelOutput.")
+    elif isinstance(outputs, (list, tuple)):
+        if all(isinstance(x, PredictionTask) for x in outputs):
+            output_names = [o.task_name for o in outputs]  # type: ignore
+        elif all(isinstance(x, ModelOutput) for x in outputs):
+            output_names = [o.full_name for o in outputs]  # type: ignore
+        else:
+            raise ValueError(
+                "The blocks within the list/tuple must be ModelOutput or PredictionTask."
+            )
+    else:
+        raise ValueError("Invalid outputs")
+    return output_names

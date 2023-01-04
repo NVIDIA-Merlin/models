@@ -30,7 +30,7 @@ def OutputBlock(
     model_outputs: Optional[Union[Sequence[ModelOutput], Dict[str, ModelOutput]]] = None,
     pre: Optional[Layer] = None,
     post: Optional[Layer] = None,
-    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+    task_pre_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
 ) -> Union[ModelOutput, ParallelBlock]:
     """Creates model output(s) based on the columns tagged as target in the schema.
 
@@ -47,10 +47,13 @@ def OutputBlock(
         Transformation block to apply before the embeddings lookup, by default None
     post : Optional[Layer], optional
         Transformation block to apply after the embeddings lookup, by default None
-    task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional
+    task_pre_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional
         Task blocks to be used as task towers. If a single Layer, it is copied to all
         tasks. If a dict, the keys must match the task names
         (e.g. "click/binary_output", rating/regression_output", "item_id/categorical_output").
+        You might want to use the task_pre_blocks to create a task-specific tower
+        (e.g. MLPBLock([32])) or to customize inputs, targets or sample_weights for a
+        given task.
 
     Raises
     -------
@@ -86,6 +89,7 @@ def OutputBlock(
     cols = []
     for col in targets_schema:
         cols.append(col)
+
         if col.name in con:
             output_block = RegressionOutput(col)
         elif col.name in bin:
@@ -102,7 +106,7 @@ def OutputBlock(
             # use that instead of creating a new one for this column
             output_block = outputs[task_name]
 
-        output_block = _add_output_task_block(output_block, col.name, task_blocks)
+        _set_task_pre_block(output_block, col.name, task_pre_blocks)
         outputs[task_name] = output_block
 
     if len(outputs) == 1:
@@ -113,6 +117,30 @@ def OutputBlock(
 
 def _get_col_set_by_tags(schema: Schema, tags) -> Set[str]:
     return set(schema.select_by_tag(tags).column_names)
+
+
+def _set_task_pre_block(
+    output_block: OutputBlock,
+    col_name: str,
+    task_pre_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+):
+    task_block = None
+    if task_pre_blocks is not None:
+        if isinstance(task_pre_blocks, dict):
+            if output_block.name in task_pre_blocks:
+                task_block = task_pre_blocks[output_block.name]
+            elif col_name in task_pre_blocks:
+                task_block = task_pre_blocks[col_name]
+        elif isinstance(task_pre_blocks, Layer):
+            # Cloning the layer for every task
+            task_block = task_pre_blocks.from_config(task_pre_blocks.get_config())
+        else:
+            raise ValueError("If provided, task_blocks must be either a Layer or Dict[str, Layer]")
+    if task_block:
+        if output_block.pre is None:
+            output_block.pre = task_block
+        else:
+            output_block.pre = SequentialBlock([output_block.pre, task_block])
 
 
 def _add_output_task_block(

@@ -75,6 +75,7 @@ from merlin.models.tf.core.combinators import (
     SequentialBlock,
 )
 from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder, TopKEncoder
+from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -299,4 +300,5 @@ __all__ = [
     "SequenceMaskLast",
     "SequenceMaskRandom",
     "ReplaceMaskedEmbeddings",
+    "Prediction",
 ]
