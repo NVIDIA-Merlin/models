@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, Optional, Set, Union
+from typing import Dict, Optional, Sequence, Set, Union
 
 from tensorflow.keras.layers import Layer
 
@@ -27,10 +27,10 @@ from merlin.schema import Schema, Tags
 
 def OutputBlock(
     schema: Schema,
+    model_outputs: Optional[Union[Sequence[ModelOutput], Dict[str, ModelOutput]]] = None,
     pre: Optional[Layer] = None,
     post: Optional[Layer] = None,
     task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-    **branches
 ) -> Union[ModelOutput, ParallelBlock]:
     """Creates model output(s) based on the columns tagged as target in the schema.
 
@@ -72,13 +72,20 @@ def OutputBlock(
     cat = _get_col_set_by_tags(targets_schema, [Tags.CATEGORICAL, Tags.MULTI_CLASS_CLASSIFICATION])
     bin = _get_col_set_by_tags(targets_schema, [Tags.BINARY_CLASSIFICATION, "binary"])
 
-    outputs = {**branches}
+    outputs = {}
+    if model_outputs is not None:
+        if isinstance(model_outputs, dict):
+            outputs = model_outputs
+        elif isinstance(model_outputs, (tuple, list)):
+            outputs = {m.name: m for m in model_outputs}
+        else:
+            raise ValueError(
+                "If provided model_outputs should be either a dict or list of ModelOutput"
+            )
 
     cols = []
     for col in targets_schema:
         cols.append(col)
-        if col.name in branches:
-            continue
         if col.name in con:
             output_block = RegressionOutput(col)
         elif col.name in bin:
@@ -90,6 +97,11 @@ def OutputBlock(
                 output_block = CategoricalOutput(col)
 
         task_name = output_block.name
+        if task_name in outputs:
+            # If this model output is already provided in model_outputs,
+            # use that instead of creating a new one for this column
+            output_block = outputs[task_name]
+
         output_block = _add_output_task_block(output_block, col.name, task_blocks)
         outputs[task_name] = output_block
 

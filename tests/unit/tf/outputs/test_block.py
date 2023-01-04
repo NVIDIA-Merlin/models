@@ -24,14 +24,88 @@ from merlin.models.tf.utils import testing_utils
 
 
 @testing_utils.mark_run_eagerly_modes
-def test_model_output(ecommerce_data: Dataset, run_eagerly: bool):
+@pytest.mark.parametrize("use_output_block", [True, False])
+def test_model_output(ecommerce_data: Dataset, run_eagerly: bool, use_output_block: bool):
+    if use_output_block:
+        output_block = mm.OutputBlock(ecommerce_data.schema)
+    else:
+        output_block = mm.ParallelBlock(mm.BinaryOutput("click"), mm.BinaryOutput("conversion"))
+
     model = mm.Model(
         mm.InputBlockV2(ecommerce_data.schema),
         mm.MLPBlock([4]),
-        mm.OutputBlock(ecommerce_data.schema),
+        output_block,
     )
 
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+    _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+    assert set(history.history.keys()) == {
+        "loss",
+        "loss_batch",
+        "click/binary_output_loss",
+        "click/binary_output/precision",
+        "click/binary_output/recall",
+        "click/binary_output/binary_accuracy",
+        "click/binary_output/auc",
+        "conversion/binary_output_loss",
+        "conversion/binary_output/precision",
+        "conversion/binary_output/recall",
+        "conversion/binary_output/binary_accuracy",
+        "conversion/binary_output/auc",
+        "regularization_loss",
+    }
+
+
+@testing_utils.mark_run_eagerly_modes
+@pytest.mark.parametrize(
+    "custom_task_output",
+    [False, True],
+)
+def test_model_output_custom_task_output(
+    ecommerce_data: Dataset, run_eagerly: bool, custom_task_output
+):
+    output_block = mm.OutputBlock(
+        ecommerce_data.schema,
+        model_outputs={"click/regression_output": mm.RegressionOutput("click")}
+        if custom_task_output
+        else None,
+    )
+
+    assert isinstance(output_block.parallel_dict["click/binary_output"], mm.BinaryOutput)
+    assert isinstance(output_block.parallel_dict["conversion/binary_output"], mm.BinaryOutput)
+    if custom_task_output:
+        assert isinstance(
+            output_block.parallel_dict["click/regression_output"], mm.RegressionOutput
+        )
+
+    model = mm.Model(mm.InputBlockV2(ecommerce_data.schema), mm.MLPBlock([4]), output_block)
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    metrics = model.train_step(mm.sample_batch(ecommerce_data, batch_size=50))
+
+    expected_metrics = [
+        "loss",
+        "click/binary_output_loss",
+        "conversion/binary_output_loss",
+        "click/binary_output/precision",
+        "click/binary_output/recall",
+        "click/binary_output/binary_accuracy",
+        "click/binary_output/auc",
+        "conversion/binary_output/precision",
+        "conversion/binary_output/recall",
+        "conversion/binary_output/binary_accuracy",
+        "conversion/binary_output/auc",
+        "regularization_loss",
+        "loss_batch",
+    ]
+
+    if custom_task_output:
+        expected_metrics.extend(
+            ["click/regression_output_loss", "click/regression_output/root_mean_squared_error"]
+        )
+
+    assert set(list(metrics.keys())) == set(expected_metrics)
 
 
 @testing_utils.mark_run_eagerly_modes
