@@ -95,20 +95,20 @@
              
   <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2022 NVIDIA Corporation. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2022 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
 </pre></div>
 </div>
 </div>
@@ -145,18 +145,18 @@
 <p><strong>Let’s take a look on the MovieLens 1M example.</strong></p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
-import pandas as pd
-import nvtabular as nvt
-from merlin.models.utils.example_utils import workflow_fit_transform
-import merlin.io
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">nvtabular</span> <span class="k">as</span> <span class="nn">nvt</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils.example_utils</span> <span class="kn">import</span> <span class="n">workflow_fit_transform</span>
+<span class="kn">import</span> <span class="nn">merlin.io</span>
 
-import merlin.models.tf as mm
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
 
-from nvtabular import ops
-from merlin.core.utils import download_file
-from merlin.datasets.entertainment import get_movielens
-from merlin.schema.tags import Tags
+<span class="kn">from</span> <span class="nn">nvtabular</span> <span class="kn">import</span> <span class="n">ops</span>
+<span class="kn">from</span> <span class="nn">merlin.core.utils</span> <span class="kn">import</span> <span class="n">download_file</span>
+<span class="kn">from</span> <span class="nn">merlin.datasets.entertainment</span> <span class="kn">import</span> <span class="n">get_movielens</span>
+<span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
 </pre></div>
 </div>
 </div>
@@ -171,8 +171,8 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <p>We will use the utils function to download, extract and preprocess the dataset.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>input_path = os.environ.get(&quot;INPUT_DATA_DIR&quot;, os.path.expanduser(&quot;~/merlin-models-data/movielens/&quot;))
-train, valid = get_movielens(variant=&quot;ml-1m&quot;, path=input_path)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;INPUT_DATA_DIR&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/merlin-models-data/movielens/&quot;</span><span class="p">))</span>
+<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">input_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -204,7 +204,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 <p>The <code class="docutils literal notranslate"><span class="pre">schema</span></code> can be interpreted as a list of features in the dataset, where each element describes metadata of the feature. It contains the name, some properties (e.g. statistics) depending on the feature type and multiple tags.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span>
 </pre></div>
 </div>
 </div>
@@ -557,7 +557,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 <p>We can select the features by <strong>name</strong>.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema.select_by_name(&quot;userId&quot;)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span><span class="s2">&quot;userId&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -623,8 +623,8 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
 <p>Alternatively, we can select them by <code class="docutils literal notranslate"><span class="pre">Tag</span></code>. We add <code class="docutils literal notranslate"><span class="pre">column_names</span></code> to the object to receive only names without all the additional metadata.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All categorical features
-train.schema.select_by_tag(Tags.CATEGORICAL).column_names
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All categorical features</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -643,8 +643,8 @@ train.schema.select_by_tag(Tags.CATEGORICAL).column_names
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All continuous features
-train.schema.select_by_tag(Tags.CONTINUOUS).column_names
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All continuous features</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -661,8 +661,8 @@ train.schema.select_by_tag(Tags.CONTINUOUS).column_names
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All targets
-train.schema.select_by_tag(Tags.TARGET).column_names
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All targets</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -674,8 +674,8 @@ train.schema.select_by_tag(Tags.TARGET).column_names
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All features related to the item
-train.schema.select_by_tag(Tags.ITEM).column_names
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All features related to the item</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -687,8 +687,8 @@ train.schema.select_by_tag(Tags.ITEM).column_names
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The item id feature name
-train.schema.select_by_tag(Tags.ITEM_ID).column_names
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The item id feature name</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -700,8 +700,8 @@ train.schema.select_by_tag(Tags.ITEM_ID).column_names
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All features related to the user
-train.schema.select_by_tag(Tags.USER).column_names
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All features related to the user</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -718,8 +718,8 @@ train.schema.select_by_tag(Tags.USER).column_names
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The user id feature name
-train.schema.select_by_tag(Tags.USER_ID).column_names
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The user id feature name</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -732,7 +732,7 @@ train.schema.select_by_tag(Tags.USER_ID).column_names
 <p>We can also query all properties of a feature. Here we see that the cardinality (number of unique values) of the <code class="docutils literal notranslate"><span class="pre">movieId</span></code> feature is <code class="docutils literal notranslate"><span class="pre">3682</span></code>, which is an important information to build the corresponding embedding table.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema.select_by_tag(Tags.ITEM_ID)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -805,13 +805,13 @@ train.schema.select_by_tag(Tags.USER_ID).column_names
 <p>We will download the dataset, if it is not already downloaded and cached locally.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>input_path = os.environ.get(&quot;INPUT_DATA_DIR&quot;, os.path.expanduser(&quot;~/merlin-models-data/movielens/&quot;))
-name = &quot;ml-1m&quot;
-download_file(
-    &quot;http://files.grouplens.org/datasets/movielens/ml-1m.zip&quot;,
-    os.path.join(input_path, &quot;ml-1m.zip&quot;),
-    redownload=False,
-)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;INPUT_DATA_DIR&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/merlin-models-data/movielens/&quot;</span><span class="p">))</span>
+<span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ml-1m&quot;</span>
+<span class="n">download_file</span><span class="p">(</span>
+    <span class="s2">&quot;http://files.grouplens.org/datasets/movielens/ml-1m.zip&quot;</span><span class="p">,</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="s2">&quot;ml-1m.zip&quot;</span><span class="p">),</span>
+    <span class="n">redownload</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -824,19 +824,19 @@ download_file(
 <p>We preprocess the dataset and split it into training and validation.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ratings = pd.read_csv(
-    os.path.join(input_path, &quot;ml-1m/ratings.dat&quot;),
-    sep=&quot;::&quot;,
-    names=[&quot;userId&quot;, &quot;movieId&quot;, &quot;rating&quot;, &quot;timestamp&quot;],
-)
-# Shuffling rows
-ratings = ratings.sample(len(ratings), replace=False)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ratings</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="s2">&quot;ml-1m/ratings.dat&quot;</span><span class="p">),</span>
+    <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;::&quot;</span><span class="p">,</span>
+    <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">,</span> <span class="s2">&quot;movieId&quot;</span><span class="p">,</span> <span class="s2">&quot;rating&quot;</span><span class="p">,</span> <span class="s2">&quot;timestamp&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="c1"># Shuffling rows</span>
+<span class="n">ratings</span> <span class="o">=</span> <span class="n">ratings</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ratings</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-num_valid = int(len(ratings) * 0.2)
-train = ratings[:-num_valid]
-valid = ratings[-num_valid:]
-train.to_parquet(os.path.join(input_path, name, &quot;train.parquet&quot;))
-valid.to_parquet(os.path.join(input_path, name, &quot;valid.parquet&quot;))
+<span class="n">num_valid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ratings</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="n">train</span> <span class="o">=</span> <span class="n">ratings</span><span class="p">[:</span><span class="o">-</span><span class="n">num_valid</span><span class="p">]</span>
+<span class="n">valid</span> <span class="o">=</span> <span class="n">ratings</span><span class="p">[</span><span class="o">-</span><span class="n">num_valid</span><span class="p">:]</span>
+<span class="n">train</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;train.parquet&quot;</span><span class="p">))</span>
+<span class="n">valid</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;valid.parquet&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -865,7 +865,7 @@ valid.to_parquet(os.path.join(input_path, name, &quot;valid.parquet&quot;))
 <p>Categorify will transform categorical columns into contiguous integers (<code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">...,</span> <span class="pre">|C|</span></code>) for embedding layers. It collects the cardinality of the embedding table and tags it as categorical.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>cat_features = [&quot;userId&quot;, &quot;movieId&quot;] &gt;&gt; ops.Categorify(dtype=&quot;int32&quot;)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cat_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">,</span> <span class="s2">&quot;movieId&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">ops</span><span class="o">.</span><span class="n">Categorify</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -873,15 +873,15 @@ valid.to_parquet(os.path.join(input_path, name, &quot;valid.parquet&quot;))
 <p>The tags for <code class="docutils literal notranslate"><span class="pre">user</span></code>, <code class="docutils literal notranslate"><span class="pre">userId</span></code>, <code class="docutils literal notranslate"><span class="pre">item</span></code> and <code class="docutils literal notranslate"><span class="pre">itemId</span></code> cannot be inferred from the dataset. Therefore, we need to provide them manually during the NVTabular workflow. Actually, the <code class="docutils literal notranslate"><span class="pre">DLRMModel</span></code> does not differentiate between <code class="docutils literal notranslate"><span class="pre">user</span></code> and <code class="docutils literal notranslate"><span class="pre">item</span></code> features. But other architectures, such as the <code class="docutils literal notranslate"><span class="pre">TwoTowerModel</span></code> depends on the <code class="docutils literal notranslate"><span class="pre">user</span></code> and <code class="docutils literal notranslate"><span class="pre">item</span></code> features distinction. We will show how to tag features manually in a NVTabular workflow below.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>feats_itemId = cat_features[&quot;movieId&quot;] &gt;&gt; ops.TagAsItemID()
-feats_userId = cat_features[&quot;userId&quot;] &gt;&gt; ops.TagAsUserID()
-feats_target = (
-    nvt.ColumnSelector([&quot;rating&quot;])
-    &gt;&gt; ops.LambdaOp(lambda col: (col &gt; 3).astype(&quot;int32&quot;))
-    &gt;&gt; ops.AddTags([&quot;binary_classification&quot;, &quot;target&quot;])
-    &gt;&gt; nvt.ops.Rename(name=&quot;rating_binary&quot;)
-)
-output = feats_itemId + feats_userId + feats_target
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">feats_itemId</span> <span class="o">=</span> <span class="n">cat_features</span><span class="p">[</span><span class="s2">&quot;movieId&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">ops</span><span class="o">.</span><span class="n">TagAsItemID</span><span class="p">()</span>
+<span class="n">feats_userId</span> <span class="o">=</span> <span class="n">cat_features</span><span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">ops</span><span class="o">.</span><span class="n">TagAsUserID</span><span class="p">()</span>
+<span class="n">feats_target</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">nvt</span><span class="o">.</span><span class="n">ColumnSelector</span><span class="p">([</span><span class="s2">&quot;rating&quot;</span><span class="p">])</span>
+    <span class="o">&gt;&gt;</span> <span class="n">ops</span><span class="o">.</span><span class="n">LambdaOp</span><span class="p">(</span><span class="k">lambda</span> <span class="n">col</span><span class="p">:</span> <span class="p">(</span><span class="n">col</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;int32&quot;</span><span class="p">))</span>
+    <span class="o">&gt;&gt;</span> <span class="n">ops</span><span class="o">.</span><span class="n">AddTags</span><span class="p">([</span><span class="s2">&quot;binary_classification&quot;</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">])</span>
+    <span class="o">&gt;&gt;</span> <span class="n">nvt</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">Rename</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;rating_binary&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">feats_itemId</span> <span class="o">+</span> <span class="n">feats_userId</span> <span class="o">+</span> <span class="n">feats_target</span>
 </pre></div>
 </div>
 </div>
@@ -889,12 +889,12 @@ output = feats_itemId + feats_userId + feats_target
 <p>We fit the workflow to our train set and apply to the valid and test sets.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
-train_path = os.path.join(input_path, name, &quot;train.parquet&quot;)
-valid_path = os.path.join(input_path, name, &quot;valid.parquet&quot;)
-output_path = os.path.join(input_path, name + &quot;_integration&quot;)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">train_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;train.parquet&quot;</span><span class="p">)</span>
+<span class="n">valid_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;valid.parquet&quot;</span><span class="p">)</span>
+<span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_integration&quot;</span><span class="p">)</span>
 
-workflow_fit_transform(output, train_path, valid_path, output_path)
+<span class="n">workflow_fit_transform</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">train_path</span><span class="p">,</span> <span class="n">valid_path</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -911,12 +911,12 @@ Wall time: 1.01 s
 <p>We can load the data as a Merlin Dataset object. The Dataset expect the schema as Protobuf text format (<code class="docutils literal notranslate"><span class="pre">.pbtxt</span></code>) file in the train/valid folder, which NVTabular automatically generates.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = merlin.io.Dataset(
-    os.path.join(input_path, name + &quot;_integration&quot;, &quot;train&quot;), engine=&quot;parquet&quot;
-)
-valid = merlin.io.Dataset(
-    os.path.join(input_path, name + &quot;_integration&quot;, &quot;valid&quot;), engine=&quot;parquet&quot;
-)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span> <span class="o">=</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_integration&quot;</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">),</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span>
+<span class="p">)</span>
+<span class="n">valid</span> <span class="o">=</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_integration&quot;</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">),</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -925,7 +925,7 @@ valid = merlin.io.Dataset(
 As we prepared only a minimal example, our schema has only tree features <code class="docutils literal notranslate"><span class="pre">movieId</span></code>, <code class="docutils literal notranslate"><span class="pre">userId</span></code> and <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code>.|</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema.column_names
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -937,7 +937,7 @@ As we prepared only a minimal example, our schema has only tree features <code c
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span>
 </pre></div>
 </div>
 </div>
@@ -1035,18 +1035,18 @@ As we prepared only a minimal example, our schema has only tree features <code c
 <p>Here we train our model.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.DLRMModel(
-    train.schema,
-    embedding_dim=64,
-    bottom_block=mm.MLPBlock([128, 64]),
-    top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(
-        train.schema.select_by_tag(Tags.TARGET).column_names[0]
-    ),
-)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
+    <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+    <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span>
+        <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">),</span>
+<span class="p">)</span>
 
-model.compile(optimizer=&quot;adam&quot;)
-model.fit(train, batch_size=1024)
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1066,7 +1066,7 @@ model.fit(train, batch_size=1024)
 <p>Let’s run the evaluation on validations set. We use by default typical binary classification metrics – Precision, Recall, Accuracy and AUC. But you also can provide your own metrics list by setting <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask(...,</span> <span class="pre">metrics=[])</span></code>.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>metrics = model.evaluate(valid, batch_size=1024, return_dict=True)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1084,7 +1084,7 @@ model.fit(train, batch_size=1024)
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>metrics
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics</span>
 </pre></div>
 </div>
 </div>
