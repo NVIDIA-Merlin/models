@@ -130,6 +130,7 @@
 
 <span class="kn">from</span> <span class="nn">merlin.datasets.entertainment</span> <span class="kn">import</span> <span class="n">get_movielens</span>
 <span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
+<span class="kn">from</span> <span class="nn">merlin.io</span> <span class="kn">import</span> <span class="n">Dataset</span>
 </pre></div>
 </div>
 </div>
@@ -144,11 +145,11 @@
 <div class="cell_output docutils container">
 <div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (1.26.12) or chardet (3.0.4) doesn&#39;t match a supported version!
   warnings.warn(&quot;urllib3 ({}) or chardet ({}) doesn&#39;t match a supported &quot;
-2022-12-02 04:28:33.569062: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2022-12-02 04:28:33.569676: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2022-12-02 04:28:33.569819: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-downloading ml-100k.zip: 4.94MB [00:02, 1.67MB/s]                                                                                                                                                                                                                                                                                                                                         
-unzipping files: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 24/24 [00:00&lt;00:00, 262.77files/s]
+2023-01-05 00:03:52.292512: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2023-01-05 00:03:52.293100: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2023-01-05 00:03:52.293237: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+downloading ml-100k.zip: 4.94MB [00:05, 981kB/s]                                                                                                                                                                                                                                                                                                                                          
+unzipping files: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 24/24 [00:00&lt;00:00, 263.33files/s]
 INFO:merlin.datasets.entertainment.movielens.dataset:starting ETL..
 /usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
@@ -166,8 +167,8 @@ INFO:merlin.datasets.entertainment.movielens.dataset:starting ETL..
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&lt;merlin.io.dataset.Dataset at 0x7f5ad9429400&gt;,
- &lt;merlin.io.dataset.Dataset at 0x7f5ad802d220&gt;)
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&lt;merlin.io.dataset.Dataset at 0x7f19f50a9460&gt;,
+ &lt;merlin.io.dataset.Dataset at 0x7f19f50b4b20&gt;)
 </pre></div>
 </div>
 </div>
@@ -211,7 +212,7 @@ INFO:merlin.datasets.entertainment.movielens.dataset:starting ETL..
     <tr>
       <th>0</th>
       <td>rating</td>
-      <td>(Tags.TARGET, Tags.REGRESSION)</td>
+      <td>(Tags.REGRESSION, Tags.TARGET)</td>
       <td>int64</td>
       <td>False</td>
       <td>False</td>
@@ -282,11 +283,11 @@ INFO:merlin.datasets.entertainment.movielens.dataset:starting ETL..
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-12-02 04:28:44,265 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2023-01-05 00:04:05,296 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
 /usr/local/lib/python3.8/dist-packages/xgboost/dask.py:884: RuntimeWarning: coroutine &#39;Client._wait_for_workers&#39; was never awaited
   client.wait_for_workers(n_workers)
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-[04:28:45] task [xgboost.dask-0]:tcp://127.0.0.1:44089 got new rank 0
+[00:04:06] task [xgboost.dask-0]:tcp://127.0.0.1:44081 got new rank 0
 </pre></div>
 </div>
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[0]	validation_set-logloss:0.65874
@@ -304,7 +305,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 <h2>Training an implicit model<a class="headerlink" href="#training-an-implicit-model" title="Permalink to this headline"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">Implicit</span></code> provides fast Python implementations of several different popular recommendation algorithms for implicit feedback datasets.</p>
 <p>These models are designed to work with implicit datasets, that is datasets that don’t have explicit labels! What this translates to is that we will not be able to use these algorithms for training on data with labels such as <code class="docutils literal notranslate"><span class="pre">ratings</span></code> or <code class="docutils literal notranslate"><span class="pre">number</span> <span class="pre">of</span> <span class="pre">likes</span> <span class="pre">received</span></code>, etc. These models are geared toward predicting a binary target of the form of how likely a user is to interact with an item of given id.</p>
-<p>There are two ways we can train and <code class="docutils literal notranslate"><span class="pre">implicit</span></code> model. We can pass only user-item id pairs. In this case the model will treat the pairs we pass as positive examples and will generate negative examples by itself. Alternatively, we can pass in a column of zeros and ones where ones indicate a positive example. We need to tag that column with <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> (as outlined in the “Preparing the data” section above). From there on, all that remains is to pass the data to the <code class="docutils literal notranslate"><span class="pre">fit</span></code> method of our model to train it.</p>
+<p>There are two implicit models you can train with Merlin Models. One approach would be to pass only user-item id pairs. In this case the model will treat the pairs we pass as positive examples and will generate negative examples by itself. Alternatively, we can pass in a column of zeros and ones where ones indicate a positive example. We need to tag that column with <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> (as outlined in the “Preparing the data” section above). From there on, all that remains is to pass the data to the <code class="docutils literal notranslate"><span class="pre">fit</span></code> method of our model to train it.</p>
 <p>There are two <code class="docutils literal notranslate"><span class="pre">implicit</span></code> models you can train with <code class="docutils literal notranslate"><span class="pre">Merli</span> <span class="pre">Models</span></code>:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">AlternatingLeastSquares</span></code> from <a class="reference external" href="http://yifanhu.net/PUB/cf.pdf">Collaborative Filtering for Implicit Feedback Datasets</a>)</p></li>
@@ -320,6 +321,8 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">merlin.models.implicit</span></code> doesn’t have the same facility as <code class="docutils literal notranslate"><span class="pre">merlin.models.xgb.XGBoost</span></code> for identifying which target column it should use.</p>
 <p>Let’s remove the <code class="docutils literal notranslate"><span class="pre">rating</span></code> column from the schema so that only <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> is left.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">rating</span></code> column contains explicit information, that is a rating on a scale from 1 to 5 that a user assigned to a movie. The <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> column emulates implicit data. It could indicate that a user interacted with a given item, or that they watched a movie for some number of minutes, etc.</p>
+<p>Essentially, implicit data is one where we don’t ask the user to give us <em>explicit</em> information, but infer labeling from their acti</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema_without_title</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;rating&#39;</span><span class="p">)</span>
@@ -488,7 +491,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
     <tr>
       <th>0</th>
       <td>movieId</td>
-      <td>(Tags.ITEM_ID, Tags.ITEM, Tags.ID, Tags.CATEGO...</td>
+      <td>(Tags.ITEM, Tags.CATEGORICAL, Tags.ID, Tags.IT...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -505,7 +508,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
     <tr>
       <th>1</th>
       <td>userId</td>
-      <td>(Tags.USER, Tags.USER_ID, Tags.ID, Tags.CATEGO...</td>
+      <td>(Tags.USER, Tags.CATEGORICAL, Tags.ID, Tags.US...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -558,11 +561,18 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 <div class="cell_output docutils container">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id": "1c7e472c443d4e11921932eb9ba338eb", "version_major": 2, "version_minor": 0}
+{"model_id": "b2477f076f8946f9a6a33a8d1cf9de50", "version_major": 2, "version_minor": 0}
 </script></div>
 </div>
 <p>Having trained the model, we can now evaluate it.</p>
 <p>Implicit models can be best thought of as retrieval models and so we have the usual set of retrieval metrics at our disposal.</p>
+<p>The metrics that are available to us are:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Precision_and_recall">precision</a></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision">mean average precision</a></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Discounted_cumulative_gain#Normalized_DCG">normalized discounted cumulative gain</a></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Area_under_the_curve">area under the ROC operating curve</a></p></li>
+</ul>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">implicit_metrics</span> <span class="o">=</span> <span class="n">implicit</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
@@ -572,16 +582,131 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 <div class="cell_output docutils container">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id": "d72518d805e7474bb1cc30071858f6cf", "version_major": 2, "version_minor": 0}
-</script><div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;precision@10&#39;: 0.19480381760339344,
- &#39;map@10&#39;: 0.10750185157131092,
- &#39;ndcg@10&#39;: 0.22416874523237307,
- &#39;auc@10&#39;: 0.5950644703322262}
+{"model_id": "5449528daa6e44139b7e077a1edd4c0a", "version_major": 2, "version_minor": 0}
+</script><div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;precision@10&#39;: 0.1911983032873807,
+ &#39;map@10&#39;: 0.10690867545321416,
+ &#39;ndcg@10&#39;: 0.22260316914082348,
+ &#39;auc@10&#39;: 0.5932584413826443}
 </pre></div>
 </div>
 </div>
 </div>
-<p>And last but not least, lets use our trained implicit model to output predictions.</p>
+<p>And last but not least, let’s use our trained implicit model to output predictions.</p>
+<p>We can pass the <code class="docutils literal notranslate"><span class="pre">valid</span></code> Dataset with several columns, however, using the schema, the model will select the <code class="docutils literal notranslate"><span class="pre">userId</span></code> column and output predictions which will be an ordered list of movies that the user is most likely to enjoy.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">valid</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>movieId</th>
+      <th>userId</th>
+      <th>genres</th>
+      <th>TE_movieId_rating</th>
+      <th>userId_count</th>
+      <th>gender</th>
+      <th>zip_code</th>
+      <th>rating</th>
+      <th>rating_binary</th>
+      <th>age</th>
+      <th>title</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>487</td>
+      <td>77</td>
+      <td>4</td>
+      <td>-0.560138</td>
+      <td>5.572154</td>
+      <td>1</td>
+      <td>77</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>Angels and Insects (1995)</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>342</td>
+      <td>77</td>
+      <td>23</td>
+      <td>-0.380759</td>
+      <td>5.572154</td>
+      <td>1</td>
+      <td>77</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>Desperado (1995)</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>529</td>
+      <td>77</td>
+      <td>1</td>
+      <td>0.422664</td>
+      <td>5.572154</td>
+      <td>1</td>
+      <td>77</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>Three Colors: White (1994)</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>19</td>
+      <td>77</td>
+      <td>13</td>
+      <td>0.268369</td>
+      <td>5.572154</td>
+      <td>1</td>
+      <td>77</td>
+      <td>3</td>
+      <td>0</td>
+      <td>1</td>
+      <td>Rock, The (1996)</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>316</td>
+      <td>77</td>
+      <td>45</td>
+      <td>-1.022779</td>
+      <td>5.572154</td>
+      <td>1</td>
+      <td>77</td>
+      <td>2</td>
+      <td>0</td>
+      <td>1</td>
+      <td>Dirty Dancing (1987)</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>Let us now pass this information to our model and predict.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">implicit_preds</span> <span class="o">=</span> <span class="n">implicit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
@@ -590,31 +715,32 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(array([[373, 469, 518, ..., 187, 218, 312],
-        [238, 191,  49, ...,  64, 143,   5],
-        [176, 348, 180, ..., 318, 239, 741],
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(array([[396, 373, 430, ..., 328, 421, 312],
+        [ 49, 191, 467, ...,  71, 189, 133],
+        [176, 118, 180, ..., 304, 279, 239],
         ...,
-        [  1,   2,  16, ...,   3,  12,  21],
-        [  7,   6,   1, ...,   8,   9, 102],
-        [  5,  14,   4, ..., 121,  90,  99]], dtype=int32),
- array([[4.086568 , 3.9380424, 3.8917089, ..., 3.5415509, 3.5352802,
-         3.4903793],
-        [3.1168025, 3.0303137, 2.8660183, ..., 2.5883107, 2.5812874,
-         2.5387335],
-        [2.2507575, 1.9358999, 1.8727003, ..., 1.6805655, 1.6348444,
-         1.606662 ],
+        [  1,   2,  16, ...,  10,  26,  50],
+        [  6,   4,  14, ...,  16,  48,   3],
+        [ 14,   4,   5, ..., 121, 113, 304]], dtype=int32),
+ array([[3.9865382, 3.8862257, 3.6754558, ..., 3.4457178, 3.443433 ,
+         3.4334726],
+        [3.156855 , 2.8243616, 2.8160563, ..., 2.5596619, 2.5396645,
+         2.5387554],
+        [2.0838304, 1.9415629, 1.8051424, ..., 1.5740227, 1.5676664,
+         1.5467479],
         ...,
-        [2.3514626, 2.2953627, 2.2321575, ..., 1.9194883, 1.8870326,
-         1.8788759],
-        [2.5334208, 2.5131962, 2.4948564, ..., 2.187589 , 2.1635065,
-         2.108275 ],
-        [2.9087033, 2.877173 , 2.6436164, ..., 2.4158123, 2.3826144,
-         2.3803732]], dtype=float32))
+        [2.304004 , 2.2017198, 2.1418507, ..., 1.9083155, 1.8924469,
+         1.8562223],
+        [2.673427 , 2.6048024, 2.4533243, ..., 2.228998 , 2.197084 ,
+         2.182708 ],
+        [3.1667812, 2.9392593, 2.798333 , ..., 2.472061 , 2.4383142,
+         2.437582 ]], dtype=float32))
 </pre></div>
 </div>
 </div>
 </div>
-<p>The predictions are item ids for each of the user id that we passed in as our data. They are ordered from the most likely to be interacted with by the user to the least likely as predicted by our <code class="docutils literal notranslate"><span class="pre">implicit</span></code> model.</p>
+<p>The predictions are item ids for each of the user id that we passed in as our data. They are ordered from the most likely to be interacted with by the user to the least likely as predicted by our <code class="docutils literal notranslate"><span class="pre">implicit</span></code> model. These IDs are contained in the the first array.</p>
+<p>The second array consists of scores from the model. The higher the score, the better the chance a user will interact with a movie. They are not on any particular scale nor have a probabilistic interpretation.</p>
 </div>
 <div class="section" id="training-a-lightfm-model">
 <h2>Training a LightFM model<a class="headerlink" href="#training-a-lightfm-model" title="Permalink to this headline"></a></h2>
@@ -647,12 +773,13 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;precisions@10&#39;: 0.19862142, &#39;auc&#39;: 0.90727156}
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;precisions@10&#39;: 0.2057264, &#39;auc&#39;: 0.91013205}
 </pre></div>
 </div>
 </div>
 </div>
 <p>We can now use the model to predict on our data.</p>
+<p>We pass our <code class="docutils literal notranslate"><span class="pre">valid</span></code> Dataset again – this time however our model will take the <code class="docutils literal notranslate"><span class="pre">userId</span></code> column and the <code class="docutils literal notranslate"><span class="pre">movieId</span></code> column and output a score for each pairing. The higher the score the higher the chance (according to the model) of a user interacting with a given movie.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lightfm_preds</span> <span class="o">=</span> <span class="n">lightfm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
@@ -661,13 +788,12 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([-3.2559712, -2.3324568, -2.5932639, ..., -2.4952314, -2.311529 ,
-       -3.134278 ], dtype=float32)
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([-2.8236153, -2.1192274, -2.1854143, ..., -1.7397395, -2.5188863,
+       -2.62269  ], dtype=float32)
 </pre></div>
 </div>
 </div>
 </div>
-<p>Here, the model takes in user-item pairs and predicts the likelihood of interaction.</p>
 </div>
 </div>
 
