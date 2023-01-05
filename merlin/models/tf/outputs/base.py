@@ -136,7 +136,7 @@ class ModelOutput(Layer):
         outputs = super(ModelOutput, self).__call__(inputs, *args, **kwargs)
 
         if self.post:
-            outputs = tf_utils.call_layer(self.post, outputs, **kwargs)
+            outputs = tf_utils.call_layer(self.post, outputs, target_name=self.target, **kwargs)
 
         if getattr(self, "logits_scaler", None):
             if isinstance(outputs, tf.Tensor):

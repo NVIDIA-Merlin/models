@@ -147,28 +147,77 @@ def _set_task_pre_block(
 
 
 class ColumnBasedSampleWeight(Block):
+    """Allows using columns (features or targets) as sample weights
+    for a give ModelOutput.
+
+    Examples
+    ----------
+      It can be used for example for binary class weights, using the same
+      column as the weight column and setting binary_class_weights.
+
+      ```
+      inputs = mm.InputBlockV2(music_streaming_data.schema)
+      output_block = mm.BinaryOutput("like",
+            post=mm.ColumnBasedSampleWeight(
+                weight_column_name="like", binary_class_weights=((1.0, 5.0)
+            )
+        )
+      model = mm.Model(inputs, mm.MLPBlock([64]), output_block)
+      ```
+
+      Another use case is computing a loss only for a subset of the examples.
+      That is useful in multi-task learning, where one of target is conditioned
+      on the other target (e.g. the user can only like if he viewed the video).
+      So you can use the positive views (view==1)as the sample space for training the
+      "like" prediction task.
+
+      ```
+      inputs = mm.InputBlockV2(music_streaming_data.schema)
+      output_block = mm.ParallelBlock(
+            "view/binary_output": mm.BinaryOutput("view"),
+            "like/binary_output": mm.BinaryOutput("like",
+                                           post=mm.ColumnBasedSampleWeight(
+                                                  weight_column_name="view",
+                                        )
+                                   )
+            )
+      model = mm.Model(inputs, mm.MLPBlock([64]), output_block)
+      ```
+
+    Parameters
+    ----------
+    weight_column_name : str
+        The column name to be used as weight. If should be present
+        in the schema either as an input feature (i.e., tagged as
+        Tags.CONTINUOUS or Tags.CATEGORICAL) or target feature
+        (i.e., tagged as Tags.TARGET)
+    binary_class_weights : Optional[Tuple[float, float]], optional
+        If provided, it allows setting the weights to which negative (0)
+        and positive values (1) of weight column should be converted
+        to result the final sample weights, by default None.
+        It expects a two elements tuple: (negative_value, positive_value)
+    """
+
     def __init__(
         self,
-        sample_weight_column_name: str,
+        weight_column_name: str,
         binary_class_weights: Optional[Tuple[float, float]] = None,
-        target_name: str = None,
         **kwargs,
     ):
-        self.sample_weight_column_name = sample_weight_column_name
+        self.weight_column_name = weight_column_name
         self.binary_class_weights = binary_class_weights
-        self.target_name = target_name
         super().__init__(**kwargs)
 
-    def call(self, inputs, features=None, targets=None, **kwargs) -> Prediction:
+    def call(self, inputs, features=None, targets=None, target_name=None, **kwargs) -> Prediction:
         sample_weight = None
-        if targets is not None and self.sample_weight_column_name in targets:
-            sample_weight = targets[self.sample_weight_column_name]
-        elif features is not None and self.sample_weight_column_name in features:
-            sample_weight = features[self.sample_weight_column_name]
+        if targets is not None and self.weight_column_name in targets:
+            sample_weight = targets[self.weight_column_name]
+        elif features is not None and self.weight_column_name in features:
+            sample_weight = features[self.weight_column_name]
         else:
             raise ValueError(
-                f"Not able to find the sample_weight_column_name"
-                f"{self.sample_weight_column_name} among "
+                f"Not able to find the weight_column_name"
+                f"{self.weight_column_name} among "
                 "features and targets"
             )
 
@@ -183,10 +232,10 @@ class ColumnBasedSampleWeight(Block):
                 neg_weight,
             )
 
-        if self.target_name and isinstance(targets, dict) and self.target_name in targets:
+        if target_name and isinstance(targets, dict) and target_name in targets:
             # When there are multiple tasks, targets is a dict and it is necessary to select
             # the corresponding task target to return in Prediction
-            targets = targets[self.target_name]
+            targets = targets[target_name]
 
         return Prediction(inputs, targets, sample_weight=sample_weight)
 
