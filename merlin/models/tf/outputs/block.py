@@ -14,11 +14,14 @@
 # limitations under the License.
 #
 
-from typing import Dict, Optional, Sequence, Set, Union
+from typing import Dict, Optional, Sequence, Set, Tuple, Union
 
+import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
+from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
+from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.outputs.base import ModelOutput
 from merlin.models.tf.outputs.classification import BinaryOutput, CategoricalOutput
 from merlin.models.tf.outputs.regression import RegressionOutput
@@ -143,25 +146,49 @@ def _set_task_pre_block(
             output_block.pre = SequentialBlock([output_block.pre, task_block])
 
 
-def _add_output_task_block(
-    output_block: OutputBlock,
-    col_name: str,
-    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-):
-    task_block = None
-    if task_blocks is not None:
-        if isinstance(task_blocks, dict):
-            if output_block.name in task_blocks:
-                task_block = task_blocks[output_block.name]
-            elif col_name in task_blocks:
-                task_block = task_blocks[col_name]
-        elif isinstance(task_blocks, Layer):
-            # Cloning the layer for every task
-            task_block = task_blocks.from_config(task_blocks.get_config())
-        else:
-            raise ValueError("If provided, task_blocks must be either a Layer or Dict[str, Layer]")
+class ColumnBasedSampleWeight(Block):
+    def __init__(
+        self,
+        sample_weight_column_name: str,
+        binary_class_weights: Optional[Tuple[float, float]] = None,
+        target_name: str = None,
+        **kwargs,
+    ):
+        self.sample_weight_column_name = sample_weight_column_name
+        self.binary_class_weights = binary_class_weights
+        self.target_name = target_name
+        super().__init__(**kwargs)
 
-    if task_block:
-        return SequentialBlock([task_block, output_block])
-    else:
-        return output_block
+    def call(self, inputs, features=None, targets=None, **kwargs) -> Prediction:
+        sample_weight = None
+        if targets is not None and self.sample_weight_column_name in targets:
+            sample_weight = targets[self.sample_weight_column_name]
+        elif features is not None and self.sample_weight_column_name in features:
+            sample_weight = features[self.sample_weight_column_name]
+        else:
+            raise ValueError(
+                f"Not able to find the sample_weight_column_name"
+                f"{self.sample_weight_column_name} among "
+                "features and targets"
+            )
+
+        sample_weight = tf.cast(sample_weight, tf.float32)
+
+        # If the sample weight is a binary column
+        if self.binary_class_weights is not None:
+            (neg_weight, pos_weight) = self.binary_class_weights
+            sample_weight = tf.where(
+                sample_weight == 1,
+                pos_weight,
+                neg_weight,
+            )
+
+        if self.target_name and isinstance(targets, dict) and self.target_name in targets:
+            # When there are multiple tasks, targets is a dict and it is necessary to select
+            # the corresponding task target to return in Prediction
+            targets = targets[self.target_name]
+
+        return Prediction(inputs, targets, sample_weight=sample_weight)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape

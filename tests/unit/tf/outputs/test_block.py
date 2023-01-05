@@ -406,6 +406,149 @@ def test_model_with_multi_output_blocks_loss_weights_and_weighted_metrics(
 
 
 @testing_utils.mark_run_eagerly_modes
+def test_column_based_sample_weight_single_task(music_streaming_data: Dataset, run_eagerly: bool):
+    inputs = mm.InputBlockV2(music_streaming_data.schema)
+    output_block = mm.BinaryOutput(
+        "like",
+        post=mm.ColumnBasedSampleWeight(target_name="like", sample_weight_column_name="click"),
+    )
+
+    model = mm.Model(inputs, mm.MLPBlock([8]), output_block)
+
+    model.compile(
+        optimizer="adam",
+        run_eagerly=run_eagerly,
+        weighted_metrics=["auc"],
+    )
+
+    batch = mm.sample_batch(music_streaming_data, batch_size=50)
+    metrics = model.test_step(batch)
+
+    assert metrics["loss_batch"] >= 0
+    assert set(list(metrics.keys())) == set(
+        [
+            "loss",
+            "precision",
+            "recall",
+            "binary_accuracy",
+            "auc",
+            "regularization_loss",
+            "loss_batch",
+            "weighted_auc",
+        ]
+    )
+
+    batch[1]["click"] = tf.ones_like(batch[1]["click"])
+    metrics_sample_weight_all_ones = model.test_step(batch)
+    assert metrics_sample_weight_all_ones["loss_batch"] > metrics["loss_batch"]
+
+    batch[1]["click"] = tf.zeros_like(batch[1]["click"])
+    metrics_sample_weight_all_zeros = model.test_step(batch)
+    assert metrics_sample_weight_all_zeros["loss_batch"] == 0.0
+
+    # Regular metrics are not affected by sample_weigth
+    assert (
+        metrics["recall"]
+        == metrics_sample_weight_all_zeros["recall"]
+        == metrics_sample_weight_all_ones["recall"]
+    )
+    # But weighted metrics are different
+    assert metrics["weighted_auc"] != metrics_sample_weight_all_ones["weighted_auc"]
+    assert metrics["weighted_auc"] != metrics_sample_weight_all_zeros["weighted_auc"]
+    assert (
+        metrics_sample_weight_all_ones["weighted_auc"]
+        != metrics_sample_weight_all_zeros["weighted_auc"]
+    )
+
+
+@testing_utils.mark_run_eagerly_modes
+def test_column_based_sample_weight_with_multitask(
+    music_streaming_data: Dataset, run_eagerly: bool
+):
+    inputs = mm.InputBlockV2(music_streaming_data.schema)
+    output_block = mm.OutputBlock(
+        music_streaming_data.schema,
+        model_outputs={
+            "like/binary_output": mm.BinaryOutput(
+                "like",
+                post=mm.ColumnBasedSampleWeight(
+                    target_name="like",
+                    sample_weight_column_name="click",
+                    binary_class_weights=(1.0, 10.0),
+                ),
+            ),
+            "play_percentage/regression_output": mm.RegressionOutput(
+                "play_percentage",
+                post=mm.ColumnBasedSampleWeight(
+                    target_name="play_percentage",
+                    sample_weight_column_name="click",
+                ),
+            ),
+        },
+    )
+
+    model = mm.Model(inputs, mm.MLPBlock([8]), output_block)
+
+    loss_weights = {
+        "click/binary_output": 1.0,
+        "play_percentage/regression_output": 2.0,
+        "like/binary_output": 3.0,
+    }
+
+    weighted_metrics = {
+        "click/binary_output": (
+            tf.keras.metrics.Precision(name="precision"),
+            tf.keras.metrics.Recall(name="recall"),
+            tf.keras.metrics.BinaryAccuracy(name="binary_accuracy"),
+            "auc",
+        ),
+        "like/binary_output": ("precision", "recall", "binary_accuracy", "auc"),
+        "play_percentage/regression_output": (
+            tf.keras.metrics.RootMeanSquaredError(name="root_mean_squared_error"),
+        ),
+    }
+
+    model.compile(
+        optimizer="adam",
+        run_eagerly=run_eagerly,
+        loss_weights=loss_weights,
+        weighted_metrics=weighted_metrics,
+    )
+
+    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+
+    assert metrics["loss"] >= 0
+    assert set(metrics.keys()) == set(
+        [
+            "loss",
+            "loss_batch",
+            "click/binary_output_loss",
+            "like/binary_output_loss",
+            "play_percentage/regression_output_loss",
+            "click/binary_output/precision",
+            "click/binary_output/recall",
+            "click/binary_output/binary_accuracy",
+            "click/binary_output/auc",
+            "click/binary_output/weighted_precision",
+            "click/binary_output/weighted_recall",
+            "click/binary_output/weighted_binary_accuracy",
+            "click/binary_output/weighted_auc",
+            "like/binary_output/precision",
+            "like/binary_output/recall",
+            "like/binary_output/binary_accuracy",
+            "like/binary_output/auc",
+            "like/binary_output/weighted_precision",
+            "like/binary_output/weighted_recall",
+            "like/binary_output/weighted_binary_accuracy",
+            "like/binary_output/weighted_auc",
+            "play_percentage/regression_output/root_mean_squared_error",
+            "play_percentage/regression_output/weighted_root_mean_squared_error",
+            "regularization_loss",
+        ]
+    )
+
+
+@testing_utils.mark_run_eagerly_modes
 @pytest.mark.parametrize(
     "task_blocks",
     [None, mm.MLPBlock([32])],
@@ -476,10 +619,9 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
 ):
     class CustomSampleWeight(Block):
         def call(
-            self, inputs, targets=None, training=False, testing=False, **kwargs
+            self, inputs, targets=None, features=None, training=False, testing=False, **kwargs
         ) -> mm.Prediction:
-            # Computes loss for the like loss only for clicked items
-            return mm.Prediction(inputs, targets, sample_weight=targets["click"])
+            return mm.Prediction(inputs, targets["like"], sample_weight=targets["click"])
 
         def compute_output_shape(self, input_shape):
             return input_shape
@@ -487,10 +629,7 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
     inputs = mm.InputBlockV2(music_streaming_data.schema)
     output_block = mm.OutputBlock(
         music_streaming_data.schema,
-        task_pre_blocks={
-            "click/binary_output": mm.MLPBlock([32]),
-            # "like/binary_output": CustomSampleWeight(),
-        },
+        model_outputs={"like/binary_output": mm.BinaryOutput("like", post=CustomSampleWeight())},
     )
 
     mmoe = mm.MMOEBlock(output_block, expert_block=mm.MLPBlock([64]), num_experts=4)

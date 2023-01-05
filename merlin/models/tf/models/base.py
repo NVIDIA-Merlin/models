@@ -586,8 +586,8 @@ class BaseModel(tf.keras.Model):
         if out:
             if num_v1_blocks == 0:  # V2
                 for prediction_name, prediction_block in self.outputs_by_name().items():
-                    if len(self.model_outputs) > 1:
-                        for metric in out[prediction_name]:
+                    for metric in out[prediction_name]:
+                        if len(self.model_outputs) > 1:
                             # Setting hierarchical metric names (column/task/metric_name)
                             metric._name = "/".join(
                                 [
@@ -595,6 +595,9 @@ class BaseModel(tf.keras.Model):
                                     f"weighted_{metric._name}" if weighted else metric._name,
                                 ]
                             )
+                        else:
+                            if weighted:
+                                metric._name = f"weighted_{metric._name}"
 
             for metric in tf.nest.flatten(out):
                 # We ensure metrics passed to `compile()` are reset
@@ -805,7 +808,7 @@ class BaseModel(tf.keras.Model):
             predictions[task.full_name] = task_x
             sample_weights[task.full_name] = task_sample_weight
 
-            self.adjust_predictions_and_targets(predictions, targets)
+        self.adjust_predictions_and_targets(predictions, targets)
 
         return Prediction(predictions, targets, sample_weights)
 
