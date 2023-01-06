@@ -145,12 +145,9 @@
 <div class="cell_output docutils container">
 <div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (1.26.12) or chardet (3.0.4) doesn&#39;t match a supported version!
   warnings.warn(&quot;urllib3 ({}) or chardet ({}) doesn&#39;t match a supported &quot;
-2023-01-05 00:03:52.292512: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2023-01-05 00:03:52.293100: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2023-01-05 00:03:52.293237: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-downloading ml-100k.zip: 4.94MB [00:05, 981kB/s]                                                                                                                                                                                                                                                                                                                                          
-unzipping files: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 24/24 [00:00&lt;00:00, 263.33files/s]
-INFO:merlin.datasets.entertainment.movielens.dataset:starting ETL..
+2023-01-05 00:32:57.250132: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2023-01-05 00:32:57.250536: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2023-01-05 00:32:57.250668: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:991] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
 /usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
 /usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
@@ -167,8 +164,8 @@ INFO:merlin.datasets.entertainment.movielens.dataset:starting ETL..
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&lt;merlin.io.dataset.Dataset at 0x7f19f50a9460&gt;,
- &lt;merlin.io.dataset.Dataset at 0x7f19f50b4b20&gt;)
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&lt;merlin.io.dataset.Dataset at 0x7f326b1d3df0&gt;,
+ &lt;merlin.io.dataset.Dataset at 0x7f326b1d3d90&gt;)
 </pre></div>
 </div>
 </div>
@@ -283,11 +280,12 @@ INFO:merlin.datasets.entertainment.movielens.dataset:starting ETL..
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2023-01-05 00:04:05,296 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2023-01-05 00:32:59,037 - distributed.diskutils - INFO - Found stale lock file and directory &#39;/workspace/examples/dask-worker-space/worker-wknev96m&#39;, purging
+2023-01-05 00:32:59,038 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
 /usr/local/lib/python3.8/dist-packages/xgboost/dask.py:884: RuntimeWarning: coroutine &#39;Client._wait_for_workers&#39; was never awaited
   client.wait_for_workers(n_workers)
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-[00:04:06] task [xgboost.dask-0]:tcp://127.0.0.1:44081 got new rank 0
+[00:33:00] task [xgboost.dask-0]:tcp://127.0.0.1:45711 got new rank 0
 </pre></div>
 </div>
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[0]	validation_set-logloss:0.65874
@@ -322,7 +320,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 <p><code class="docutils literal notranslate"><span class="pre">merlin.models.implicit</span></code> doesn’t have the same facility as <code class="docutils literal notranslate"><span class="pre">merlin.models.xgb.XGBoost</span></code> for identifying which target column it should use.</p>
 <p>Let’s remove the <code class="docutils literal notranslate"><span class="pre">rating</span></code> column from the schema so that only <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> is left.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">rating</span></code> column contains explicit information, that is a rating on a scale from 1 to 5 that a user assigned to a movie. The <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> column emulates implicit data. It could indicate that a user interacted with a given item, or that they watched a movie for some number of minutes, etc.</p>
-<p>Essentially, implicit data is one where we don’t ask the user to give us <em>explicit</em> information, but infer labeling from their acti</p>
+<p>Essentially, implicit data is one where we don’t ask the user to give us <em>explicit</em> information, but infer labeling from their actions!</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema_without_title</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;rating&#39;</span><span class="p">)</span>
@@ -491,7 +489,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
     <tr>
       <th>0</th>
       <td>movieId</td>
-      <td>(Tags.ITEM, Tags.CATEGORICAL, Tags.ID, Tags.IT...</td>
+      <td>(Tags.ITEM_ID, Tags.CATEGORICAL, Tags.ID, Tags...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -508,7 +506,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
     <tr>
       <th>1</th>
       <td>userId</td>
-      <td>(Tags.USER, Tags.CATEGORICAL, Tags.ID, Tags.US...</td>
+      <td>(Tags.CATEGORICAL, Tags.USER, Tags.ID, Tags.US...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -561,7 +559,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 <div class="cell_output docutils container">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id": "b2477f076f8946f9a6a33a8d1cf9de50", "version_major": 2, "version_minor": 0}
+{"model_id": "ede0dd008aac49daa1925072cc4043e0", "version_major": 2, "version_minor": 0}
 </script></div>
 </div>
 <p>Having trained the model, we can now evaluate it.</p>
@@ -582,11 +580,11 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 <div class="cell_output docutils container">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id": "5449528daa6e44139b7e077a1edd4c0a", "version_major": 2, "version_minor": 0}
-</script><div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;precision@10&#39;: 0.1911983032873807,
- &#39;map@10&#39;: 0.10690867545321416,
- &#39;ndcg@10&#39;: 0.22260316914082348,
- &#39;auc@10&#39;: 0.5932584413826443}
+{"model_id": "8a211114e17f40fc8d0569ce53cb9d9a", "version_major": 2, "version_minor": 0}
+</script><div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;precision@10&#39;: 0.19183457051961825,
+ &#39;map@10&#39;: 0.107194448652561,
+ &#39;ndcg@10&#39;: 0.22221846598085215,
+ &#39;auc@10&#39;: 0.593575933471003}
 </pre></div>
 </div>
 </div>
@@ -715,26 +713,26 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(array([[396, 373, 430, ..., 328, 421, 312],
-        [ 49, 191, 467, ...,  71, 189, 133],
-        [176, 118, 180, ..., 304, 279, 239],
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(array([[373, 430, 396, ..., 449, 110, 213],
+        [ 49, 191, 238, ..., 431, 161, 267],
+        [176, 118, 276, ...,  14, 279, 378],
         ...,
-        [  1,   2,  16, ...,  10,  26,  50],
-        [  6,   4,  14, ...,  16,  48,   3],
-        [ 14,   4,   5, ..., 121, 113, 304]], dtype=int32),
- array([[3.9865382, 3.8862257, 3.6754558, ..., 3.4457178, 3.443433 ,
-         3.4334726],
-        [3.156855 , 2.8243616, 2.8160563, ..., 2.5596619, 2.5396645,
-         2.5387554],
-        [2.0838304, 1.9415629, 1.8051424, ..., 1.5740227, 1.5676664,
-         1.5467479],
+        [  1,  16,   7, ...,  54,  35, 156],
+        [  6,   4,   7, ...,  19,  43, 107],
+        [ 14,   5,   4, ...,  30,  82,  46]], dtype=int32),
+ array([[4.061356 , 4.0406322, 3.8475592, ..., 3.6952302, 3.638005 ,
+         3.6266055],
+        [3.2781374, 2.997677 , 2.717587 , ..., 2.6155584, 2.6032102,
+         2.5716405],
+        [2.1692445, 1.8199395, 1.7129874, ..., 1.6063485, 1.5718066,
+         1.5202814],
         ...,
-        [2.304004 , 2.2017198, 2.1418507, ..., 1.9083155, 1.8924469,
-         1.8562223],
-        [2.673427 , 2.6048024, 2.4533243, ..., 2.228998 , 2.197084 ,
-         2.182708 ],
-        [3.1667812, 2.9392593, 2.798333 , ..., 2.472061 , 2.4383142,
-         2.437582 ]], dtype=float32))
+        [2.378458 , 2.3014238, 2.1788726, ..., 1.8858622, 1.850733 ,
+         1.7539673],
+        [2.6692393, 2.5735724, 2.5456824, ..., 2.2743926, 2.2258418,
+         2.1990561],
+        [2.996301 , 2.8235757, 2.8209283, ..., 2.4808776, 2.4519935,
+         2.4327352]], dtype=float32))
 </pre></div>
 </div>
 </div>
@@ -773,7 +771,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;precisions@10&#39;: 0.2057264, &#39;auc&#39;: 0.91013205}
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;precisions@10&#39;: 0.20201485, &#39;auc&#39;: 0.9070306}
 </pre></div>
 </div>
 </div>
@@ -788,8 +786,8 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([-2.8236153, -2.1192274, -2.1854143, ..., -1.7397395, -2.5188863,
-       -2.62269  ], dtype=float32)
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([-2.54376  , -2.5342097, -2.5375252, ..., -2.0268114, -2.6837513,
+       -2.7861216], dtype=float32)
 </pre></div>
 </div>
 </div>
