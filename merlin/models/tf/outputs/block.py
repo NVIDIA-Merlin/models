@@ -36,6 +36,9 @@ def OutputBlock(
     task_pre_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
 ) -> Union[ModelOutput, ParallelBlock]:
     """Creates model output(s) based on the columns tagged as target in the schema.
+    It outputs either a ModelOutput (e.g. RegressionOutput, BinaryOutput, CategoricalOutput)
+    if there is a single target, or a ParallelBlock with multiple ModelOutput if there are
+    multiple targets (multi-task learning).
 
     Simple Usage::
         outputs = OutputBlock(schema)
@@ -46,6 +49,10 @@ def OutputBlock(
         Schema of the input data. This Schema object will be automatically generated using
         [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
         Next to this, it's also possible to construct it manually.
+    model_outputs: Optional[Union[Sequence[ModelOutput], Dict[str, ModelOutput]]]
+        Optional dict or list of ModelOutput. If a dict, the keys must be the
+        <target_name>/output_type (e.g. "click/binary_output", "rating/regression_output"))
+        This method will create ModelOutput only for the tasks not provided in model_outputs.
     pre : Optional[Layer], optional
         Transformation block to apply before the embeddings lookup, by default None
     post : Optional[Layer], optional
@@ -84,6 +91,8 @@ def OutputBlock(
             outputs = model_outputs
         elif isinstance(model_outputs, (tuple, list)):
             outputs = {m.name: m for m in model_outputs}
+        elif isinstance(model_outputs, ModelOutput):
+            outputs = {model_outputs.name: model_outputs}
         else:
             raise ValueError(
                 "If provided model_outputs should be either a dict or list of ModelOutput"
@@ -94,23 +103,25 @@ def OutputBlock(
         cols.append(col)
 
         if col.name in con:
-            output_block = RegressionOutput(col)
+            model_output_cls = RegressionOutput
         elif col.name in bin:
-            output_block = BinaryOutput(col)
+            model_output_cls = BinaryOutput
         elif col.name in cat:
             if col.int_domain.max == 1:
-                output_block = BinaryOutput(col)
+                model_output_cls = BinaryOutput
             else:
-                output_block = CategoricalOutput(col)
+                model_output_cls = CategoricalOutput
 
-        task_name = output_block.name
+        task_name = model_output_cls.task_name(col.name)
+
         if task_name in outputs:
-            # If this model output is already provided in model_outputs,
-            # use that instead of creating a new one for this column
             output_block = outputs[task_name]
+        else:
+            # Creates outputs only for the tasks not provided in model_outputs
+            output_block = model_output_cls(col)
+            outputs[task_name] = output_block
 
-        _set_task_pre_block(output_block, col.name, task_pre_blocks)
-        outputs[task_name] = output_block
+        _set_task_pre_block(outputs[task_name], col.name, task_pre_blocks)
 
     if len(outputs) == 1:
         return list(outputs.values())[0]
@@ -135,11 +146,12 @@ def _set_task_pre_block(
             elif col_name in task_pre_blocks:
                 task_block = task_pre_blocks[col_name]
         elif isinstance(task_pre_blocks, Layer):
-            # Cloning the layer for every task
-            task_block = task_pre_blocks.from_config(task_pre_blocks.get_config())
+            task_block = task_pre_blocks
         else:
             raise ValueError("If provided, task_blocks must be either a Layer or Dict[str, Layer]")
     if task_block:
+        # Cloning task block, so that it is independent for every tower
+        task_block = task_block.from_config(task_block.get_config())
         if output_block.pre is None:
             output_block.pre = task_block
         else:

@@ -73,8 +73,7 @@ class ModelOutput(Layer):
     ):
         logits_scaler = kwargs.pop("logits_scaler", None)
         self.target = target
-        base_name = to_snake_case(self.__class__.__name__)
-        self.full_name = name_fn(self.target, base_name) if self.target else base_name
+        self.full_name = self.task_name(self.target)
 
         super().__init__(name=name or self.full_name, **kwargs)
         self.to_call = to_call
@@ -239,6 +238,11 @@ class ModelOutput(Layer):
         config = tf_utils.maybe_serialize_keras_objects(self, config, objects)
 
         return config
+
+    @classmethod
+    def task_name(cls, target_name):
+        base_name = to_snake_case(cls.__name__)
+        return name_fn(target_name, base_name)
 
     @classmethod
     def from_config(cls, config):
