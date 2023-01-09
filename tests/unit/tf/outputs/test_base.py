@@ -25,9 +25,9 @@ from merlin.models.tf.utils import testing_utils
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
-        mm.InputBlock(ecommerce_data.schema),
+        mm.InputBlockV2(ecommerce_data.schema),
         mm.MLPBlock([8]),
-        _BinaryPrediction("click"),
+        _CustomBinaryPrediction("click"),
     )
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -47,9 +47,9 @@ def test_logits_scaler(ecommerce_data: Dataset):
     set_random_seed(42)
     logits_temperature = 0.5
     model_1 = mm.Model(
-        mm.InputBlock(ecommerce_data.schema),
+        mm.InputBlockV2(ecommerce_data.schema),
         mm.MLPBlock([8]),
-        _BinaryPrediction("click", logits_temperature=logits_temperature),
+        mm.BinaryOutput("click", logits_temperature=logits_temperature),
     )
 
     inputs = mm.sample_batch(ecommerce_data, batch_size=10, include_targets=False)
@@ -89,8 +89,8 @@ def test_parallel_outputs(ecommerce_data: Dataset, run_eagerly):
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([8]),
         mm.ParallelBlock(
-            _BinaryPrediction("click", pre=mm.MLPBlock([4])),
-            _BinaryPrediction("conversion", pre=mm.MLPBlock([4])),
+            mm.BinaryOutput("click", pre=mm.MLPBlock([4])),
+            mm.BinaryOutput("conversion", pre=mm.MLPBlock([4])),
         ),
     )
 
@@ -109,7 +109,7 @@ def test_parallel_outputs(ecommerce_data: Dataset, run_eagerly):
     )
 
 
-def _BinaryPrediction(name, **kwargs):
+def _CustomBinaryPrediction(name, **kwargs):
     return mm.ModelOutput(
         tf.keras.layers.Dense(1, activation="sigmoid"),
         default_loss="binary_crossentropy",

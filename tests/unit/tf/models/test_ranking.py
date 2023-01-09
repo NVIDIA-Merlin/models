@@ -150,10 +150,7 @@ def test_dlrm_model_without_continuous_features(ecommerce_data, run_eagerly):
 
 @pytest.mark.parametrize("stacked", [True, False])
 @pytest.mark.parametrize("run_eagerly", [True, False])
-@pytest.mark.parametrize(
-    "prediction_blocks", [None, mm.BinaryOutput("click"), mm.BinaryClassificationTask("click")]
-)
-def test_dcn_model(music_streaming_data, stacked, run_eagerly, prediction_blocks):
+def test_dcn_model(music_streaming_data, stacked, run_eagerly):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_age", "click"]
     )
@@ -162,7 +159,7 @@ def test_dcn_model(music_streaming_data, stacked, run_eagerly, prediction_blocks
         depth=1,
         deep_block=mm.MLPBlock([2]),
         stacked=stacked,
-        prediction_tasks=prediction_blocks,
+        prediction_tasks=mm.BinaryOutput("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
