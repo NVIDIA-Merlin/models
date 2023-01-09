@@ -416,6 +416,7 @@ def TwoTowerModelV2(
     outputs: Optional[Union[ModelOutput, List[ModelOutput]]] = None,
     logits_temperature: float = 1.0,
     negative_samplers: ItemSamplersType = None,
+    schema: Schema = None,
     **kwargs,
 ) -> RetrievalModelV2:
     """Builds the Two-tower architecture, as proposed in [1].
@@ -450,6 +451,8 @@ def TwoTowerModelV2(
         List of samplers for negative sampling, by default None
         If the `outputs` and `negative_samplers` are not specified the two tower model
         is trained with contrastive learning and `in-batch` negative sampling strategy.
+    schema: Schema
+        A schema with all input features fed to the two-tower model.
 
     Returns
     -------
@@ -480,6 +483,7 @@ def TwoTowerModelV2(
         query=query_tower,
         candidate=candidate_tower,
         output=outputs,
+        schema=schema,
     )
 
     return model

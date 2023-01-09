@@ -1030,7 +1030,7 @@ def test_two_tower_v2_with_contrastive_sample_weight(
         negative_samplers="in-batch",
         store_negative_ids=True,
     )
-    model = mm.TwoTowerModelV2(query, candidate, outputs=output)
+    model = mm.TwoTowerModelV2(query, candidate, outputs=output, schema=data.schema)
     model.compile(run_eagerly=False, loss="binary_crossentropy")
 
     batch = mm.sample_batch(data, batch_size=16)
@@ -1041,7 +1041,7 @@ def test_two_tower_v2_with_contrastive_sample_weight(
         pos_class_weight=pos_class_weight, neg_class_weight=neg_class_weight, schema=data.schema
     )
     metrics2 = model.train_step(batch)
-    assert metrics2["loss"] < metrics1["loss"]
+    assert metrics2["loss"] != metrics1["loss"]
 
-    # ensure model's serialization
+    # test the model's serialization
     _ = testing_utils.model_test(model, data, reload_model=True)

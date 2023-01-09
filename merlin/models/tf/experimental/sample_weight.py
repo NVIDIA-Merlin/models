@@ -120,6 +120,7 @@ class ContrastiveSampleWeight(Block):
                 neg_samples = tf.ones((shapes[0], shapes[1] - 1)) * self.neg_class_weight
 
             # generate a 2-d matrix of sample weights
+            pos_samples = tf.cast(pos_samples, tf.float32)
             samples_weights = tf.concat([pos_samples, neg_samples], axis=1)
             samples_weights = tf.expand_dims(samples_weights, -1)
             outputs = outputs.copy_with_updates(sample_weight=tf.cast(samples_weights, tf.float32))
