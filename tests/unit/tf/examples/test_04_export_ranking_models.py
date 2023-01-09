@@ -1,11 +1,13 @@
 import os
 
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/04-Exporting-ranking-models.ipynb", execute=False)
+@pytest.mark.notebook
 def test_example_04_exporting_ranking_models(tb, tmpdir):
     tb.inject(
         f"""
