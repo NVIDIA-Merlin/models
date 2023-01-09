@@ -33,7 +33,7 @@ def OutputBlock(
     model_outputs: Optional[Union[Sequence[ModelOutput], Dict[str, ModelOutput]]] = None,
     pre: Optional[Layer] = None,
     post: Optional[Layer] = None,
-    task_pre_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
 ) -> Union[ModelOutput, ParallelBlock]:
     """Creates model output(s) based on the columns tagged as target in the schema.
     It outputs either a ModelOutput (e.g. RegressionOutput, BinaryOutput, CategoricalOutput)
@@ -57,11 +57,11 @@ def OutputBlock(
         Transformation block to apply before the embeddings lookup, by default None
     post : Optional[Layer], optional
         Transformation block to apply after the embeddings lookup, by default None
-    task_pre_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional
+    task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional
         Task blocks to be used as task towers. If a single Layer, it is copied to all
         tasks. If a dict, the keys must match the task names
         (e.g. "click/binary_output", rating/regression_output", "item_id/categorical_output").
-        You might want to use the task_pre_blocks to create a task-specific tower
+        You might want to use the task_blocks to create a task-specific tower
         (e.g. MLPBLock([32])) or to customize inputs, targets or sample_weights for a
         given task.
 
@@ -121,7 +121,7 @@ def OutputBlock(
             output_block = model_output_cls(col)
             outputs[task_name] = output_block
 
-        _set_task_pre_block(outputs[task_name], col.name, task_pre_blocks)
+        _set_task_block(outputs[task_name], col.name, task_blocks)
 
     if len(outputs) == 1:
         return list(outputs.values())[0]
@@ -133,20 +133,20 @@ def _get_col_set_by_tags(schema: Schema, tags) -> Set[str]:
     return set(schema.select_by_tag(tags).column_names)
 
 
-def _set_task_pre_block(
+def _set_task_block(
     output_block: OutputBlock,
     col_name: str,
-    task_pre_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
 ):
     task_block = None
-    if task_pre_blocks is not None:
-        if isinstance(task_pre_blocks, dict):
-            if output_block.name in task_pre_blocks:
-                task_block = task_pre_blocks[output_block.name]
-            elif col_name in task_pre_blocks:
-                task_block = task_pre_blocks[col_name]
-        elif isinstance(task_pre_blocks, Layer):
-            task_block = task_pre_blocks
+    if task_blocks is not None:
+        if isinstance(task_blocks, dict):
+            if output_block.name in task_blocks:
+                task_block = task_blocks[output_block.name]
+            elif col_name in task_blocks:
+                task_block = task_blocks[col_name]
+        elif isinstance(task_blocks, Layer):
+            task_block = task_blocks
         else:
             raise ValueError("If provided, task_blocks must be either a Layer or Dict[str, Layer]")
     if task_block:

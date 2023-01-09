@@ -24,11 +24,14 @@ from keras.utils.generic_utils import to_snake_case
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.base import name_fn
+from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
 
 MetricsFn = Callable[[], Sequence[tf.keras.metrics.Metric]]
+
+ModelOutputType = Union["ModelOutput", ParallelBlock]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
