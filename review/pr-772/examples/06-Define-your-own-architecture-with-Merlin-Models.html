@@ -168,10 +168,10 @@ The class extends the <a class="reference external" href="https://www.tensorflow
 <li><p><code class="docutils literal notranslate"><span class="pre">connect_with_residual</span></code>: Connect the block to other blocks sequentially and apply a residual sum with the block’s output.</p></li>
 </ul>
 </div>
-<div class="section" id="prediction-tasks">
-<h3>Prediction Tasks<a class="headerlink" href="#prediction-tasks" title="Permalink to this headline"></a></h3>
-<p>Merlin Models introduces the <code class="docutils literal notranslate"><span class="pre">PredictionTask</span></code> layer that defines the necessary blocks and transformation operations to compute the final prediction scores. It also provides the default loss and metrics related to the given prediction task.<br />
-Merlin Models supports the core tasks:  <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code>, <code class="docutils literal notranslate"><span class="pre">MultiClassClassificationTask</span></code>, and<code class="docutils literal notranslate"><span class="pre">RegressionTask</span></code>. In addition to the preceding tasks, Merlin Models provides tasks that are specific to recommender systems: <code class="docutils literal notranslate"><span class="pre">NextItemPredictionTask</span></code>, and <code class="docutils literal notranslate"><span class="pre">ItemRetrievalTask</span></code>.</p>
+<div class="section" id="prediction-output-blocks">
+<h3>Prediction Output Blocks<a class="headerlink" href="#prediction-output-blocks" title="Permalink to this headline"></a></h3>
+<p>Merlin Models provides the base <code class="docutils literal notranslate"><span class="pre">ModelOutput</span></code> block that consists of one head of the model. It comprises a default loss and metrics related to the given prediction task.<br />
+Merlin Models provides these blocks inheriting from <code class="docutils literal notranslate"><span class="pre">ModelOutput</span></code> for ranking models:  <code class="docutils literal notranslate"><span class="pre">BinaryOutput</span></code>, <code class="docutils literal notranslate"><span class="pre">CategoricalOutput</span></code>, and<code class="docutils literal notranslate"><span class="pre">RegressionOutput</span></code>. In addition to the preceding tasks, Merlin Models provides output blocks that are specific to retrieval models: <code class="docutils literal notranslate"><span class="pre">ContrastiveOutput</span></code>, and <code class="docutils literal notranslate"><span class="pre">TopKOutput</span></code>.</p>
 </div>
 </div>
 <div class="section" id="implement-the-dlrm-model-with-movielens-1m-data">
@@ -682,14 +682,14 @@ array([[0.055957  , 0.0198308 , 0.        , ..., 0.01130124, 0.        ,
 <div class="section" id="define-the-prediction-block">
 <h3>Define the Prediction block<a class="headerlink" href="#define-the-prediction-block" title="Permalink to this headline"></a></h3>
 <p>At this stage, we have created the DLRM block that accepts a dictionary of categorical and continuous tensors as input. The output of this block is the interaction representation vector of shape <code class="docutils literal notranslate"><span class="pre">512</span></code>. The next step is to use this hidden representation to conduct a given prediction task. In our case, we use the label <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> and the objective is: to predict if a user <code class="docutils literal notranslate"><span class="pre">A</span></code> will give a high rating to a movie <code class="docutils literal notranslate"><span class="pre">B</span></code> or not.</p>
-<p>We use the <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code> class and evaluate the performances using the <code class="docutils literal notranslate"><span class="pre">AUC</span></code> metric. We also use the <code class="docutils literal notranslate"><span class="pre">LogitsTemperatureScaler</span></code> block as a pre-transformation operation that scales the logits returned by the task before computing the loss and metrics:</p>
+<p>We use the <code class="docutils literal notranslate"><span class="pre">BinaryOutput</span></code> class and evaluate the performances using the <code class="docutils literal notranslate"><span class="pre">AUC</span></code> metric. We also set <code class="docutils literal notranslate"><span class="pre">logits_temperature</span></code> argument to scales the logits returned by the task before computing the loss and metrics.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.bias</span> <span class="kn">import</span> <span class="n">LogitsTemperatureScaler</span>
 
-<span class="n">binary_task</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span>
+<span class="n">binary_task</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">BinaryOutput</span><span class="p">(</span>
     <span class="n">sub_schema</span><span class="p">,</span>
-    <span class="n">pre</span><span class="o">=</span><span class="n">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">logits_temperature</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -784,7 +784,7 @@ WARNING:absl:Found untraced functions such as train_compute_metrics, model_conte
 </div>
 <div class="section" id="conclusion">
 <h2>Conclusion<a class="headerlink" href="#conclusion" title="Permalink to this headline"></a></h2>
-<p>Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, prediction tasks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our <a class="reference external" href="https://nvidia-merlin.github.io/models/main/">documentation</a> to discover more. You can also <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md">contribute</a> to the library by submitting new RecSys architectures and custom building Blocks.</p>
+<p>Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, output blocks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our <a class="reference external" href="https://nvidia-merlin.github.io/models/main/">documentation</a> to discover more. You can also <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md">contribute</a> to the library by submitting new RecSys architectures and custom building Blocks.</p>
 </div>
 <div class="section" id="next-steps">
 <h2>Next steps<a class="headerlink" href="#next-steps" title="Permalink to this headline"></a></h2>
