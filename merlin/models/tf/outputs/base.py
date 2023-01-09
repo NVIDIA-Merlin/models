@@ -245,7 +245,7 @@ class ModelOutput(Layer):
     @classmethod
     def task_name(cls, target_name):
         base_name = to_snake_case(cls.__name__)
-        return name_fn(target_name, base_name)
+        return name_fn(target_name, base_name) if target_name else base_name
 
     @classmethod
     def from_config(cls, config):
