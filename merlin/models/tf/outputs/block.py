@@ -244,12 +244,21 @@ class ColumnBasedSampleWeight(Block):
                 neg_weight,
             )
 
-        if target_name and isinstance(targets, dict) and target_name in targets:
-            # When there are multiple tasks, targets is a dict and it is necessary to select
-            # the corresponding task target to return in Prediction
-            targets = targets[target_name]
+        if isinstance(inputs, Prediction):
+            if inputs.sample_weight is not None:
+                # Allows for multiplicative aggregation of sample weights
+                # (e.g. on different sampleby sample columns)
+                # by cascading multiple ColumnBasedSampleWeight
+                sample_weight = tf.multiply(sample_weight, inputs.sample_weight)
+                inputs = inputs.copy_with_updates(sample_weight=sample_weight)
+            return inputs
+        else:
+            if target_name and isinstance(targets, dict) and target_name in targets:
+                # When there are multiple tasks, targets is a dict and it is necessary to select
+                # the corresponding task target to return in Prediction
+                targets = targets[target_name]
 
-        return Prediction(inputs, targets, sample_weight=sample_weight)
+            return Prediction(inputs, targets, sample_weight=sample_weight)
 
     def compute_output_shape(self, input_shape):
         return input_shape

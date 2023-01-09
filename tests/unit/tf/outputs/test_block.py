@@ -531,15 +531,17 @@ def test_column_based_sample_weight_with_multitask(
             ),
             "like/binary_output": mm.BinaryOutput(
                 "like",
-                post=mm.ColumnBasedSampleWeight(
-                    weight_column_name="click",
+                post=mm.SequentialBlock(
+                    # Cascaded sample weights
+                    mm.ColumnBasedSampleWeight(weight_column_name="click"),
+                    mm.ColumnBasedSampleWeight(
+                        weight_column_name="like", binary_class_weights=(1.0, 5.0)
+                    ),
                 ),
             ),
             "play_percentage/regression_output": mm.RegressionOutput(
                 "play_percentage",
-                post=mm.ColumnBasedSampleWeight(
-                    weight_column_name="click",
-                ),
+                post=mm.ColumnBasedSampleWeight(weight_column_name="click"),
             ),
         },
     )
