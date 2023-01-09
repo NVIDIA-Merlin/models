@@ -500,6 +500,7 @@
     <span class="n">outputs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">ModelOutput</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">ModelOutput</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">negative_samplers</span><span class="p">:</span> <span class="n">ItemSamplersType</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalModelV2</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds the Two-tower architecture, as proposed in [1].</span>
@@ -534,6 +535,8 @@
 <span class="sd">        List of samplers for negative sampling, by default None</span>
 <span class="sd">        If the `outputs` and `negative_samplers` are not specified the two tower model</span>
 <span class="sd">        is trained with contrastive learning and `in-batch` negative sampling strategy.</span>
+<span class="sd">    schema: Schema</span>
+<span class="sd">        A schema with all input features fed to the two-tower model.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -564,6 +567,7 @@
         <span class="n">query</span><span class="o">=</span><span class="n">query_tower</span><span class="p">,</span>
         <span class="n">candidate</span><span class="o">=</span><span class="n">candidate_tower</span><span class="p">,</span>
         <span class="n">output</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span>
+        <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span>
