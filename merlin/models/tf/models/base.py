@@ -53,6 +53,7 @@ from merlin.models.tf.utils.tf_utils import (
     get_sub_blocks,
     maybe_serialize_keras_objects,
 )
+from merlin.models.utils import schema_utils
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -917,6 +918,54 @@ class BaseModel(tf.keras.Model):
                 return_metrics[metric.name] = result
         return return_metrics
 
+    @property
+    def input_schema(self) -> Optional[Schema]:
+        """Get the input schema if it's defined.
+
+        Returns
+        -------
+        Optional[Schema]
+            Schema corresponding to the inputs of the model
+        """
+        schema = getattr(self, "schema", None)
+        if isinstance(schema, Schema) and schema.column_names:
+            return schema
+
+    def _maybe_set_schema(self, maybe_loader):
+        """Try to set the correct schema on the model or loader.
+
+        Parameters
+        ----------
+        maybe_loader : Union[Loader, Any]
+            A Loader object or other valid input data to the model.
+
+        Raises
+        ------
+        ValueError
+            If the dataloader features do not match the model inputs
+            and we're unable to automatically configure the dataloader
+            to return only the required features
+        """
+        if isinstance(maybe_loader, Loader):
+            loader = maybe_loader
+            target_tags = [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
+            if self.input_schema:
+                loader_output_features = set(
+                    loader.output_schema.excluding_by_tag(target_tags).column_names
+                )
+                model_input_features = set(self.input_schema.column_names)
+                schemas_match = loader_output_features == model_input_features
+                loader_is_superset = loader_output_features.issuperset(model_input_features)
+                if not schemas_match and loader_is_superset and not loader.transforms:
+                    # To ensure that the model receives only the features it requires.
+                    loader.input_schema = self.input_schema + loader.input_schema.select_by_tag(
+                        target_tags
+                    )
+            else:
+                # Bind input schema from dataset to model,
+                # to handle the case where this hasn't been set on an input block
+                self.schema = loader.output_schema.excluding_by_tag(target_tags)
+
     def fit(
         self,
         x=None,
@@ -943,10 +992,7 @@ class BaseModel(tf.keras.Model):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
-
-        # Bind schema from dataset to model in case we can't infer it from the inputs
-        if isinstance(x, Loader) and getattr(self, "schema", None) is None:
-            self.schema = x.schema.excluding_by_tag(Tags.TARGET)
+        self._maybe_set_schema(x)
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
@@ -1138,6 +1184,7 @@ class Model(BaseModel):
         context: Optional[ModelContext] = None,
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
+        schema: Optional[Schema] = None,
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
@@ -1155,10 +1202,14 @@ class Model(BaseModel):
         self.context = context
         self._is_fitting = False
 
-        input_block_schemas = [
-            block.schema for block in self.submodules if getattr(block, "is_input", False)
-        ]
-        self.schema = sum(input_block_schemas, Schema())
+        if schema is not None:
+            self.schema = schema
+        else:
+            input_block_schemas = [
+                block.schema for block in self.submodules if getattr(block, "is_input", False)
+            ]
+            self.schema = sum(input_block_schemas, Schema())
+
         self.process_list = ProcessList(self.schema)
         self._frozen_blocks = set()
 
@@ -1205,6 +1256,25 @@ class Model(BaseModel):
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
+            if isinstance(self.input_schema, Schema) and set(inputs.keys()) != set(
+                self.input_schema.column_names
+            ):
+                model_input_features = set(self.input_schema.column_names)
+                call_input_features = set(inputs.keys())
+                raise ValueError(
+                    "Model called with a different set of features "
+                    "compared with the input schema it was configured with. "
+                    "Please check that the inputs passed to the model are only  "
+                    "those required by the model. If you're using a Merlin Dataset, "
+                    "the `schema` property can be changed to control the features being returned. "
+                    f"\nModel input features:\n\t{model_input_features}"
+                    f"\nCall input features:\n\t{call_input_features}"
+                    f"\nFeatures in model only:"
+                    f"\n\t{model_input_features.difference(call_input_features)}"
+                    f"\nFeatures in call only:"
+                    f"\n\t{call_input_features.difference(model_input_features)}"
+                )
+
             _ragged_inputs = ListToRagged()(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
@@ -1355,6 +1425,8 @@ class Model(BaseModel):
     def from_config(cls, config, custom_objects=None):
         pre = config.pop("pre", None)
         post = config.pop("post", None)
+        schema = config.pop("schema", None)
+
         layers = [
             tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
             for conf in config.values()
@@ -1366,10 +1438,14 @@ class Model(BaseModel):
         if post is not None:
             post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
 
-        return cls(*layers, pre=pre, post=post)
+        if schema is not None:
+            schema = schema_utils.tensorflow_metadata_json_to_schema(schema)
+
+        return cls(*layers, pre=pre, post=post, schema=schema)
 
     def get_config(self):
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         for i, layer in enumerate(self.blocks):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
 

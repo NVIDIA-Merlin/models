@@ -342,7 +342,7 @@ def MatrixFactorizationModelV2(
     query_id_tag : Tag
         The tag to select query-id feature, by default `Tags.USER_ID`
     candidate_id_tag : Tag
-        The tag to select cnadidate-id feature, by default `Tags.ITEM_ID`
+        The tag to select candidate-id feature, by default `Tags.ITEM_ID`
     embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]] = None
         An initializer function or a dict where keys are feature names and values are
         callable to initialize embedding tables
@@ -529,7 +529,7 @@ def YoutubeDNNRetrievalModelV2(
     schema: Schema
         The `Schema` with the input features
     candidate_id_tag : Tag
-        The tag to select cnadidate-id feature, by default `Tags.ITEM_ID`
+        The tag to select candidate-id feature, by default `Tags.ITEM_ID`
     top_block: tf.keras.layers.Layer
         The hidden layers to apply on top of the features representation
         vector.
