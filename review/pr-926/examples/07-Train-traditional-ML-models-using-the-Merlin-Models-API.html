@@ -82,20 +82,23 @@
              
   <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2022 NVIDIA Corporation. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions anda
-# limitations under the License.
-# ==============================================================================
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2022 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions anda</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+
+<span class="c1"># Each user is responsible for checking the content of datasets and the</span>
+<span class="c1"># applicable licenses and determining if suitable for the intended use.</span>
 </pre></div>
 </div>
 </div>
@@ -125,11 +128,11 @@
 <h2>Preparing the dataset<a class="headerlink" href="#preparing-the-dataset" title="Permalink to this headline"></a></h2>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.core.utils import Distributed
-from merlin.models.xgb import XGBoost
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.core.utils</span> <span class="kn">import</span> <span class="n">Distributed</span>
+<span class="kn">from</span> <span class="nn">merlin.models.xgb</span> <span class="kn">import</span> <span class="n">XGBoost</span>
 
-from merlin.datasets.entertainment import get_movielens
-from merlin.schema.tags import Tags
+<span class="kn">from</span> <span class="nn">merlin.datasets.entertainment</span> <span class="kn">import</span> <span class="n">get_movielens</span>
+<span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
 </pre></div>
 </div>
 </div>
@@ -137,7 +140,7 @@ from merlin.schema.tags import Tags
 <p>We will use the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> dataset. The dataset consists of <code class="docutils literal notranslate"><span class="pre">userId</span></code> and <code class="docutils literal notranslate"><span class="pre">movieId</span></code> pairings. For each record, a user rates a movie and the record includes additional information such as genre of the movie, age of the user, and so on.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train, valid = get_movielens(variant=&#39;ml-100k&#39;)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s1">&#39;ml-100k&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -154,7 +157,7 @@ from merlin.schema.tags import Tags
 <p>The <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function downloads the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> data for us and returns it materialized as a Merlin <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train, valid
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span>
 </pre></div>
 </div>
 </div>
@@ -170,7 +173,7 @@ from merlin.schema.tags import Tags
 <p>During preprocessing that is performed by the <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function, two columns in the dataset are assigned the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> tag:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema.select_by_tag(Tags.TARGET)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -228,7 +231,7 @@ from merlin.schema.tags import Tags
 <p>Before we begin to train, let us remove the <code class="docutils literal notranslate"><span class="pre">title</span></code> column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it is not useful in training.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema_without_title = train.schema.remove_col(&#39;title&#39;)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema_without_title</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -244,16 +247,16 @@ from merlin.schema.tags import Tags
 <p>The <code class="docutils literal notranslate"><span class="pre">verbose_eval</span></code> parameter specifies how often metrics are reported during training.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>xgb_booster_params = {
-    &#39;objective&#39;:&#39;binary:logistic&#39;,
-    &#39;tree_method&#39;:&#39;gpu_hist&#39;,
-}
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xgb_booster_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;objective&#39;</span><span class="p">:</span><span class="s1">&#39;binary:logistic&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;tree_method&#39;</span><span class="p">:</span><span class="s1">&#39;gpu_hist&#39;</span><span class="p">,</span>
+<span class="p">}</span>
 
-xgb_train_params = {
-    &#39;num_boost_round&#39;: 100,
-    &#39;verbose_eval&#39;: 20,
-    &#39;early_stopping_rounds&#39;: 10,
-}
+<span class="n">xgb_train_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;num_boost_round&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="s1">&#39;verbose_eval&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s1">&#39;early_stopping_rounds&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
@@ -263,14 +266,14 @@ xgb_train_params = {
 <p>Without further ado, let’s train.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>with Distributed():
-    model = XGBoost(schema=schema_without_title, **xgb_booster_params)
-    model.fit(
-        train,
-        evals=[(valid, &#39;validation_set&#39;),],
-        **xgb_train_params
-    )
-    metrics = model.evaluate(valid)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">Distributed</span><span class="p">():</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">XGBoost</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">schema_without_title</span><span class="p">,</span> <span class="o">**</span><span class="n">xgb_booster_params</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+        <span class="n">train</span><span class="p">,</span>
+        <span class="n">evals</span><span class="o">=</span><span class="p">[(</span><span class="n">valid</span><span class="p">,</span> <span class="s1">&#39;validation_set&#39;</span><span class="p">),],</span>
+        <span class="o">**</span><span class="n">xgb_train_params</span>
+    <span class="p">)</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -300,7 +303,7 @@ xgb_train_params = {
 <p>There are two <code class="docutils literal notranslate"><span class="pre">implicit</span></code> models you can train. The <code class="docutils literal notranslate"><span class="pre">AlternatingLeastSquares</span></code> and <code class="docutils literal notranslate"><span class="pre">BayesianPersonalizedRanking</span></code> models. We will train a <code class="docutils literal notranslate"><span class="pre">BayesianPersonalizedRanking</span></code> model</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.implicit import BayesianPersonalizedRanking
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.implicit</span> <span class="kn">import</span> <span class="n">BayesianPersonalizedRanking</span>
 </pre></div>
 </div>
 </div>
@@ -315,16 +318,16 @@ xgb_train_params = {
 <p>Let’s remove the <code class="docutils literal notranslate"><span class="pre">rating</span></code> column from the schema so that only <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> is left.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema = schema_without_title.remove_col(&#39;rating&#39;)
-valid.schema = schema_without_title.remove_col(&#39;rating&#39;)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema_without_title</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;rating&#39;</span><span class="p">)</span>
+<span class="n">valid</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema_without_title</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;rating&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>implicit = BayesianPersonalizedRanking()
-implicit.fit(train)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">implicit</span> <span class="o">=</span> <span class="n">BayesianPersonalizedRanking</span><span class="p">()</span>
+<span class="n">implicit</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -337,7 +340,7 @@ implicit.fit(train)
 <p>Having trained the model, we can now evaluate it.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>implicit_metrics = implicit.evaluate(valid)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">implicit_metrics</span> <span class="o">=</span> <span class="n">implicit</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -350,7 +353,7 @@ implicit.fit(train)
 <p>And last but not least, lets use our trained implicit model to output predictions.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>implicit_preds = implicit.predict(valid)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">implicit_preds</span> <span class="o">=</span> <span class="n">implicit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -362,9 +365,9 @@ implicit.fit(train)
 <p>You can specify what type of model to train on through the use of the <code class="docutils literal notranslate"><span class="pre">loss</span></code> argument. Here we will train with a <code class="docutils literal notranslate"><span class="pre">warp</span></code> loss (Weighted Approximate-Rank Pairwise loss). You can read more about available losses as well as the parameters that can be used for training <a class="reference external" href="https://making.lyst.com/lightfm/docs/lightfm.html">here</a>.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.lightfm import LightFM
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.lightfm</span> <span class="kn">import</span> <span class="n">LightFM</span>
 
-lightfm = LightFM(loss=&#39;warp&#39;)
+<span class="n">lightfm</span> <span class="o">=</span> <span class="n">LightFM</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="s1">&#39;warp&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -372,7 +375,7 @@ lightfm = LightFM(loss=&#39;warp&#39;)
 <p>We can now train our model.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>lightfm.fit(train)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lightfm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -380,7 +383,7 @@ lightfm = LightFM(loss=&#39;warp&#39;)
 <p>Now that the model is trained let’s validate its performance.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>lightfm_metrics = lightfm.evaluate(valid)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lightfm_metrics</span> <span class="o">=</span> <span class="n">lightfm</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -388,7 +391,7 @@ lightfm = LightFM(loss=&#39;warp&#39;)
 <p>We can now use the model to predict on our data.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>lightfm_preds = lightfm.predict(valid)
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lightfm_preds</span> <span class="o">=</span> <span class="n">lightfm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
