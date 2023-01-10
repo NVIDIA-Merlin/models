@@ -527,7 +527,6 @@ def test_column_based_sample_weight_with_multitask(
             "click/binary_output": mm.BinaryOutput(
                 "click",
                 post=mm.ColumnBasedSampleWeight(
-                    weight_column_name="click",
                     binary_class_weights=(1.0, 10.0),
                 ),
             ),

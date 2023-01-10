@@ -83,7 +83,7 @@ def OutputBlock(
 
     con = _get_col_set_by_tags(targets_schema, [Tags.CONTINUOUS, Tags.REGRESSION])
     cat = _get_col_set_by_tags(targets_schema, [Tags.CATEGORICAL, Tags.MULTI_CLASS_CLASSIFICATION])
-    bin = _get_col_set_by_tags(targets_schema, [Tags.BINARY_CLASSIFICATION, "binary"])
+    bin = _get_col_set_by_tags(targets_schema, [Tags.BINARY_CLASSIFICATION, Tags.BINARY])
 
     outputs = {}
     if model_outputs is not None:
@@ -198,11 +198,13 @@ class ColumnBasedSampleWeight(Block):
 
     Parameters
     ----------
-    weight_column_name : str
+    weight_column_name : Optional[str]
         The column name to be used as weight. If should be present
         in the schema either as an input feature (i.e., tagged as
         Tags.CONTINUOUS or Tags.CATEGORICAL) or target feature
-        (i.e., tagged as Tags.TARGET)
+        (i.e., tagged as Tags.TARGET). It is optional if
+        binary_class_weights is set (assuming the target column
+        will be used as weight column in that case).
     binary_class_weights : Optional[Tuple[float, float]], optional
         If provided, it allows setting the weights to which negative (0)
         and positive values (1) of weight column should be converted
@@ -212,12 +214,18 @@ class ColumnBasedSampleWeight(Block):
 
     def __init__(
         self,
-        weight_column_name: str,
+        weight_column_name: str = None,
         binary_class_weights: Optional[Tuple[float, float]] = None,
         **kwargs,
     ):
+        if binary_class_weights is None and weight_column_name is None:
+            raise ValueError(
+                "The weight_column_name is required if " "binary_class_weights is not set."
+            )
+
         self.weight_column_name = weight_column_name
         self.binary_class_weights = binary_class_weights
+
         super().__init__(**kwargs)
 
     def call(
@@ -234,27 +242,31 @@ class ColumnBasedSampleWeight(Block):
             return inputs
 
         sample_weight = None
-        if targets is not None and self.weight_column_name in targets:
-            sample_weight = targets[self.weight_column_name]
-        elif features is not None and self.weight_column_name in features:
-            sample_weight = features[self.weight_column_name]
-        else:
-            raise ValueError(
-                f"Not able to find the weight_column_name"
-                f"{self.weight_column_name} among "
-                "features and targets"
-            )
 
-        sample_weight = tf.cast(sample_weight, tf.float32)
+        if self.weight_column_name is not None:
+            if targets is not None and self.weight_column_name in targets:
+                sample_weight = targets[self.weight_column_name]
+            elif features is not None and self.weight_column_name in features:
+                sample_weight = features[self.weight_column_name]
+            else:
+                raise ValueError(
+                    f"Not able to find the weight_column_name"
+                    f"{self.weight_column_name} among "
+                    "features and targets"
+                )
 
-        # If the sample weight is a binary column
+            sample_weight = tf.cast(sample_weight, tf.float32)
+
+        # If binary class weights are provided
         if self.binary_class_weights is not None:
             (neg_weight, pos_weight) = self.binary_class_weights
-            sample_weight = tf.where(
-                sample_weight == 1,
-                pos_weight,
-                neg_weight,
-            )
+
+            if self.weight_column_name is None:
+                # If weight column is not provided, assumes the target column should
+                # be used
+                sample_weight = targets[target_name]
+
+            sample_weight = tf.where(sample_weight == 1, pos_weight, neg_weight)
 
         if isinstance(inputs, Prediction):
             if inputs.sample_weight is not None:
