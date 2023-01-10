@@ -22,6 +22,16 @@ from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 from merlin.models.tf.utils import testing_utils
 
 
+def _CustomBinaryPrediction(name, **kwargs):
+    return mm.ModelOutput(
+        tf.keras.layers.Dense(1, activation="sigmoid"),
+        default_loss="binary_crossentropy",
+        default_metrics_fn=lambda: (tf.keras.metrics.Precision(name="precision"),),
+        target=name,
+        **kwargs
+    )
+
+
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
@@ -45,42 +55,24 @@ def test_logits_scaler(ecommerce_data: Dataset):
     from tensorflow.keras.utils import set_random_seed
 
     set_random_seed(42)
-    logits_temperature = 0.5
-    model_1 = mm.Model(
-        mm.InputBlockV2(ecommerce_data.schema),
-        mm.MLPBlock([8]),
-        mm.BinaryOutput("click", logits_temperature=logits_temperature),
-    )
-
-    inputs = mm.sample_batch(ecommerce_data, batch_size=10, include_targets=False)
-    prediction_1 = model_1(inputs)
-
-    model_1.blocks[-1].post = LogitsTemperatureScaler(logits_temperature)
-    model_1.blocks[-1].logits_temperature = 1
-    prediction_2 = model_1(inputs)
-
-    assert np.allclose(prediction_1.numpy(), prediction_2.numpy())
-
-
-def test_logits_scaler_v2(ecommerce_data: Dataset):
-    import numpy as np
-    from tensorflow.keras.utils import set_random_seed
-
-    set_random_seed(42)
-    logits_temperature = 0.5
+    logits_temperature = 2.0
     model = mm.Model(
         mm.InputBlockV2(ecommerce_data.schema),
         mm.MLPBlock([8]),
-        mm.BinaryOutput("click", logits_temperature=logits_temperature),
+        mm.BinaryOutput(
+            "click",
+            to_call=tf.keras.layers.Dense(1, activation=None),
+            logits_temperature=logits_temperature,
+        ),
     )
 
     inputs = mm.sample_batch(ecommerce_data, batch_size=10, include_targets=False)
-    prediction_1 = model(inputs)
+    prediction_1 = model(inputs, testing=True)
 
     model.last.logits_scaler = LogitsTemperatureScaler(temperature=1)
-    prediction_2 = model(inputs)
+    prediction_2 = model(inputs, testing=True)
 
-    assert np.allclose(prediction_1.numpy(), prediction_2.numpy() / 0.5)
+    assert np.allclose(prediction_1.outputs.numpy(), prediction_2.outputs.numpy() / 2.0)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -100,20 +92,16 @@ def test_parallel_outputs(ecommerce_data: Dataset, run_eagerly):
         [
             "loss",
             "loss_batch",
-            "click/model_output_loss",
-            "conversion/model_output_loss",
-            "click/model_output/precision",
-            "conversion/model_output/precision",
             "regularization_loss",
+            "click/binary_output_loss",
+            "click/binary_output/auc",
+            "click/binary_output/recall",
+            "click/binary_output/precision",
+            "click/binary_output/binary_accuracy",
+            "conversion/binary_output/recall",
+            "conversion/binary_output/auc",
+            "conversion/binary_output/precision",
+            "conversion/binary_output/binary_accuracy",
+            "conversion/binary_output_loss",
         ]
-    )
-
-
-def _CustomBinaryPrediction(name, **kwargs):
-    return mm.ModelOutput(
-        tf.keras.layers.Dense(1, activation="sigmoid"),
-        default_loss="binary_crossentropy",
-        default_metrics_fn=lambda: (tf.keras.metrics.Precision(name="precision"),),
-        target=name,
-        **kwargs
     )
