@@ -19,6 +19,7 @@ def test_usecase_incremental_training_layer_freezing(tb):
         """
         import os
         os.environ["NUM_ROWS"] = "1000"
+        os.environ["BATCH_SIZE"] = "256"
         """
     )
     tb.execute()
