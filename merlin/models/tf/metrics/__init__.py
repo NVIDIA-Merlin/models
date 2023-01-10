@@ -17,10 +17,10 @@ metrics_registry.register_with_multiple_names("recall")(
 metrics_registry.register_with_multiple_names("binary_accuracy")(
     partial(tf.keras.metrics.BinaryAccuracy, name="binary_accuracy")
 )
-metrics_registry.register_with_multiple_names("mean_squared_error")(
+metrics_registry.register_with_multiple_names("mean_squared_error", "mse")(
     partial(tf.keras.metrics.MeanSquaredError, name="mean_squared_error")
 )
-metrics_registry.register_with_multiple_names("root_mean_squared_error")(
+metrics_registry.register_with_multiple_names("root_mean_squared_error", "rmse")(
     partial(tf.keras.metrics.RootMeanSquaredError, name="root_mean_squared_error")
 )
 
