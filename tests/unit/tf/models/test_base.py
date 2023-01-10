@@ -25,10 +25,36 @@ from tensorflow.test import TestCase
 import merlin.models.tf as mm
 from merlin.core.dispatch import make_df
 from merlin.datasets.synthetic import generate_data
-from merlin.io import Dataset
+from merlin.io.dataset import Dataset
+from merlin.models.tf.models.base import get_output_schema
 from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
+
+
+class TestGetOutputSchema:
+    def test_scalar(self, tmpdir):
+        inputs = tf.keras.Input(shape=(1), name="my_input")
+        outputs = tf.keras.layers.Dense(1, name="my_output")(inputs)
+        model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
+        _ = model({"my_input": tf.constant([[1]])})
+        model.save(tmpdir)
+        output_schema = get_output_schema(tmpdir)
+        output_col = output_schema["my_output"]
+        assert output_col.is_list is False
+        assert output_col.is_ragged is False
+
+    def test_fixed_list(self, tmpdir):
+        inputs = tf.keras.Input(shape=(1), name="my_input")
+        outputs = tf.keras.layers.Dense(4, name="my_output")(inputs)
+        model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
+        _ = model({"my_input": tf.constant([[1]])})
+        model.save(tmpdir)
+        output_schema = get_output_schema(tmpdir)
+        output_col = output_schema["my_output"]
+        assert output_col.value_count.min == output_col.value_count.max == 4
+        assert output_col.is_list is True
+        assert output_col.is_ragged is False
 
 
 @pytest.mark.parametrize("run_eagerly", [False])

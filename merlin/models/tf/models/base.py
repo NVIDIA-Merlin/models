@@ -112,11 +112,15 @@ def get_output_schema(export_path: str) -> Schema:
         shape = output_spec.shape
         if shape.rank > 1 and (shape[1] is None or shape[1] > 1):
             is_ragged = shape[1] is None
+            properties = {}
+            if not is_ragged:
+                properties["value_count"] = {"min": shape[1], "max": shape[1]}
             col_schema = ColumnSchema(
                 output_name,
                 dtype=output_spec.dtype.as_numpy_dtype,
                 is_list=True,
                 is_ragged=is_ragged,
+                properties=properties,
             )
         output_schema.column_schemas[output_name] = col_schema
 
