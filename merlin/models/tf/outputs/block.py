@@ -220,7 +220,19 @@ class ColumnBasedSampleWeight(Block):
         self.binary_class_weights = binary_class_weights
         super().__init__(**kwargs)
 
-    def call(self, inputs, features=None, targets=None, target_name=None, **kwargs) -> Prediction:
+    def call(
+        self,
+        inputs,
+        features=None,
+        targets=None,
+        training=False,
+        testing=False,
+        target_name=None,
+        **kwargs,
+    ) -> Union[Prediction, tf.Tensor]:
+        if not (training or testing):
+            return inputs
+
         sample_weight = None
         if targets is not None and self.weight_column_name in targets:
             sample_weight = targets[self.weight_column_name]
