@@ -149,11 +149,11 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2023-01-10 00:23:48.109739: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2023-01-10 00:23:50.289263: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2023-01-10 12:07:22.054533: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2023-01-10 12:07:24.185109: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2023-01-10 00:23:52.442509: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
-2023-01-10 00:23:52.443662: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 30625 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
+2023-01-10 12:07:26.250320: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2023-01-10 12:07:26.251401: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 30625 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
 </pre></div>
 </div>
 </div>
@@ -178,17 +178,23 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 <div class="section" id="training-the-dlrm-model-with-merlin-models">
 <h2>Training the DLRM Model with Merlin Models<a class="headerlink" href="#training-the-dlrm-model-with-merlin-models" title="Permalink to this headline"></a></h2>
-<p>We define the DLRM model, whose prediction task is a binary classification. From the <code class="docutils literal notranslate"><span class="pre">schema</span></code>, the categorical features are identified (and embedded) and the target columns (<code class="docutils literal notranslate"><span class="pre">rating</span></code> and <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code>) are also automatically inferred, because of the schema tags.<br />
-You can replace <code class="docutils literal notranslate"><span class="pre">OutputBlock(schema)</span></code> by <code class="docutils literal notranslate"><span class="pre">BinaryOutput(&quot;rating_binary&quot;)</span></code> to specify a single specific task.
-We talk more about the schema in the next <a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc std std-doc">example notebook (02)</span></a>,</p>
+<p>We define the DLRM model, whose prediction task is a binary classification. From the <code class="docutils literal notranslate"><span class="pre">schema</span></code>, the categorical features are identified (and embedded) and the target columns are also automatically inferred, because of the schema tags. We talk more about the schema in the next <a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc std std-doc">example notebook (02)</span></a>,</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ignoring the rating regression target column, to keep only the rating_binary target column for prediction</span>
+<span class="n">schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">without</span><span class="p">([</span><span class="s1">&#39;rating&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
-    <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+    <span class="n">schema</span><span class="p">,</span>
     <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
     <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
     <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
-    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">OutputBlock</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">OutputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">),</span>
 <span class="p">)</span>
 
 <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
@@ -204,10 +210,10 @@ We talk more about the schema in the next <a class="reference internal" href="02
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>782/782 [==============================] - 21s 22ms/step - loss: 1.6531 - rating/regression_output_loss: 1.0900 - rating_binary/binary_output_loss: 0.5631 - rating/regression_output/root_mean_squared_error: 1.0440 - rating_binary/binary_output/precision: 0.6993 - rating_binary/binary_output/recall: 0.8420 - rating_binary/binary_output/binary_accuracy: 0.7007 - rating_binary/binary_output/auc: 0.7681 - regularization_loss: 0.0000e+00 - loss_batch: 1.6524
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>782/782 [==============================] - 19s 20ms/step - loss: 0.5407 - precision: 0.7333 - recall: 0.8212 - binary_accuracy: 0.7252 - auc: 0.7903 - regularization_loss: 0.0000e+00 - loss_batch: 0.5407
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f305cafa940&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f2772a828e0&gt;
 </pre></div>
 </div>
 </div>
@@ -226,7 +232,7 @@ We talk more about the schema in the next <a class="reference internal" href="02
   warnings.warn(
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 3s 14ms/step - loss: 1.3278 - rating/regression_output_loss: 0.8013 - rating_binary/binary_output_loss: 0.5265 - rating/regression_output/root_mean_squared_error: 0.8951 - rating_binary/binary_output/precision: 0.7441 - rating_binary/binary_output/recall: 0.8211 - rating_binary/binary_output/binary_accuracy: 0.7355 - rating_binary/binary_output/auc: 0.8050 - regularization_loss: 0.0000e+00 - loss_batch: 1.3285
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 3s 13ms/step - loss: 0.5254 - precision: 0.7435 - recall: 0.8228 - binary_accuracy: 0.7356 - auc: 0.8056 - regularization_loss: 0.0000e+00 - loss_batch: 0.5255
 </pre></div>
 </div>
 </div>
@@ -240,16 +246,13 @@ You can see from the list below that default metrics are provided – Precision,
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 1.3277523517608643,
- &#39;rating/regression_output_loss&#39;: 0.8012871146202087,
- &#39;rating_binary/binary_output_loss&#39;: 0.5264649391174316,
- &#39;rating/regression_output/root_mean_squared_error&#39;: 0.8951464295387268,
- &#39;rating_binary/binary_output/precision&#39;: 0.7441461682319641,
- &#39;rating_binary/binary_output/recall&#39;: 0.8211178779602051,
- &#39;rating_binary/binary_output/binary_accuracy&#39;: 0.735514223575592,
- &#39;rating_binary/binary_output/auc&#39;: 0.8049782514572144,
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.5254488587379456,
+ &#39;precision&#39;: 0.7434586882591248,
+ &#39;recall&#39;: 0.8228089809417725,
+ &#39;binary_accuracy&#39;: 0.7355642318725586,
+ &#39;auc&#39;: 0.8055890202522278,
  &#39;regularization_loss&#39;: 0.0,
- &#39;loss_batch&#39;: 1.4154810905456543}
+ &#39;loss_batch&#39;: 0.5332178473472595}
 </pre></div>
 </div>
 </div>
@@ -259,11 +262,11 @@ You can see from the list below that default metrics are provided – Precision,
 <h2>Conclusion<a class="headerlink" href="#conclusion" title="Permalink to this headline"></a></h2>
 <p>Merlin Models enables users to define and train a deep learning recommeder model with only 3 commands.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
-    <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+    <span class="n">schema</span><span class="p">,</span>
     <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
     <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
     <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
-    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">OutputBlock</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">OutputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
 <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
