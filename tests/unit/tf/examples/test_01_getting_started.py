@@ -43,13 +43,10 @@ def test_example_01_getting_started(tb):
     assert set(metrics.keys()) == set(
         [
             "loss",
-            "rating/regression_output_loss",
-            "rating_binary/binary_output_loss",
-            "rating/regression_output/root_mean_squared_error",
-            "rating_binary/binary_output/precision",
-            "rating_binary/binary_output/recall",
-            "rating_binary/binary_output/binary_accuracy",
-            "rating_binary/binary_output/auc",
+            "precision",
+            "recall",
+            "binary_accuracy",
+            "auc",
             "regularization_loss",
             "loss_batch",
         ]
