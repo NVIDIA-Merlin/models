@@ -92,12 +92,16 @@ def test_fit_compile_twice():
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
+@pytest.mark.parametrize(
+    "prediction_block",
+    [None, mm.BinaryOutput("click"), mm.BinaryClassificationTask("click")],
+)
+def test_model_from_block(ecommerce_data: Dataset, run_eagerly, prediction_block):
     embedding_options = mm.EmbeddingOptions(embedding_dim_default=2)
     model = mm.Model.from_block(
         mm.MLPBlock([4]),
         ecommerce_data.schema,
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=prediction_block,
         embedding_options=embedding_options,
     )
 

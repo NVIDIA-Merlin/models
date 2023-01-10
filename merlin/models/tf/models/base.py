@@ -46,8 +46,8 @@ from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics import metrics_registry
 from merlin.models.tf.metrics.evaluation import MetricType
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
-from merlin.models.tf.models.utils import parse_prediction_tasks
-from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.models.utils import parse_prediction_blocks
+from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.tensor import ListToRagged, ProcessList
@@ -1522,7 +1522,12 @@ class Model(BaseModel):
         schema: Schema,
         input_block: Optional[Block] = None,
         prediction_tasks: Optional[
-            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
+            Union[
+                "PredictionTask",
+                List["PredictionTask"],
+                "ParallelPredictionBlock",
+                "ModelOutputType",
+            ]
         ] = None,
         aggregation="concat",
         **kwargs,
@@ -1537,10 +1542,11 @@ class Model(BaseModel):
             Schema to use for the model.
         input_block: Optional[Block]
             Block to use as input.
-        prediction_tasks: Optional[
-            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
-        ]
-            Prediction tasks to use.
+        prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],
+                                ParallelPredictionBlock,ModelOutputType]
+        The prediction tasks to be used, by default this will be inferred from the Schema.
+        For custom prediction tasks we recommending using OutputBlock and blocks based
+        on ModelOutput than the ones based in PredictionTask (that will be deprecated).
         """
         if isinstance(block, SequentialBlock) and is_input_block(block.first):
             if input_block is not None:
@@ -1549,7 +1555,7 @@ class Model(BaseModel):
 
         _input_block: Block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
 
-        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+        prediction_tasks = parse_prediction_blocks(schema, prediction_tasks)
 
         return cls(_input_block, block, prediction_tasks)
 

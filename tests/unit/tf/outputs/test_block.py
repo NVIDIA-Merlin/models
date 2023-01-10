@@ -32,7 +32,9 @@ def test_model_output(ecommerce_data: Dataset, run_eagerly: bool, use_output_blo
     if use_output_block:
         output_block = mm.OutputBlock(ecommerce_data.schema)
     else:
-        output_block = mm.ParallelBlock(mm.BinaryOutput("click"), mm.BinaryOutput("conversion"))
+        output_block = mm.ParallelBlock(
+            mm.BinaryOutput("click"), mm.BinaryOutput("conversion", logits_temperature=2.0)
+        )
 
     model = mm.Model(
         mm.InputBlockV2(ecommerce_data.schema),

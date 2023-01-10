@@ -143,6 +143,8 @@ class ModelOutput(Layer):
         if getattr(self, "logits_scaler", None):
             if isinstance(outputs, tf.Tensor):
                 targets = kwargs.pop("targets", None)
+                if isinstance(targets, dict) and self.target in targets:
+                    targets = targets[self.target]
                 outputs = Prediction(outputs, targets)
             outputs = self.logits_scaler(outputs)
 
