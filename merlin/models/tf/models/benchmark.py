@@ -23,7 +23,8 @@ from merlin.models.tf.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.models.utils import parse_prediction_tasks
+from merlin.models.tf.models.utils import parse_prediction_blocks
+from merlin.models.tf.outputs.base import ModelOutputType
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.schema import Schema
 
@@ -33,7 +34,12 @@ def NCFModel(
     embedding_dim: int,
     mlp_block: Block,
     prediction_tasks: Optional[
-        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        Union[
+            PredictionTask,
+            List[PredictionTask],
+            ParallelPredictionBlock,
+            ModelOutputType,
+        ]
     ] = None,
     embeddings_l2_reg: float = 0.0,
     **kwargs,
@@ -67,8 +73,11 @@ def NCFModel(
         Dimension of the embeddings
     mlp_block : MLPBlock
         Stack of MLP layers to learn non-linear interactions from data.
-    prediction_tasks: optional
+    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],
+                                ParallelPredictionBlock,ModelOutputType]
         The prediction tasks to be used, by default this will be inferred from the Schema.
+        For custom prediction tasks we recommending using OutputBlock and blocks based
+        on ModelOutput than the ones based in PredictionTask (that will be deprecated).
     embeddings_l2_reg: float = 0.0
         Factor for L2 regularization of the embeddings vectors (from the current batch only)
     Returns
@@ -90,7 +99,8 @@ def NCFModel(
 
     ncf = ParallelBlock({"mf": mf_branch, "mlp": mlp_branch}, aggregation="concat")
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    model = Model(ncf, prediction_tasks)
+    prediction_blocks = parse_prediction_blocks(schema, prediction_tasks)
+
+    model = Model(ncf, prediction_blocks)
 
     return model

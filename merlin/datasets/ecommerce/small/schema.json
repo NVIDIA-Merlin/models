@@ -420,11 +420,14 @@
       "name": "click",
       "type": "INT",
       "intDomain": {
-        "name": "click"
+        "name": "click",
+        "min": 0,
+        "max": 1
       },
       "annotation": {
         "tag": [
           "binary_classification",
+          "categorical",
           "target"
         ]
       }
@@ -438,6 +441,8 @@
       "annotation": {
         "tag": [
           "binary_classification",
+          "categorical",
+          "binary",
           "target"
         ]
       }

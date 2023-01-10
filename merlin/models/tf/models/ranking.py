@@ -11,7 +11,8 @@ from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.models.utils import parse_prediction_tasks
+from merlin.models.tf.models.utils import parse_prediction_blocks
+from merlin.models.tf.outputs.base import ModelOutputType
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.features import CategoryEncoding
 from merlin.schema import Schema, Tags
@@ -26,7 +27,12 @@ def DLRMModel(
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
     prediction_tasks: Optional[
-        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        Union[
+            PredictionTask,
+            List[PredictionTask],
+            ParallelPredictionBlock,
+            ModelOutputType,
+        ]
     ] = None,
 ) -> Model:
     """DLRM-model architecture.
@@ -57,8 +63,11 @@ def DLRMModel(
     top_block : Optional[Block], optional
         The optional `Block` that combines the outputs of bottom layer and of
         the factorization machine layer, by default None
-    prediction_tasks: optional
+    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],
+                                ParallelPredictionBlock,ModelOutputType]
         The prediction tasks to be used, by default this will be inferred from the Schema.
+        For custom prediction tasks we recommending using OutputBlock and blocks based
+        on ModelOutput than the ones based in PredictionTask (that will be deprecated).
 
     Returns
     -------
@@ -66,7 +75,7 @@ def DLRMModel(
 
     """
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+    prediction_blocks = parse_prediction_blocks(schema, prediction_tasks)
 
     dlrm_body = DLRMBlock(
         schema,
@@ -76,7 +85,7 @@ def DLRMModel(
         bottom_block=bottom_block,
         top_block=top_block,
     )
-    model = Model(dlrm_body, prediction_tasks)
+    model = Model(dlrm_body, prediction_blocks)
 
     return model
 
@@ -88,7 +97,12 @@ def DCNModel(
     stacked=True,
     input_block: Optional[Block] = None,
     prediction_tasks: Optional[
-        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        Union[
+            PredictionTask,
+            List[PredictionTask],
+            ParallelPredictionBlock,
+            ModelOutputType,
+        ]
     ] = None,
     **kwargs,
 ) -> Model:
@@ -123,8 +137,11 @@ def DCNModel(
         based on the schema. The embedding dimensions are inferred from the features
         cardinality. For a custom representation of input data you can instantiate
         and provide an `InputBlockV2` instance.
-    prediction_tasks: optional
+    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],
+                                ParallelPredictionBlock,ModelOutputType]
         The prediction tasks to be used, by default this will be inferred from the Schema.
+        For custom prediction tasks we recommending using OutputBlock and blocks based
+        on ModelOutput than the ones based in PredictionTask (that will be deprecated).
 
     Returns
     -------
@@ -138,13 +155,13 @@ def DCNModel(
     """
 
     input_block = input_block or InputBlockV2(schema, **kwargs)
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+    prediction_blocks = parse_prediction_blocks(schema, prediction_tasks)
     if stacked:
         dcn_body = input_block.connect(CrossBlock(depth), deep_block)
     else:
         dcn_body = input_block.connect_branch(CrossBlock(depth), deep_block, aggregation="concat")
 
-    model = Model(dcn_body, prediction_tasks)
+    model = Model(dcn_body, prediction_blocks)
 
     return model
 
@@ -158,7 +175,12 @@ def DeepFMModel(
     wide_logit_block: Optional[Block] = None,
     deep_logit_block: Optional[Block] = None,
     prediction_tasks: Optional[
-        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        Union[
+            PredictionTask,
+            List[PredictionTask],
+            ParallelPredictionBlock,
+            ModelOutputType,
+        ]
     ] = None,
     **kwargs,
 ) -> Model:
@@ -209,9 +231,11 @@ def DeepFMModel(
         You might want to provide your own output logit block if you want to add
         dropout or kernel regularization to the wide block.
 
-    prediction_tasks: optional
+    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],
+                                ParallelPredictionBlock,ModelOutputType]
         The prediction tasks to be used, by default this will be inferred from the Schema.
-        Defaults to None
+        For custom prediction tasks we recommending using OutputBlock and blocks based
+        on ModelOutput than the ones based in PredictionTask (that will be deprecated).
     Returns
     -------
     Model
@@ -240,8 +264,8 @@ def DeepFMModel(
 
     deep_fm = ParallelBlock({"fm": fm_tower, "deep": deep_tower}, aggregation="element-wise-sum")
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    model = Model(deep_fm, prediction_tasks)
+    prediction_blocks = parse_prediction_blocks(schema, prediction_tasks)
+    model = Model(deep_fm, prediction_blocks)
 
     return model
 
@@ -259,7 +283,7 @@ def WideAndDeepModel(
     deep_dropout: Optional[float] = None,
     wide_dropout: Optional[float] = None,
     prediction_tasks: Optional[
-        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock, ModelOutputType]
     ] = None,
     **wide_body_kwargs,
 ) -> Model:
@@ -282,7 +306,7 @@ def WideAndDeepModel(
             deep_block=ml.MLPBlock([32, 16]),
             wide_schema=wide_schema,
             deep_schema=deep_schema,
-            prediction_tasks=ml.BinaryClassificationTask("click"),
+            prediction_tasks=ml.BinaryOutput("click"),
         )
         wide_deep.compile(optimizer="adam")
         wide_deep.fit(train_data, epochs=10)
@@ -297,7 +321,7 @@ def WideAndDeepModel(
             wide_schema=wide_schema,
             wide_preprocess=ml.CategoryEncoding(wide_schema, output_mode="multi_hot", sparse=True),
             deep_block=ml.MLPBlock([32, 16]),
-            prediction_tasks=ml.BinaryClassificationTask("click"),
+            prediction_tasks=ml.BinaryOutput("click"),
         )
         ```
 
@@ -318,7 +342,7 @@ def WideAndDeepModel(
                 aggregation="concat",
             ),
             deep_block=ml.MLPBlock([31, 16]),
-            prediction_tasks=ml.BinaryClassificationTask("click"),
+            prediction_tasks=ml.BinaryOutput("click"),
         )
         ```
 
@@ -400,7 +424,7 @@ def WideAndDeepModel(
                 aggregation="concat",
             ),
             deep_block=ml.MLPBlock([32, 16]),
-            prediction_tasks=ml.BinaryClassificationTask("click"),
+            prediction_tasks=ml.BinaryOutput("click"),
         )
         ```
 
@@ -461,8 +485,11 @@ def WideAndDeepModel(
         The dropout to be used by the last layer of deep part. Defaults to None.
     wide_dropout: Optional[float]
         The dropout to be used by the last layer of wide part. Defaults to None.
-    prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],
+                                ParallelPredictionBlock,ModelOutputType]
         The prediction tasks to be used, by default this will be inferred from the Schema.
+        For custom prediction tasks we recommending using OutputBlock and blocks based
+        on ModelOutput than the ones based in PredictionTask (that will be deprecated).
 
     Returns
     -------
@@ -470,7 +497,7 @@ def WideAndDeepModel(
 
     """
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+    prediction_blocks = parse_prediction_blocks(schema, prediction_tasks)
 
     if not wide_schema:
         warnings.warn("If not specify wide_schema, NO feature would be sent to wide model")
@@ -527,6 +554,6 @@ def WideAndDeepModel(
         )
 
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
-    model = Model(wide_and_deep_body, prediction_tasks)
+    model = Model(wide_and_deep_body, prediction_blocks)
 
     return model
