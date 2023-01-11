@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from functools import partial
 from typing import Optional, Union
 
 import tensorflow as tf
@@ -49,10 +50,10 @@ class BinaryClassificationTask(PredictionTask):
 
     # Default metrics to use
     DEFAULT_METRICS = (
-        tf.keras.metrics.Precision,
-        tf.keras.metrics.Recall,
-        tf.keras.metrics.BinaryAccuracy,
-        tf.keras.metrics.AUC,
+        partial(tf.keras.metrics.Precision, name="precision"),
+        partial(tf.keras.metrics.Recall, name="recall"),
+        partial(tf.keras.metrics.BinaryAccuracy, name="binary_accuracy"),
+        partial(tf.keras.metrics.AUC, name="auc"),
     )
 
     def __init__(
@@ -181,7 +182,7 @@ class MultiClassClassificationTask(PredictionTask):
     """
 
     DEFAULT_LOSS = "categorical_crossentropy"
-    DEFAULT_METRICS: MetricOrMetrics = (tf.keras.metrics.Accuracy,)
+    DEFAULT_METRICS: MetricOrMetrics = (partial(tf.keras.metrics.Accuracy, name="accuracy"),)
 
     def __init__(
         self,

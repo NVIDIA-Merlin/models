@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from functools import partial
 from typing import Optional, Union
 
 import tensorflow as tf
@@ -44,7 +45,7 @@ class RegressionTask(PredictionTask):
     """
 
     DEFAULT_LOSS = "mse"
-    DEFAULT_METRICS = (tf.keras.metrics.RootMeanSquaredError,)
+    DEFAULT_METRICS = (partial(tf.keras.metrics.RootMeanSquaredError, "root_mean_squared_error"),)
 
     def __init__(
         self,
