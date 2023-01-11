@@ -34,6 +34,5 @@ def test_next_item_prediction(tb):
     tb.cells[4].source = tb.cells[4].source.replace(
         "read_csv('/workspace/data/train_set.csv'", "read_csv('/tmp/train_set.csv'"
     )
-    tb.cells[28].source = tb.cells[28].source.replace("d_model=64", "d_model=40")
     tb.cells[30].source = tb.cells[30].source.replace("epochs=5", "epochs=1")
     tb.execute()
