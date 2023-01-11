@@ -75,6 +75,7 @@ from merlin.models.tf.core.combinators import (
     SequentialBlock,
 )
 from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder, TopKEncoder
+from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -110,6 +111,7 @@ from merlin.models.tf.models.retrieval import (
     YoutubeDNNRetrievalModelV2,
 )
 from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.outputs.block import ColumnBasedSampleWeight, OutputBlock
 from merlin.models.tf.outputs.classification import BinaryOutput, CategoricalOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.outputs.regression import RegressionOutput
@@ -239,6 +241,8 @@ __all__ = [
     "FMBlock",
     "ToOneHot",
     "ModelOutput",
+    "OutputBlock",
+    "ColumnBasedSampleWeight",
     "BinaryOutput",
     "RegressionOutput",
     "CategoricalOutput",
@@ -297,4 +301,5 @@ __all__ = [
     "SequenceMaskLast",
     "SequenceMaskRandom",
     "ReplaceMaskedEmbeddings",
+    "Prediction",
 ]

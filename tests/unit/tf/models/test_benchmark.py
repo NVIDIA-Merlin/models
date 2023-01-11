@@ -16,18 +16,21 @@
 #
 import pytest
 
-import merlin.models.tf as ml
+import merlin.models.tf as mm
 from merlin.models.tf.utils import testing_utils
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_ncf_model(ecommerce_data, run_eagerly):
+@pytest.mark.parametrize(
+    "prediction_blocks", [None, mm.BinaryOutput("click"), mm.BinaryClassificationTask("click")]
+)
+def test_ncf_model(ecommerce_data, run_eagerly, prediction_blocks):
     ecommerce_data.schema = ecommerce_data.schema.select_by_name(["user_id", "item_id", "click"])
-    model = ml.benchmark.NCFModel(
+    model = mm.benchmark.NCFModel(
         ecommerce_data.schema,
         embedding_dim=2,
-        mlp_block=ml.MLPBlock([2]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        mlp_block=mm.MLPBlock([2]),
+        prediction_tasks=prediction_blocks,
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)

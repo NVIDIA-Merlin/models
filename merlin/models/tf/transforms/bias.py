@@ -42,21 +42,22 @@ class LogitsTemperatureScaler(Block):
         self.temperature = temperature
 
     def call(
-        self, outputs: Union[Prediction, PredictionOutput], training=False, **kwargs
+        self, outputs: Union[Prediction, PredictionOutput], training=False, testing=False, **kwargs
     ) -> Union[tf.Tensor, Prediction]:
-        if isinstance(outputs, Prediction):
+        if (training or testing) and isinstance(outputs, Prediction):
             predictions = self.apply_temperature(outputs.predictions)
             return outputs.copy_with_updates(outputs=predictions)
         else:
             return outputs
 
     def call_outputs(
-        self, outputs: PredictionOutput, training=True, **kwargs
+        self, outputs: PredictionOutput, training=False, testing=False, **kwargs
     ) -> "PredictionOutput":
-        targets, predictions = outputs.targets, outputs.predictions
-        predictions = self.apply_temperature(predictions)
-
-        return outputs.copy_with_updates(predictions=predictions, targets=targets)
+        if (training or testing) and isinstance(outputs, Prediction):
+            predictions = self.apply_temperature(outputs.predictions)
+            return outputs.copy_with_updates(predictions=predictions)
+        else:
+            return outputs
 
     def compute_output_shape(self, input_shape):
         return input_shape

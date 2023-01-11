@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, List, NamedTuple, Optional, Text, Union
 
 import tensorflow as tf
@@ -65,6 +66,13 @@ class PredictionTask(Layer, ContextMixin):
         name: Optional[Text] = None,
         **kwargs,
     ) -> None:
+        warnings.warn(
+            "PredictionTask based blocks are going to be deprecated."
+            "Please move to ModelOutput based blocks (e.g. replace"
+            "PredictionTasks() by OutputBlock().",
+            DeprecationWarning,
+        )
+
         self.target_name = target_name
         self._task_name = task_name
         name = name or self.task_name
@@ -250,6 +258,13 @@ class ParallelPredictionBlock(ParallelBlock):
         post: Optional[BlockType] = None,
         **kwargs,
     ):
+        warnings.warn(
+            "PredictionTask based blocks are going to be deprecated."
+            "Please move to ModelOutput based blocks (e.g. replace"
+            "PredictionTasks() by OutputBlock().",
+            DeprecationWarning,
+        )
+
         self.prediction_tasks = prediction_tasks
         self.bias_block = bias_block
         if bias_block:
