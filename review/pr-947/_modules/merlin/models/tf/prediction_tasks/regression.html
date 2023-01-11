@@ -97,6 +97,7 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -128,7 +129,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">DEFAULT_LOSS</span> <span class="o">=</span> <span class="s2">&quot;mse&quot;</span>
-    <span class="n">DEFAULT_METRICS</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">RootMeanSquaredError</span><span class="p">,)</span>
+    <span class="n">DEFAULT_METRICS</span> <span class="o">=</span> <span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">RootMeanSquaredError</span><span class="p">,</span> <span class="s2">&quot;root_mean_squared_error&quot;</span><span class="p">),)</span>
 
 <div class="viewcode-block" id="RegressionTask.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.RegressionTask.html#merlin.models.tf.RegressionTask.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
