@@ -6,9 +6,11 @@ import merlin.models.tf as mm
 from merlin.schema import ColumnSchema, Tags
 
 hvd = pytest.importorskip("horovod.tensorflow")
-sok = pytest.importorskip("sparse_operation_kit")
+sparse_operation_kit = pytest.importorskip("sparse_operation_kit")
+from sparse_operation_kit import experiment as sok
 
-
+hvd.init()
+sok.init()
 class TestSOKEmbedding:
     sample_column_schema = ColumnSchema(
         "item_id",
@@ -25,8 +27,6 @@ class TestSOKEmbedding:
 
     @pytest.mark.parametrize("dim", [16, 32])
     def test_sok_dynamic_variables(self, dim):
-        hvd.init()
-        sok.init()
 
         rows = [65536 * 10, 65536]
         cols = [128, 4]
@@ -67,9 +67,6 @@ class TestSOKEmbedding:
 
     @pytest.mark.parametrize("dim", [16, 32])
     def test_distributed_variables(self, dim):
-        hvd.init()
-        sok.init()
-
         rows = [65536 * 10, 65536]
         cols = [128, 4]
 
