@@ -95,7 +95,8 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.base</span> <span class="kn">import</span> <span class="n">InputBlockV2</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingOptions</span><span class="p">,</span> <span class="n">Embeddings</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">Model</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.models.utils</span> <span class="kn">import</span> <span class="n">parse_prediction_tasks</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.models.utils</span> <span class="kn">import</span> <span class="n">parse_prediction_blocks</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.base</span> <span class="kn">import</span> <span class="n">ModelOutputType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.features</span> <span class="kn">import</span> <span class="n">CategoryEncoding</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
@@ -110,7 +111,12 @@
     <span class="n">bottom_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">top_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
+        <span class="n">Union</span><span class="p">[</span>
+            <span class="n">PredictionTask</span><span class="p">,</span>
+            <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span>
+            <span class="n">ParallelPredictionBlock</span><span class="p">,</span>
+            <span class="n">ModelOutputType</span><span class="p">,</span>
+        <span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;DLRM-model architecture.</span>
@@ -141,8 +147,11 @@
 <span class="sd">    top_block : Optional[Block], optional</span>
 <span class="sd">        The optional `Block` that combines the outputs of bottom layer and of</span>
 <span class="sd">        the factorization machine layer, by default None</span>
-<span class="sd">    prediction_tasks: optional</span>
+<span class="sd">    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],</span>
+<span class="sd">                                ParallelPredictionBlock,ModelOutputType]</span>
 <span class="sd">        The prediction tasks to be used, by default this will be inferred from the Schema.</span>
+<span class="sd">        For custom prediction tasks we recommending using OutputBlock and blocks based</span>
+<span class="sd">        on ModelOutput than the ones based in PredictionTask (that will be deprecated).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -150,7 +159,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">parse_prediction_tasks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">prediction_blocks</span> <span class="o">=</span> <span class="n">parse_prediction_blocks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
 
     <span class="n">dlrm_body</span> <span class="o">=</span> <span class="n">DLRMBlock</span><span class="p">(</span>
         <span class="n">schema</span><span class="p">,</span>
@@ -160,7 +169,7 @@
         <span class="n">bottom_block</span><span class="o">=</span><span class="n">bottom_block</span><span class="p">,</span>
         <span class="n">top_block</span><span class="o">=</span><span class="n">top_block</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">dlrm_body</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">dlrm_body</span><span class="p">,</span> <span class="n">prediction_blocks</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>
 
@@ -172,7 +181,12 @@
     <span class="n">stacked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">input_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
+        <span class="n">Union</span><span class="p">[</span>
+            <span class="n">PredictionTask</span><span class="p">,</span>
+            <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span>
+            <span class="n">ParallelPredictionBlock</span><span class="p">,</span>
+            <span class="n">ModelOutputType</span><span class="p">,</span>
+        <span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
@@ -207,8 +221,11 @@
 <span class="sd">        based on the schema. The embedding dimensions are inferred from the features</span>
 <span class="sd">        cardinality. For a custom representation of input data you can instantiate</span>
 <span class="sd">        and provide an `InputBlockV2` instance.</span>
-<span class="sd">    prediction_tasks: optional</span>
+<span class="sd">    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],</span>
+<span class="sd">                                ParallelPredictionBlock,ModelOutputType]</span>
 <span class="sd">        The prediction tasks to be used, by default this will be inferred from the Schema.</span>
+<span class="sd">        For custom prediction tasks we recommending using OutputBlock and blocks based</span>
+<span class="sd">        on ModelOutput than the ones based in PredictionTask (that will be deprecated).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -222,13 +239,13 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">input_block</span> <span class="o">=</span> <span class="n">input_block</span> <span class="ow">or</span> <span class="n">InputBlockV2</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">parse_prediction_tasks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">prediction_blocks</span> <span class="o">=</span> <span class="n">parse_prediction_blocks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">stacked</span><span class="p">:</span>
         <span class="n">dcn_body</span> <span class="o">=</span> <span class="n">input_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">CrossBlock</span><span class="p">(</span><span class="n">depth</span><span class="p">),</span> <span class="n">deep_block</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">dcn_body</span> <span class="o">=</span> <span class="n">input_block</span><span class="o">.</span><span class="n">connect_branch</span><span class="p">(</span><span class="n">CrossBlock</span><span class="p">(</span><span class="n">depth</span><span class="p">),</span> <span class="n">deep_block</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">)</span>
 
-    <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">dcn_body</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">dcn_body</span><span class="p">,</span> <span class="n">prediction_blocks</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>
 
@@ -242,7 +259,12 @@
     <span class="n">wide_logit_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">deep_logit_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
+        <span class="n">Union</span><span class="p">[</span>
+            <span class="n">PredictionTask</span><span class="p">,</span>
+            <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span>
+            <span class="n">ParallelPredictionBlock</span><span class="p">,</span>
+            <span class="n">ModelOutputType</span><span class="p">,</span>
+        <span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
@@ -293,9 +315,11 @@
 <span class="sd">        You might want to provide your own output logit block if you want to add</span>
 <span class="sd">        dropout or kernel regularization to the wide block.</span>
 
-<span class="sd">    prediction_tasks: optional</span>
+<span class="sd">    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],</span>
+<span class="sd">                                ParallelPredictionBlock,ModelOutputType]</span>
 <span class="sd">        The prediction tasks to be used, by default this will be inferred from the Schema.</span>
-<span class="sd">        Defaults to None</span>
+<span class="sd">        For custom prediction tasks we recommending using OutputBlock and blocks based</span>
+<span class="sd">        on ModelOutput than the ones based in PredictionTask (that will be deprecated).</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    Model</span>
@@ -324,8 +348,8 @@
 
     <span class="n">deep_fm</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">({</span><span class="s2">&quot;fm&quot;</span><span class="p">:</span> <span class="n">fm_tower</span><span class="p">,</span> <span class="s2">&quot;deep&quot;</span><span class="p">:</span> <span class="n">deep_tower</span><span class="p">},</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;element-wise-sum&quot;</span><span class="p">)</span>
 
-    <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">parse_prediction_tasks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">deep_fm</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">prediction_blocks</span> <span class="o">=</span> <span class="n">parse_prediction_blocks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">deep_fm</span><span class="p">,</span> <span class="n">prediction_blocks</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span>
 
@@ -343,7 +367,7 @@
     <span class="n">deep_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">wide_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">ModelOutputType</span><span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">wide_body_kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
@@ -366,7 +390,7 @@
 <span class="sd">            deep_block=ml.MLPBlock([32, 16]),</span>
 <span class="sd">            wide_schema=wide_schema,</span>
 <span class="sd">            deep_schema=deep_schema,</span>
-<span class="sd">            prediction_tasks=ml.BinaryClassificationTask(&quot;click&quot;),</span>
+<span class="sd">            prediction_tasks=ml.BinaryOutput(&quot;click&quot;),</span>
 <span class="sd">        )</span>
 <span class="sd">        wide_deep.compile(optimizer=&quot;adam&quot;)</span>
 <span class="sd">        wide_deep.fit(train_data, epochs=10)</span>
@@ -381,7 +405,7 @@
 <span class="sd">            wide_schema=wide_schema,</span>
 <span class="sd">            wide_preprocess=ml.CategoryEncoding(wide_schema, output_mode=&quot;multi_hot&quot;, sparse=True),</span>
 <span class="sd">            deep_block=ml.MLPBlock([32, 16]),</span>
-<span class="sd">            prediction_tasks=ml.BinaryClassificationTask(&quot;click&quot;),</span>
+<span class="sd">            prediction_tasks=ml.BinaryOutput(&quot;click&quot;),</span>
 <span class="sd">        )</span>
 <span class="sd">        ```</span>
 
@@ -402,7 +426,7 @@
 <span class="sd">                aggregation=&quot;concat&quot;,</span>
 <span class="sd">            ),</span>
 <span class="sd">            deep_block=ml.MLPBlock([31, 16]),</span>
-<span class="sd">            prediction_tasks=ml.BinaryClassificationTask(&quot;click&quot;),</span>
+<span class="sd">            prediction_tasks=ml.BinaryOutput(&quot;click&quot;),</span>
 <span class="sd">        )</span>
 <span class="sd">        ```</span>
 
@@ -484,7 +508,7 @@
 <span class="sd">                aggregation=&quot;concat&quot;,</span>
 <span class="sd">            ),</span>
 <span class="sd">            deep_block=ml.MLPBlock([32, 16]),</span>
-<span class="sd">            prediction_tasks=ml.BinaryClassificationTask(&quot;click&quot;),</span>
+<span class="sd">            prediction_tasks=ml.BinaryOutput(&quot;click&quot;),</span>
 <span class="sd">        )</span>
 <span class="sd">        ```</span>
 
@@ -545,8 +569,11 @@
 <span class="sd">        The dropout to be used by the last layer of deep part. Defaults to None.</span>
 <span class="sd">    wide_dropout: Optional[float]</span>
 <span class="sd">        The dropout to be used by the last layer of wide part. Defaults to None.</span>
-<span class="sd">    prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]</span>
+<span class="sd">    prediction_tasks: Optional[Union[PredictionTask,List[PredictionTask],</span>
+<span class="sd">                                ParallelPredictionBlock,ModelOutputType]</span>
 <span class="sd">        The prediction tasks to be used, by default this will be inferred from the Schema.</span>
+<span class="sd">        For custom prediction tasks we recommending using OutputBlock and blocks based</span>
+<span class="sd">        on ModelOutput than the ones based in PredictionTask (that will be deprecated).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -554,7 +581,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">parse_prediction_tasks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">prediction_blocks</span> <span class="o">=</span> <span class="n">parse_prediction_blocks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">wide_schema</span><span class="p">:</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;If not specify wide_schema, NO feature would be sent to wide model&quot;</span><span class="p">)</span>
@@ -611,7 +638,7 @@
         <span class="p">)</span>
 
     <span class="n">wide_and_deep_body</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;element-wise-sum&quot;</span><span class="p">)</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">wide_and_deep_body</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">wide_and_deep_body</span><span class="p">,</span> <span class="n">prediction_blocks</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span>
 </pre></div>

@@ -149,9 +149,11 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-03 09:40:44.983158: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2023-01-10 12:07:22.054533: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2023-01-10 12:07:24.185109: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-05-03 09:40:45.942290: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
+2023-01-10 12:07:26.250320: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2023-01-10 12:07:26.251401: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 30625 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
 </pre></div>
 </div>
 </div>
@@ -165,16 +167,9 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
-2022-05-03 09:40:46.457693: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
-/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/gmoreira/projects/nvidia/nvidia_merlin/core/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/gmoreira/projects/nvidia/nvidia_merlin/core/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
 </pre></div>
 </div>
@@ -183,15 +178,23 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 </div>
 <div class="section" id="training-the-dlrm-model-with-merlin-models">
 <h2>Training the DLRM Model with Merlin Models<a class="headerlink" href="#training-the-dlrm-model-with-merlin-models" title="Permalink to this headline"></a></h2>
-<p>We define the DLRM model, whose prediction task is a binary classification. From the <code class="docutils literal notranslate"><span class="pre">schema</span></code>, the categorical features are identified (and embedded) and the target column is also automatically inferred, because of the schema tags. We talk more about the schema in the next <a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc std std-doc">example notebook (02)</span></a>,</p>
+<p>We define the DLRM model, whose prediction task is a binary classification. From the <code class="docutils literal notranslate"><span class="pre">schema</span></code>, the categorical features are identified (and embedded) and the target columns are also automatically inferred, because of the schema tags. We talk more about the schema in the next <a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc std std-doc">example notebook (02)</span></a>,</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ignoring the rating regression target column, to keep only the rating_binary target column for prediction</span>
+<span class="n">schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">without</span><span class="p">([</span><span class="s1">&#39;rating&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
-    <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+    <span class="n">schema</span><span class="p">,</span>
     <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
     <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
     <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
-    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">OutputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">),</span>
 <span class="p">)</span>
 
 <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
@@ -207,14 +210,10 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-03 09:40:47.887135: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
-2022-05-03 09:40:49.064501: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>782/782 [==============================] - 19s 20ms/step - loss: 0.5407 - precision: 0.7333 - recall: 0.8212 - binary_accuracy: 0.7252 - auc: 0.7903 - regularization_loss: 0.0000e+00 - loss_batch: 0.5407
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>782/782 [==============================] - 12s 9ms/step - rating_binary/binary_classification_task/precision: 0.7294 - rating_binary/binary_classification_task/recall: 0.8198 - rating_binary/binary_classification_task/binary_accuracy: 0.7214 - rating_binary/binary_classification_task/auc: 0.7843 - loss: 0.5477 - regularization_loss: 0.0000e+00 - total_loss: 0.5477
-</pre></div>
-</div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f1c2d278b80&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f2772a828e0&gt;
 </pre></div>
 </div>
 </div>
@@ -227,15 +226,19 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-03 09:41:02.880315: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_19
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/gmoreira/projects/nvidia/nvidia_merlin/core/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/gmoreira/projects/nvidia/nvidia_merlin/core/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 2s 5ms/step - rating_binary/binary_classification_task/precision: 0.7409 - rating_binary/binary_classification_task/recall: 0.8057 - rating_binary/binary_classification_task/binary_accuracy: 0.7264 - rating_binary/binary_classification_task/auc: 0.7936 - loss: 0.5384 - regularization_loss: 0.0000e+00 - total_loss: 0.5384
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 3s 13ms/step - loss: 0.5254 - precision: 0.7435 - recall: 0.8228 - binary_accuracy: 0.7356 - auc: 0.8056 - regularization_loss: 0.0000e+00 - loss_batch: 0.5255
 </pre></div>
 </div>
 </div>
 </div>
-<p>… and check the evaluation metrics. We use by default typical binary classification metrics – Precision, Recall, Accuracy and AUC. But you can also provide your own metrics list by setting <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask(...,</span> <span class="pre">metrics=[])</span></code>.</p>
+<p>… and check the evaluation metrics. As there are two columns tagged as target in the schema (<code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> and <code class="docutils literal notranslate"><span class="pre">rating</span></code>), the model has two heads (multi-task learning), one for binary classification and the other for regression.<br />
+You can see from the list below that default metrics are provided – Precision, Recall, Accuracy and AUC for binary classification and <code class="docutils literal notranslate"><span class="pre">RMSE</span></code> for regression tasks. You can also provide your own metrics in <code class="docutils literal notranslate"><span class="pre">model.compile()</span></code>.</p>
 <div class="cell tag_metrics docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics</span>
@@ -243,13 +246,13 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;rating_binary/binary_classification_task/precision&#39;: 0.7408556938171387,
- &#39;rating_binary/binary_classification_task/recall&#39;: 0.8057063221931458,
- &#39;rating_binary/binary_classification_task/binary_accuracy&#39;: 0.7263810634613037,
- &#39;rating_binary/binary_classification_task/auc&#39;: 0.7936474680900574,
- &#39;loss&#39;: 0.5632060170173645,
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.5254488587379456,
+ &#39;precision&#39;: 0.7434586882591248,
+ &#39;recall&#39;: 0.8228089809417725,
+ &#39;binary_accuracy&#39;: 0.7355642318725586,
+ &#39;auc&#39;: 0.8055890202522278,
  &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.5632060170173645}
+ &#39;loss_batch&#39;: 0.5332178473472595}
 </pre></div>
 </div>
 </div>
@@ -259,13 +262,11 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 <h2>Conclusion<a class="headerlink" href="#conclusion" title="Permalink to this headline"></a></h2>
 <p>Merlin Models enables users to define and train a deep learning recommeder model with only 3 commands.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
-    <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+    <span class="n">schema</span><span class="p">,</span>
     <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
     <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
     <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
-    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span>
-        <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="p">),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">OutputBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
 <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
