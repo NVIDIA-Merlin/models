@@ -57,6 +57,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#modeling-prediction-output-constructors">Modeling Prediction Output Constructors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#model-evaluation-constructors">Model Evaluation Constructors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#model-optimizer-constructors">Model Optimizer Constructors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
@@ -129,7 +132,7 @@ machine translation.” arXiv preprint arXiv:1412.2007 (2014).</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
-<li><p><strong>candidate_id_tag</strong> (<em>Tag</em>) – The tag to select cnadidate-id feature, by default <cite>Tags.ITEM_ID</cite></p></li>
+<li><p><strong>candidate_id_tag</strong> (<em>Tag</em>) – The tag to select candidate-id feature, by default <cite>Tags.ITEM_ID</cite></p></li>
 <li><p><strong>top_block</strong> (<em>tf.keras.layers.Layer</em>) – The hidden layers to apply on top of the features representation
 vector.</p></li>
 <li><p><strong>inputs</strong> (<em>tf.keras.layers.Layer</em><em>, </em><em>optional</em>) – The input layer to encode input features (sparse and context features)

@@ -217,7 +217,7 @@
 
 
 <div class="viewcode-block" id="Loader"><a class="viewcode-back" href="../../../../generated/merlin.models.tf.Loader.html#merlin.models.tf.Loader">[docs]</a><span class="k">class</span> <span class="nc">Loader</span><span class="p">(</span><span class="n">merlin</span><span class="o">.</span><span class="n">dataloader</span><span class="o">.</span><span class="n">tensorflow</span><span class="o">.</span><span class="n">Loader</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Override class to customize data loading for backward compatibility with</span>
 <span class="sd">    older NVTabular releases.</span>
 
@@ -282,8 +282,6 @@
 <span class="sd">        `reader_kwargs` will be ignored</span>
 <span class="sd">    batch_size: int</span>
 <span class="sd">        Number of samples to yield at each iteration</span>
-<span class="sd">    transform: Union[Callable, SchemaAwareTransform], optional</span>
-<span class="sd">        Transformation to apply to each batch of data.</span>
 <span class="sd">    label_names: list(str)</span>
 <span class="sd">        Column name of the target variable in the dataframe specified by</span>
 <span class="sd">        `paths_or_dataset`</span>
@@ -334,7 +332,6 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">paths_or_dataset</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">,</span>
-        <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">label_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">feature_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">cat_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -351,7 +348,6 @@
         <span class="n">drop_last</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">sparse_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">sparse_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">multi_label_as_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">sparse_as_dense</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">schema</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
@@ -419,20 +415,30 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sparse_as_dense</span> <span class="o">=</span> <span class="n">sparse_as_dense</span></div>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">input_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Schema</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">schema</span>
-
-    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">output_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Schema</span><span class="p">:</span>
-        <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span>
-
+        <span class="n">output_schema</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">output_schema</span>
         <span class="k">for</span> <span class="n">map_fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_fns</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">map_fn</span><span class="p">,</span> <span class="s2">&quot;compute_output_schema&quot;</span><span class="p">):</span>
-                <span class="n">schema</span> <span class="o">=</span> <span class="n">map_fn</span><span class="o">.</span><span class="n">compute_output_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+                <span class="n">output_schema</span> <span class="o">=</span> <span class="n">map_fn</span><span class="o">.</span><span class="n">compute_output_schema</span><span class="p">(</span><span class="n">output_schema</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t infer schema from transform </span><span class="si">{</span><span class="n">map_fn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Couldn&#39;t infer schema from transform </span><span class="si">{</span><span class="n">map_fn</span><span class="si">}</span><span class="s2">. &quot;</span>
+                    <span class="s2">&quot;Please implement the `compute_output_schema` method on &quot;</span>
+                    <span class="s2">&quot;the transform layer.&quot;</span>
+                <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">schema</span></div>
+        <span class="k">return</span> <span class="n">output_schema</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns True if Loader has transforms or map functions.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            True if Loader has transforms or map functions, otherwise False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_map_fns</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
 
 
 <span class="n">KerasSequenceValidater</span> <span class="o">=</span> <span class="p">(</span>
@@ -447,9 +453,9 @@
     <span class="n">include_targets</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">to_ragged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">to_dense</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">process_lists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">process_lists</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Util function to generate a batch of input tensors from a merlin.io.Dataset instance</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Util function to generate a batch of input tensors from a merlin.io.Dataset instance</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -500,7 +506,7 @@
 
 
 <span class="k">def</span> <span class="nf">get_default_hvd_seed_fn</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generate consistent dataloader shuffle seeds across workers</span>
 <span class="sd">    Reseeds each worker&#39;s dataloader each epoch to get fresh a shuffle</span>
 <span class="sd">    that&#39;s consistent across workers.</span>

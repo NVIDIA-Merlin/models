@@ -122,7 +122,7 @@
     <span class="n">inputs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SequentialBlock</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;This block provides a way to create high-order feature interactions</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This block provides a way to create high-order feature interactions</span>
 <span class="sd">       by a number of stacked Cross Layers, from</span>
 <span class="sd">       DCN V2: Improved Deep &amp; Cross Network [1].</span>
 <span class="sd">       See Eq. (1) for full-rank and Eq. (2) for low-rank version.</span>
@@ -195,7 +195,7 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">Cross</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Implementation of the Cross Layers from</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Implementation of the Cross Layers from</span>
 <span class="sd">       DCN V2: Improved Deep &amp; Cross Network [1]_ -</span>
 <span class="sd">       See Eq. (1) for full-rank and Eq. (2) for low-rank version.</span>
 

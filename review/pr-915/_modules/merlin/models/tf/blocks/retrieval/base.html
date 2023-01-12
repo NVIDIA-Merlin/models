@@ -124,18 +124,18 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">TowerBlock</span><span class="p">(</span><span class="n">ModelBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;TowerBlock to wrap item or query tower&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;TowerBlock to wrap item or query tower&quot;&quot;&quot;</span>
 
     <span class="k">pass</span>
 
 
 <span class="k">class</span> <span class="nc">RetrievalMixin</span><span class="p">:</span>
     <span class="k">def</span> <span class="nf">query_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Method to return the query tower from a RetrievalModel instance&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method to return the query tower from a RetrievalModel instance&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">item_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Method to return the item tower from a RetrievalModel instance&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method to return the item tower from a RetrievalModel instance&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
 
@@ -154,7 +154,7 @@
         <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Prepare the Query and Item towers of a Retrieval block</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare the Query and Item towers of a Retrieval block</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        query_block : Block</span>
@@ -213,10 +213,10 @@
         <span class="k">return</span> <span class="n">output</span></div></div>
 
 
-<span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;item_retrieval_scorer&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="ItemRetrievalScorer"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer">[docs]</a><span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;item_retrieval_scorer&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ItemRetrievalScorer</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Block for ItemRetrieval, which expects query/user and item embeddings as input and</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Block for ItemRetrieval, which expects query/user and item embeddings as input and</span>
 <span class="sd">    uses dot product to score the positive item (inputs[&quot;item&quot;]) and also sampled negative</span>
 <span class="sd">    items (during training).</span>
 <span class="sd">    Parameters</span>
@@ -244,7 +244,7 @@
 <span class="sd">        Returns negative items ids as part of the output, by default False</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="ItemRetrievalScorer.__init__"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">samplers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ItemSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
         <span class="n">sampling_downscore_false_negatives</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -274,9 +274,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span> <span class="o">=</span> <span class="n">samplers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span> <span class="o">=</span> <span class="n">sampled_softmax_mode</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_required_features</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_required_features</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+<div class="viewcode-block" id="ItemRetrievalScorer.build"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="n">query_shape</span> <span class="o">=</span> <span class="n">input_shapes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
@@ -287,23 +287,23 @@
                 <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Zeros</span><span class="p">(),</span>
             <span class="p">)</span>
 
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_check_input_from_two_tower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Wrong input-names, expected: </span><span class="si">{</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Wrong input-names, expected: </span><span class="si">{</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;but got: </span><span class="si">{</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
+<div class="viewcode-block" id="ItemRetrievalScorer.call"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span>
         <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">testing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
 <span class="sd">            the positive item (inputs[&quot;item&quot;]).</span>
 <span class="sd">            For the sampled-softmax mode, logits are computed by multiplying the query vector</span>
 <span class="sd">            and the item embeddings matrix (self.context.get_embedding(self.item_domain))</span>
@@ -344,9 +344,9 @@
         <span class="n">positive_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">]),</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">positive_scores</span>
+        <span class="k">return</span> <span class="n">positive_scores</span></div>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
+<div class="viewcode-block" id="ItemRetrievalScorer.call_outputs"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.call_outputs">[docs]</a>    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
     <span class="k">def</span> <span class="nf">call_outputs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">outputs</span><span class="p">:</span> <span class="n">PredictionOutput</span><span class="p">,</span>
@@ -355,7 +355,7 @@
         <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PredictionOutput&quot;</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
 <span class="sd">            the positive item and also sampled negative items (during training).</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -491,7 +491,7 @@
                 <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">,</span>
                 <span class="n">valid_negatives_mask</span><span class="o">=</span><span class="n">valid_negatives_mask</span><span class="p">,</span>
                 <span class="n">negative_item_ids</span><span class="o">=</span><span class="n">neg_items_ids</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_get_logits_for_sampled_softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
@@ -515,7 +515,7 @@
         <span class="n">predictions</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">:</span> <span class="n">predictions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">:</span> <span class="n">batch_items_embeddings</span><span class="p">}</span>
         <span class="k">return</span> <span class="n">predictions</span>
 
-    <span class="k">def</span> <span class="nf">set_required_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ItemRetrievalScorer.set_required_features"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.set_required_features">[docs]</a>    <span class="k">def</span> <span class="nf">set_required_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">required_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span><span class="p">:</span>
             <span class="n">required_features</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">)</span>
@@ -524,9 +524,9 @@
             <span class="p">[</span><span class="n">feature</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span> <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">sampler</span><span class="o">.</span><span class="n">required_features</span><span class="p">]</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_required_features</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">required_features</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_required_features</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">required_features</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ItemRetrievalScorer.get_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_serialize_keras_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">])</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sampling_downscore_false_negatives&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span>
@@ -539,13 +539,13 @@
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sampled_softmax_mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;store_negative_ids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_negative_ids</span>
 
-        <span class="k">return</span> <span class="n">config</span>
+        <span class="k">return</span> <span class="n">config</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ItemRetrievalScorer.from_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.from_config">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_deserialize_keras_objects</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">])</span>
 
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

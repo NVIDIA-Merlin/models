@@ -198,7 +198,7 @@
 
 
 <div class="viewcode-block" id="filter_dict_by_schema"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html#merlin.models.utils.schema_utils.filter_dict_by_schema">[docs]</a><span class="k">def</span> <span class="nf">filter_dict_by_schema</span><span class="p">(</span><span class="n">input_dict</span><span class="p">,</span> <span class="n">schema</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Filters out entries from input_dict, returns a dictionary</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Filters out entries from input_dict, returns a dictionary</span>
 <span class="sd">    where every entry corresponds to a column in the schema&quot;&quot;&quot;</span>
     <span class="n">column_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">input_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">column_names</span><span class="p">}</span></div>
@@ -231,7 +231,7 @@
 <div class="viewcode-block" id="get_embedding_sizes_from_schema"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html#merlin.models.utils.schema_utils.get_embedding_sizes_from_schema">[docs]</a><span class="k">def</span> <span class="nf">get_embedding_sizes_from_schema</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">ensure_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Provides a heristic (from Google) that suggests the embedding sizes</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Provides a heristic (from Google) that suggests the embedding sizes</span>
 <span class="sd">    as a function (forth root) of categorical features cardinalities, obtained</span>
 <span class="sd">    from the schema.</span>
 
@@ -267,7 +267,7 @@
 <div class="viewcode-block" id="get_embedding_size_from_cardinality"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality">[docs]</a><span class="k">def</span> <span class="nf">get_embedding_size_from_cardinality</span><span class="p">(</span>
     <span class="n">cardinality</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">ensure_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Provides a heuristic (from Google) that suggests the embedding</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Provides a heuristic (from Google) that suggests the embedding</span>
 <span class="sd">    dimension as a function (forth root) of the feature cardinality.</span>
 
 <span class="sd">    Parameters</span>

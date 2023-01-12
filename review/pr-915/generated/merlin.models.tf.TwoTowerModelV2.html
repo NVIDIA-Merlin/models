@@ -57,6 +57,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#modeling-prediction-output-constructors">Modeling Prediction Output Constructors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#model-evaluation-constructors">Model Evaluation Constructors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#model-optimizer-constructors">Model Optimizer Constructors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
@@ -112,10 +115,10 @@ Proceedings of the 13th ACM Conference on Recommender Systems. 2019.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>query_tower</strong> (<em>Encoder</em>) – The layer that encodes query features</p></li>
-<li><p><strong>candidate_tower</strong> (<em>Encoder</em>) – The  layer that encodes candidates features</p></li>
+<li><p><strong>query_tower</strong> (<a class="reference internal" href="merlin.models.tf.Encoder.html#merlin.models.tf.Encoder" title="merlin.models.tf.Encoder"><em>Encoder</em></a>) – The layer that encodes query features</p></li>
+<li><p><strong>candidate_tower</strong> (<a class="reference internal" href="merlin.models.tf.Encoder.html#merlin.models.tf.Encoder" title="merlin.models.tf.Encoder"><em>Encoder</em></a>) – The  layer that encodes candidates features</p></li>
 <li><p><strong>candidate_id_tag</strong> (<em>Tag</em><em>, </em><em>optional</em>) – The tag to select candidate-id feature, by default <cite>Tags.ITEM_ID</cite></p></li>
-<li><p><strong>outputs</strong> (<em>Union</em><em>[</em><em>ModelOutput</em><em>, </em><em>List</em><em>[</em><em>ModelOutput</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – The optional <cite>ModelOutput</cite> or list of <cite>ModelOutput</cite> to apply on the model.</p></li>
+<li><p><strong>outputs</strong> (<em>Union</em><em>[</em><a class="reference internal" href="merlin.models.tf.ModelOutput.html#merlin.models.tf.ModelOutput" title="merlin.models.tf.ModelOutput"><em>ModelOutput</em></a><em>, </em><em>List</em><em>[</em><a class="reference internal" href="merlin.models.tf.ModelOutput.html#merlin.models.tf.ModelOutput" title="merlin.models.tf.ModelOutput"><em>ModelOutput</em></a><em>]</em><em>]</em><em>, </em><em>optional</em>) – The optional <cite>ModelOutput</cite> or list of <cite>ModelOutput</cite> to apply on the model.</p></li>
 <li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
 Defaults to 1.</p></li>
 <li><p><strong>negative_samplers</strong> (<em>List</em><em>[</em><a class="reference internal" href="merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler" title="merlin.models.tf.ItemSampler"><em>ItemSampler</em></a><em>]</em>) – List of samplers for negative sampling, by default None
@@ -127,7 +130,7 @@ is trained with contrastive learning and <cite>in-batch</cite> negative sampling
 <dd class="field-even"><p></p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>RetrievalModelV2</p>
+<dd class="field-odd"><p><a class="reference internal" href="merlin.models.tf.RetrievalModelV2.html#merlin.models.tf.RetrievalModelV2" title="merlin.models.tf.RetrievalModelV2">RetrievalModelV2</a></p>
 </dd>
 </dl>
 </dd></dl>

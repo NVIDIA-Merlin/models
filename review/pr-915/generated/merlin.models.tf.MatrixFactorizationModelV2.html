@@ -25,7 +25,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="merlin.models.tf.MatrixFactorizationModel" href="merlin.models.tf.MatrixFactorizationModel.html" />
-    <link rel="prev" title="merlin.models.tf.WideAndDeepModel" href="merlin.models.tf.WideAndDeepModel.html" /> 
+    <link rel="prev" title="merlin.models.tf.RetrievalModelV2" href="merlin.models.tf.RetrievalModelV2.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -57,6 +57,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#modeling-prediction-output-constructors">Modeling Prediction Output Constructors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#model-evaluation-constructors">Model Evaluation Constructors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#model-optimizer-constructors">Model Optimizer Constructors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
@@ -107,7 +110,7 @@ mf.fit(train_data, epochs=10)</p>
 <li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
 <li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – The dimension of the embeddings.</p></li>
 <li><p><strong>query_id_tag</strong> (<em>Tag</em>) – The tag to select query-id feature, by default <cite>Tags.USER_ID</cite></p></li>
-<li><p><strong>candidate_id_tag</strong> (<em>Tag</em>) – The tag to select cnadidate-id feature, by default <cite>Tags.ITEM_ID</cite></p></li>
+<li><p><strong>candidate_id_tag</strong> (<em>Tag</em>) – The tag to select candidate-id feature, by default <cite>Tags.ITEM_ID</cite></p></li>
 <li><p><strong>embeddings_initializers</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>Callable</em><em>[</em><em>[</em><em>Any</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><em>None</em></a><em>]</em><em>]</em><em>] </em><em>= None</em>) – An initializer function or a dict where keys are feature names and values are
 callable to initialize embedding tables</p></li>
 <li><p><strong>embeddings_l2_batch_regularization</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>, </em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>]</em><em>] </em><em>= 0.0</em>) – Factor for L2 regularization of the embeddings vectors (from the current batch only)
@@ -126,7 +129,7 @@ Defaults to 1.</p></li>
 <dd class="field-even"><p></p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>RetrievalModelV2</p>
+<dd class="field-odd"><p><a class="reference internal" href="merlin.models.tf.RetrievalModelV2.html#merlin.models.tf.RetrievalModelV2" title="merlin.models.tf.RetrievalModelV2">RetrievalModelV2</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -137,7 +140,7 @@ Defaults to 1.</p></li>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="merlin.models.tf.WideAndDeepModel.html" class="btn btn-neutral float-left" title="merlin.models.tf.WideAndDeepModel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.RetrievalModelV2.html" class="btn btn-neutral float-left" title="merlin.models.tf.RetrievalModelV2" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="merlin.models.tf.MatrixFactorizationModel.html" class="btn btn-neutral float-right" title="merlin.models.tf.MatrixFactorizationModel" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

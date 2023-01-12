@@ -57,6 +57,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#modeling-prediction-output-constructors">Modeling Prediction Output Constructors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#model-evaluation-constructors">Model Evaluation Constructors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#model-optimizer-constructors">Model Optimizer Constructors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
@@ -97,8 +100,8 @@
 <dd><p>The entry block of the model to process input features from a schema.</p>
 <dl class="simple">
 <dt>This function creates continuous and embedding layers, and connects them via <cite>ParallelBlock</cite>.</dt><dd><p>If aggregation argument is not set, it returns a dictionary of multiple tensors
-each corresponds to an input feature.
-Otherwise, it merges the tensors into one using the aggregation method.</p>
+each corresponds to an input feature. Otherwise, it merges the tensors
+into one using the aggregation method.</p>
 </dd>
 </dl>
 <p>Example usage:</p>
