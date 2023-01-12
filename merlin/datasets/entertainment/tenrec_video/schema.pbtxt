@@ -3,7 +3,7 @@ feature {
   type: INT
   int_domain {
     name: "user_id"
-    max: 2633851
+    max: 100000
     is_categorical: true
   }
   annotation {
