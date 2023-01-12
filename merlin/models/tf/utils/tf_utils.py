@@ -459,6 +459,7 @@ def get_sub_blocks(blocks: Sequence[Block]) -> List[Block]:
     return list(result_blocks)
 
 
+@tf.function
 def list_col_to_ragged(col: Tuple[tf.Tensor, tf.Tensor]):
     values = col[0][:, 0]
     row_lengths = col[1][:, 0]

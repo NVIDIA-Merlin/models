@@ -89,6 +89,7 @@ def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly):
 
 
 def test_matrix_factorization_model_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
     model = mm.MatrixFactorizationModel(testing_data.schema, dim=4, embeddings_l2_reg=0.1)
 
     _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
@@ -159,6 +160,8 @@ def test_matrix_factorization_model_with_binary_task(ecommerce_data: Dataset, ru
 
 
 def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
+
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
         dim=4,
@@ -179,6 +182,8 @@ def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
 
 
 def test_matrix_factorization_model_v2_save(tmpdir, testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
+
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
         dim=4,
@@ -340,6 +345,8 @@ def test_two_tower_model_v2_save(tmpdir, ecommerce_data: Dataset):
 
 
 def test_two_tower_model_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.excluding_by_name(["event_timestamp"])
+
     model = mm.TwoTowerModel(
         testing_data.schema,
         query_tower=mm.MLPBlock([2]),
@@ -362,6 +369,8 @@ def test_two_tower_model_l2_reg(testing_data: Dataset):
 
 
 def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.excluding_by_name(["event_timestamp"])
+
     user_schema = testing_data.schema.select_by_tag(Tags.USER)
     user_inputs = mm.InputBlockV2(
         user_schema,
@@ -842,7 +851,7 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly, target_augmentation):
     # remove sequential continuous features because second dimension (=[None]) is raising an error
     # in the `compute_output_shape` of  `ConcatFeatures`)
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
@@ -926,7 +935,7 @@ def _check_embeddings(embeddings, extected_len, num_dim=8, index_name=None):
 
 
 def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
@@ -961,7 +970,7 @@ def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly):
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names

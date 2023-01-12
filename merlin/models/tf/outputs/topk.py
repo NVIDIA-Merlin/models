@@ -20,7 +20,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 import merlin.io
-from merlin.core.dispatch import DataFrameType
+from merlin.core.dispatch import DataFrameType, make_df
 from merlin.models.tf.core.base import Block, block_registry
 from merlin.models.tf.core.prediction import Prediction, TopKPrediction
 from merlin.models.tf.outputs.base import MetricsFn, ModelOutput
@@ -100,7 +100,7 @@ class TopKLayer(Layer):
         if check_unique_ids:
             self._check_unique_ids(data=data)
         values = tf_utils.df_to_tensor(data)
-        ids = tf_utils.df_to_tensor(data.index)
+        ids = tf_utils.df_to_tensor(make_df({"index": data.index}))
 
         if len(ids.shape) == 2:
             ids = tf.squeeze(ids)

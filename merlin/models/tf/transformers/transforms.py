@@ -190,8 +190,20 @@ class PrepareTransformerInputs(tf.keras.layers.Layer):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class SequenceSummary(TFSequenceSummary):
     def __init__(self, summary: str, initializer_range: float = 0.02, **kwargs):
+        self.summary = summary
         config = SimpleNamespace(summary_type=summary)
         super().__init__(config, initializer_range=initializer_range, **kwargs)
+
+    def get_config(self):
+        config = super().get_config()
+        config["summary"] = self.summary
+        return config
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        output = SequenceSummary(**config)
+        output.__class__ = cls
+        return output
 
 
 @Block.registry.register("sequence_last")

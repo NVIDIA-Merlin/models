@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/01-Getting-started.ipynb", execute=False)
+@pytest.mark.notebook
 def test_example_01_getting_started(tb):
     tb.inject(
         """

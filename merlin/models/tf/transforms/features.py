@@ -881,6 +881,7 @@ class BroadcastToSequence(tf.keras.layers.Layer):
 
         return seq_features_shapes, sequence_length
 
+    @tf.function
     def _broadcast(self, inputs, target):
         seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs)
         if len(seq_features_shapes) > 0:

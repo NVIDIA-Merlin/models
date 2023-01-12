@@ -258,7 +258,7 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         tf.debugging.assert_greater_equal(
             tf.shape(y_true)[-1],
             self.k,
-            f"The TopkMetric {self.name} cutoff ({self.k}) cannot be smaller than "
+            f"The TopkMetric {self.name} cutoff ({self.k}) cannot be bigger than "
             f"the number of predictions per example",
         )
 

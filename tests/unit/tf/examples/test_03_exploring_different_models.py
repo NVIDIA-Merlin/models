@@ -1,11 +1,13 @@
 import os
 
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/03-Exploring-different-models.ipynb", execute=False)
+@pytest.mark.notebook
 def test_example_03_exploring_different_models(tb, tmpdir):
     tb.inject(
         f"""

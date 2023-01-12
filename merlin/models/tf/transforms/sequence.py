@@ -371,6 +371,7 @@ class SequenceTargetAsInput(SequenceTransform):
         so that the tensors sequences can be processed
     """
 
+    @tf.function
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
     ) -> Prediction:
@@ -441,6 +442,7 @@ class SequenceMaskRandom(SequenceTargetAsInput):
         self.masking_prob = masking_prob
         super().__init__(schema, target, **kwargs)
 
+    @tf.function
     def compute_mask(self, inputs, mask=None):
         """Selects (masks) some positions of the targets to be predicted.
         This method is called by Keras after call()

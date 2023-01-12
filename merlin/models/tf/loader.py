@@ -198,8 +198,6 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         `reader_kwargs` will be ignored
     batch_size: int
         Number of samples to yield at each iteration
-    transform: Union[Callable, SchemaAwareTransform], optional
-        Transformation to apply to each batch of data.
     label_names: list(str)
         Column name of the target variable in the dataframe specified by
         `paths_or_dataset`
@@ -250,7 +248,6 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         self,
         paths_or_dataset,
         batch_size,
-        transform=None,
         label_names=None,
         feature_columns=None,
         cat_names=None,
@@ -267,7 +264,6 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         drop_last=False,
         sparse_names=None,
         sparse_max=None,
-        multi_label_as_dict=True,
         sparse_as_dense=False,
         schema=None,
     ):
@@ -335,20 +331,30 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         self.sparse_as_dense = sparse_as_dense
 
     @property
-    def input_schema(self) -> Schema:
-        return self.dataset.schema
-
-    @property
     def output_schema(self) -> Schema:
-        schema = self.input_schema
-
+        output_schema = super().output_schema
         for map_fn in self._map_fns:
             if hasattr(map_fn, "compute_output_schema"):
-                schema = map_fn.compute_output_schema(schema)
+                output_schema = map_fn.compute_output_schema(output_schema)
             else:
-                raise ValueError(f"Couldn't infer schema from transform {map_fn}")
+                raise ValueError(
+                    f"Couldn't infer schema from transform {map_fn}. "
+                    "Please implement the `compute_output_schema` method on "
+                    "the transform layer."
+                )
 
-        return schema
+        return output_schema
+
+    @property
+    def has_transforms(self) -> bool:
+        """Returns True if Loader has transforms or map functions.
+
+        Returns
+        -------
+        bool
+            True if Loader has transforms or map functions, otherwise False.
+        """
+        return len(self._map_fns) > 0 or self.transforms is not None
 
 
 KerasSequenceValidater = (
