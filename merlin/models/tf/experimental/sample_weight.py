@@ -74,6 +74,7 @@ class ContrastiveSampleWeight(Block):
                         post=ContrastiveSampleWeight(
                             pos_class_weight='interaction-weight',
                             neg_class_weight=0.5,
+                            schema=data.schema,
                         ),
                     )
         """
@@ -96,7 +97,7 @@ class ContrastiveSampleWeight(Block):
         ConstrastiveOutput with a 2-D sample weights
         for negative and positive candidates.
         """
-        if training:
+        if training or testing:
             predictions = outputs.predictions
             shapes = tf.shape(predictions)
 
@@ -116,14 +117,25 @@ class ContrastiveSampleWeight(Block):
             if isinstance(self.neg_class_weight, tf.Tensor):
                 negative_candidate_ids = outputs.negative_candidate_ids
                 neg_samples = tf.gather(self.neg_class_weight, negative_candidate_ids)
+                if tf.shape(neg_samples)[-1] == 1:
+                    # repeat negative samples for each positive candidate
+                    neg_samples = tf.tile(
+                        tf.expand_dims(tf.squeeze(neg_samples), 0), [tf.shape(neg_samples)[0], 1]
+                    )
+
             else:
                 neg_samples = tf.ones((shapes[0], shapes[1] - 1)) * self.neg_class_weight
 
             # generate a 2-d matrix of sample weights
             pos_samples = tf.cast(pos_samples, tf.float32)
             samples_weights = tf.concat([pos_samples, neg_samples], axis=1)
-            samples_weights = tf.expand_dims(samples_weights, -1)
-            outputs = outputs.copy_with_updates(sample_weight=tf.cast(samples_weights, tf.float32))
+            # expand tensors dimension to ignore the default mean over axis -1,
+            # applied by keras losses.
+            outputs = outputs.copy_with_updates(
+                outputs=tf.expand_dims(outputs.outputs, -1),
+                targets=tf.expand_dims(outputs.targets, -1),
+                sample_weight=tf.cast(samples_weights, tf.float32),
+            )
 
         return outputs
 
