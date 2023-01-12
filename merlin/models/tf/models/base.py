@@ -1183,12 +1183,20 @@ class BaseModel(tf.keras.Model):
         return callbacks
 
     def _extract_positive_sample_weights(self, sample_weights):
+        # 2-D sample weights are set for retrieval models to differentiate
+        # between positive and negative candidates of the same sample.
+        # For metrics calculation, we extract the sample weights of
+        # the positive class (i.e. the first column)
+        if sample_weights is None:
+            return sample_weights
+
+        if isinstance(sample_weights, tf.Tensor) and (len(sample_weights.shape) == 2):
+            return tf.expand_dims(sample_weights[:, 0], -1)
+
         for name, weights in sample_weights.items():
-            if (weights is not None) and (len(weights.shape) == 2):
-                # 2-D sample weights are set for retrieval models to differentiate
-                # between positive and negative candidates of the same sample.
-                # For metrics calculation, we extract the sample weights of
-                # the positive class (i.e. the first column)
+            if isinstance(weights, dict):
+                sample_weights[name] = self._extract_positive_sample_weights(weights)
+            elif (weights is not None) and (len(weights.shape) == 2):
                 sample_weights[name] = tf.expand_dims(weights[:, 0], -1)
         return sample_weights
 
