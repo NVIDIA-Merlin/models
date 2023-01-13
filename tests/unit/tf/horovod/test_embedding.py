@@ -6,8 +6,7 @@ import merlin.models.tf as mm
 from merlin.schema import ColumnSchema, Tags
 
 hvd = pytest.importorskip("horovod.tensorflow")
-sparse_operation_kit = pytest.importorskip("sparse_operation_kit")
-from sparse_operation_kit import experiment as sok
+sok = pytest.importorskip("sparse_operation_kit.experiment")
 
 hvd.init()
 sok.init()
