@@ -9,3 +9,4 @@ sphinx-external-toc==0.2.4
 sphinx-multiversion@git+https://github.com/mikemckiernan/sphinx-multiversion.git
 Sphinx==3.5.4
 sphinxcontrib-copydirs@git+https://github.com/mikemckiernan/sphinxcontrib-copydirs.git
+ipython==8.2.0
