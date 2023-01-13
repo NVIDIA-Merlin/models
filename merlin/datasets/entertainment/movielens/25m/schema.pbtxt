@@ -105,6 +105,7 @@ feature {
 }
 feature {
   name: "title"
+  type: BYTES
   annotation {
     extra_metadata {
       type_url: "type.googleapis.com/google.protobuf.Struct"
