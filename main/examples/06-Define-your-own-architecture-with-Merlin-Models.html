@@ -203,7 +203,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <p>We use the <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function to download, extract, and preprocess the MovieLens 1M  dataset:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;workspace/data&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/workspace/data&quot;</span><span class="p">)</span>
 <span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
