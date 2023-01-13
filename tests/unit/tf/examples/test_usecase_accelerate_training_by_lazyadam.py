@@ -21,6 +21,7 @@ def test_usecase_accelerate_training_by_lazyadam(tb):
         """
         import os
         os.environ["NUM_ROWS"] = "1000"
+        os.environ["dataset_name"] = "e-commerce"
         """
     )
     tb.execute()
