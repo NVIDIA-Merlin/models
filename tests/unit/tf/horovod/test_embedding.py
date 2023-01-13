@@ -11,6 +11,8 @@ from sparse_operation_kit import experiment as sok
 
 hvd.init()
 sok.init()
+
+
 class TestSOKEmbedding:
     sample_column_schema = ColumnSchema(
         "item_id",
