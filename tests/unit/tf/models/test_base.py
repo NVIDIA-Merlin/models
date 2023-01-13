@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import copy
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -22,11 +23,38 @@ import tensorflow as tf
 from tensorflow.test import TestCase
 
 import merlin.models.tf as mm
+from merlin.core.dispatch import make_df
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
+from merlin.models.tf.models.base import get_output_schema
 from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
+
+
+class TestGetOutputSchema:
+    def test_scalar(self, tmpdir):
+        inputs = tf.keras.Input(shape=(1), name="my_input")
+        outputs = tf.keras.layers.Dense(1, name="my_output")(inputs)
+        model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
+        _ = model({"my_input": tf.constant([[1]])})
+        model.save(tmpdir)
+        output_schema = get_output_schema(tmpdir)
+        output_col = output_schema["my_output"]
+        assert output_col.is_list is False
+        assert output_col.is_ragged is False
+
+    def test_fixed_list(self, tmpdir):
+        inputs = tf.keras.Input(shape=(1), name="my_input")
+        outputs = tf.keras.layers.Dense(4, name="my_output")(inputs)
+        model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
+        _ = model({"my_input": tf.constant([[1]])})
+        model.save(tmpdir)
+        output_schema = get_output_schema(tmpdir)
+        output_col = output_schema["my_output"]
+        assert output_col.value_count.min == output_col.value_count.max == 4
+        assert output_col.is_list is True
+        assert output_col.is_ragged is False
 
 
 @pytest.mark.parametrize("run_eagerly", [False])
@@ -48,7 +76,7 @@ def test_fit_compile_twice():
     dataset.schema = Schema(
         [
             ColumnSchema("feature", dtype=np.int32, tags=[Tags.CONTINUOUS]),
-            ColumnSchema("target", dtype=np.int32, tags=[Tags.BINARY_CLASSIFICATION]),
+            ColumnSchema("target", dtype=np.int32, tags=[Tags.TARGET, Tags.BINARY_CLASSIFICATION]),
         ]
     )
     loader = mm.Loader(dataset, batch_size=2, shuffle=False)
@@ -64,12 +92,16 @@ def test_fit_compile_twice():
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
+@pytest.mark.parametrize(
+    "prediction_block",
+    [None, mm.BinaryOutput("click"), mm.BinaryClassificationTask("click")],
+)
+def test_model_from_block(ecommerce_data: Dataset, run_eagerly, prediction_block):
     embedding_options = mm.EmbeddingOptions(embedding_dim_default=2)
     model = mm.Model.from_block(
         mm.MLPBlock([4]),
         ecommerce_data.schema,
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=prediction_block,
         embedding_options=embedding_options,
     )
 
@@ -674,11 +706,99 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
-def test_save_and_load(tmpdir):
+class TestModelInputFeatures:
+    def _get_dataset(self):
+        dataset = Dataset(
+            make_df(
+                {
+                    "a": [1, 2],
+                    "b": [3, 4],
+                    "click": [0, 1],
+                }
+            ),
+            schema=Schema(
+                [
+                    ColumnSchema("a", tags=[Tags.CONTINUOUS], dtype=np.float32),
+                    ColumnSchema(
+                        "b",
+                        tags=[Tags.CATEGORICAL],
+                        dtype=np.int32,
+                        properties={"domain": {"min": 0, "max": 10}},
+                    ),
+                    ColumnSchema(
+                        "click",
+                        tags=[Tags.TARGET],
+                        dtype=np.int32,
+                        properties={"domain": {"min": 0, "max": 1}},
+                    ),
+                ]
+            ),
+        )
+        return dataset
+
+    def test_saved_model_input_features(self, tmpdir):
+        dataset = self._get_dataset()
+        input_schema = dataset.schema.select_by_name(["a"])
+        dataset.schema = dataset.schema.select_by_name(["a", "click"])
+        model = mm.Model(
+            mm.InputBlockV2(input_schema),
+            mm.MLPBlock([4]),
+            mm.BinaryClassificationTask("click"),
+        )
+        model.compile()
+        model.fit(dataset, batch_size=2)
+        model.save(tmpdir)
+        reloaded_model = mm.Model.load(tmpdir)
+        signature = reloaded_model.signatures["serving_default"]
+        assert set(signature.structured_input_signature[1]) == {"a"}
+
+    def test_passing_incorrect_features(self):
+        dataset = self._get_dataset()
+        input_schema = dataset.schema.select_by_name(["a"])
+        model = mm.Model(
+            mm.InputBlockV2(input_schema),
+            mm.MLPBlock([4]),
+            mm.BinaryClassificationTask("click"),
+        )
+        model.compile()
+
+        loader = (batch for batch in mm.Loader(dataset, 2))
+
+        with pytest.raises(ValueError) as exc_info:
+            model.fit(loader, batch_size=2)
+
+        assert "Model called with a different set of features" in str(exc_info.value)
+
+
+def test_pickle():
     dataset = generate_data("e-commerce", num_rows=10)
     dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
     model = mm.Model(
         mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+    model.compile()
+    _ = model.fit(
+        dataset,
+        epochs=1,
+        batch_size=10,
+    )
+    pickled = pickle.dumps(model)
+    reloaded_model = pickle.loads(pickled)
+
+    test_case = TestCase()
+    test_case.assertAllClose(
+        model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
+    )
+
+
+def test_save_and_load(tmpdir):
+    dataset = generate_data("e-commerce", num_rows=10)
+    input_schema = dataset.schema.select_by_name(["user_age"])
+    dataset.schema = dataset.schema.select_by_name(["user_age", "click"])
+    model = mm.Model(
+        mm.InputBlockV2(input_schema),
         mm.MLPBlock([4]),
         mm.BinaryClassificationTask("click"),
     )
@@ -721,8 +841,8 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
 
-    loader = mm.Loader(
-        ecommerce_data, batch_size=50, transform=mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
+    loader = mm.Loader(ecommerce_data, batch_size=50).map(
+        mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
     )
 
     model = mm.RetrievalModelV2(
@@ -898,8 +1018,8 @@ def test_categorical_prediction_with_temperature(sequence_testing_data: Dataset)
         ),
     )
 
-    loader = mm.Loader(
-        train, batch_size=1024, transform=mm.ToTarget(train.schema, "user_country", one_hot=True)
+    loader = mm.Loader(train, batch_size=1024).map(
+        mm.ToTarget(train.schema, "user_country", one_hot=True)
     )
 
     model.compile(run_eagerly=False, optimizer="adam")

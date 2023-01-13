@@ -19,7 +19,8 @@ from merlin.schema import Tags
 
 
 def test_concat_sequence(sequence_testing_data):
-    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+    sequence_testing_data.schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+    seq_schema = sequence_testing_data.schema
 
     seq_inputs = mm.InputBlockV2(
         seq_schema,

@@ -1,9 +1,10 @@
-from typing import Optional
+from typing import Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.outputs.base import MetricsFn, ModelOutput
+from merlin.schema import ColumnSchema
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -33,7 +34,7 @@ class RegressionOutput(ModelOutput):
 
     def __init__(
         self,
-        target: Optional[str] = None,
+        target: Optional[Union[str, ColumnSchema]] = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
         name: Optional[str] = None,
@@ -43,6 +44,9 @@ class RegressionOutput(ModelOutput):
         ),
         **kwargs,
     ):
+        if isinstance(target, ColumnSchema):
+            target = target.name
+
         to_call = kwargs.pop("to_call", None)
         super().__init__(
             to_call=to_call or tf.keras.layers.Dense(1, activation="linear"),

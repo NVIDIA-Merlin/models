@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/01-Getting-started.ipynb", execute=False)
+@pytest.mark.notebook
 def test_example_01_getting_started(tb):
     tb.inject(
         """
@@ -41,12 +42,12 @@ def test_example_01_getting_started(tb):
     metrics = tb.ref("metrics")
     assert set(metrics.keys()) == set(
         [
-            "auc",
-            "binary_accuracy",
             "loss",
-            "loss_batch",
-            "regularization_loss",
             "precision",
             "recall",
+            "binary_accuracy",
+            "auc",
+            "regularization_loss",
+            "loss_batch",
         ]
     )

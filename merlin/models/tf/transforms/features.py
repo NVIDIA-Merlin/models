@@ -52,7 +52,7 @@ class FeaturesTensorTypeConversion(TabularBlock):
             self.column_names = schema.column_names
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        raise NotImplementedError("The call method need to be implemented by child clases")
+        raise NotImplementedError("The call method need to be implemented by child classes")
 
     def compute_output_shape(self, input_shapes):
         output_shapes = {}
@@ -796,7 +796,6 @@ def reshape_categorical_input_tensor_for_encoding(
             )
 
     else:
-        # if feat_name in features_2d_last_dim or len(input.get_shape()) == 2:
         if feat_name in features_2d_last_dim or (
             input.get_shape()[-1] is not None and len(input.get_shape()) == 2
         ):
@@ -882,6 +881,7 @@ class BroadcastToSequence(tf.keras.layers.Layer):
 
         return seq_features_shapes, sequence_length
 
+    @tf.function
     def _broadcast(self, inputs, target):
         seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs)
         if len(seq_features_shapes) > 0:

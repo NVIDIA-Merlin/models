@@ -29,28 +29,28 @@ def test_func(tb):
     ]
     metrics_mlp = tb.ref("metrics_mlp")
     assert sorted(list(metrics_mlp.keys())) == [
-        "auc_1",
+        "auc",
         "loss",
         "loss_batch",
         "regularization_loss",
     ]
     metrics_mlp = tb.ref("metrics_wide_n_deep")
     assert sorted(list(metrics_mlp.keys())) == [
-        "auc_2",
+        "auc",
         "loss",
         "loss_batch",
         "regularization_loss",
     ]
     metrics_dlrm = tb.ref("metrics_dlrm")
     assert sorted(list(metrics_dlrm.keys())) == [
-        "auc_3",
+        "auc",
         "loss",
         "loss_batch",
         "regularization_loss",
     ]
     metrics_dcn = tb.ref("metrics_dcn")
     assert sorted(list(metrics_dcn.keys())) == [
-        "auc_4",
+        "auc",
         "loss",
         "loss_batch",
         "regularization_loss",

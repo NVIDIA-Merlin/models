@@ -1,5 +1,6 @@
 # Test is currently breaks in TF 2.10
 
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
@@ -12,11 +13,13 @@ p = "examples/usecases/incremental-training-with-layer-freezing.ipynb"
     timeout=180,
     execute=False,
 )
+@pytest.mark.notebook
 def test_usecase_incremental_training_layer_freezing(tb):
     tb.inject(
         """
         import os
         os.environ["NUM_ROWS"] = "1000"
+        os.environ["BATCH_SIZE"] = "256"
         """
     )
     tb.execute()

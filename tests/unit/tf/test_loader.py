@@ -42,9 +42,9 @@ def test_lazy_dataset_map():
         time.sleep(sleep_time_seconds)
         return (x, y)
 
-    loader = mm.Loader(dataset, batch_size=10, transform=identity)
+    loader = mm.Loader(dataset, batch_size=10).map(identity)
 
-    elapsed_time_seconds = timeit.timeit(lambda: next(loader), number=1)
+    elapsed_time_seconds = timeit.timeit(lambda: next(iter(loader)), number=1)
 
     assert elapsed_time_seconds < 1
 
@@ -72,17 +72,29 @@ def test_nested_list():
     )
 
     batch = next(iter(loader))
+
     # [[1,2,3],[3,1],[...],[]]
-    nested_data_col = tf.RaggedTensor.from_row_lengths(
-        batch[0]["data"][0][:, 0], tf.cast(batch[0]["data"][1][:, 0], tf.int32)
-    ).to_tensor()
+    @tf.function
+    def _ragged_for_nested_data_col():
+        nested_data_col = tf.RaggedTensor.from_row_lengths(
+            batch[0]["data"][0][:, 0], tf.cast(batch[0]["data"][1][:, 0], tf.int32)
+        ).to_tensor()
+        return nested_data_col
+
+    nested_data_col = _ragged_for_nested_data_col()
     true_data_col = tf.reshape(
         tf.ragged.constant(df.iloc[:batch_size, 0].tolist()).to_tensor(), [batch_size, -1]
     )
+
     # [1,2,3]
-    multihot_data2_col = tf.RaggedTensor.from_row_lengths(
-        batch[0]["data2"][0][:, 0], tf.cast(batch[0]["data2"][1][:, 0], tf.int32)
-    ).to_tensor()
+    @tf.function
+    def _ragged_for_multihot_data_col():
+        multihot_data2_col = tf.RaggedTensor.from_row_lengths(
+            batch[0]["data2"][0][:, 0], tf.cast(batch[0]["data2"][1][:, 0], tf.int32)
+        ).to_tensor()
+        return multihot_data2_col
+
+    multihot_data2_col = _ragged_for_multihot_data_col()
     true_data2_col = tf.reshape(
         tf.ragged.constant(df.iloc[:batch_size, 1].tolist()).to_tensor(), [batch_size, -1]
     )
@@ -226,8 +238,7 @@ def test_tf_map(tmpdir):
         batch_size=10,
         label_names=label_name,
         shuffle=False,
-        transform=add_sample_weight,
-    )
+    ).map(add_sample_weight)
 
     for X, y, sample_weight in loader:
         assert list(X["cat1"].numpy()) == [1] * 10

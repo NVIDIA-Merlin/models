@@ -1,9 +1,11 @@
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/02-Merlin-Models-and-NVTabular-integration.ipynb", execute=False)
+@pytest.mark.notebook
 def test_example_02_nvt_integration(tb, tmpdir):
     tb.inject(
         f"""

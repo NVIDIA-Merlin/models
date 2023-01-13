@@ -1,3 +1,4 @@
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
@@ -8,6 +9,7 @@ from tests.conftest import REPO_ROOT
     execute=False,
     timeout=180,
 )
+@pytest.mark.notebook
 def test_usecase_data_parallel(tb, tmpdir):
     tb.inject(
         f"""

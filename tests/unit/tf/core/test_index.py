@@ -83,6 +83,8 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset, batch_size=100):
     def numpy_recall(labels, top_item_ids, k):
         return np.equal(np.expand_dims(labels, -1), top_item_ids[:, :k]).max(axis=-1).mean()
 
+    ecommerce_data.schema = ecommerce_data.schema.select_by_name(["user_categories", "item_id"])
+
     model = mm.TwoTowerModel(
         ecommerce_data.schema,
         query_tower=mm.MLPBlock([64]),

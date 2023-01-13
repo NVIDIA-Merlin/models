@@ -89,6 +89,7 @@ def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly):
 
 
 def test_matrix_factorization_model_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
     model = mm.MatrixFactorizationModel(testing_data.schema, dim=4, embeddings_l2_reg=0.1)
 
     _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
@@ -133,10 +134,8 @@ def test_matrix_factorization_topk_evaluation(music_streaming_data: Dataset, run
     topk_model = model.to_top_k_encoder(candidate_features, k=20, batch_size=16)
     topk_model.compile(run_eagerly=run_eagerly)
 
-    loader = mm.Loader(
-        music_streaming_data,
-        batch_size=32,
-        transform=mm.ToTarget(music_streaming_data.schema, "item_id"),
+    loader = mm.Loader(music_streaming_data, batch_size=32).map(
+        mm.ToTarget(music_streaming_data.schema, "item_id")
     )
 
     metrics = topk_model.evaluate(loader, return_dict=True)
@@ -161,6 +160,8 @@ def test_matrix_factorization_model_with_binary_task(ecommerce_data: Dataset, ru
 
 
 def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
+
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
         dim=4,
@@ -181,6 +182,8 @@ def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
 
 
 def test_matrix_factorization_model_v2_save(tmpdir, testing_data: Dataset):
+    testing_data.schema = testing_data.schema.select_by_name(["user_id", "item_id"])
+
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
         dim=4,
@@ -342,6 +345,8 @@ def test_two_tower_model_v2_save(tmpdir, ecommerce_data: Dataset):
 
 
 def test_two_tower_model_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.excluding_by_name(["event_timestamp"])
+
     model = mm.TwoTowerModel(
         testing_data.schema,
         query_tower=mm.MLPBlock([2]),
@@ -364,6 +369,8 @@ def test_two_tower_model_l2_reg(testing_data: Dataset):
 
 
 def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
+    testing_data.schema = testing_data.schema.excluding_by_name(["event_timestamp"])
+
     user_schema = testing_data.schema.select_by_tag(Tags.USER)
     user_inputs = mm.InputBlockV2(
         user_schema,
@@ -422,7 +429,7 @@ def test_two_tower_model_topk_evaluation(ecommerce_data: Dataset, run_eagerly):
     topk_model = model.to_top_k_encoder(candidate_features, k=20, batch_size=16)
     topk_model.compile(run_eagerly=run_eagerly)
 
-    loader = mm.Loader(ecommerce_data, batch_size=32, transform=mm.ToTarget(schema, "item_id"))
+    loader = mm.Loader(ecommerce_data, batch_size=32).map(mm.ToTarget(schema, "item_id"))
 
     metrics = topk_model.evaluate(loader, return_dict=True)
     assert all([metric >= 0 for metric in metrics.values()])
@@ -744,6 +751,7 @@ def test_two_tower_retrieval_model_v2_with_topk_metrics_aggregator(
 
 
 def test_two_tower_advanced_options(ecommerce_data):
+    ecommerce_data.schema = ecommerce_data.schema.select_by_name(["user_id", "item_id"])
     train_ds, eval_ds = ecommerce_data, ecommerce_data
     metrics = retrieval_tests_common.train_eval_two_tower_for_lastfm(
         train_ds,
@@ -763,6 +771,7 @@ def test_two_tower_advanced_options(ecommerce_data):
 
 
 def test_mf_advanced_options(ecommerce_data):
+    ecommerce_data.schema = ecommerce_data.schema.select_by_name(["user_id", "item_id"])
     train_ds, eval_ds = ecommerce_data, ecommerce_data
     metrics = retrieval_tests_common.train_eval_mf_for_lastfm(
         train_ds,
@@ -819,21 +828,20 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
     as_ragged = mm.ListToRagged()
 
-    def last_interaction_as_target(inputs, targets):
-        inputs = as_ragged(inputs)
-        items = inputs["item_id_seq"]
-        _items = items[:, :-1]
-        targets = items[:, -1:].flat_values
+    class LastInteractionAsTarget(tf.keras.layers.Layer):
+        def call(self, inputs, **kwargs):
+            inputs = as_ragged(inputs)
+            items = inputs["item_id_seq"]
+            _items = items[:, :-1]
+            targets = items[:, -1:].flat_values
 
-        inputs["item_id_seq"] = _items
+            inputs["item_id_seq"] = _items
 
-        return inputs, targets
+            return inputs, targets
 
-    dataloader = mm.Loader(
-        sequence_testing_data, batch_size=50, transform=last_interaction_as_target
-    )
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
 
-    losses = model.fit(dataloader, epochs=1)
+    losses = model.fit(dataloader, epochs=1, pre=LastInteractionAsTarget())
 
     assert losses is not None
 
@@ -843,7 +851,7 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly, target_augmentation):
     # remove sequential continuous features because second dimension (=[None]) is raising an error
     # in the `compute_output_shape` of  `ConcatFeatures`)
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
@@ -858,10 +866,14 @@ def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly, t
         schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
     )
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=target_augmentation)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
 
     _, losses = testing_utils.model_test(
-        model, dataloader, reload_model=True, run_eagerly=run_eagerly
+        model,
+        dataloader,
+        reload_model=True,
+        run_eagerly=run_eagerly,
+        fit_kwargs=dict(pre=target_augmentation),
     )
 
     assert losses is not None
@@ -923,7 +935,7 @@ def _check_embeddings(embeddings, extected_len, num_dim=8, index_name=None):
 
 
 def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
@@ -938,8 +950,10 @@ def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
         schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
     )
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=predict_next)
-    model, _ = testing_utils.model_test(model, dataloader, reload_model=False)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
+    model, _ = testing_utils.model_test(
+        model, dataloader, reload_model=False, fit_kwargs=dict(pre=predict_next)
+    )
 
     candidates = model.candidate_embeddings().compute()
     assert list(candidates.columns) == [str(i) for i in range(32)]
@@ -956,7 +970,7 @@ def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly):
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
@@ -971,13 +985,15 @@ def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly
         schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
     )
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=predict_next)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
 
-    model, _ = testing_utils.model_test(model, dataloader, reload_model=False)
+    model, _ = testing_utils.model_test(
+        model, dataloader, reload_model=False, fit_kwargs=dict(pre=predict_next)
+    )
 
     # Top-K evaluation
     topk_model = model.to_top_k_encoder(k=20)
     topk_model.compile(run_eagerly=run_eagerly)
 
-    metrics = topk_model.evaluate(dataloader, return_dict=True)
+    metrics = topk_model.evaluate(dataloader, return_dict=True, pre=predict_next)
     assert all([metric >= 0 for metric in metrics.values()])

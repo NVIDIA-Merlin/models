@@ -13,6 +13,7 @@ pytest.importorskip("implicit")
     REPO_ROOT / "examples/07-Train-traditional-ML-models-using-the-Merlin-Models-API.ipynb",
     execute=False,
 )
+@pytest.mark.notebook
 @pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
 def test_func(tb):
     tb.execute()

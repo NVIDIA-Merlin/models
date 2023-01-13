@@ -70,8 +70,8 @@ def test_sequence_data_length(generate_data_kwargs, expected_sequence_length):
 
     tensors, y = sample_batch(data, batch_size=1, process_lists=False)
 
-    assert all(tensors["item_id_seq"][1] == expected_sequence_length)
-    assert all(tensors["categories"][1] == expected_sequence_length)
+    for col in ["item_id_seq", "categories"]:
+        assert all(tensors[col][1] == expected_sequence_length)
 
 
 def test_generate_user_item_interactions_dtypes():

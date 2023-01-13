@@ -95,6 +95,11 @@ def test_horovod_multigpu_dlrm(
 
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
+    # Check the steps in each worker to check that the dataset is distributed
+    # across workers. If this works correctly in a multi-gpu setting, the steps
+    # should decrease with more workers, e.g., steps = 9 in each worker with
+    # 1 GPU, steps = 4 in each worker with 2 GPUS, steps = 3 in each worker
+    # with 3 GPUS, and so on.
     if hvd_installed:
         assert losses.params["steps"] == 9 // hvd.size()
     else:
@@ -149,7 +154,7 @@ def test_horovod_multigpu_two_tower(
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
     if hvd_installed:
-        assert losses.params["steps"] == 9 // hvd.size()
+        assert losses.params["steps"] == 9 // hvd.size()  # 9 steps per epoch; 2 epochs
     else:
         assert losses.params["steps"] == 9
 

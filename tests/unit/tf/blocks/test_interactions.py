@@ -35,7 +35,7 @@ def test_fm_pairwise_interaction():
 
 
 def test_fm_block(ecommerce_data: Dataset):
-    schema = ecommerce_data.schema
+    schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
     fm_block = mm.FMBlock(
         schema,
@@ -86,7 +86,8 @@ def test_fm_block_with_multi_hot_categ_features(testing_data: Dataset):
         wide_input_block=wide_input_block,
         factors_dim=32,
     )
+
     batch, _ = mm.sample_batch(testing_data, batch_size=16, process_lists=False)
 
     output = fm_block(batch)
-    output.shape.as_list() == [16, 1]
+    assert output.shape.as_list() == [16, 1]

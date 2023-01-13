@@ -17,7 +17,7 @@
 # flake8: noqa
 
 # Must happen before any importing of tensorflow to curtail mem usage
-from merlin.models.loader.tf_utils import configure_tensorflow
+from merlin.dataloader.tf_utils import configure_tensorflow
 from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
 
@@ -29,10 +29,9 @@ from tensorflow.keras.metrics import Metric
 from tensorflow.keras.optimizers import Optimizer
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
-from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
-from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
+from merlin.models.tf.blocks.experts import CGCBlock, ExpertsGate, MMOEBlock, PLEBlock
 from merlin.models.tf.blocks.interaction import (
     DotProductInteraction,
     FMBlock,
@@ -76,6 +75,7 @@ from merlin.models.tf.core.combinators import (
     SequentialBlock,
 )
 from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder, TopKEncoder
+from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -111,6 +111,7 @@ from merlin.models.tf.models.retrieval import (
     YoutubeDNNRetrievalModelV2,
 )
 from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.outputs.block import ColumnBasedSampleWeight, OutputBlock
 from merlin.models.tf.outputs.classification import BinaryOutput, CategoricalOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.outputs.regression import RegressionOutput
@@ -159,6 +160,7 @@ from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.transforms.sequence import (
     ReplaceMaskedEmbeddings,
     SequenceMaskLast,
+    SequenceMaskLastInference,
     SequenceMaskRandom,
     SequencePredictLast,
     SequencePredictNext,
@@ -194,9 +196,10 @@ __all__ = [
     "DLRMBlock",
     "MLPBlock",
     "ContinuousEmbedding",
-    "MMOEGate",
+    "ExpertsGate",
     "MMOEBlock",
     "CGCBlock",
+    "PLEBlock",
     "TopKIndexBlock",
     "IndexBlock",
     "DenseResidualBlock",
@@ -238,6 +241,8 @@ __all__ = [
     "FMBlock",
     "ToOneHot",
     "ModelOutput",
+    "OutputBlock",
+    "ColumnBasedSampleWeight",
     "BinaryOutput",
     "RegressionOutput",
     "CategoricalOutput",
@@ -296,4 +301,5 @@ __all__ = [
     "SequenceMaskLast",
     "SequenceMaskRandom",
     "ReplaceMaskedEmbeddings",
+    "Prediction",
 ]

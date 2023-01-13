@@ -42,7 +42,7 @@ def test_layer_with_features_in_model(music_streaming_data: Dataset, run_eagerly
 def test_model_pre_transforming_targets(ecommerce_data: Dataset, run_eagerly):
     class FlipTargets(tf.keras.layers.Layer):
         def call(self, inputs: Dict[str, tf.Tensor], targets=None):
-            if targets:
+            if targets is not None:
                 if isinstance(targets, dict):
                     flipped = {}
                     for key in targets:

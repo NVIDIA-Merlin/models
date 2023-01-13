@@ -1,11 +1,13 @@
 import os
 
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/03-Exploring-different-models.ipynb", execute=False)
+@pytest.mark.notebook
 def test_example_03_exploring_different_models(tb, tmpdir):
     tb.inject(
         f"""
@@ -28,7 +30,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
     metrics_mlp = tb.ref("metrics_mlp")
     assert set(metrics_mlp.keys()) == set(
         [
-            "auc_1",
+            "auc",
             "loss",
             "loss_batch",
             "regularization_loss",
@@ -37,7 +39,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
     metrics_wide_n_deep = tb.ref("metrics_wide_n_deep")
     assert set(metrics_wide_n_deep.keys()) == set(
         [
-            "auc_2",
+            "auc",
             "loss",
             "loss_batch",
             "regularization_loss",
@@ -46,7 +48,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
     metrics_dlrm = tb.ref("metrics_dlrm")
     assert set(metrics_dlrm.keys()) == set(
         [
-            "auc_3",
+            "auc",
             "loss",
             "loss_batch",
             "regularization_loss",
@@ -55,7 +57,7 @@ def test_example_03_exploring_different_models(tb, tmpdir):
     metrics_dcn = tb.ref("metrics_dcn")
     assert set(metrics_dcn.keys()) == set(
         [
-            "auc_4",
+            "auc",
             "loss",
             "loss_batch",
             "regularization_loss",

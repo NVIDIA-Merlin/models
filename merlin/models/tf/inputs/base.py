@@ -59,8 +59,8 @@ def InputBlock(
 
     This function creates continuous and embedding layers, and connects them via `ParallelBlock`.
         If aggregation argument is not set, it returns a dictionary of multiple tensors
-        each corresponds to an input feature.
-        Otherwise, it merges the tensors into one using the aggregation method.
+        each corresponds to an input feature. Otherwise, it merges the tensors
+        into one using the aggregation method.
 
     Example usage::
 
@@ -94,7 +94,7 @@ def InputBlock(
         Tags to filter the continuous features
         Defaults to  (Tags.CONTINUOUS,)
     continuous_projection: Optional[Block]
-        If set, concatenate all numerical features and projet using the
+        If set, concatenate all numerical features and project using the
         specified Block.
         Defaults to None
     add_embedding_branch: bool
@@ -117,6 +117,9 @@ def InputBlock(
         aggregate the sparse features tensor along the sequence axis.
         Defaults to SequenceAggregator('mean')
     """
+    # If targets are passed, exclude these from the input block schema
+    schema = schema.excluding_by_tag([Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION])
+
     branches = branches or {}
 
     if split_sparse:
@@ -291,6 +294,8 @@ def InputBlockV2(
         Returns a ParallelBlock with a Dict with two branches:
         continuous and embeddings
     """
+    # If targets are passed, exclude these from the input block schema
+    schema = schema.excluding_by_tag([Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION])
 
     if "embeddings" in branches:
         warnings.warn(

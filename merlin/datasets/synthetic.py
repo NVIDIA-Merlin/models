@@ -25,7 +25,7 @@ import numpy as np
 
 import merlin.io
 from merlin.models.utils import schema_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 LOG = logging.getLogger("merlin-models")
@@ -115,6 +115,21 @@ def generate_data(
         schema = input
     else:
         raise ValueError(f"Unknown input type: {type(input)}")
+
+    for col in schema.column_names:
+        if not schema[col].is_list:
+            continue
+        new_properties = schema[col].properties
+        new_properties["value_count"] = {"min": min_session_length}
+        if max_session_length:
+            new_properties["value_count"]["max"] = max_session_length
+        schema[col] = ColumnSchema(
+            name=schema[col].name,
+            tags=schema[col].tags,
+            properties=new_properties,
+            dtype=schema[col].dtype,
+            is_list=True,
+        )
 
     df = generate_user_item_interactions(
         schema, num_rows, min_session_length, max_session_length, device=device
