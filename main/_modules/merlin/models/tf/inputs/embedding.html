@@ -238,7 +238,7 @@
 <span class="n">CombinerType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span>
 
 
-<span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="EmbeddingTable"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">EmbeddingTable</span><span class="p">(</span><span class="n">EmbeddingTableBase</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Embedding table that is backed by a standard Keras Embedding Layer.</span>
 
@@ -288,7 +288,7 @@
 <span class="sd">    **kwargs: Forwarded Keras Layer parameters</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="EmbeddingTable.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="o">*</span><span class="n">col_schemas</span><span class="p">:</span> <span class="n">ColumnSchema</span><span class="p">,</span>
@@ -337,9 +337,9 @@
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span> <span class="o">=</span> <span class="n">sequence_combiner</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">supports_masking</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">l2_batch_regularization_factor</span> <span class="o">=</span> <span class="n">l2_batch_regularization_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l2_batch_regularization_factor</span> <span class="o">=</span> <span class="n">l2_batch_regularization_factor</span></div>
 
-    <span class="k">def</span> <span class="nf">select_by_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tags</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;EmbeddingTable&quot;</span><span class="p">]:</span>
+<div class="viewcode-block" id="EmbeddingTable.select_by_tag"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.select_by_tag">[docs]</a>    <span class="k">def</span> <span class="nf">select_by_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tags</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;EmbeddingTable&quot;</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Select features in EmbeddingTable by tags.</span>
 
 <span class="sd">        Since an EmbeddingTable can be a shared-embedding table, this method filters</span>
@@ -365,9 +365,9 @@
         <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">schema_to_tensorflow_metadata_json</span><span class="p">(</span><span class="n">selected_schema</span><span class="p">)</span>
         <span class="n">embedding_table</span> <span class="o">=</span> <span class="n">EmbeddingTable</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">table</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">embedding_table</span>
+        <span class="k">return</span> <span class="n">embedding_table</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="EmbeddingTable.from_pretrained"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.from_pretrained">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_pretrained</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">DataFrameType</span><span class="p">],</span>
@@ -404,9 +404,9 @@
             <span class="n">embeddings_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">embeddings</span><span class="p">),</span>
             <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="EmbeddingTable.from_dataset"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.from_dataset">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_dataset</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">DataFrameType</span><span class="p">],</span>
@@ -427,13 +427,13 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
             <span class="n">data</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">col_schema</span><span class="o">=</span><span class="n">col_schema</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">to_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">))</span>
+<div class="viewcode-block" id="EmbeddingTable.to_dataset"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.to_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">to_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">))</span></div>
 
-    <span class="k">def</span> <span class="nf">to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">tensor_to_df</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span>
+<div class="viewcode-block" id="EmbeddingTable.to_df"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.to_df">[docs]</a>    <span class="k">def</span> <span class="nf">to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tensor_to_df</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_maybe_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates state between layer instantiation and layer call.</span>
@@ -443,12 +443,12 @@
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">EmbeddingTable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_maybe_build</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+<div class="viewcode-block" id="EmbeddingTable.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">built</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">EmbeddingTable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">EmbeddingTable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
+<div class="viewcode-block" id="EmbeddingTable.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -469,7 +469,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_table</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="n">out</span></div>
 
     <span class="k">def</span> <span class="nf">_call_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
@@ -513,7 +513,7 @@
 
         <span class="k">return</span> <span class="n">out</span>
 
-    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span>
+<div class="viewcode-block" id="EmbeddingTable.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">]]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">]]:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
@@ -526,7 +526,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">output_shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_output_shape_table</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">output_shapes</span>
+        <span class="k">return</span> <span class="n">output_shapes</span></div>
 
     <span class="k">def</span> <span class="nf">_compute_output_shape_table</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]</span>
@@ -544,10 +544,10 @@
 
         <span class="k">return</span> <span class="n">output_shapes</span>
 
-    <span class="k">def</span> <span class="nf">compute_call_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
+<div class="viewcode-block" id="EmbeddingTable.compute_call_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.compute_call_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_call_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="EmbeddingTable.from_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.from_config">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">table</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">table</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span>
@@ -556,19 +556,19 @@
         <span class="k">if</span> <span class="s2">&quot;combiner-layer&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sequence_combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;combiner-layer&quot;</span><span class="p">))</span>
 
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="EmbeddingTable.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;combiner-layer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sequence_combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span>
-        <span class="k">return</span> <span class="n">config</span>
+        <span class="k">return</span> <span class="n">config</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">Embeddings</span><span class="p">(</span>
+<div class="viewcode-block" id="Embeddings"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Embeddings.html#merlin.models.tf.Embeddings">[docs]</a><span class="k">def</span> <span class="nf">Embeddings</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">infer_dim_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ColumnSchema</span><span class="p">],</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">infer_embedding_dim</span><span class="p">,</span>
@@ -665,7 +665,7 @@
 
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
         <span class="n">tables</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">block_name</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span>
-    <span class="p">)</span>
+    <span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">_forward_kwargs_to_table</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">table_cls</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
@@ -699,8 +699,8 @@
     <span class="k">return</span> <span class="n">dim</span>
 
 
-<span class="k">class</span> <span class="nc">AverageEmbeddingsByWeightFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight_feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="AverageEmbeddingsByWeightFeature"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.AverageEmbeddingsByWeightFeature.html#merlin.models.tf.AverageEmbeddingsByWeightFeature">[docs]</a><span class="k">class</span> <span class="nc">AverageEmbeddingsByWeightFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+<div class="viewcode-block" id="AverageEmbeddingsByWeightFeature.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.AverageEmbeddingsByWeightFeature.html#merlin.models.tf.AverageEmbeddingsByWeightFeature.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight_feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the weighted average of a Tensor based</span>
 <span class="sd">        on one of the input features.</span>
 <span class="sd">        Typically used as a combiner for EmbeddingTable</span>
@@ -716,9 +716,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">AverageEmbeddingsByWeightFeature</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">=</span> <span class="n">axis</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">weight_feature_name</span> <span class="o">=</span> <span class="n">weight_feature_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_feature_name</span> <span class="o">=</span> <span class="n">weight_feature_name</span></div>
 
-    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+<div class="viewcode-block" id="AverageEmbeddingsByWeightFeature.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.AverageEmbeddingsByWeightFeature.html#merlin.models.tf.AverageEmbeddingsByWeightFeature.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
         <span class="n">weight_feature</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_feature_name</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weight_feature</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -733,12 +733,12 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weights</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">),</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">output</span>
+        <span class="k">return</span> <span class="n">output</span></div>
 
-    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">input_shape</span>
+<div class="viewcode-block" id="AverageEmbeddingsByWeightFeature.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.AverageEmbeddingsByWeightFeature.html#merlin.models.tf.AverageEmbeddingsByWeightFeature.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">input_shape</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="AverageEmbeddingsByWeightFeature.from_schema_convention"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.AverageEmbeddingsByWeightFeature.html#merlin.models.tf.AverageEmbeddingsByWeightFeature.from_schema_convention">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">from_schema_convention</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">weight_features_name_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;_weight&quot;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Infers the weight features corresponding to sequential embedding</span>
 <span class="sd">        features based on the feature name suffix. For example, if a</span>
@@ -773,7 +773,7 @@
                     <span class="n">combiner</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Lambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
                 <span class="n">seq_combiners</span><span class="p">[</span><span class="n">cat_col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">combiner</span>
 
-        <span class="k">return</span> <span class="n">seq_combiners</span>
+        <span class="k">return</span> <span class="n">seq_combiners</span></div></div>
 
 
 <span class="nd">@dataclass</span>
@@ -790,7 +790,7 @@
     <span class="n">combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span>
 
 
-<div class="viewcode-block" id="EmbeddingFeatures"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures">[docs]</a><span class="nd">@docstring_parameter</span><span class="p">(</span>
+<span class="nd">@docstring_parameter</span><span class="p">(</span>
     <span class="n">tabular_module_parameters</span><span class="o">=</span><span class="n">TABULAR_MODULE_PARAMS_DOCSTRING</span><span class="p">,</span>
     <span class="n">embedding_features_parameters</span><span class="o">=</span><span class="n">EMBEDDING_FEATURES_PARAMS_DOCSTRING</span><span class="p">,</span>
 <span class="p">)</span>
@@ -806,7 +806,7 @@
 <span class="sd">    {tabular_module_parameters}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">feature_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;FeatureConfig&quot;</span><span class="p">],</span>
         <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -847,9 +847,9 @@
             <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
             <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.from_schema"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.from_schema">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_schema</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
@@ -939,9 +939,9 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">output</span></div>
+        <span class="k">return</span> <span class="n">output</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding_table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">embedding_table</span><span class="o">.</span><span class="n">build</span><span class="p">(())</span>
 
@@ -951,27 +951,27 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">)</span></div>
+            <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">)</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
         <span class="n">embedded_outputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">embedded_outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup_feature</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2_reg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l2_reg</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">embedded_outputs</span><span class="p">[</span><span class="n">name</span><span class="p">])))</span>
 
-        <span class="k">return</span> <span class="n">embedded_outputs</span></div>
+        <span class="k">return</span> <span class="n">embedded_outputs</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.compute_call_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.compute_call_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_call_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">compute_call_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_batch_size_from_input_shapes</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
 
         <span class="n">output_shapes</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">input_shapes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">output_shapes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_config</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">dim</span><span class="p">])</span>
 
-        <span class="k">return</span> <span class="n">output_shapes</span></div>
+        <span class="k">return</span> <span class="n">output_shapes</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.lookup_feature"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.lookup_feature">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_feature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">output_sequence</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">lookup_feature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">output_sequence</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">dtype</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dtype</span> <span class="o">!=</span> <span class="s2">&quot;int32&quot;</span> <span class="ow">and</span> <span class="n">dtype</span> <span class="o">!=</span> <span class="s2">&quot;int64&quot;</span><span class="p">:</span>
             <span class="n">val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s2">&quot;int32&quot;</span><span class="p">)</span>
@@ -998,12 +998,12 @@
             <span class="c1"># this is mathematically equivalent but is faster.</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype_policy</span><span class="o">.</span><span class="n">compute_dtype</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">out</span></div>
+        <span class="k">return</span> <span class="n">out</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.table_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.table_config">[docs]</a>    <span class="k">def</span> <span class="nf">table_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_config</span><span class="p">[</span><span class="n">feature_name</span><span class="p">]</span><span class="o">.</span><span class="n">table</span></div>
+    <span class="k">def</span> <span class="nf">table_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_config</span><span class="p">[</span><span class="n">feature_name</span><span class="p">]</span><span class="o">.</span><span class="n">table</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.get_embedding_table"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.get_embedding_table">[docs]</a>    <span class="k">def</span> <span class="nf">get_embedding_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_embedding_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">Tags</span><span class="p">):</span>
             <span class="n">feature_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">table_name</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">feature_names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -1019,9 +1019,9 @@
         <span class="k">if</span> <span class="n">l2_normalization</span><span class="p">:</span>
             <span class="n">embeddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">embeddings</span></div>
+        <span class="k">return</span> <span class="n">embeddings</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.embedding_table_df"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.embedding_table_df">[docs]</a>    <span class="k">def</span> <span class="nf">embedding_table_df</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">embedding_table_df</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">gpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves a dataframe with the embedding table</span>
@@ -1063,9 +1063,9 @@
             <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)]</span>
             <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
-        <span class="k">return</span> <span class="n">df</span></div>
+        <span class="k">return</span> <span class="n">df</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.embedding_table_dataset"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.embedding_table_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">embedding_table_dataset</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">embedding_table_dataset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a Dataset for the embedding table</span>
@@ -1086,9 +1086,9 @@
 <span class="sd">        merlin.io.Dataset</span>
 <span class="sd">            Returns a Dataset with the embeddings</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">l2_normalization</span><span class="p">,</span> <span class="n">gpu</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">l2_normalization</span><span class="p">,</span> <span class="n">gpu</span><span class="p">))</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.export_embedding_table"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.export_embedding_table">[docs]</a>    <span class="k">def</span> <span class="nf">export_embedding_table</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">export_embedding_table</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span>
         <span class="n">export_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1111,9 +1111,9 @@
 <span class="sd">            Whether or not should use GPU, by default True</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">l2_normalization</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span>
-        <span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">export_path</span><span class="p">)</span></div>
+        <span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">export_path</span><span class="p">)</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
 
         <span class="n">feature_configs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1127,9 +1127,9 @@
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;feature_config&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">feature_configs</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;l2_reg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2_reg</span>
 
-        <span class="k">return</span> <span class="n">config</span></div>
+        <span class="k">return</span> <span class="n">config</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.from_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.from_config">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
         <span class="c1"># Deserialize feature_config</span>
         <span class="n">feature_configs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1143,7 +1143,7 @@
         <span class="c1"># Set `add_default_pre to False` since pre will be provided from the config</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;add_default_pre&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="SequenceEmbeddingFeatures"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequenceEmbeddingFeatures.html#merlin.models.tf.SequenceEmbeddingFeatures">[docs]</a><span class="nd">@docstring_parameter</span><span class="p">(</span>
