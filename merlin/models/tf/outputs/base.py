@@ -24,11 +24,14 @@ from keras.utils.generic_utils import to_snake_case
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.base import name_fn
+from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
 
 MetricsFn = Callable[[], Sequence[tf.keras.metrics.Metric]]
+
+ModelOutputType = Union["ModelOutput", ParallelBlock]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -73,8 +76,7 @@ class ModelOutput(Layer):
     ):
         logits_scaler = kwargs.pop("logits_scaler", None)
         self.target = target
-        base_name = to_snake_case(self.__class__.__name__)
-        self.full_name = name_fn(self.target, base_name) if self.target else base_name
+        self.full_name = self.task_name(self.target)
 
         super().__init__(name=name or self.full_name, **kwargs)
         self.to_call = to_call
@@ -136,13 +138,15 @@ class ModelOutput(Layer):
         outputs = super(ModelOutput, self).__call__(inputs, *args, **kwargs)
 
         if self.post:
-            outputs = tf_utils.call_layer(self.post, outputs, **kwargs)
+            outputs = tf_utils.call_layer(self.post, outputs, target_name=self.target, **kwargs)
 
         if getattr(self, "logits_scaler", None):
             if isinstance(outputs, tf.Tensor):
                 targets = kwargs.pop("targets", None)
+                if isinstance(targets, dict) and self.target in targets:
+                    targets = targets[self.target]
                 outputs = Prediction(outputs, targets)
-            outputs = self.logits_scaler(outputs)
+            outputs = tf_utils.call_layer(self.logits_scaler, outputs, **kwargs)
 
         return outputs
 
@@ -239,6 +243,11 @@ class ModelOutput(Layer):
         config = tf_utils.maybe_serialize_keras_objects(self, config, objects)
 
         return config
+
+    @classmethod
+    def task_name(cls, target_name):
+        base_name = to_snake_case(cls.__name__)
+        return name_fn(target_name, base_name) if target_name else base_name
 
     @classmethod
     def from_config(cls, config):

@@ -1,5 +1,6 @@
 feature {
   name: "utrip_id"
+  type: INT
   annotation {
     extra_metadata {
       type_url: "type.googleapis.com/google.protobuf.Struct"

@@ -45,6 +45,38 @@ def test_binary_output(ecommerce_data: Dataset, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("use_output_block", [True, False])
+def test_binary_output_two_tasks(ecommerce_data: Dataset, run_eagerly, use_output_block):
+
+    if use_output_block:
+        output_block = mm.OutputBlock(ecommerce_data.schema)
+    else:
+        output_block = mm.ParallelBlock(mm.BinaryOutput("click"), mm.BinaryOutput("conversion"))
+
+    model = mm.Model(mm.InputBlock(ecommerce_data.schema), mm.MLPBlock([8]), output_block)
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    metrics = model.train_step(mm.sample_batch(ecommerce_data, batch_size=50))
+
+    assert set(metrics.keys()) == {
+        "loss",
+        "loss_batch",
+        "click/binary_output_loss",
+        "click/binary_output/precision",
+        "click/binary_output/recall",
+        "click/binary_output/binary_accuracy",
+        "click/binary_output/auc",
+        "conversion/binary_output_loss",
+        "conversion/binary_output/precision",
+        "conversion/binary_output/recall",
+        "conversion/binary_output/binary_accuracy",
+        "conversion/binary_output/auc",
+        "regularization_loss",
+    }
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
     dataloader, schema = _next_item_loader(sequence_testing_data)
     model = mm.Model(
