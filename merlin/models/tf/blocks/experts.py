@@ -25,6 +25,7 @@ from merlin.models.tf.core.combinators import (
     TabularBlock,
     WithShortcut,
 )
+from merlin.models.tf.models.base import get_task_names_from_outputs
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
@@ -134,7 +135,7 @@ class ExpertsGate(Block):
 
 
 def MMOEBlock(
-    outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
+    outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock, ParallelBlock],
     expert_block: Block,
     num_experts: int,
     gate_block: Optional[Block] = None,
@@ -151,8 +152,9 @@ def MMOEBlock(
 
     Parameters
     ----------
-    outputs : Union[List[str], List[PredictionTask], ParallelPredictionBlock]
-        List with the tasks. A gate is created for each task.
+    outputs : Union[List[str], List[PredictionTask], ParallelPredictionBlock, ParallelBlock]
+        Names of the tasks or PredictionTask/ParallelPredictionBlock objects from
+        which we can extract the task names. A gate is created for each task.
     expert_block : Block
         Expert block to be replicated, e.g. MLPBlock([64])
     num_experts : int
@@ -172,12 +174,10 @@ def MMOEBlock(
     SequentialBlock
         Outputs the sequence of blocks that implement MMOE
     """
-    if isinstance(outputs, ParallelPredictionBlock):
-        output_names = outputs.task_names
-    elif all(isinstance(x, PredictionTask) for x in outputs):
-        output_names = [o.task_name for o in outputs]  # type: ignore
-    else:
+    if isinstance(outputs, (tuple, list)) and isinstance(outputs[0], str):
         output_names = outputs  # type: ignore
+    else:
+        output_names = get_task_names_from_outputs(outputs)
 
     if not isinstance(expert_block, Block):
         expert_block = Block.from_layer(expert_block)
@@ -348,7 +348,7 @@ class CGCBlock(ParallelBlock):
 
     Parameters
     ----------
-    outputs : Union[List[str], List[PredictionTask], ParallelPredictionBlock]
+    outputs : Union[List[str], List[PredictionTask], ParallelPredictionBlock, ParallelBlock]
        Names of the tasks or PredictionTask/ParallelPredictionBlock objects from
         which we can extract the task names
     expert_block : Union[Block, tf.keras.layers.Layer]
@@ -376,7 +376,7 @@ class CGCBlock(ParallelBlock):
 
     def __init__(
         self,
-        outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
+        outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock, ParallelBlock],
         expert_block: Union[Block, tf.keras.layers.Layer],
         num_task_experts: int = 1,
         num_shared_experts: int = 1,
@@ -390,12 +390,11 @@ class CGCBlock(ParallelBlock):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
 
-        if isinstance(outputs, ParallelPredictionBlock):
-            output_names = outputs.task_names
-        elif all(isinstance(x, PredictionTask) for x in outputs):
-            output_names = list([o.task_name for o in outputs])  # type: ignore
-        else:
+        if isinstance(outputs, (tuple, list)) and isinstance(outputs[0], str):
             output_names = outputs  # type: ignore
+        else:
+            output_names = get_task_names_from_outputs(outputs)
+
         output_names = list(output_names)
         task_experts = dict(
             [
@@ -489,7 +488,7 @@ def create_expert(expert_block: Block, name: str) -> Tuple[str, TabularBlock]:
 
 def PLEBlock(
     num_layers: int,
-    outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
+    outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock, ParallelBlock],
     expert_block: Union[Block, tf.keras.layers.Layer],
     num_task_experts: int = 1,
     num_shared_experts: int = 1,
@@ -512,7 +511,7 @@ def PLEBlock(
     ----------
     num_layers : int
         Number of stacked CGC blocks
-    outputs : Union[List[str], List[PredictionTask], ParallelPredictionBlock]
+    outputs : Union[List[str], List[PredictionTask], ParallelPredictionBlock, ParallelBlock]
         Names of the tasks or PredictionTask/ParallelPredictionBlock objects from
         which we can extract the task names
     expert_block : Union[Block, tf.keras.layers.Layer]

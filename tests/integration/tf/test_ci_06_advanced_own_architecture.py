@@ -19,11 +19,5 @@ def test_func(tb):
     )
     tb.execute()
     metrics = tb.ref("metrics")
-    assert sorted(list(metrics.keys())) == [
-        "loss",
-        "rating_binary/binary_classification_task/auc",
-        "regularization_loss",
-        "loss_batch",
-        "total_loss",
-    ]
+    assert set(list(metrics.keys())) == set(["auc", "loss", "loss_batch", "regularization_loss"])
     assert os.path.isdir("custom_dlrm")

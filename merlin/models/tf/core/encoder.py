@@ -35,7 +35,7 @@ from merlin.schema import ColumnSchema, Schema, Tags
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Encoder(tf.keras.Model):
-    """Block that can be used for prediction & evaluation but not for training
+    """Block that can be used for prediction and evaluation but not for training
 
     Parameters
     ----------

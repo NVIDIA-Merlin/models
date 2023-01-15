@@ -59,8 +59,8 @@ def InputBlock(
 
     This function creates continuous and embedding layers, and connects them via `ParallelBlock`.
         If aggregation argument is not set, it returns a dictionary of multiple tensors
-        each corresponds to an input feature.
-        Otherwise, it merges the tensors into one using the aggregation method.
+        each corresponds to an input feature. Otherwise, it merges the tensors
+        into one using the aggregation method.
 
     Example usage::
 

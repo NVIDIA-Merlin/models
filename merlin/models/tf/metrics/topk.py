@@ -354,14 +354,14 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-@metrics_registry.register_with_multiple_names("recall_at", "recall")
+@metrics_registry.register_with_multiple_names("recall_at")
 class RecallAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="recall_at", **kwargs):
         super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name, **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-@metrics_registry.register_with_multiple_names("precision_at", "precision")
+@metrics_registry.register_with_multiple_names("precision_at")
 class PrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="precision_at", **kwargs):
         super().__init__(precision_at, k=k, pre_sorted=pre_sorted, name=name, **kwargs)
@@ -543,6 +543,9 @@ def split_metrics(
     """
     topk_metrics, topk_aggregators, other_metrics = [], [], []
     for metric in metrics:
+        if isinstance(metric, str):
+            metric = metrics_registry.parse(metric)
+
         if isinstance(metric, TopkMetric):
             topk_metrics.append(metric)
         elif isinstance(metric, TopKMetricsAggregator):

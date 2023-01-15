@@ -16,7 +16,9 @@ Ranking Model Constructors
    :toctree: generated
 
    DCNModel
+   DeepFMModel
    DLRMModel
+   WideAndDeepModel
 
 Retrieval Model Constructors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -24,8 +26,15 @@ Retrieval Model Constructors
 .. autosummary::
    :toctree: generated
 
+   Encoder
+   EmbeddingEncoder
+   ItemRetrievalScorer
+   RetrievalModelV2
+   MatrixFactorizationModelV2
    MatrixFactorizationModel
+   TwoTowerModelV2
    TwoTowerModel
+   YoutubeDNNRetrievalModelV2
    YoutubeDNNRetrievalModel
 
 Input Block Constructors
@@ -33,10 +42,17 @@ Input Block Constructors
 .. autosummary::
    :toctree: generated
 
+   Embeddings
+   EmbeddingTable
+   AverageEmbeddingsByWeightFeature
+   ReplaceMaskedEmbeddings
+   L2Norm
+   InputBlockV2
    InputBlock
+   Continuous
    ContinuousFeatures
    ContinuousEmbedding
-   EmbeddingFeatures
+   ContinuousProjection
    SequenceEmbeddingFeatures
 
 Model Building Block Constructors
@@ -51,9 +67,13 @@ Model Building Block Constructors
    TwoTowerBlock
    MatrixFactorizationBlock
    DotProductInteraction
+   FMBlock
+   FMPairwiseInteraction
 
 Modeling Prediction Task Constructors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note:: The modeling prediction task classes are deprecated in favor of the prediction output classes.
 
 .. autosummary::
    :toctree: generated
@@ -64,7 +84,21 @@ Modeling Prediction Task Constructors
    MultiClassClassificationTask
    RegressionTask
    ItemRetrievalTask
-   NextItemPredictionTask
+
+Modeling Prediction Output Constructors
+---------------------------------------
+
+.. autosummary::
+   :toctree: generated
+
+   OutputBlock
+   ModelOutput
+   BinaryOutput
+   CategoricalOutput
+   ContrastiveOutput
+   RegressionOutput
+   ColumnBasedSampleWeight
+
 
 Model Pipeline Constructors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,16 +114,27 @@ Model Pipeline Constructors
    ResidualBlock
    TabularBlock
    Filter
+   Cond
 
 
-Masking Block Constructors
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Model Evaluation Constructors
+-----------------------------
 
 .. autosummary::
    :toctree: generated
 
-   CausalLanguageModeling
-   MaskedLanguageModeling
+   TopKEncoder
+
+Model Optimizer Constructors
+----------------------------
+
+.. autosummary::
+   :toctree: generated
+
+   MultiOptimizer
+   LazyAdam
+   OptimizerBlocks
+   split_embeddings_on_size
 
 
 Transformation Block Constructors
@@ -98,9 +143,25 @@ Transformation Block Constructors
 .. autosummary::
    :toctree: generated
 
+   CategoryEncoding
+   MapValues
+   ListToDense
+   ListToRagged
+   ListToSparse
+   ToSparse
+   ToDense
+   ToTarget
+   ToOneHot
+   HashedCross
+   HashedCrossAll
+   BroadcastToSequence
+   SequencePredictNext
+   SequencePredictLast
+   SequencePredictRandom
+   SequenceTargetAsInput
+   SequenceMaskLast
+   SequenceMaskRandom
    ExpandDims
-   AsDenseFeatures
-   AsSparseFeatures
    StochasticSwapNoise
    AsTabular
 
@@ -112,6 +173,7 @@ Multi-Task Block Constructors
 
    MMOEBlock
    CGCBlock
+   PLEBlock
 
 Data Loader Customization Constructor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,7 +181,7 @@ Data Loader Customization Constructor
 .. autosummary::
    :toctree: generated
 
-   merlin.models.tf.dataset.BatchedDataset
+   merlin.models.tf.Loader
 
 
 Metrics
@@ -128,10 +190,12 @@ Metrics
 .. autosummary::
    :toctree: generated
 
-   NDCGAt
    AvgPrecisionAt
+   MRRAt
+   NDCGAt
+   PrecisionAt
    RecallAt
-   ranking_metrics
+   TopKMetricsAggregator
 
 Sampling
 ~~~~~~~~
@@ -141,8 +205,6 @@ Sampling
 
    ItemSampler
    InBatchSampler
-   CachedCrossBatchSampler
-   CachedUniformSampler
    PopularityBasedSampler
 
 
@@ -188,9 +250,21 @@ Schema Functions
 Utilities
 ---------
 
+Tensor Utilities
+~~~~~~~~~~~~~~~~
+
+.. currentmodule:: merlin.models.tf
+
+.. autosummary::
+   :toctree: generated
+
+   TensorInitializer
+
 
 Miscellaneous Utility Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: merlin.models.utils
 
 .. autosummary::
    :toctree: generated
