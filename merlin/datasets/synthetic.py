@@ -197,6 +197,7 @@ def generate_user_item_interactions(
     else:
         import cudf as _frame
         import cupy as _array
+
     data = _frame.DataFrame()
     processed_cols = []
     # get session cols
@@ -207,7 +208,7 @@ def generate_user_item_interactions(
             _array.random.lognormal(3.0, 1.0, num_interactions).astype(_array.int32),
             1,
             session_id_col.int_domain.max,
-        ).astype(str(session_id_col.dtype))
+        ).astype(str(session_id_col.dtype.to_numpy))
 
         features = list(schema.select_by_tag(Tags.SESSION).remove_by_tag(Tags.SESSION_ID))
         data = generate_conditional_features(
@@ -228,7 +229,7 @@ def generate_user_item_interactions(
             _array.random.lognormal(3.0, 1.0, num_interactions).astype(_array.int32),
             1,
             user_id_col.int_domain.max,
-        ).astype(str(user_id_col.dtype))
+        ).astype(str(user_id_col.dtype.to_numpy.name))
         features = list(schema.select_by_tag(Tags.USER).remove_by_tag(Tags.USER_ID))
         data = generate_conditional_features(
             data,
@@ -255,7 +256,7 @@ def generate_user_item_interactions(
         _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
         1,
         item_id_col.int_domain.max,
-    ).astype(str(item_id_col.dtype))
+    ).astype(str(item_id_col.dtype.to_numpy.name))
     if isinstance(shape, int):
         data[item_id_col.name] = tmp
     else:
@@ -276,11 +277,11 @@ def generate_user_item_interactions(
 
     for feature in remaining.select_by_tag(Tags.BINARY_CLASSIFICATION):
         data[feature.name] = _array.random.randint(0, 2, num_interactions).astype(
-            str(feature.dtype)
+            str(feature.dtype.to_numpy)
         )
 
     for feature in remaining.remove_by_tag(Tags.BINARY_CLASSIFICATION):
-        is_int_feature = np.issubdtype(feature.dtype, np.integer)
+        is_int_feature = feature.dtype and np.issubdtype(feature.dtype.to_numpy, np.integer)
         is_list_feature = feature.is_list
         if is_list_feature:
             data[feature.name] = generate_random_list_feature(
@@ -292,7 +293,7 @@ def generate_user_item_interactions(
             min_value, max_value = (domain.min, domain.max) if domain else (0, 1)
 
             data[feature.name] = _array.random.randint(
-                min_value, max_value, num_interactions, dtype=str(feature.dtype)
+                min_value, max_value, num_interactions, dtype=str(feature.dtype.to_numpy)
             )
 
         else:
@@ -301,7 +302,7 @@ def generate_user_item_interactions(
 
             data[feature.name] = _array.random.uniform(
                 min_value, max_value, num_interactions
-            ).astype(str(feature.dtype))
+            ).astype(str(feature.dtype.to_numpy))
 
     return data
 
@@ -326,7 +327,7 @@ def generate_conditional_features(
 
     num_interactions = data.shape[0]
     for feature in features:
-        is_int_feature = np.issubdtype(feature.dtype, np.integer)
+        is_int_feature = np.issubdtype(feature.dtype.to_numpy, np.integer)
         is_list_feature = feature.is_list
 
         if is_list_feature:
@@ -344,7 +345,7 @@ def generate_conditional_features(
                 data[parent_feature.name],
                 feature.int_domain.max - 1,
                 labels=list(range(1, feature.int_domain.max)),
-            ).astype(str(feature.dtype))
+            ).astype(str(feature.dtype.to_numpy))
 
         else:
             if feature.float_domain:
@@ -372,7 +373,7 @@ def generate_random_list_feature(
     else:
         import cupy as _array
 
-    is_int_feature = np.issubdtype(feature.dtype, np.integer)
+    is_int_feature = np.issubdtype(feature.dtype.to_numpy, np.integer)
     if is_int_feature:
         if max_session_length:
             padded_array = []
@@ -380,7 +381,7 @@ def generate_random_list_feature(
                 list_length = randint(min_session_length, max_session_length)
                 actual_values = _array.random.randint(
                     1, feature.int_domain.max, (list_length,)
-                ).astype(str(feature.dtype))
+                ).astype(str(feature.dtype.to_numpy))
 
                 padded_array.append(
                     _array.pad(
@@ -395,7 +396,7 @@ def generate_random_list_feature(
             return list(
                 _array.random.randint(
                     1, feature.int_domain.max, (num_interactions, list_length)
-                ).astype(str(feature.dtype))
+                ).astype(str(feature.dtype.to_numpy))
             )
     else:
         if max_session_length:
