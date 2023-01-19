@@ -26,11 +26,10 @@ jobs:
         /tmp/miniconda/bin/conda init bash
     - name: Build conda environment
       run: |
-        conda update --name base --channel defaults conda
-        conda env create --prefix $HOME/env --file environment.yml --force
-        conda activate $HOME/env
+        /tmp/miniconda/conda update --name base --channel defaults conda
+        /tmp/miniconda/conda/conda env create --prefix /tmp/miniconda/env --file environment.yml --force
+        /tmp/miniconda/conda activate /tmp/miniconda/env
         source /usr/local/bin/postBuild
-        conda clean --all --yes
     - name: Run tests
       run: |
         ref_type=${{ github.ref_type }}
