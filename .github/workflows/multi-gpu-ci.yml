@@ -24,6 +24,13 @@ jobs:
         wget https://repo.anaconda.com/miniconda/Miniconda3-py38_22.11.1-1-Linux-x86_64.sh -O /tmp/miniconda/miniconda.sh
         bash /tmp/miniconda/miniconda.sh -b -u -p /tmp/miniconda
         /tmp/miniconda/bin/conda init bash
+    - name: Build conda environment
+      run: |
+        conda update --name base --channel defaults conda
+        conda env create --prefix $HOME/env --file environment.yml --force
+        conda activate $HOME/env
+        source /usr/local/bin/postBuild
+        conda clean --all --yes
     - name: Run tests
       run: |
         ref_type=${{ github.ref_type }}
