@@ -1,0 +1,63 @@
+name: horovod (2GPU)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    tags:
+      - v*
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  gpu-ci:
+    runs-on: 2GPU
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Install Ubuntu packages
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-recommends \
+          build-essential \
+          cmake \
+          g++-7 \
+          git \
+          curl \
+          vim \
+          wget \
+          ca-certificates \
+          libcudnn8 \
+          libnccl2 \
+          libnccl-dev \
+          libjpeg-dev \
+          libpng-dev \
+          librdmacm1 \
+          libibverbs1 \
+          ibverbs-providers \
+          openjdk-8-jdk-headless \
+          openssh-client \
+          openssh-server
+    - name: Install Horovod
+      run: |
+        cd /tmp
+        git clone https://github.com/horovod/horovod.git
+        cd horovod
+        python setup.py sdist
+        ldconfig /usr/local/cuda/targets/x86_64-linux/lib/stubs
+        bash -c "HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_TENSORFLOW=1 pip install --no-cache-dir"
+        horovodrun --check-build
+        ldconfig
+    - name: Run tests
+      run: |
+        ref_type=${{ github.ref_type }}
+        branch=main
+        if [[ $ref_type == "tag"* ]]
+        then
+          raw=$(git branch -r --contains ${{ github.ref_name }})
+          branch=${raw/origin\/}
+        fi
+        cd ${{ github.workspace }}; tox -e py38-multi-gpu -- $branch
