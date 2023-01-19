@@ -19,7 +19,7 @@ dependencies:
   - pip
   - pip:
     - tensorflow-gpu==2.8.*
-    - -r file:requirements/horovod.txt
+    - -r file:requirements/distributed/horovod.txt
   - python=3.8
   - pytorch=1.7
   - tensorboard=2.4

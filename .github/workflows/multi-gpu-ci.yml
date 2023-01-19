@@ -27,7 +27,7 @@ jobs:
     - name: Build conda environment
       run: |
         /tmp/miniconda/bin/conda update --name base --channel defaults conda
-        /tmp/miniconda/bin/conda env create --prefix /tmp/condaenv --file environment.yml --force
+        /tmp/miniconda/bin/conda env create --prefix /tmp/condaenv --file requirements/distributed/environment.yml --force
         /tmp/miniconda/bin/conda activate $HOME/condaenv
         source /usr/local/bin/postBuild
     - name: Run tests
