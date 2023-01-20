@@ -1,0 +1,17 @@
+name: null
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - ccache
+  - cmake=3.22
+  - cxx-compiler
+  - mpi4py # installs cuda-aware openmpi
+  - openmpi
+  - pip
+  - pip:
+    - tensorflow-cpu==2.8.*
+  - pytest
+  - python=3.8
