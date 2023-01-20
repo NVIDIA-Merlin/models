@@ -12,7 +12,7 @@ dependencies:
   - openmpi
   - pip
   - pip:
-    - tensorflow-cpu==2.8.*
-    - -r base.txt
-    - -r dev.txt
+      - tensorflow-cpu==2.8.*
+      - -r base.txt
+      - -r dev.txt
   - python=3.8
