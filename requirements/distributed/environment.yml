@@ -8,20 +8,16 @@ channels:
 dependencies:
   - ccache
   - cmake
-  - cudatoolkit=11.0
-  - cudnn=8.0
+  - cudatoolkit=11.8
+  - cudnn=8.1
   - cxx-compiler
   - jupyterlab
   - mpi4py # installs cuda-aware openmpi
   - nccl
-  - nvcc_linux-64=11.0
+  - nvcc_linux-64=11.8
   - openmpi
   - pip
   - pip:
     - tensorflow-gpu==2.8.*
     - -r horovod.txt
   - python=3.8
-  - pytorch=1.7
-  - tensorboard=2.4
-  - torchaudio
-  - torchvision  
