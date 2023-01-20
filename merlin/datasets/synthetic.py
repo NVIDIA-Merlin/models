@@ -123,12 +123,12 @@ def generate_data(
         new_properties["value_count"] = {"min": min_session_length}
         if max_session_length:
             new_properties["value_count"]["max"] = max_session_length
+        new_properties["is_list"] = True
         schema[col] = ColumnSchema(
             name=schema[col].name,
             tags=schema[col].tags,
             properties=new_properties,
             dtype=schema[col].dtype,
-            is_list=True,
         )
 
     df = generate_user_item_interactions(

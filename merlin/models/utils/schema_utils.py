@@ -79,13 +79,14 @@ def create_categorical_column(
     if Tags.CATEGORICAL not in tags:
         tags.append(Tags.CATEGORICAL)
 
+    properties["is_list"] = is_list
+    properties["is_ragged"] = is_ragged
+
     return ColumnSchema(
         name=name,
         tags=tags,
         dtype=dtype,
         properties=properties,
-        is_list=is_list,
-        is_ragged=is_ragged,
     )
 
 

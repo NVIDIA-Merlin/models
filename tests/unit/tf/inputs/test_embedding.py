@@ -654,8 +654,6 @@ def test_embedding_features_from_config():
             ColumnSchema(
                 "name",
                 tags=[Tags.USER, Tags.CATEGORICAL],
-                is_list=False,
-                is_ragged=False,
                 dtype=np.int32,
                 properties={
                     "num_buckets": None,
@@ -665,13 +663,13 @@ def test_embedding_features_from_config():
                     "cat_path": ".//categories/unique.name.parquet",
                     "domain": {"min": 0, "max": 5936, "name": "name"},
                     "embedding_sizes": {"cardinality": 5937, "dimension": 208},
+                    "is_list": False,
+                    "is_ragged": False,
                 },
             ),
             ColumnSchema(
                 "feature",
                 tags=[Tags.USER, Tags.CATEGORICAL],
-                is_list=False,
-                is_ragged=False,
                 dtype=np.int32,
                 properties={
                     "num_buckets": None,
@@ -681,6 +679,8 @@ def test_embedding_features_from_config():
                     "cat_path": ".//categories/unique.feature.parquet",
                     "domain": {"min": 0, "max": 2, "name": "feature"},
                     "embedding_sizes": {"cardinality": 3, "dimension": 16},
+                    "is_list": False,
+                    "is_ragged": False,
                 },
             ),
         ]
