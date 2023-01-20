@@ -13,5 +13,6 @@ dependencies:
   - pip
   - pip:
     - tensorflow-cpu==2.8.*
-  - pytest
+    - -r base.txt
+    - -r dev.txt
   - python=3.8
