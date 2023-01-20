@@ -18,6 +18,5 @@ dependencies:
   - pip
   - pip:
     - tensorflow-gpu==2.8.*
-    - -r distributed.txt
   - pytest
   - python=3.8
