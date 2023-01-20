@@ -1,23 +1,23 @@
 name: null
 
 channels:
-  - pytorch
+  - nvidia
   - conda-forge
   - defaults
 
 dependencies:
   - ccache
-  - cmake
-  - cudatoolkit=11.8
+  - cmake=3.22
+  - cudatoolkit=11.2
   - cudnn=8.1
   - cxx-compiler
-  - jupyterlab
   - mpi4py # installs cuda-aware openmpi
   - nccl
-  - nvcc_linux-64=11.8
+  - nvcc_linux-64=11.2
   - openmpi
   - pip
   - pip:
     - tensorflow-gpu==2.8.*
-    - -r horovod.txt
+    - -r distributed.txt
+  - pytest
   - python=3.8

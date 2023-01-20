@@ -35,14 +35,14 @@ def read_requirements(filename):
     base = os.path.abspath(os.path.dirname(__file__))
     with codecs.open(os.path.join(base, filename), "rb", "utf-8") as f:
         lineiter = (line.strip() for line in f)
-        return [line for line in lineiter if line and not line.startswith("#")]
+        return [line for line in lineiter if line and not line.startswith("#") and not line.startswith("--")]
 
 
 _dev = read_requirements("requirements/dev.txt")
 _docs = read_requirements("requirements/docs.txt")
 _nvt = read_requirements("requirements/nvtabular.txt")
 _transformers = read_requirements("requirements/transformers.txt")
-_horovod = read_requirements("requirements/horovod.txt")
+_distributed = read_requirements("requirements/distributed.txt")
 
 requirements = {
     "base": read_requirements("requirements/base.txt"),
@@ -52,7 +52,7 @@ requirements = {
     "implicit": read_requirements("requirements/implicit.txt"),
     "xgboost": read_requirements("requirements/xgboost.txt"),
     "transformers": _transformers,
-    "horovod": _horovod,
+    "distributed": _distributed,
     "nvtabular": _nvt,
     "dev": _dev,
     "docs": _docs,

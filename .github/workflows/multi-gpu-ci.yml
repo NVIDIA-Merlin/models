@@ -24,12 +24,10 @@ jobs:
         wget https://repo.anaconda.com/miniconda/Miniconda3-py38_22.11.1-1-Linux-x86_64.sh -O /tmp/miniconda/miniconda.sh
         bash /tmp/miniconda/miniconda.sh -b -u -p /tmp/miniconda
         /tmp/miniconda/bin/conda init bash
-    - name: Build conda environment
+        export PATH=/tmp/miniconda/bin:$PATH
+    - name: Install tox-conda
       run: |
-        /tmp/miniconda/bin/conda update --name base --channel defaults conda
-        /tmp/miniconda/bin/conda env create --prefix /tmp/condaenv --file requirements/distributed/environment.yml --force
-        /tmp/miniconda/bin/conda activate /tmp/condaenv
-        source /usr/local/bin/postBuild
+        python -m pip install tox-conda
     - name: Run tests
       run: |
         ref_type=${{ github.ref_type }}
