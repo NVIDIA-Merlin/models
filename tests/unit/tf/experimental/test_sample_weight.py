@@ -72,10 +72,11 @@ def test_two_tower_v2_with_contrastive_sample_weight(
     metrics3 = model.test_step(batch)
 
     assert metrics3["loss"] != metrics2["loss"]
-    if not isinstance(pos_class_weight, float):
-        for m in metrics3:
-            if m.startswith("weighted_"):
-                assert metrics3[m] <= 1
+    for m in metrics3:
+
+        if m.startswith("weighted_"):
+            assert metrics3[m] <= 1
+            if isinstance(pos_class_weight, tf.Tensor):
                 assert metrics3[m] != metrics2[m]
 
 
