@@ -395,7 +395,7 @@
     <span class="k">return</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">top_block</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">MatrixFactorizationModelV2</span><span class="p">(</span>
+<div class="viewcode-block" id="MatrixFactorizationModelV2"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MatrixFactorizationModelV2.html#merlin.models.tf.MatrixFactorizationModelV2">[docs]</a><span class="k">def</span> <span class="nf">MatrixFactorizationModelV2</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">query_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">,</span>
@@ -490,10 +490,10 @@
         <span class="n">output</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">model</span>
+    <span class="k">return</span> <span class="n">model</span></div>
 
 
-<span class="k">def</span> <span class="nf">TwoTowerModelV2</span><span class="p">(</span>
+<div class="viewcode-block" id="TwoTowerModelV2"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.TwoTowerModelV2.html#merlin.models.tf.TwoTowerModelV2">[docs]</a><span class="k">def</span> <span class="nf">TwoTowerModelV2</span><span class="p">(</span>
     <span class="n">query_tower</span><span class="p">:</span> <span class="n">Encoder</span><span class="p">,</span>
     <span class="n">candidate_tower</span><span class="p">:</span> <span class="n">Encoder</span><span class="p">,</span>
     <span class="n">candidate_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">,</span>
@@ -570,10 +570,10 @@
         <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">model</span>
+    <span class="k">return</span> <span class="n">model</span></div>
 
 
-<span class="k">def</span> <span class="nf">YoutubeDNNRetrievalModelV2</span><span class="p">(</span>
+<div class="viewcode-block" id="YoutubeDNNRetrievalModelV2"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.YoutubeDNNRetrievalModelV2.html#merlin.models.tf.YoutubeDNNRetrievalModelV2">[docs]</a><span class="k">def</span> <span class="nf">YoutubeDNNRetrievalModelV2</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">candidate_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">,</span>
     <span class="n">top_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span>
@@ -665,7 +665,7 @@
             <span class="p">),</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">RetrievalModelV2</span><span class="p">(</span><span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">outputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">RetrievalModelV2</span><span class="p">(</span><span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">outputs</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
