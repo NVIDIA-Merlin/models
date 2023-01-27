@@ -41,6 +41,7 @@ KNOWN_DATASETS: Dict[str, Path] = {
     "movielens-1m": HERE / "entertainment/movielens/1m",
     "movielens-1m-raw-ratings": HERE / "entertainment/movielens/1m-raw/ratings/",
     "movielens-100k": HERE / "entertainment/movielens/100k",
+    "tenrec-video": HERE / "entertainment/tenrec_video/",
     "criteo": HERE / "advertising/criteo/transformed",
     "aliccp": HERE / "ecommerce/aliccp/transformed",
     "aliccp-raw": HERE / "ecommerce/aliccp/raw",
@@ -75,6 +76,7 @@ def generate_data(
     - aliccp
     - aliccp-raw
     - dressipi
+    - tenrec-video
 
 
     Parameters
