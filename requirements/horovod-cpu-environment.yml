@@ -1,4 +1,4 @@
-name: null
+name: horovod-cpu
 
 channels:
   - conda-forge
