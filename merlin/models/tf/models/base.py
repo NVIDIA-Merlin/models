@@ -1365,6 +1365,8 @@ class Model(BaseModel):
             can be disabled, so that only the configs of each layer are
             stored, by default True
         """
+        if hvd_installed and hvd.rank() != 0:
+            return
         super().save(
             export_path,
             include_optimizer=include_optimizer,
