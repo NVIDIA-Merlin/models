@@ -104,3 +104,17 @@ class TestSOKEmbedding:
             diff = diff + tf.reduce_sum((out1[i] - out2[i]) ** 2 / length)
         print("[SOK INFO] diff:", diff)
         assert diff < 1e-6
+    def test_sok_embedding_in_model(self, )
+        cat_schema = music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL) 
+        input_block = InputBlockV2(
+            cat_schema,
+            categorical=Embeddings(cat_schema, dim=16, table_cls=SOKEmbedding)
+        )
+        model = mm.DCNModel(
+            music_streaming_data.schema,
+            depth=2,
+            input_block=input_block,
+            deep_block=mm.MLPBlock([64, 32]),
+            prediction_tasks=mm.BinaryClassificationTask("click"),
+        )
+        model_test(model, music_streaming_data)

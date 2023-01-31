@@ -136,6 +136,11 @@ class SOKEmbedding(EmbeddingTableBase):
             combiners,
         )
         return emb_vectors
+    def load(path):
+        sok.load(path+"/sok/"+name+".weights",sok_vars)
+
+    def dump(path):
+        sok.dump(path+"/sok/"+name+".weights",sok_vars)
 
     @classmethod
     def from_pretrained(
@@ -203,3 +208,14 @@ class SOKEmbedding(EmbeddingTableBase):
         localized = config["localized"]
 
         return cls(dim, *schema, vocab_size, initializer, use_dynamic_variable, localized, **config)
+
+def model_dump(model: tf.keras.Model, path: str):
+    sok_variables, other_variables = sok.filter_variables(model.weights)
+    sok.dump(path+"/sok_var/sok_weights", sok_variables)
+    model.save_weights(path+"/tf_var/")
+
+def model_load(model: tf.keras.Model, path:str):
+    sok_variables, other_variables = sok.filter_variables(model.weights)
+    model.load_weights(path+"/tf_var/")
+    sok.load(path+"/sok_var/sok_weights", sok_variables)
+
