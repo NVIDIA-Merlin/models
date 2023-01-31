@@ -255,6 +255,7 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         y_pred: tf.Tensor,
         sample_weight: Optional[tf.Tensor] = None,
     ):
+        y_true, y_pred = tf.squeeze(y_true), tf.squeeze(y_pred)
         tf.debugging.assert_greater_equal(
             tf.shape(y_true)[-1],
             self.k,
@@ -417,6 +418,8 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     def update_state(
         self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: Optional[tf.Tensor] = None
     ):
+        # squeeze dim=1
+        y_true, y_pred = tf.squeeze(y_true), tf.squeeze(y_pred)
         # For prediction tensor with rank > 2 (e.g. sequences)
         # reshapes the predictions, targets and label_relevant_counts
         # so that they are 2D and extract_topk() work properly
@@ -457,8 +460,12 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
 
     def result(self):
         outputs = {}
+        weighted = "weighted_" in self._name
         for metric in self.topk_metrics:
-            outputs[metric.name] = metric.result()
+            name = metric.name
+            if weighted:
+                name = "weighted_" + name
+            outputs[name] = metric.result()
 
         return outputs
 
