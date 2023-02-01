@@ -245,6 +245,7 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
     model_schema = sequence_testing_data.schema
 
+    transformer_input_dim = 48
     model = mm.Model(
         mm.InputBlockV2(
             model_schema,
@@ -252,7 +253,8 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
                 model_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        GPT2Block(d_model=48, n_head=8, n_layer=2),
+        mm.MLPBlock([transformer_input_dim]),
+        GPT2Block(d_model=transformer_input_dim, n_head=8, n_layer=2),
         mm.CategoricalOutput(
             model_schema.select_by_name(target), default_loss="categorical_crossentropy"
         ),
@@ -275,9 +277,8 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_transformer_with_masked_language_modeling(sequence_testing_data: Dataset, run_eagerly):
 
-    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
-        Tags.CATEGORICAL
-    )
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+
     target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)
     model_schema = seq_schema + target_schema
     target = target_schema.column_names[0]
@@ -285,6 +286,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
     sequence_testing_data.schema = model_schema
 
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
+    transformer_input_dim = 48
     model = mm.Model(
         mm.InputBlockV2(
             seq_schema,
@@ -292,8 +294,9 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        BertBlock(
-            d_model=48,
+        mm.MLPBlock([transformer_input_dim]),
+        XLNetBlock(
+            d_model=transformer_input_dim,
             n_head=8,
             n_layer=2,
             pre=mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()]),
@@ -332,15 +335,16 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     sequence_testing_data: Dataset, run_eagerly
 ):
 
-    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
-        Tags.CATEGORICAL
-    )
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+
     target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)
     target = target_schema.column_names[0]
     model_schema = seq_schema + target_schema
     sequence_testing_data.schema = model_schema
 
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
+
+    transformer_input_dim = 48
     model = mm.Model(
         mm.InputBlockV2(
             seq_schema,
@@ -348,8 +352,10 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
-        GPT2Block(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        mm.MLPBlock([transformer_input_dim]),
+        BertBlock(
+            d_model=transformer_input_dim, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()
+        ),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",

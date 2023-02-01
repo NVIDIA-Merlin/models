@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import List, Optional
+from typing import List, Optional, Sequence, Union
 
 import tensorflow as tf
 
@@ -27,12 +27,17 @@ from merlin.models.tf.core.tabular import (
     TabularBlock,
 )
 from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Continuous(Filter):
-    ...
+    def __init__(
+        self, inputs: Optional[Union[Sequence[str], Union[Schema, Tags]]] = None, **kwargs
+    ):
+        if inputs is None:
+            inputs = Tags.CONTINUOUS
+        super().__init__(inputs, **kwargs)
 
 
 def ContinuousProjection(

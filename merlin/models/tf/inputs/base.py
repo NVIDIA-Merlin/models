@@ -20,7 +20,7 @@ from typing import Callable, Dict, Optional, Tuple, Type, Union
 
 from tensorflow.keras.layers import Layer
 
-from merlin.models.tf.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.core.aggregation import SequenceAggregator
 from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import ParallelBlock, TabularAggregationType
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures
@@ -52,7 +52,7 @@ def InputBlock(
     categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
     sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
     split_sparse: bool = False,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+    seq_aggregator: Block = SequenceAggregator("mean"),
     **kwargs,
 ) -> Block:
     """The entry block of the model to process input features from a schema.
