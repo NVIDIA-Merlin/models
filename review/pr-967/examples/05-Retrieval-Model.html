@@ -736,8 +736,7 @@ Epoch 2/2
 <div class="section" id="evaluate-the-model-accuracy">
 <h3>Evaluate the model accuracy<a class="headerlink" href="#evaluate-the-model-accuracy" title="Permalink to this headline"></a></h3>
 <p>Note that above when we  set <code class="docutils literal notranslate"><span class="pre">validation_data=valid</span></code> in the <code class="docutils literal notranslate"><span class="pre">model.fit()</span></code>, we compute evaluation metrics on validation set using the negative sampling strategy used for training. To determine the exact accuracy of our trained retrieval model, we need to compute the similarity score between a given query and all possible candidates. The higher the score of the positive candidate (the one that is already interacted with, i.e. target item_id returned by dataloader), the more accurate the model is. We can do this using the <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> model that we create below via <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder</span></code> method, and the following section shows how to instantiate it. The <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder()</span></code> is a method of the <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/models/base.py">RetrievalModelV2</a> class.</p>
-<p>Below, by using the <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> we can evaluate the trained retrieval model using the entire item catalog. This is applying dot product for entire catalog, and by default it is brute force.
-We use <em>unique_rows_by_features</em> utility function to extract user features table and return it as a cuDF data frame. Note that for user features table, we use <code class="docutils literal notranslate"><span class="pre">USER</span></code> and <code class="docutils literal notranslate"><span class="pre">USER_ID</span></code> tags.</p>
+<p><code class="docutils literal notranslate"><span class="pre">unique_rows_by_features</span></code> : A utility function allows extracting both unique user and item features tables as Merlin Dataset object that can easily be converted to a cuDF data frame. The function extracts unique rows from a specified dataset (transformed train set) based on a specified id-column tags (<code class="docutils literal notranslate"><span class="pre">ITEM</span></code> and <code class="docutils literal notranslate"><span class="pre">ITEM_ID</span></code>).</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Top-K evaluation</span>
@@ -811,6 +810,7 @@ We use <em>unique_rows_by_features</em> utility function to extract user featur
 </table>
 </div></div></div>
 </div>
+<p>Below, by using the <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> we can evaluate the trained retrieval model using the entire item catalog. This is applying dot product for entire catalog, and by default it is brute force.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">topk</span> <span class="o">=</span> <span class="mi">20</span>
