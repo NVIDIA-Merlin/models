@@ -31,7 +31,7 @@ from merlin.models.tf.inputs.embedding import (
     Embeddings,
     SequenceEmbeddingFeatures,
 )
-from merlin.models.tf.transforms.tensor import ListToDense
+from merlin.models.tf.transforms.tensor import ListToDense, ProcessList
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
@@ -325,9 +325,13 @@ def InputBlockV2(
     if not parsed:
         raise ValueError("No columns selected for the input block")
 
+    _pre = ProcessList(schema)
+    if pre:
+        _pre = _pre.connect(pre)
+
     return ParallelBlock(
         parsed,
-        pre=pre,
+        pre=_pre,
         post=post,
         aggregation=aggregation,
         is_input=True,

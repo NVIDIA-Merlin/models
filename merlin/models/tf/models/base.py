@@ -1433,7 +1433,6 @@ class Model(BaseModel):
                     f"\n\t{call_input_features.difference(model_input_features)}"
                 )
 
-            # _ragged_inputs = ListToRagged()(inputs)
             _ragged_inputs = self.process_list(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
@@ -1482,11 +1481,8 @@ class Model(BaseModel):
         self.built = True
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
-        inputs = self.process_list(inputs)
-
         context = self._create_context(
-            # self.process_list(inputs),
-            inputs,
+            self.process_list(inputs),
             targets=targets,
             training=training,
             testing=testing,
