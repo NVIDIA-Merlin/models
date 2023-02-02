@@ -1517,7 +1517,6 @@
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">call_input_features</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">model_input_features</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
-            <span class="c1"># _ragged_inputs = ListToRagged()(inputs)</span>
             <span class="n">_ragged_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">feature_shapes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_ragged_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
             <span class="n">feature_dtypes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_ragged_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -1566,11 +1565,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">built</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-
         <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span>
-            <span class="c1"># self.process_list(inputs),</span>
-            <span class="n">inputs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
             <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span>
             <span class="n">training</span><span class="o">=</span><span class="n">training</span><span class="p">,</span>
             <span class="n">testing</span><span class="o">=</span><span class="n">testing</span><span class="p">,</span>
