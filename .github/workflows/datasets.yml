@@ -32,8 +32,8 @@ jobs:
           branch=main
           if [[ $ref_type == "tag"* ]]
           then
-            raw=$(git branch -r --contains ${{ github.ref_name }})
-            branch=${raw/origin\/}
+            git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
+            branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
           fi
           pip install "pandas>=1.2.0,<1.4.0dev0"
           pip install "NVTabular@git+https://github.com/NVIDIA-Merlin/NVTabular.git@$branch"
