@@ -1,3 +1,4 @@
+
 name: pytorch
 
 on:
@@ -32,8 +33,7 @@ jobs:
           branch=main
           if [[ $ref_type == "tag"* ]]
           then
-            raw=$(git branch -r --contains ${{ github.ref_name }})
-            branch=${raw/origin\/}
+            branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
           fi
           pip install "pandas>=1.2.0,<1.4.0dev0"
           pip install "NVTabular@git+https://github.com/NVIDIA-Merlin/NVTabular.git@$branch"
