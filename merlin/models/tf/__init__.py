@@ -128,6 +128,8 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.utils.dependencies import is_transformers_available
+from merlin.models.tf.distributed.embedding import DistributedEmbeddingTable
+
 
 if is_transformers_available():
     from merlin.models.tf.transformers.block import (
@@ -211,6 +213,7 @@ __all__ = [
     "SequenceEmbeddingFeatures",
     "EmbeddingOptions",
     "EmbeddingTable",
+    "DistributedEmbeddingTable",
     "AverageEmbeddingsByWeightFeature",
     "Embeddings",
     "FeatureConfig",
