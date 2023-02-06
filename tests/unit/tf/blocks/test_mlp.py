@@ -100,7 +100,7 @@ def test_mlp_model_with_sequential_features_and_combiner(
     predict_last = ml.SequencePredictLast(schema=schema.select_by_tag(Tags.SEQUENCE), target=target)
 
     testing_utils.model_test(
-        model, loader, run_eagerly=run_eagerly, reload_model=False, fit_kwargs={"pre": predict_last}
+        model, loader, run_eagerly=run_eagerly, reload_model=True, fit_kwargs={"pre": predict_last}
     )
 
     metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_last)

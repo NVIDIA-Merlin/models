@@ -98,7 +98,6 @@ class SequenceTransform(TabularBlock):
         pre: Optional[BlockType] = None,
         **kwargs,
     ):
-        # _pre = ProcessList(schema)
         _pre = ListToRagged()
         if pre:
             _pre = _pre.connect(pre)
@@ -398,6 +397,7 @@ class SequenceTargetAsInput(SequenceTransform):
         so that the tensors sequences can be processed
     """
 
+    @tf.function
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
     ) -> Prediction:
