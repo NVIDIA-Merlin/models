@@ -182,7 +182,6 @@
         <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="c1"># _pre = ProcessList(schema)</span>
         <span class="n">_pre</span> <span class="o">=</span> <span class="n">ListToRagged</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">pre</span><span class="p">:</span>
             <span class="n">_pre</span> <span class="o">=</span> <span class="n">_pre</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">pre</span><span class="p">)</span>
@@ -482,7 +481,8 @@
 <span class="sd">        so that the tensors sequences can be processed</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="SequenceTargetAsInput.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequenceTargetAsInput.html#merlin.models.tf.SequenceTargetAsInput.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
+<div class="viewcode-block" id="SequenceTargetAsInput.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequenceTargetAsInput.html#merlin.models.tf.SequenceTargetAsInput.call">[docs]</a>    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Prediction</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_seq_inputs_targets</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
