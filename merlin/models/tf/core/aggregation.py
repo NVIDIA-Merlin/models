@@ -380,8 +380,11 @@ class SequenceAggregator(Block):
     Args:
         combiner: Optional[str]
             Method to use for aggregation.
-            Accepts an str ("max", "min", "sum", "mean", "masked_mean").
-            Defaults to "mean"
+            Accepts an str ("max", "min", "sum", "mean", "masked_mean"). Defaults to "mean".
+            Note: "masked_mean" computes the mean of the specified axis considering only
+                masked values. It was originally created to ignore padded positions
+                on dense tensors representing sequences, but with RaggedTensor support
+                that can be done by just using regular TF mean aggregation.
         axis: int
             The dimensions to reduce.
             Defaults to 1

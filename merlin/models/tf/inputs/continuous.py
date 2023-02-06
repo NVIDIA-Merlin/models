@@ -32,6 +32,17 @@ from merlin.schema import Schema, Tags
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Continuous(Filter):
+    """Filters (keeps) only the continuous features.
+
+    Parameters
+    ----------
+    inputs : Optional[Union[Sequence[str], Union[Schema, Tags]]], optional
+        Indicates how the continuous features should be identified to be filtered.
+        It accepts a schema, a column schema tag or a list with the feature names.
+        If None (default), it looks for columns with the CONTINUOUS tag in the
+        column schema.
+    """
+
     def __init__(
         self, inputs: Optional[Union[Sequence[str], Union[Schema, Tags]]] = None, **kwargs
     ):
@@ -44,6 +55,16 @@ def ContinuousProjection(
     schema: Schema,
     projection: tf.keras.layers.Layer,
 ) -> SequentialBlock:
+    """Concatenates the continuous features and combines them
+    using a layer
+
+    Parameters
+    ----------
+    schema : Schema
+        Schema that includes the continuous features
+    projection : tf.keras.layers.Layer
+        Layer that will be used to combine the continuous features
+    """
     return SequentialBlock(Continuous(schema, aggregation="concat"), projection)
 
 
