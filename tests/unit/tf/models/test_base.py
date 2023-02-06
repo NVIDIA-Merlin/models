@@ -125,6 +125,49 @@ def test_block_from_model_with_input(ecommerce_data: Dataset):
     assert "The block already includes an InputBlock" in str(excinfo.value)
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_simple_seq_model_with_custom_emb_combiner(sequence_testing_data: Dataset, run_eagerly):
+    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+    schema = schema + Schema(
+        [
+            ColumnSchema("item_id_seq_weights", is_list=True),
+            ColumnSchema("click", tags=[Tags.TARGET, Tags.BINARY_CLASSIFICATION]),
+        ]
+    )
+    # Add a weight feature and a binary target
+    data = sequence_testing_data.compute()
+    data["item_id_seq_weights"] = list(np.random.uniform(0, 1, (100, 4)))
+    data["click"] = list(np.random.randint(0, 2, (100,)))
+
+    loader = mm.Loader(Dataset(data, schema=schema), batch_size=100)
+
+    # Define the input block with a weighted average embeddings combiner
+    input_block_weighed_avg_model = mm.InputBlockV2(
+        schema,
+        categorical=mm.Embeddings(
+            schema.select_by_tag(Tags.CATEGORICAL),
+            sequence_combiner=mm.AverageEmbeddingsByWeightFeature.from_schema_convention(
+                schema, "_weights"
+            ),
+        ),
+    )
+
+    model = mm.Model(
+        input_block_weighed_avg_model,
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, loader, run_eagerly=run_eagerly, reload_model=True)
+
+    batch = mm.sample_batch(loader, include_targets=False, to_ragged=True)
+    out = model(batch)
+    assert out.shape == (100, 1)
+
+    predictions = model.predict(loader, batch_size=8, steps=1)
+    assert predictions.shape == (100, 1)
+
+
 class MetricsLogger(tf.keras.callbacks.Callback):
     """Callback to keep track of the metrics returned on each step in every epoch.
 
