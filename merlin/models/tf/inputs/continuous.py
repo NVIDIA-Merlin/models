@@ -39,8 +39,7 @@ class Continuous(Filter):
     inputs : Optional[Union[Sequence[str], Union[Schema, Tags]]], optional
         Indicates how the continuous features should be identified to be filtered.
         It accepts a schema, a column schema tag or a list with the feature names.
-        If None (default), it looks for columns with the CONTINUOUS tag in the
-        column schema.
+        If None (default), it looks for columns with the CONTINUOUS tag in the column schema.
     """
 
     def __init__(
