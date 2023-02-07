@@ -159,21 +159,24 @@ class Encoder(tf.keras.Model):
 
         return merlin.io.Dataset(predictions)
 
-    def call(self, inputs, features=None, training=False, testing=False, targets=None, **kwargs):
-        if features is None:
-            # features are not fed to the Encoder block at inference time
-            # we add them back by assuming inputs=features and process them to
-            # convert the list features to the right format
-            features = self.process_list(inputs)
+    def call(self, inputs, training=False, testing=False, targets=None, **kwargs):
         return combinators.call_sequentially(
             list(self.to_call),
             inputs=inputs,
-            features=features,
+            features=self.process_list(inputs),
             targets=targets,
             training=training,
             testing=testing,
             **kwargs,
         )
+
+    def __call__(self, inputs, **kwargs):
+        # We remove features here since we don't expect them at inference time
+        # Inside the `call` method, we will add them back by assuming inputs=features
+        if "features" in kwargs:
+            kwargs.pop("features")
+
+        return super().__call__(inputs, **kwargs)
 
     def build(self, input_shape):
         combinators.build_sequentially(self, list(self.to_call), input_shape=input_shape)
