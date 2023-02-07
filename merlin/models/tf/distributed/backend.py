@@ -12,7 +12,8 @@ except ImportError:
     pass
 
 try:
-    from distributed_embeddings.python.layers import dist_model_parallel as dmp
+    from distributed_embeddings.python.layers import dist_model_parallel as dmp  # noqa: F401
+
     dmp_installed = True
 except ImportError:
     pass

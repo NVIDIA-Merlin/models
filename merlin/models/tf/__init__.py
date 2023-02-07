@@ -76,6 +76,7 @@ from merlin.models.tf.core.combinators import (
 )
 from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder, TopKEncoder
 from merlin.models.tf.core.prediction import Prediction
+from merlin.models.tf.distributed.embedding import DistributedEmbeddings
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -128,8 +129,6 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.utils.dependencies import is_transformers_available
-from merlin.models.tf.distributed.embedding import DistributedEmbeddingTable
-
 
 if is_transformers_available():
     from merlin.models.tf.transformers.block import (
@@ -213,7 +212,7 @@ __all__ = [
     "SequenceEmbeddingFeatures",
     "EmbeddingOptions",
     "EmbeddingTable",
-    "DistributedEmbeddingTable",
+    "DistributedEmbeddings",
     "AverageEmbeddingsByWeightFeature",
     "Embeddings",
     "FeatureConfig",

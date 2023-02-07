@@ -1,81 +1,110 @@
-from typing import List, Union
+from typing import Dict, List, Optional, Union
 
 import tensorflow as tf
 
-from merlin.models.tf.inputs.embedding import EmbeddingTableBase
-from merlin.models.tf.distributed.backend import dmp
-from merlin.schema import ColumnSchema
-from merlin.models.tf.typing import TabularData
+from merlin.models.tf.core.tabular import TabularBlock
+from merlin.models.tf.distributed.backend import dmp, dmp_installed, hvd_installed
+from merlin.models.utils.schema_utils import infer_embedding_dim
+from merlin.schema import Schema
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class DistributedEmbeddingTable(EmbeddingTableBase):
-    """Large embedding table that automatically distributes embedding tables to multiple GPUs."""
+class DistributedEmbeddings(TabularBlock):
+    """Large embedding table that automatically distributes embedding tables
+    to multiple GPUs.
+
+    Parameters
+    ----------
+    schema: Schema
+        Schema containing the columns used in embedding tables.
+    dim: Optional[Union[Dict[str, int], int]], optional
+        If int, the embedding size to use for all features, or a
+        dictionary-like {"feature_name": embedding size, ...}.
+        By default, None.
+    strategy:
+    column_slice_threshold:
+    dp_input:
+    input_table_map:
+    """
 
     def __init__(
         self,
-        dim: int,
-        *col_schemas: ColumnSchema,
-        embeddings_initializer="uniform",
-        # sequence_combiner: Optional[CombinerType] = None,
-        trainable: bool = True,
-        name=None,
-        dtype=None,
-        dynamic=False,
+        schema: Schema,
+        dim: Optional[Union[Dict[str, int], int]] = None,
+        strategy: str = "basic",
+        column_slice_threshold: Optional[int] = None,
+        dp_input=True,
+        input_table_map=None,
         **kwargs,
     ):
-        super(DistributedEmbeddingTable, self).__init__(
-            dim,
-            *col_schemas,
-            trainable=trainable,
-            name=name,
-            dtype=dtype,
-            dynamic=dynamic,
-            **kwargs,
-        )
+        if not hvd_installed or not dmp_installed:
+            raise ImportError(
+                "'horovod' and 'distributed-embeddings' are required to use "
+                f"{self.__class__.__name__}."
+            )
 
+        super(DistributedEmbeddings, self).__init__(schema=schema, **kwargs)
+
+        self.dim = dim
+        self.table_names = []
         self.embedding_layers = []
-        self.embeddings_initializer = embeddings_initializer
-
-        self._create_embeddings()
-
-    def _create_embeddings(self):
-        for table_size in self.table_sizes:
-            # if model_flags.test_combiner:
-            #  self.embedding_layers.append(
-            #      embedding.Embedding(input_dim=table_size,
-            #                          output_dim=self.embedding_dim,
-            #                          embeddings_initializer=DLRMInitializer(),
-            #                          combiner='sum'))
-            # else:
+        for col in self.schema:
+            table_name = col.int_domain.name or col.name
+            self.table_names.append(table_name)
             self.embedding_layers.append(
                 tf.keras.layers.Embedding(
-                    input_dim=self.col_schema.int_domain.max,
-                    output_dim=self.dim,
-                    embeddings_initializer=self.embeddings_initializer,
+                    input_dim=self._infer_input_dim(col),
+                    output_dim=self._infer_output_dim(col, dim),
+                    name=table_name,
                 )
             )
-        self.embedding_layers = dmp.DistributedEmbedding(self.embedding_layers)
 
-    def call(self, inputs: Union[tf.Tensor, TabularData]) -> Union[tf.Tensor, TabularData]:
+        self.embedding_layers = dmp.DistributedEmbedding(
+            self.embedding_layers,
+            strategy=strategy,
+            column_slice_threshold=column_slice_threshold,
+            dp_input=dp_input,
+            input_table_map=input_table_map,
+        )
+
+    def _infer_input_dim(self, col_schema):
+        return col_schema.int_domain.max + 1
+
+    def _infer_output_dim(self, col_schema, embedding_dims):
+        if isinstance(embedding_dims, dict):
+            dim = embedding_dims.get(col_schema.name)
+        elif isinstance(embedding_dims, int):
+            dim = embedding_dims
+        else:
+            dim = None
+
+        if dim is None:
+            dim = infer_embedding_dim(col_schema)
+
+        return dim
+
+    def call(
+        self, inputs: Union[Dict[str, tf.Tensor], List[tf.Tensor]]
+    ) -> Union[Dict[str, tf.Tensor], List[tf.Tensor]]:
         """
         Parameters
         ----------
-        inputs : Union[tf.Tensor, tf.RaggedTensor, tf.SparseTensor]
+        inputs : Union[Dict[str, tf.Tensor], List[tf.Tensor]]
             Tensors or dictionary of tensors representing the input batch.
+
         Returns
         -------
         A tensor or dict of tensors corresponding to the embeddings for inputs
         """
         if isinstance(inputs, dict):
-            outputs = {}
-            for feature_name in self.schema.column_names:
-                if feature_name in inputs:
-                    embedding_outputs = self.embedding_layers(inputs[feature_name])
-                    #outputs[feature_name] = tf.concat(embedding_outputs, 1)
-        else:
-            embedding_outputs = self.embedding_layers(inputs)
-            #outputs = tf.concat(embedding_outputs, 1)
+            ordered_inputs = []
+            for feature_name in self.table_names:
+                ordered_inputs.append(inputs[feature_name])
 
-        #return outputs
-        return embedding_outputs
+            ordered_outputs = self.embedding_layers(ordered_inputs)
+            outputs = {}
+            for feature_name, output in zip(self.schema.column_names, ordered_outputs):
+                outputs[feature_name] = output
+        else:
+            outputs = self.embedding_layers(inputs)
+        return outputs
