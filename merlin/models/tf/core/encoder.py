@@ -29,6 +29,7 @@ from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
 from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
+from merlin.models.tf.transforms.tensor import ProcessList
 from merlin.models.tf.utils import tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -72,6 +73,7 @@ class Encoder(tf.keras.Model):
         self.blocks = [input_block] + list(blocks) if blocks else [input_block]
         self.pre = pre
         self.post = post
+        self.process_list = ProcessList(self._schema)
 
     def encode(
         self,
@@ -157,11 +159,16 @@ class Encoder(tf.keras.Model):
 
         return merlin.io.Dataset(predictions)
 
-    def call(self, inputs, training=False, testing=False, targets=None, **kwargs):
+    def call(self, inputs, features=None, training=False, testing=False, targets=None, **kwargs):
+        if features is None:
+            # features are not fed to the Encoder block at inference time
+            # we add them back by assuming inputs=features and process them to
+            # convert the list features to the right format
+            features = self.process_list(inputs)
         return combinators.call_sequentially(
             list(self.to_call),
             inputs=inputs,
-            features=inputs,
+            features=features,
             targets=targets,
             training=training,
             testing=testing,
@@ -175,14 +182,6 @@ class Encoder(tf.keras.Model):
 
     def compute_output_shape(self, input_shape):
         return combinators.compute_output_shape_sequentially(list(self.to_call), input_shape)
-
-    def __call__(self, inputs, **kwargs):
-        # We remove features here since we don't expect them at inference time
-        # Inside the `call` method, we will add them back by assuming inputs=features
-        if "features" in kwargs:
-            kwargs.pop("features")
-
-        return super().__call__(inputs, **kwargs)
 
     def train_step(self, data):
         """Train step"""
