@@ -615,6 +615,7 @@ def _get_dim(col, embedding_dims, infer_dim_fn):
     return dim
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
     def __init__(self, weight_feature_name: str, axis=1, **kwargs):
         """Computes the weighted average of a Tensor based
@@ -690,6 +691,13 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
                 seq_combiners[cat_col.name] = combiner
 
         return seq_combiners
+
+    def get_config(self):
+        config = super().get_config()
+        config["axis"] = self.axis
+        config["weight_feature_name"] = self.weight_feature_name
+
+        return config
 
 
 @dataclass
