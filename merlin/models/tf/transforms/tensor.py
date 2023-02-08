@@ -86,13 +86,20 @@ class ProcessList(TabularBlock):
             is_ragged = True
             if name in self.schema:
                 val_count = self.schema[name].properties.get("value_count")
-                if val_count and val_count["min"] == val_count["max"]:
+                if (
+                    val_count
+                    and "min" in val_count
+                    and "max" in val_count
+                    and val_count["min"] == val_count["max"]
+                ):
                     is_ragged = False
 
             if isinstance(val, tuple):
                 ragged = list_col_to_ragged(val)
             elif isinstance(val, tf.SparseTensor):
                 ragged = tf.RaggedTensor.from_sparse(val)
+            elif isinstance(val, tf.RaggedTensor):
+                ragged = val
             else:
                 outputs[name] = val
                 continue
@@ -114,9 +121,14 @@ class ProcessList(TabularBlock):
             if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
                 is_ragged = True
                 max_seq_length = None
-                if k in self.schema:
+                if k in self.schema.column_names:
                     val_count = self.schema[k].properties.get("value_count")
-                    if val_count and val_count["min"] == val_count["max"]:
+                    if (
+                        val_count
+                        and "min" in val_count
+                        and "max" in val_count
+                        and val_count["min"] == val_count["max"]
+                    ):
                         is_ragged = False
                         max_seq_length = val_count["min"]
 

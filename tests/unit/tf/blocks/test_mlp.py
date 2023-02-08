@@ -20,7 +20,10 @@ from tensorflow.keras import regularizers
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.tf.core.aggregation import SequenceAggregator
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.utils import testing_utils
+from merlin.schema.tags import Tags
 
 
 @pytest.mark.parametrize("dim", [32, 64])
@@ -69,6 +72,42 @@ def test_mlp_block(
             normalization = tf.keras.layers.BatchNormalization()
 
         assert mlp.layers[-1].__class__.__name__ == normalization.__class__.__name__
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_mlp_model_with_sequential_features_and_combiner(
+    sequence_testing_data: Dataset, run_eagerly
+):
+    schema = sequence_testing_data.schema
+    target = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
+
+    model = ml.Model(
+        ml.InputBlockV2(
+            schema,
+            categorical=ml.Embeddings(
+                schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner="mean"
+            ),
+            continuous=ml.Continuous(post=SequenceAggregator("mean")),
+        ),
+        ml.MLPBlock([32]),
+        ml.CategoricalOutput(
+            schema.select_by_name(target), default_loss="categorical_crossentropy"
+        ),
+    )
+
+    predict_last = ml.SequencePredictLast(schema=schema.select_by_tag(Tags.SEQUENCE), target=target)
+
+    testing_utils.model_test(
+        model, loader, run_eagerly=run_eagerly, reload_model=True, fit_kwargs={"pre": predict_last}
+    )
+
+    metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_last)
+    assert len(metrics) > 0
+
+    predictions = model.predict(loader, batch_size=8, steps=1)
+    assert predictions.shape == (8, 51997)
 
 
 @pytest.mark.parametrize("no_activation_last_layer", [False, True])
