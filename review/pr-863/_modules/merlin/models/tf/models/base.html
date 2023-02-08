@@ -134,7 +134,7 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.base</span> <span class="kn">import</span> <span class="n">ModelOutput</span><span class="p">,</span> <span class="n">ModelOutputType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.contrastive</span> <span class="kn">import</span> <span class="n">ContrastiveOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">ListToRagged</span><span class="p">,</span> <span class="n">ProcessList</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">ProcessList</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.search_utils</span> <span class="kn">import</span> <span class="n">find_all_instances_in_layers</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="p">(</span>
@@ -993,6 +993,9 @@
         <span class="c1"># Run backwards pass.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">minimize</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">,</span> <span class="n">tape</span><span class="o">=</span><span class="n">tape</span><span class="p">)</span>
 
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">copy_with_updates</span><span class="p">(</span>
+            <span class="n">sample_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_extract_positive_sample_weights</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">sample_weight</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_compute_metrics</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">compiled_metrics</span><span class="p">)</span>
 
         <span class="c1"># Batch regularization loss</span>
@@ -1029,6 +1032,9 @@
 
         <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_loss</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">outputs</span><span class="o">.</span><span class="n">targets</span><span class="p">,</span> <span class="n">outputs</span><span class="o">.</span><span class="n">predictions</span><span class="p">,</span> <span class="n">outputs</span><span class="o">.</span><span class="n">sample_weight</span><span class="p">)</span>
 
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">copy_with_updates</span><span class="p">(</span>
+            <span class="n">sample_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_extract_positive_sample_weights</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">sample_weight</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_metrics</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
 
         <span class="c1"># Batch regularization loss</span>
@@ -1259,6 +1265,24 @@
             <span class="n">callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MetricsComputeCallback</span><span class="p">(</span><span class="n">train_metrics_steps</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">callbacks</span>
+
+    <span class="k">def</span> <span class="nf">_extract_positive_sample_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_weights</span><span class="p">):</span>
+        <span class="c1"># 2-D sample weights are set for retrieval models to differentiate</span>
+        <span class="c1"># between positive and negative candidates of the same sample.</span>
+        <span class="c1"># For metrics calculation, we extract the sample weights of</span>
+        <span class="c1"># the positive class (i.e. the first column)</span>
+        <span class="k">if</span> <span class="n">sample_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sample_weights</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sample_weights</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sample_weights</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">sample_weights</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">sample_weights</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">sample_weights</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_positive_sample_weights</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">sample_weights</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">weights</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sample_weights</span>
 
     <span class="k">def</span> <span class="nf">_add_horovod_callbacks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callbacks</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">hvd_installed</span> <span class="ow">and</span> <span class="n">hvd</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
@@ -1493,7 +1517,7 @@
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">call_input_features</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">model_input_features</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
-            <span class="n">_ragged_inputs</span> <span class="o">=</span> <span class="n">ListToRagged</span><span class="p">()(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">_ragged_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">feature_shapes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_ragged_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
             <span class="n">feature_dtypes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_ragged_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
@@ -1514,6 +1538,8 @@
 <span class="sd">            The input shape, by default None</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">last_layer</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
