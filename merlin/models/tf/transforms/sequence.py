@@ -76,9 +76,8 @@ class RemovePad3D(Block):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SequenceTransform(TabularBlock):
-    """Prepares sequential inputs and targets for next-item prediction.
-    The target is extracted from the shifted sequence of item ids and
-    the sequential input features are truncated in the last position.
+    """Base class for preparing sequential inputs and targets.
+
     Parameters
     ----------
     schema : Schema
@@ -140,12 +139,12 @@ class SequenceTransform(TabularBlock):
             )
 
         target_shape = inputs[self.target_name].get_shape().as_list()
-        if len(target_shape) != 2:
+        if len(target_shape) < 2:
             raise ValueError(
-                f"The target column ({self.target_name}) is expected to be a 2D tensor,"
+                f"The sequential target column ({self.target_name}) cannot be a 1D tensor,"
                 f" but the shape is {target_shape}"
             )
-        if target_shape[-1] == 1:
+        if target_shape[1] == 1:
             raise ValueError(
                 f"The 2nd dim of the target column ({self.target_name}) should be greater"
                 " than 1, so that the sequential input can be shifted as target"
@@ -171,8 +170,7 @@ class SequenceTransform(TabularBlock):
                 if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
                     new_input_shapes[k] = tf.TensorShape([v[1][0], None])
                 else:
-                    # Reducing 1 position of the seq length
-                    new_input_shapes[k] = tf.TensorShape([v[0], v[1] - 1])
+                    new_input_shapes[k] = v
 
         return new_input_shapes
 
@@ -237,6 +235,20 @@ class SequencePredictNext(SequenceTransform):
 
         return (new_inputs, targets)
 
+    def compute_output_shape(self, input_shape):
+        new_input_shapes = dict()
+        for k, v in input_shape.items():
+            new_input_shapes[k] = v
+            if k in self.schema.column_names:
+                # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+                if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                    new_input_shapes[k] = tf.TensorShape([v[1][0], None])
+                else:
+                    # Reducing 1 position of the seq length
+                    new_input_shapes[k] = tf.TensorShape([v[0], v[1] - 1])
+
+        return new_input_shapes
+
 
 @Block.registry.register_with_multiple_names("seq_predict_last")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -282,6 +294,20 @@ class SequencePredictLast(SequenceTransform):
                 new_inputs[k] = v
 
         return (new_inputs, targets)
+
+    def compute_output_shape(self, input_shape):
+        new_input_shapes = dict()
+        for k, v in input_shape.items():
+            new_input_shapes[k] = v
+            if k in self.schema.column_names:
+                # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+                if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                    new_input_shapes[k] = tf.TensorShape([v[1][0], None])
+                else:
+                    # Reducing 1 position of the seq length
+                    new_input_shapes[k] = tf.TensorShape([v[0], v[1] - 1])
+
+        return new_input_shapes
 
 
 @Block.registry.register_with_multiple_names("seq_predict_random")
