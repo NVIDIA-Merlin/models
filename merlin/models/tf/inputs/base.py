@@ -20,7 +20,7 @@ from typing import Callable, Dict, Optional, Tuple, Type, Union
 
 from tensorflow.keras.layers import Layer
 
-from merlin.models.tf.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.core.aggregation import SequenceAggregator
 from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import ParallelBlock, TabularAggregationType
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures
@@ -31,7 +31,7 @@ from merlin.models.tf.inputs.embedding import (
     Embeddings,
     SequenceEmbeddingFeatures,
 )
-from merlin.models.tf.transforms.tensor import ListToDense
+from merlin.models.tf.transforms.tensor import ListToDense, ProcessList
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
@@ -52,7 +52,7 @@ def InputBlock(
     categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
     sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
     split_sparse: bool = False,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+    seq_aggregator: Block = SequenceAggregator("mean"),
     **kwargs,
 ) -> Block:
     """The entry block of the model to process input features from a schema.
@@ -325,9 +325,13 @@ def InputBlockV2(
     if not parsed:
         raise ValueError("No columns selected for the input block")
 
+    _pre = ProcessList(schema)
+    if pre:
+        _pre = _pre.connect(pre)
+
     return ParallelBlock(
         parsed,
-        pre=pre,
+        pre=_pre,
         post=post,
         aggregation=aggregation,
         is_input=True,
