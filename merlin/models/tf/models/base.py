@@ -50,7 +50,7 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.tensor import ListToRagged, ProcessList
+from merlin.models.tf.transforms.tensor import ProcessList
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -1433,7 +1433,7 @@ class Model(BaseModel):
                     f"\n\t{call_input_features.difference(model_input_features)}"
                 )
 
-            _ragged_inputs = ListToRagged()(inputs)
+            _ragged_inputs = self.process_list(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
@@ -1454,6 +1454,8 @@ class Model(BaseModel):
             The input shape, by default None
         """
         last_layer = None
+
+        input_shape = self.process_list.compute_output_shape(input_shape)
 
         if self.pre is not None:
             self.pre.build(input_shape)

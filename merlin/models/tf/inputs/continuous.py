@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import List, Optional
+from typing import List, Optional, Sequence, Union
 
 import tensorflow as tf
 
@@ -27,18 +27,43 @@ from merlin.models.tf.core.tabular import (
     TabularBlock,
 )
 from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Continuous(Filter):
-    ...
+    """Filters (keeps) only the continuous features.
+
+    Parameters
+    ----------
+    inputs : Optional[Union[Sequence[str], Union[Schema, Tags]]], optional
+        Indicates how the continuous features should be identified to be filtered.
+        It accepts a schema, a column schema tag or a list with the feature names.
+        If None (default), it looks for columns with the CONTINUOUS tag in the column schema.
+    """
+
+    def __init__(
+        self, inputs: Optional[Union[Sequence[str], Union[Schema, Tags]]] = None, **kwargs
+    ):
+        if inputs is None:
+            inputs = Tags.CONTINUOUS
+        super().__init__(inputs, **kwargs)
 
 
 def ContinuousProjection(
     schema: Schema,
     projection: tf.keras.layers.Layer,
 ) -> SequentialBlock:
+    """Concatenates the continuous features and combines them
+    using a layer
+
+    Parameters
+    ----------
+    schema : Schema
+        Schema that includes the continuous features
+    projection : tf.keras.layers.Layer
+        Layer that will be used to combine the continuous features
+    """
     return SequentialBlock(Continuous(schema, aggregation="concat"), projection)
 
 

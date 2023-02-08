@@ -86,12 +86,13 @@ def maybe_serialize_keras_objects(
 
 
 def maybe_deserialize_keras_objects(
-    config, to_deserialize, deserialize_fn=tf.keras.utils.deserialize_keras_object
+    config,
+    to_deserialize,
+    deserialize_fn=tf.keras.utils.deserialize_keras_object,
+    custom_objects={},
 ):
     if isinstance(to_deserialize, list):
         to_deserialize = {k: deserialize_fn for k in to_deserialize}
-
-    custom_objects = {}
 
     for key, fn in to_deserialize.items():
         maybe_val = config.get(key, None)
