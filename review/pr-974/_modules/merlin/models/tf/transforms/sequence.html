@@ -160,9 +160,8 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">SequenceTransform</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepares sequential inputs and targets for next-item prediction.</span>
-<span class="sd">    The target is extracted from the shifted sequence of item ids and</span>
-<span class="sd">    the sequential input features are truncated in the last position.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for preparing sequential inputs and targets.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    schema : Schema</span>
@@ -224,12 +223,12 @@
             <span class="p">)</span>
 
         <span class="n">target_shape</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="p">]</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;The target column (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="si">}</span><span class="s2">) is expected to be a 2D tensor,&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;The sequential target column (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="si">}</span><span class="s2">) cannot be a 1D tensor,&quot;</span>
                 <span class="sa">f</span><span class="s2">&quot; but the shape is </span><span class="si">{</span><span class="n">target_shape</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="n">target_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;The 2nd dim of the target column (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="si">}</span><span class="s2">) should be greater&quot;</span>
                 <span class="s2">&quot; than 1, so that the sequential input can be shifted as target&quot;</span>
@@ -255,8 +254,7 @@
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">):</span>
                     <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># Reducing 1 position of the seq length</span>
-                    <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 
         <span class="k">return</span> <span class="n">new_input_shapes</span>
 
@@ -319,7 +317,21 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">new_inputs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 
-        <span class="k">return</span> <span class="p">(</span><span class="n">new_inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="p">(</span><span class="n">new_inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SequencePredictNext.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequencePredictNext.html#merlin.models.tf.SequencePredictNext.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="n">new_input_shapes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">input_shape</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="c1"># If it is a list/sparse feature (in tuple representation), uses the offset as shape</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">):</span>
+                    <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Reducing 1 position of the seq length</span>
+                    <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">new_input_shapes</span></div></div>
 
 
 <div class="viewcode-block" id="SequencePredictLast"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequencePredictLast.html#merlin.models.tf.SequencePredictLast">[docs]</a><span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;seq_predict_last&quot;</span><span class="p">)</span>
@@ -365,7 +377,21 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">new_inputs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 
-        <span class="k">return</span> <span class="p">(</span><span class="n">new_inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="p">(</span><span class="n">new_inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SequencePredictLast.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequencePredictLast.html#merlin.models.tf.SequencePredictLast.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="n">new_input_shapes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">input_shape</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="c1"># If it is a list/sparse feature (in tuple representation), uses the offset as shape</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">):</span>
+                    <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Reducing 1 position of the seq length</span>
+                    <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">new_input_shapes</span></div></div>
 
 
 <div class="viewcode-block" id="SequencePredictRandom"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequencePredictRandom.html#merlin.models.tf.SequencePredictRandom">[docs]</a><span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;seq_predict_random&quot;</span><span class="p">)</span>
