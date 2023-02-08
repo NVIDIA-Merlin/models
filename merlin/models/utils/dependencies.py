@@ -51,7 +51,7 @@ def is_transformers_available() -> bool:
 
 def is_distributed_embeddings_available() -> bool:
     try:
-        import horovod
+        import horovod  # isort: skip
         import distributed_embeddings
     except ImportError:
         horovod = None

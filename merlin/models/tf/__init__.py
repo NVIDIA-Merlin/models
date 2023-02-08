@@ -217,7 +217,6 @@ __all__ = [
     "SequenceEmbeddingFeatures",
     "EmbeddingOptions",
     "EmbeddingTable",
-    "DistributedEmbeddings",
     "AverageEmbeddingsByWeightFeature",
     "Embeddings",
     "FeatureConfig",
