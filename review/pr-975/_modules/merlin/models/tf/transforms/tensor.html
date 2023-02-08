@@ -170,13 +170,20 @@
             <span class="n">is_ragged</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">:</span>
                 <span class="n">val_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value_count&quot;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">val_count</span> <span class="ow">and</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;max&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">val_count</span>
+                    <span class="ow">and</span> <span class="s2">&quot;min&quot;</span> <span class="ow">in</span> <span class="n">val_count</span>
+                    <span class="ow">and</span> <span class="s2">&quot;max&quot;</span> <span class="ow">in</span> <span class="n">val_count</span>
+                    <span class="ow">and</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;max&quot;</span><span class="p">]</span>
+                <span class="p">):</span>
                     <span class="n">is_ragged</span> <span class="o">=</span> <span class="kc">False</span>
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                 <span class="n">ragged</span> <span class="o">=</span> <span class="n">list_col_to_ragged</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
                 <span class="n">ragged</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_sparse</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+                <span class="n">ragged</span> <span class="o">=</span> <span class="n">val</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
                 <span class="k">continue</span>
@@ -198,9 +205,14 @@
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">):</span>
                 <span class="n">is_ragged</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="n">max_seq_length</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
                     <span class="n">val_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value_count&quot;</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">val_count</span> <span class="ow">and</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;max&quot;</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">val_count</span>
+                        <span class="ow">and</span> <span class="s2">&quot;min&quot;</span> <span class="ow">in</span> <span class="n">val_count</span>
+                        <span class="ow">and</span> <span class="s2">&quot;max&quot;</span> <span class="ow">in</span> <span class="n">val_count</span>
+                        <span class="ow">and</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;max&quot;</span><span class="p">]</span>
+                    <span class="p">):</span>
                         <span class="n">is_ragged</span> <span class="o">=</span> <span class="kc">False</span>
                         <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">val_count</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span>
 
