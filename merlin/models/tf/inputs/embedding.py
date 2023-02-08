@@ -451,12 +451,15 @@ class EmbeddingTable(EmbeddingTableBase):
             input_shape = tf.TensorShape([input_shape[1][0], None])
 
         first_dims = input_shape
-        if (self.sequence_combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
-            if len(input_shape) == 3:
+
+        if input_shape.rank > 1:
+            if self.sequence_combiner is not None:
                 first_dims = [input_shape[0]]
-            else:
+
+            elif input_shape[-1] == 1:
                 first_dims = input_shape[:-1]
-        output_shapes = tf.TensorShape(first_dims + [self.dim])
+
+        output_shapes = tf.TensorShape(list(first_dims) + [self.dim])
 
         return output_shapes
 

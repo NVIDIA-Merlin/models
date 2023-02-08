@@ -15,7 +15,6 @@
 #
 import abc
 import inspect
-from enum import Enum
 from typing import Optional, Union
 
 import tensorflow as tf
@@ -372,62 +371,80 @@ def masked_mean(
     return output_tensor
 
 
-class SequenceAggregation(Enum):
-    MEAN = tf.reduce_mean
-    SUM = tf.reduce_sum
-    MAX = tf.reduce_max
-    MIN = tf.reduce_min
-    MASKED_MEAN = masked_mean
-
-    def __str__(self):
-        return self.value
-
-    def __eq__(self, o: object) -> bool:
-        return str(o) == str(self)
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class SequenceAggregator(Block):
-    """Computes the aggregation of elements across dimensions of a 3-D tensor.
+    """Computes an aggregation across one dimension (axis) of the tensor.
+    This is useful for averaging sequences of continuous or categorical features, for example.
+    If a dict of tensor is passed, performs the aggregation only for tensors whose rank
+    is higher than axis+1, keeping the other tensors unchanged.
     Args:
-        combiner:
-            tensorflow method to use for aggregation
-            Defaults to SequenceAggregation.MEAN
+        combiner: Optional[str]
+            Method to use for aggregation.
+            Accepts an str ("max", "min", "sum", "mean", "masked_mean"). Defaults to "mean".
+            Note: "masked_mean" computes the mean of the specified axis considering only
+                masked values. It was originally created to ignore padded positions
+                on dense tensors representing sequences, but with RaggedTensor support
+                that can be done by just using regular TF mean aggregation.
         axis: int
             The dimensions to reduce.
             Defaults to 1
     """
 
-    def __init__(self, combiner=SequenceAggregation.MEAN, axis: int = 1, **kwargs):
+    def __init__(self, combiner: Optional[str] = "mean", axis: int = 1, **kwargs):
         super().__init__(**kwargs)
         self.axis = axis
         self.combiner = combiner
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        assert len(inputs.shape) == 3, "inputs should be a 3-D tensor"
+        combiner = self.parse_combiner(self.combiner)
+
         kwargs = {}
         if (
-            "mask" in inspect.signature(self.combiner).parameters
+            "mask" in inspect.signature(combiner).parameters
             and "valid_items_mask" in self.context.named_variables
         ):
             kwargs["mask"] = self.context["valid_items_mask"]
 
-        return self.combiner(inputs, axis=self.axis, **kwargs)
+        if isinstance(inputs, dict):
+            outputs = {}
+            for k, v in inputs.items():
+                if len(v.shape) > self.axis + 1:
+                    outputs[k] = combiner(v, axis=self.axis, **kwargs)
+                else:
+                    outputs[k] = v
+            return outputs
+        else:
+            assert len(inputs.shape) == 3, "Tensor inputs should be 3-D"
+            return combiner(inputs, axis=self.axis, **kwargs)
+
+    def parse_combiner(self, combiner):
+        if isinstance(combiner, str):
+            if combiner == "sum":
+                combiner = tf.reduce_sum
+            elif combiner == "max":
+                combiner = tf.reduce_max
+            elif combiner == "min":
+                combiner = tf.reduce_min
+            elif combiner == "mean":
+                combiner = tf.reduce_mean
+            elif combiner == "masked_mean":
+                combiner = masked_mean
+        return combiner
 
     def compute_output_shape(self, input_shape):
-        batch_size, _, last_dim = input_shape
-        return batch_size, last_dim
+        if isinstance(input_shape, dict):
+            outputs = {}
+            for k, v in input_shape.items():
+                if len(v) > self.axis + 1:
+                    outputs[k] = tf.TensorShape(list(v)[: self.axis] + list(v)[self.axis + 1 :])
+                else:
+                    outputs[k] = v
+            return outputs
+        else:
+            batch_size, _, last_dim = input_shape
+            return batch_size, last_dim
 
     def get_config(self):
         config = super().get_config()
-        config = tf_utils.maybe_serialize_keras_objects(
-            self, config, {"combiner": tf.keras.layers.serialize}
-        )
+        config.update(axis=self.axis, combiner=self.combiner)
         return config
-
-    @classmethod
-    def from_config(cls, config):
-        config = tf_utils.maybe_deserialize_keras_objects(
-            config, ["combiner"], tf.keras.layers.deserialize
-        )
-        return super().from_config(config)
