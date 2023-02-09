@@ -98,7 +98,7 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
@@ -111,18 +111,43 @@
     <span class="n">TabularBlock</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils.doc_utils</span> <span class="kn">import</span> <span class="n">docstring_parameter</span>
-<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span>
+<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
 <div class="viewcode-block" id="Continuous"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Continuous.html#merlin.models.tf.Continuous">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">Continuous</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
-    <span class="o">...</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Filters (keeps) only the continuous features.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : Optional[Union[Sequence[str], Union[Schema, Tags]]], optional</span>
+<span class="sd">        Indicates how the continuous features should be identified to be filtered.</span>
+<span class="sd">        It accepts a schema, a column schema tag or a list with the feature names.</span>
+<span class="sd">        If None (default), it looks for columns with the CONTINUOUS tag in the column schema.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Continuous.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Continuous.html#merlin.models.tf.Continuous.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="ContinuousProjection"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ContinuousProjection.html#merlin.models.tf.ContinuousProjection">[docs]</a><span class="k">def</span> <span class="nf">ContinuousProjection</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">projection</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SequentialBlock</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concatenates the continuous features and combines them</span>
+<span class="sd">    using a layer</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    schema : Schema</span>
+<span class="sd">        Schema that includes the continuous features</span>
+<span class="sd">    projection : tf.keras.layers.Layer</span>
+<span class="sd">        Layer that will be used to combine the continuous features</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">SequentialBlock</span><span class="p">(</span><span class="n">Continuous</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">),</span> <span class="n">projection</span><span class="p">)</span></div>
 
 

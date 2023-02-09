@@ -170,12 +170,13 @@
 
 
 <span class="k">def</span> <span class="nf">maybe_deserialize_keras_objects</span><span class="p">(</span>
-    <span class="n">config</span><span class="p">,</span> <span class="n">to_deserialize</span><span class="p">,</span> <span class="n">deserialize_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">deserialize_keras_object</span>
+    <span class="n">config</span><span class="p">,</span>
+    <span class="n">to_deserialize</span><span class="p">,</span>
+    <span class="n">deserialize_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">deserialize_keras_object</span><span class="p">,</span>
+    <span class="n">custom_objects</span><span class="o">=</span><span class="p">{},</span>
 <span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_deserialize</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="n">to_deserialize</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">deserialize_fn</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">to_deserialize</span><span class="p">}</span>
-
-    <span class="n">custom_objects</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">to_deserialize</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">maybe_val</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>

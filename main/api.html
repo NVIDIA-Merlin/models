@@ -189,7 +189,7 @@
 <td><p>The entry block of the model to process input features from a schema.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.Continuous.html#merlin.models.tf.Continuous" title="merlin.models.tf.Continuous"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Continuous</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>Filters (keeps) only the continuous features.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures" title="merlin.models.tf.ContinuousFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuousFeatures</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Input block for continuous features.</p></td>
@@ -198,7 +198,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ContinuousProjection.html#merlin.models.tf.ContinuousProjection" title="merlin.models.tf.ContinuousProjection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuousProjection</span></code></a>(schema, projection)</p></td>
-<td><p></p></td>
+<td><p>Concatenates the continuous features and combines them using a layer</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.SequenceEmbeddingFeatures.html#merlin.models.tf.SequenceEmbeddingFeatures" title="merlin.models.tf.SequenceEmbeddingFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SequenceEmbeddingFeatures</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Input block for embedding-lookups for categorical features. This module produces 3-D tensors, this is useful for sequential models like transformers. :param feature_config: This specifies what TableConfig to use for each feature. For shared embeddings, the same                        TableConfig can be used for multiple features. :type feature_config: Dict[str, FeatureConfig] :param item_id: The name of the feature that’s used for the item_id. :type item_id: str, optional :param padding_idx: The symbol to use for padding. :type padding_idx: int :param pre: Transformations to apply on the inputs when the module is called (so <strong>before</strong> <cite>call</cite>). :type pre: Union[str, TabularTransformation, List[str], List[TabularTransformation]], optional :param post: Transformations to apply on the inputs after the module is called (so <strong>after</strong> <cite>call</cite>). :type post: Union[str, TabularTransformation, List[str], List[TabularTransformation]], optional :param aggregation: Aggregation to apply after processing the <cite>call</cite>-method to output a single Tensor.</p></td>
