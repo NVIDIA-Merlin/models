@@ -60,9 +60,9 @@ In this example, we set some options for preprocessing. Here is the explanation 
 - `--random_split_eval_perc` - Percentage of data to reserve for eval set
 
 ```bash
-cd /examples/quick_start/ranking/scripts/preproc/
+cd /models/examples/quick_start/scripts/preproc/
 OUT_DATASET_PATH=/outputs/preproc/
-python preprocessing.py --input_data_format=csv --csv_na_values=\\N --input_data_path /data/QK-video-10M.csv --output_path=/outputs/preproc/ --categorical_features=user_id,item_id,video_category,gender,age --binary_classif_targets=click,follow,like,share --regression_targets=watching_times --to_int32=user_id,item_id --to_int16=watching_times --to_int8=gender,age,video_category,click,follow,like,share --user_id_feature=user_id --item_id_feature=item_id --min_user_freq 5 --persist_intermediate_files --dataset_split_strategy=random --random_split_eval_perc=0.2 	
+python preprocessing.py --input_data_format=csv --csv_na_values=\\N --input_data_path /data/QK-video-10M.csv --output_path=$OUT_DATASET_PATH --categorical_features=user_id,item_id,video_category,gender,age --binary_classif_targets=click,follow,like,share --regression_targets=watching_times --to_int32=user_id,item_id --to_int16=watching_times --to_int8=gender,age,video_category,click,follow,like,share --user_id_feature=user_id --item_id_feature=item_id --min_user_freq 5 --persist_intermediate_files --dataset_split_strategy=random --random_split_eval_perc=0.2 	
 ```
 
 After you execute this script, a folder `preproc` will be created in `--output_path` with the preprocessed datasets (with `train` and `eval` folders). You will find a number of partitioned parquet files in those dataset folders, as well as the `schema.yaml` file produced by `NVTabular` which is very important for automated model building in the next step.
@@ -82,7 +82,7 @@ You can find the full documentation of the training script arguments [here](TODO
 
 
 ```bash
-cd /examples/quick_start/ranking/scripts/training/
+cd /models/examples/quick_start/scripts/ranking/
 CUDA_VISIBLE_DEVICES=0 TF_MEMORY_ALLOCATION=0.8 python  ranking_train_eval.py --train_path $OUT_DATASET_PATH/final_dataset/train --eval_path $OUT_DATASET_PATH/final_dataset/eval --output_path ./outputs/ --tasks=click --stl_positive_class_weight 4 --model dlrm --embeddings_dim 64 --l2_reg 1e-5 --embeddings_l2_reg 1e-6 --dropout 0.05 --mlp_layers 64,32  --lr 1e-4 --lr_decay_rate 0.99 --lr_decay_steps 100 --train_batch_size 4096 --eval_batch_size 4096 --epochs 1 --train_steps_per_epoch 10 
 ```
 
@@ -104,7 +104,7 @@ In the following example, we use the popular **MMOE** (`--model mmoe`) architect
 You can also balance the loss weights by setting `--mtl_loss_weight_*` arguments and the tasks positive class weight by setting `--mtl_pos_class_weight_*`.
 
 ```bash
-cd /quick_start/scripts/ranking/
+cd /models/examples/quick_start/scripts/ranking/
 DATA_PATH=/quick_start/scripts/preproc/output/final_dataset
 
 CUDA_VISIBLE_DEVICES=0 TF_MEMORY_ALLOCATION=0.8 python  ranking_train_eval.py --train_path $DATA_PATH/train --eval_path $DATA_PATH/eval --output_path ./outputs/ --tasks=click,like,follow,share --tasks_sample_space=,click,click,click --model mmoe --mmoe_num_mlp_experts 3 --expert_mlp_layers 128 --gate_dim 32 --tower_layers 64 --embedding_sizes_multiplier 4 --l2_reg 1e-5 --embeddings_l2_reg 1e-6 --dropout 0.05  --lr 1e-4 --lr_decay_rate 0.99 --lr_decay_steps 100 --train_batch_size 4096 --eval_batch_size 65536 --epochs 1 --mtl_pos_class_weight_click=1 --mtl_pos_class_weight_follow=1 --mtl_pos_class_weight_like=1 --mtl_loss_weight_click=4 --mtl_loss_weight_follow=3 --mtl_loss_weight_like=2 --mtl_loss_weight_share=1 --use_task_towers --train_steps_per_epoch 3 --in_batch_negatives_train 0 
