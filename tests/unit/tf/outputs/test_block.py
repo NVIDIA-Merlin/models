@@ -677,29 +677,30 @@ def test_mmoe_model(
     assert set(losses.history.keys()) == set(expected_metrics)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class CustomSampleWeight(Block):
+    def call(
+        self,
+        inputs,
+        targets=None,
+        features=None,
+        target_name=None,
+        training=False,
+        testing=False,
+        **kwargs,
+    ) -> mm.Prediction:
+        if not (training or testing) or targets is None:
+            return inputs
+        return mm.Prediction(inputs, targets[target_name], sample_weight=targets["click"])
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
 @testing_utils.mark_run_eagerly_modes
 def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
     music_streaming_data: Dataset, run_eagerly: bool
 ):
-    @tf.keras.utils.register_keras_serializable(package="merlin_models")
-    class CustomSampleWeight(Block):
-        def call(
-            self,
-            inputs,
-            targets=None,
-            features=None,
-            target_name=None,
-            training=False,
-            testing=False,
-            **kwargs,
-        ) -> mm.Prediction:
-            if not (training or testing) or targets is None:
-                return inputs
-            return mm.Prediction(inputs, targets[target_name], sample_weight=targets["click"])
-
-        def compute_output_shape(self, input_shape):
-            return input_shape
-
     inputs = mm.InputBlockV2(music_streaming_data.schema)
     output_block = mm.OutputBlock(
         music_streaming_data.schema,
