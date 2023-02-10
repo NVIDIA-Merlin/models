@@ -648,7 +648,9 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
                 "and weight features."
             )
 
-        weights = tf.expand_dims(tf.cast(weight_feature, tf.float32), -1)
+        weights = tf.cast(weight_feature, tf.float32)
+        if len(weight_feature.shape) == 2:
+            weights = tf.expand_dims(weights, -1)
         output = tf.divide(
             tf.reduce_sum(tf.multiply(inputs, weights), axis=self.axis),
             tf.reduce_sum(weights, axis=self.axis),
