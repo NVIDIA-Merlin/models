@@ -1,12 +1,12 @@
 # Quick-start for ranking models with Merlin
 
-This is a template for building a pipeline for preprocessing, training and exporting ranking models. It is composed by generic scripts that can be used with your own dataset. We also share some best practices for preprocessing and training ranking models.
+This is a template for building a pipeline for preprocessing, training and exporting ranking models for serving. It is composed by generic scripts that can be used with your own dataset. We also share some best practices for preprocessing and training ranking models.
 
-In this example, we use the TenRec dataset from Alibaba, which has a reasonable size (Xrows), contains explicit negative interactions (items not interacted by users) and multiple target columns (click, like, share, follow).
+In this example, we use the TenRec dataset from Tencent, which is large (140 million interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).
 
 ## Setup
-You can run these scripts either using the last Merlin TensorFlow image or installing the necessary Merlin libraries according to their documentation (core, NVTabular, dataloader, models).
-In this doc we provide the commands for setting up a Merlin TensorFlow, as it provides all necessary libraries already installed.
+You can run these scripts either using the latest Merlin TensorFlow image or installing the necessary Merlin libraries according to their documentation (core, NVTabular, dataloader, models).
+In this doc we provide the commands for setting up a Docker container for Merlin TensorFlow, as it provides all necessary libraries already installed.
 
 ### Download the TenRec dataset
 In this step you [download](https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html) and uncompress...
