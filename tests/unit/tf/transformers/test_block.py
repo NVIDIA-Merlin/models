@@ -232,6 +232,7 @@ def classification_loader(sequence_testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_transformer_with_causal_language_modeling(sequence_testing_data: Dataset, run_eagerly):
+    from merlin.models.tf.transforms.sequence import SequenceCausalLastPosition
 
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
@@ -254,7 +255,9 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
             ),
         ),
         mm.MLPBlock([transformer_input_dim]),
-        GPT2Block(d_model=transformer_input_dim, n_head=8, n_layer=2),
+        GPT2Block(
+            d_model=transformer_input_dim, n_head=8, n_layer=2, pre=SequenceCausalLastPosition()
+        ),
         mm.CategoricalOutput(
             model_schema.select_by_name(target), default_loss="categorical_crossentropy"
         ),
@@ -262,7 +265,7 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
 
     batch = next(iter(loader))[0]
     outputs = model(batch)
-    assert list(outputs.shape) == [8, 4, 51997]
+    assert list(outputs.shape) == [8, 51997]
     testing_utils.model_test(
         model, loader, run_eagerly=run_eagerly, reload_model=True, fit_kwargs={"pre": predict_next}
     )
@@ -271,7 +274,11 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     assert len(metrics) > 0
 
     predictions = model.predict(loader, batch_size=8, steps=1)
-    assert predictions.shape == (8, 4, 51997)
+    assert predictions.shape == (8, 51997)
+
+    predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
+    metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_last)
+    assert len(metrics) > 0
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -300,7 +307,6 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
             n_head=8,
             n_layer=2,
             pre=mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()]),
-            post="inference_hidden_state",
         ),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),

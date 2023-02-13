@@ -817,13 +817,13 @@ class BaseModel(tf.keras.Model):
         predictions: Dict[str, TensorLike],
         targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]],
     ):
-        """Adjusts the predctions and targets, doing the following transformations
+        """Adjusts the predictions and targets, doing the following transformations
         if the target is provided:
         - Converts ragged targets (and their masks) to dense, so that they are compatible
         with most losses and metrics
         - Copies the targets mask to predictions mask, if defined
         - One-hot encode targets if their tf.rank(targets) == tf.rank(predictions)-1
-        - Ensures targets has the same shape and dtype as predicitnos
+        - Ensures targets have the same shape and dtype as predictions
 
         Parameters
         ----------
@@ -853,6 +853,35 @@ class BaseModel(tf.keras.Model):
 
             # Ensuring targets and preds have the same dtype
             targets[k] = tf.cast(targets[k], predictions[k].dtype)
+
+            # If targets are scalars (1-D) and predictions are sequential (3-D),
+            # extract predictions at target position because Keras expects
+            # predictions and targets to have the same shape.
+            def _extract_masked_predictions():
+                num_preds_per_example = tf.reduce_sum(
+                    tf.cast(predictions[k]._keras_mask, tf.int32), axis=-1
+                )
+                with tf.control_dependencies(
+                    [
+                        tf.debugging.assert_equal(
+                            num_preds_per_example,
+                            1,
+                            message="If targets are scalars (1-D) and predictions are"
+                            " sequential (3-D), the predictions mask should contain"
+                            " one masked position per example",
+                        )
+                    ]
+                ):
+                    return tf.boolean_mask(predictions[k], predictions[k]._keras_mask)
+
+            if getattr(predictions[k], "_keras_mask", None) is not None:
+                rank_check = tf.logical_and(
+                    tf.equal(tf.rank(targets[k]), 1),
+                    tf.equal(tf.rank(predictions[k]), 3),
+                )
+                predictions[k] = tf.cond(
+                    rank_check, _extract_masked_predictions, lambda: predictions[k]
+                )
 
             # Ensuring targets are one-hot encoded if they are not
             targets[k] = tf.cond(

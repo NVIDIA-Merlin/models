@@ -31,7 +31,10 @@ from transformers import (
 
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.base import Block, block_registry
-from merlin.models.tf.transformers.transforms import PrepareTransformerInputs
+from merlin.models.tf.transformers.transforms import (
+    PrepareTransformerInputs,
+    TransformerInferenceHiddenState,
+)
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
@@ -99,6 +102,8 @@ class TransformerBlock(Block):
             transformer_post = block_registry.parse(transformer_post)
         self.transformer_post = transformer_post
 
+        self.inference_post = TransformerInferenceHiddenState()
+
         if isinstance(pre, str):
             pre = block_registry.parse(pre)
 
@@ -143,6 +148,7 @@ class TransformerBlock(Block):
     @property
     def to_call_post(self):
         yield self.transformer_post
+        yield self.inference_post
 
         if self.post:
             yield self.post

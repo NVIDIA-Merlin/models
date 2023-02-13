@@ -661,7 +661,7 @@ class SequenceMaskLastInference(Block):
         return inputs
 
     def compute_mask(self, inputs, mask=None):
-        """Selects (masks) the nex position after the
+        """Selects (masks) the next position after the
         last valid (non-padded) position of the sequential targets
         to be predicted.
         This method is called by Keras after call()
@@ -682,6 +682,27 @@ class SequenceMaskLastInference(Block):
                 )
 
         return targets_mask
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceCausalLastPosition(Block):
+    def compute_mask(self, inputs, mask=None):
+        """Selects (masks) the last non padded position of the
+        input sequence to be predicted.
+        This method is called by Keras after call()
+        and returns the mask that is going to be assigned
+        to the input tensors, being accessible
+        by tensor._keras_mask
+        """
+        if isinstance(inputs, tf.RaggedTensor):
+            row_lengths = inputs.row_lengths(1)
+            max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+
+            padding_mask = tf.sequence_mask(row_lengths)
+            mask = tf.ragged.boolean_mask(
+                tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
+            )
+        return mask
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
