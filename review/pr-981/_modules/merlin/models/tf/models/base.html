@@ -906,6 +906,8 @@
 <span class="sd">        - Converts ragged targets (and their masks) to dense, so that they are compatible</span>
 <span class="sd">        with most losses and metrics</span>
 <span class="sd">        - Copies the targets mask to predictions mask, if defined</span>
+<span class="sd">        - If predictions are sequential (3-D) and targets are scalar (1-D), use predictions</span>
+<span class="sd">        mask to extract the predictions at target positions.</span>
 <span class="sd">        - One-hot encode targets if their tf.rank(targets) == tf.rank(predictions)-1</span>
 <span class="sd">        - Ensures targets have the same shape and dtype as predictions</span>
 
