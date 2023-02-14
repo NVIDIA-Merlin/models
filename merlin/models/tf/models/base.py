@@ -396,7 +396,7 @@ class BaseModel(tf.keras.Model):
             name="should_compute_train_metrics_for_batch",
             trainable=False,
             synchronization=tf.VariableSynchronization.NONE,
-            initial_value=lambda: False,
+            initial_value=lambda: True,
         )
 
         num_v1_blocks = len(self.prediction_tasks)
