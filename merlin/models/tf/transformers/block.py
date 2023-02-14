@@ -35,6 +35,11 @@ from merlin.models.tf.transformers.transforms import (
     PrepareTransformerInputs,
     TransformerInferenceHiddenState,
 )
+from merlin.models.tf.transforms.sequence import (
+    ReplaceMaskedEmbeddings,
+    SequenceCausalLastPosition,
+    SequenceMaskLastInference,
+)
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
@@ -56,7 +61,9 @@ def get_tf_main_layer(hf_model):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TransformerBlock(Block):
     """
-    Class to support HF Transformers for session-based and sequential-based recommendation models.
+    Base class to support HuggingFace Transformers for session-based and
+    sequential-based recommendation models.
+
     Parameters
     ----------
     transformer: TransformerBody
@@ -74,6 +81,10 @@ class TransformerBlock(Block):
         A block to use before the main transformer block, by default None
     post: Optional[Union[str, tf.keras.layers.Layer]]
         A block to use after the main transformer block, by default None
+    masking: Optional[str]
+        The sequential training approach to use for a transformer-based model.
+        The supported values are "causal" for causal language modeling and
+        "masked" for masked language modeling, by default None.
     """
 
     def __init__(
@@ -83,6 +94,7 @@ class TransformerBlock(Block):
         post: Optional[Union[str, tf.keras.layers.Layer]] = None,
         transformer_pre=PrepareTransformerInputs(),
         transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
+        masking: str = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -106,6 +118,17 @@ class TransformerBlock(Block):
 
         if isinstance(pre, str):
             pre = block_registry.parse(pre)
+        if masking == "masked":
+            pre = combinators.SequentialBlock(
+                [SequenceMaskLastInference(), ReplaceMaskedEmbeddings()]
+            )
+        elif masking == "causal":
+            pre = SequenceCausalLastPosition()
+        elif masking is not None:
+            raise ValueError(
+                f"The value `{masking}` is not valid for masking,"
+                " please choose one of the following ['causal', 'masked']"
+            )
 
         if isinstance(post, str):
             post = block_registry.parse(post)
@@ -196,6 +219,7 @@ class BertBlock(TransformerBlock):
         post=None,
         transformer_pre=PrepareTransformerInputs(),
         transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
+        masking: str = None,
         **kwargs,
     ):
         config = self.create_config(
@@ -217,6 +241,7 @@ class BertBlock(TransformerBlock):
             post=post,
             transformer_pre=transformer_pre,
             transformer_post=transformer_post,
+            masking=masking,
         )
 
     def create_config(
@@ -272,6 +297,7 @@ class AlbertBlock(TransformerBlock):
         transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
         pre=None,
         post=None,
+        masking: str = None,
         **kwargs,
     ):
         config = self.create_config(
@@ -293,6 +319,7 @@ class AlbertBlock(TransformerBlock):
             post=post,
             transformer_pre=transformer_pre,
             transformer_post=transformer_post,
+            masking=masking,
         )
 
     @classmethod
@@ -349,6 +376,7 @@ class RobertaBlock(TransformerBlock):
         post=None,
         transformer_pre=PrepareTransformerInputs(),
         transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
+        masking: str = None,
         **kwargs,
     ):
         config = self.create_config(
@@ -370,6 +398,7 @@ class RobertaBlock(TransformerBlock):
             post=post,
             transformer_pre=transformer_pre,
             transformer_post=transformer_post,
+            masking=masking,
         )
 
     @classmethod
@@ -427,6 +456,7 @@ class XLNetBlock(TransformerBlock):
         post=None,
         transformer_pre=PrepareTransformerInputs(),
         transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
+        masking: str = None,
         **kwargs,
     ):
         config = self.create_config(
@@ -450,6 +480,7 @@ class XLNetBlock(TransformerBlock):
             post=post,
             transformer_pre=transformer_pre,
             transformer_post=transformer_post,
+            masking=masking,
         )
 
     @classmethod
@@ -508,6 +539,7 @@ class GPT2Block(TransformerBlock):
         post=None,
         transformer_pre=PrepareTransformerInputs(),
         transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
+        masking: str = None,
         **kwargs,
     ):
         config = self.create_config(
@@ -529,6 +561,7 @@ class GPT2Block(TransformerBlock):
             post=post,
             transformer_pre=transformer_pre,
             transformer_post=transformer_post,
+            masking=masking,
         )
 
     @classmethod

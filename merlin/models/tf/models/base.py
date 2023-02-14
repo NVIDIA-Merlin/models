@@ -822,6 +822,8 @@ class BaseModel(tf.keras.Model):
         - Converts ragged targets (and their masks) to dense, so that they are compatible
         with most losses and metrics
         - Copies the targets mask to predictions mask, if defined
+        - If predictions are sequential (3-D) and targets are scalar (1-D), use predictions
+        mask to extract the predictions at target positions.
         - One-hot encode targets if their tf.rank(targets) == tf.rank(predictions)-1
         - Ensures targets have the same shape and dtype as predictions
 

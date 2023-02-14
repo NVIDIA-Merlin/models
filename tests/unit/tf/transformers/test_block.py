@@ -232,7 +232,6 @@ def classification_loader(sequence_testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_transformer_with_causal_language_modeling(sequence_testing_data: Dataset, run_eagerly):
-    from merlin.models.tf.transforms.sequence import SequenceCausalLastPosition
 
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
@@ -255,9 +254,7 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
             ),
         ),
         mm.MLPBlock([transformer_input_dim]),
-        GPT2Block(
-            d_model=transformer_input_dim, n_head=8, n_layer=2, pre=SequenceCausalLastPosition()
-        ),
+        GPT2Block(d_model=transformer_input_dim, n_head=8, n_layer=2, masking="causal"),
         mm.CategoricalOutput(
             model_schema.select_by_name(target), default_loss="categorical_crossentropy"
         ),
@@ -306,7 +303,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
             d_model=transformer_input_dim,
             n_head=8,
             n_layer=2,
-            pre=mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()]),
+            masking="masked",
         ),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
@@ -359,9 +356,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
             ),
         ),
         mm.MLPBlock([transformer_input_dim]),
-        BertBlock(
-            d_model=transformer_input_dim, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()
-        ),
+        BertBlock(d_model=transformer_input_dim, n_head=8, n_layer=2, masking="masked"),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
@@ -371,7 +366,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
 
     inputs = itertools.islice(iter(loader), 1)
     outputs = model.predict(inputs, pre=seq_mask_random)
-    assert list(outputs.shape) == [8, 4, 51997]
+    assert list(outputs.shape) == [8, 51997]
 
     testing_utils.model_test(
         model,
