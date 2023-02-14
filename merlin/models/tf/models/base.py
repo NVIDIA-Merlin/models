@@ -978,7 +978,6 @@ class BaseModel(tf.keras.Model):
 
         return self(x, training=False)
 
-    @tf.function
     def train_compute_metrics(self, outputs: PredictionOutput, compiled_metrics: MetricsContainer):
         """Returns metrics for the outputs of this step.
 
