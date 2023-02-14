@@ -941,12 +941,6 @@
             <span class="c1"># If targets are scalars (1-D) and predictions are sequential (3-D),</span>
             <span class="c1"># extract predictions at target position because Keras expects</span>
             <span class="c1"># predictions and targets to have the same shape.</span>
-            <span class="n">rank_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mi">3</span><span class="p">),</span>
-            <span class="p">)</span>
-            <span class="n">mask_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">),</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-
             <span class="k">def</span> <span class="nf">_extract_masked_predictions</span><span class="p">():</span>
                 <span class="n">num_preds_per_example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
                     <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">_keras_mask</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
@@ -964,11 +958,14 @@
                 <span class="p">):</span>
                     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">_keras_mask</span><span class="p">)</span>
 
-            <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">rank_check</span><span class="p">,</span> <span class="n">mask_check</span><span class="p">),</span>
-                <span class="n">_extract_masked_predictions</span><span class="p">,</span>
-                <span class="k">lambda</span><span class="p">:</span> <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">rank_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mi">3</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+                    <span class="n">rank_check</span><span class="p">,</span> <span class="n">_extract_masked_predictions</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="p">)</span>
 
             <span class="c1"># Ensuring targets are one-hot encoded if they are not</span>
             <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
