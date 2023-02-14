@@ -568,17 +568,17 @@ def test_column_based_sample_weight_with_multitask(
         ),
     }
 
-    model.compile(
-        optimizer="adam",
+    _, losses = testing_utils.model_test(
+        model,
+        music_streaming_data,
         run_eagerly=run_eagerly,
+        reload_model=True,
         loss_weights=loss_weights,
         weighted_metrics=weighted_metrics,
     )
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
-
-    assert metrics["loss"] >= 0
-    assert set(metrics.keys()) == set(
+    assert losses.history["loss"][0] >= 0
+    assert set(losses.history.keys()) == set(
         [
             "loss",
             "loss_batch",
@@ -641,11 +641,15 @@ def test_mmoe_model(
         "like/binary_output": 3.0,
     }
 
-    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss_weights=loss_weights)
+    _, losses = testing_utils.model_test(
+        model,
+        music_streaming_data,
+        run_eagerly=run_eagerly,
+        reload_model=True,
+        loss_weights=loss_weights,
+    )
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
-
-    assert metrics["loss"] >= 0
+    assert losses.history["loss"][0] >= 0
 
     expected_metrics = [
         "loss",
@@ -670,22 +674,33 @@ def test_mmoe_model(
                 gate_metric_name = f"gate_{task}_weight_{i}"
                 expected_metrics.append(gate_metric_name)
 
-    assert set(metrics.keys()) == set(expected_metrics)
+    assert set(losses.history.keys()) == set(expected_metrics)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class CustomSampleWeight(Block):
+    def call(
+        self,
+        inputs,
+        targets=None,
+        features=None,
+        target_name=None,
+        training=False,
+        testing=False,
+        **kwargs,
+    ) -> mm.Prediction:
+        if not (training or testing) or targets is None:
+            return inputs
+        return mm.Prediction(inputs, targets[target_name], sample_weight=targets["click"])
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
 @testing_utils.mark_run_eagerly_modes
 def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
     music_streaming_data: Dataset, run_eagerly: bool
 ):
-    class CustomSampleWeight(Block):
-        def call(
-            self, inputs, targets=None, features=None, target_name=None, **kwargs
-        ) -> mm.Prediction:
-            return mm.Prediction(inputs, targets[target_name], sample_weight=targets["click"])
-
-        def compute_output_shape(self, input_shape):
-            return input_shape
-
     inputs = mm.InputBlockV2(music_streaming_data.schema)
     output_block = mm.OutputBlock(
         music_streaming_data.schema,
@@ -714,17 +729,18 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
         ),
     }
 
-    model.compile(
-        optimizer="adam",
+    _, losses = testing_utils.model_test(
+        model,
+        music_streaming_data,
         run_eagerly=run_eagerly,
+        reload_model=True,
         loss_weights=loss_weights,
         weighted_metrics=weighted_metrics,
     )
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    assert losses.history["loss"][0] >= 0
 
-    assert metrics["loss"] >= 0
-    assert set(metrics.keys()) == set(
+    assert set(losses.history.keys()) == set(
         [
             "loss",
             "loss_batch",
@@ -782,12 +798,20 @@ def test_mmoe_model_serialization(music_streaming_data: Dataset, run_eagerly: bo
     }
 
     model = mm.Model(inputs, mmoe, output_block)
-    model.compile(optimizer="adam", run_eagerly=run_eagerly, weighted_metrics=weighted_metrics)
 
-    loader = mm.Loader(music_streaming_data, batch_size=8, shuffle=False)
+    _, losses = testing_utils.model_test(
+        model,
+        music_streaming_data,
+        run_eagerly=run_eagerly,
+        reload_model=True,
+        weighted_metrics=weighted_metrics,
+    )
+
+    assert losses.history["loss"][0] >= 0
+
     testing_utils.model_test(
         model,
-        loader,
+        music_streaming_data,
         run_eagerly=run_eagerly,
         reload_model=True,
     )
@@ -810,12 +834,17 @@ def test_cgc_model(music_streaming_data: Dataset, run_eagerly: bool, task_blocks
         schema=schema,
     )
     model = mm.Model(inputs, cgc, output_block)
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    _, losses = testing_utils.model_test(
+        model,
+        music_streaming_data,
+        run_eagerly=run_eagerly,
+        reload_model=True,
+    )
 
-    assert metrics["loss"] >= 0
-    assert set(metrics.keys()) == set(
+    assert losses.history["loss"][0] >= 0
+
+    assert set(losses.history.keys()) == set(
         [
             "loss",
             "loss_batch",
@@ -852,12 +881,15 @@ def test_ple_model(music_streaming_data: Dataset, run_eagerly: bool, task_blocks
         num_shared_experts=3,
     )
     model = mm.Model(inputs, ple, output_block)
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    _, losses = testing_utils.model_test(
+        model,
+        music_streaming_data,
+        run_eagerly=run_eagerly,
+        reload_model=True,
+    )
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
-
-    assert metrics["loss"] >= 0
-    assert set(metrics.keys()) == set(
+    assert losses.history["loss"][0] >= 0
+    assert set(losses.history.keys()) == set(
         [
             "loss",
             "loss_batch",
@@ -891,12 +923,11 @@ def test_ple_model_serialization(music_streaming_data: Dataset, run_eagerly: boo
         gate_block=mm.MLPBlock([16]),
     )
     model = mm.Model(inputs, ple, output_block)
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-
-    loader = mm.Loader(music_streaming_data, batch_size=8, shuffle=False)
-    testing_utils.model_test(
+    _, losses = testing_utils.model_test(
         model,
-        loader,
+        music_streaming_data,
         run_eagerly=run_eagerly,
         reload_model=True,
     )
+
+    assert losses.history["loss"][0] >= 0
