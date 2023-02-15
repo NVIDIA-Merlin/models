@@ -36,6 +36,7 @@ from merlin.models.tf.transformers.transforms import (
     TransformerInferenceHiddenState,
 )
 from merlin.models.tf.transforms.sequence import (
+    ExtractMaskFromTargets,
     ReplaceMaskedEmbeddings,
     SequenceCausalLastPosition,
     SequenceMaskLastInference,
@@ -114,17 +115,22 @@ class TransformerBlock(Block):
             transformer_post = block_registry.parse(transformer_post)
         self.transformer_post = transformer_post
 
-        self.inference_post = TransformerInferenceHiddenState()
-
         if isinstance(pre, str):
             pre = block_registry.parse(pre)
-        if masking == "masked":
-            pre = combinators.SequentialBlock(
-                [SequenceMaskLastInference(), ReplaceMaskedEmbeddings()]
+
+        inference_post = None
+        masking_pre = None
+        self.masking = masking
+        if self.masking == "masked":
+            inference_post = TransformerInferenceHiddenState()
+            masking_pre = combinators.SequentialBlock(
+                [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
             )
-        elif masking == "causal":
-            pre = SequenceCausalLastPosition()
-        elif masking is not None:
+        elif self.masking == "causal":
+            inference_post = TransformerInferenceHiddenState()
+            masking_pre = SequenceCausalLastPosition()
+
+        elif self.masking is not None:
             raise ValueError(
                 f"The value `{masking}` is not valid for masking,"
                 " please choose one of the following ['causal', 'masked']"
@@ -135,6 +141,8 @@ class TransformerBlock(Block):
 
         self.post = post
         self.pre = pre
+        self.inference_post = inference_post
+        self.masking_pre = masking_pre
 
     def build(self, input_shape=None):
         """Builds the sequential block
@@ -163,6 +171,9 @@ class TransformerBlock(Block):
 
     @property
     def to_call_pre(self):
+        if self.masking_pre:
+            yield self.masking_pre
+
         if self.pre:
             yield self.pre
 
@@ -171,13 +182,15 @@ class TransformerBlock(Block):
     @property
     def to_call_post(self):
         yield self.transformer_post
-        yield self.inference_post
+        if self.inference_post:
+            yield self.inference_post
 
         if self.post:
             yield self.post
 
     def get_config(self):
         config = super().get_config()
+        config["masking"] = self.masking
         config = maybe_serialize_keras_objects(
             self,
             config,

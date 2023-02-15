@@ -706,70 +706,30 @@ class SequenceCausalLastPosition(Block):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ReplaceMaskedEmbeddings(Block):
-    """Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
-     by a dummy trainable single embedding at the positions to be masked.
-     This block looks for the Keras mask (`._keras_mask`) in the following order:
-       1. Checks if the input tensor has a mask
-       2. Checks if there is a single target and if it has a mask
-       3. If there are multiple targets (dict) returns the mask of the target
-       that matches the first 2 dims of the input
-     This is useful to be used when PredictMasked() transformation is used in
-     the Loader, which randomly selects some targets to be predicted and uses
-     Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
-     at masked positions we avoid target leakage when training models with
-     Masked Language Modeling (BERT-like)
-
-     **Note:** To support inference, the input sequence and its corresponding mask should be
-     extended by one position at the end to account for the next-item (`target`) position.
-     To do this, you should set `SequenceMaskLastInference` as a pre-layer of
-    `ReplaceMaskedEmbeddings()` using the sequential-block:
-    ```mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()])```
+class ExtractMaskFromTargets(Block):
     """
+    Recover the mask information for the inputs from the mask information
+    stored in the targets.
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.supports_masking = True
+    This block looks for the Keras mask (`._keras_mask`) in the following order:
+        1. Checks if the input tensor has a mask.
+        2. Checks if there is a single target and if it has a mask.
+        3. If there are multiple targets (dictionary), returns the mask of the target
+        that matches the first two dimensions of the input.
 
-    def build(self, input_shape):
-        self.hidden_size = input_shape[-1]
-        if self.hidden_size is None:
-            raise ValueError("The last dim of inputs cannot be None")
-        # Create a trainable embedding to replace masked interactions
-        initializer = tf.random_normal_initializer(mean=0.0, stddev=0.001)
-        self.masked_embedding = tf.Variable(initializer(shape=[self.hidden_size], dtype=tf.float32))
-
-        return super().build(input_shape)
+    This is useful to use when the mask information for the inputs may be lost in
+    previous non-mask-aware Merlin blocks.
+    """
 
     def call(
         self,
         inputs: Union[tf.Tensor, tf.RaggedTensor],
         targets: Optional[Union[tf.Tensor, tf.RaggedTensor, TabularData]] = None,
     ) -> Union[tf.Tensor, tf.RaggedTensor]:
-        """If the sequence of input embeddings or the corresponding sequential
-        targets is masked (with `tensor._keras_mask` defined),
-        replaces the input embeddings for masked elements
-        Parameters
-        ----------
-        inputs : Union[tf.Tensor, tf.RaggedTensor]
-            A tensor with sequences of vectors.
-            Needs to be 3D (batch_size, sequence_length, embeddings dim).
-            If inputs._keras_mask is defined uses it to infer the mask
-        targets : Union[tf.Tensor, tf.RaggedTensor, TabularData], optional
-            The target values, from which the mask can be extracted
-            if targets inputs._keras_mask is defined.
-        Returns
-        -------
-        Union[tf.Tensor, tf.RaggedTensor]
-            If training, returns a tensor with the masked inputs replaced by the dummy embedding
-        """
-        outputs = inputs
-        # Infers the mask from the inputs or targets
+
         mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
-        if mask is not None:
-            # Replaces the embeddings at masked positions by a dummy trainable embedding
-            outputs = self._replace_masked_embeddings(inputs, mask)
-        return outputs
+        inputs._keras_mask = mask
+        return inputs
 
     def _infer_mask_from_inputs_or_targets(
         self,
@@ -792,7 +752,7 @@ class ReplaceMaskedEmbeddings(Block):
                     for _, v in targets.items():
                         if getattr(
                             v, "_keras_mask", None
-                        ) is not None and self._check_inputs_mask_compatible_shape(
+                        ) is not None and tf_utils.check_inputs_mask_compatible_shape(
                             inputs, v._keras_mask
                         ):
                             if mask is None:
@@ -809,18 +769,73 @@ class ReplaceMaskedEmbeddings(Block):
 
         return mask
 
-    def _check_inputs_mask_compatible_shape(
-        self, inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
-    ):
-        result = False
-        if type(inputs) == type(mask) and (inputs.shape.as_list()[:-1] == mask.shape.as_list()):
-            if isinstance(inputs, tf.RaggedTensor):
-                result = tf.reduce_all(
-                    tf.cast(inputs.row_lengths(), tf.int32) == tf.cast(mask.row_lengths(), tf.int32)
-                )
-            else:
-                result = True
-        return result
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ReplaceMaskedEmbeddings(Block):
+    """Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
+    by a dummy trainable single embedding at the positions to be masked.
+
+    This is useful to be used when PredictMasked() transformation is used in
+    the Loader, which randomly selects some targets to be predicted and uses
+    Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
+    at masked positions we avoid target leakage when training models with
+    Masked Language Modeling (BERT-like).
+
+    **Note 1:** To ensure the mask information `_keras_mask` is not
+    lost in previous blocks, you should set `ExtractMaskFromTargets` as a pre-layer of the
+    `ReplaceMaskedEmbeddings` instance.
+
+    **Note 2:** To support inference, the input sequence and its corresponding mask should be
+    extended by one position at the end to account for the next-item (`target`) position.
+    To do this, you should set `SequenceMaskLastInference` as a default pre-layer of
+    the `ReplaceMaskedEmbeddings`.
+
+    To support masked training approach, the default pre-layer in the TransformerBlock is defined
+    as follows:
+    ```
+    combinators.SequentialBlock(
+                [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
+    ```
+
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.supports_masking = True
+
+    def build(self, input_shape):
+        self.hidden_size = input_shape[-1]
+        if self.hidden_size is None:
+            raise ValueError("The last dim of inputs cannot be None")
+        # Create a trainable embedding to replace masked interactions
+        initializer = tf.random_normal_initializer(mean=0.0, stddev=0.001)
+        self.masked_embedding = tf.Variable(initializer(shape=[self.hidden_size], dtype=tf.float32))
+
+        return super().build(input_shape)
+
+    def call(
+        self,
+        inputs: Union[tf.Tensor, tf.RaggedTensor],
+    ) -> Union[tf.Tensor, tf.RaggedTensor]:
+        """If the sequence of input embeddings is masked (with `tensor._keras_mask` defined),
+        replaces the input embeddings for masked elements
+        Parameters
+        ----------
+        inputs : Union[tf.Tensor, tf.RaggedTensor]
+            A tensor with sequences of vectors.
+            Needs to be 3D (batch_size, sequence_length, embeddings dim).
+            If inputs._keras_mask is defined uses it to infer the mask
+
+        Returns
+        -------
+        Union[tf.Tensor, tf.RaggedTensor]
+            returns a tensor with the masked inputs replaced by the dummy embedding
+        """
+        outputs = inputs
+        if getattr(inputs, "_keras_mask", None) is not None:
+            # Replaces the embeddings at masked positions by a dummy trainable embedding
+            outputs = self._replace_masked_embeddings(inputs, inputs._keras_mask)
+        return outputs
 
     def _replace_masked_embeddings(
         self, inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
@@ -831,7 +846,7 @@ class ReplaceMaskedEmbeddings(Block):
         """
 
         tf.Assert(
-            self._check_inputs_mask_compatible_shape(inputs, mask),
+            tf_utils.check_inputs_mask_compatible_shape(inputs, mask),
             [
                 "The inputs and mask need to be compatible: have the same dtype "
                 "(tf.Tensor or tf.RaggedTensor) and the tf.rank(mask) == tf.rank(inputs)-1"
