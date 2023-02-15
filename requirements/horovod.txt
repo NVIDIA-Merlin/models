@@ -1,2 +1,2 @@
 horovod
-merlin-sok
+sparse_operation_kit

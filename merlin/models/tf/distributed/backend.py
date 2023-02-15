@@ -1,3 +1,6 @@
+from merlin.core.dispatch import HAS_GPU
+
+
 hvd = None
 hvd_installed = False
 
@@ -16,12 +19,13 @@ except ImportError:
 if hvd_installed:
     hvd.init()
 
-try:
-    from sparse_operation_kit import experiment as sok  # noqa: F401
+if HAS_GPU:
+    try:
+        from sparse_operation_kit import experiment as sok  # noqa: F401
 
-    sok_installed = True
-except ImportError:
-    pass
+        sok_installed = True
+    except ImportError:
+        pass
 
 
 if sok_installed:

@@ -1,10 +1,13 @@
 import numpy as np
+import pytest
 import tensorflow as tf
 
+from merlin.core.dispatch import HAS_GPU
 from merlin.models.tf.distributed.embedding import SOKEmbedding
 from merlin.schema import ColumnSchema, Tags
 
 
+@pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
 class TestSOKEmbedding:
     sample_column_schema = ColumnSchema(
         "item_id",
