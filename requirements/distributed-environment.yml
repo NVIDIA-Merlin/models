@@ -1,4 +1,4 @@
-name: null
+name: horovod-gpu
 
 channels:
   - nvidia
@@ -17,6 +17,7 @@ dependencies:
   - openmpi
   - pip
   - pip:
-    - tensorflow-gpu==2.8.*
-  - pytest
+      - tensorflow-cpu==2.8.*
+      - -r base.txt
+      - -r dev.txt
   - python=3.8
