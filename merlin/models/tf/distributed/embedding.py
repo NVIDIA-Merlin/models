@@ -209,13 +209,15 @@ class SOKEmbedding(EmbeddingTableBase):
 
         return cls(dim, *schema, vocab_size, initializer, use_dynamic_variable, localized, **config)
 
-def model_dump(model: tf.keras.Model, path: str):
+def model_dump(model: tf.keras.Model, optimizer: tf.keras.optimizers.Optimizer, path: str):
     sok_variables, other_variables = sok.filter_variables(model.weights)
+    ckpt = tf.train.Checkpoint(variables=other_variables, optimizer = optimizer)
     sok.dump(path+"/sok_var/sok_weights", sok_variables)
-    model.save_weights(path+"/tf_var/")
+    ckpt.save(path)
 
-def model_load(model: tf.keras.Model, path:str):
+def model_load(model: tf.keras.Model, optimizer: tf.keras.optimizers.Optimizer, path:str):
     sok_variables, other_variables = sok.filter_variables(model.weights)
-    model.load_weights(path+"/tf_var/")
+    ckpt = tf.train.Checkpoint(variables=other_variables, optimizer = optimizer)
+    ckpt.restore(tf.train.latest_checkpoint(path))
     sok.load(path+"/sok_var/sok_weights", sok_variables)
 
