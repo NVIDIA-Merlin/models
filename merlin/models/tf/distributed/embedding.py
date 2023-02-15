@@ -1,8 +1,8 @@
 from typing import Union
 
 import tensorflow as tf
-from sparse_operation_kit import experiment as sok
 
+from merlin.models.tf.distributed.backend import hvd_installed, sok, sok_installed
 from merlin.models.tf.inputs.embedding import EmbeddingTableBase
 from merlin.models.utils.schema_utils import (
     schema_to_tensorflow_metadata_json,
@@ -56,6 +56,12 @@ class SOKEmbedding(EmbeddingTableBase):
         dtype=None,
         **kwargs,
     ):
+        if not hvd_installed or not sok_installed:
+            raise ImportError(
+                "'horovod' and 'sparse_operation_kit' are required to use "
+                f"{self.__class__.__name__}."
+            )
+
         super(SOKEmbedding, self).__init__(
             dim, *col_schemas, trainable=trainable, name=name, dtype=dtype, **kwargs
         )
