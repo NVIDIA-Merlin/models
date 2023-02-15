@@ -1,4 +1,4 @@
-name: lightfm
+name: horovod (cpu)
 
 on:
   push:
@@ -20,13 +20,24 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/dev.txt'
       - name: Install Ubuntu packages
         run: |
           sudo apt-get update -y
           sudo apt-get install -y protobuf-compiler
-      - name: Install Merlin dependencies
+      - name: Install conda
+        run: |
+          mkdir -p /tmp/miniconda
+          wget https://repo.anaconda.com/miniconda/Miniconda3-py38_22.11.1-1-Linux-x86_64.sh -O /tmp/miniconda/miniconda.sh
+          bash /tmp/miniconda/miniconda.sh -b -u -p /tmp/miniconda
+          /tmp/miniconda/bin/conda init bash
+          echo "/tmp/miniconda/bin" >> $GITHUB_PATH
+      - name: Install and upgrade python packages
+        run: |
+          python -m pip install --upgrade pip setuptools==59.4.0 wheel tox
+      - name: Install tox-conda
+        run: |
+          python -m pip install tox-conda
+      - name: Run tests
         run: |
           ref_type=${{ github.ref_type }}
           branch=main
@@ -35,16 +46,4 @@ jobs:
             git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
             branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
           fi
-          pip install "pandas>=1.2.0,<1.4.0dev0"
-          pip install "NVTabular@git+https://github.com/NVIDIA-Merlin/NVTabular.git@$branch"
-          pip install "merlin-core@git+https://github.com/NVIDIA-Merlin/core.git@$branch"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install .[lightfm-dev]
-      - name: Build
-        run: |
-          python setup.py develop
-      - name: Run unittests
-        run: |
-          make tests-lightfm
+          cd ${{ github.workspace }}; tox -e py38-horovod-cpu -- $branch

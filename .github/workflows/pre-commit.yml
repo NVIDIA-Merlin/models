@@ -18,4 +18,8 @@ jobs:
       - name: Install black Jupyter
         run : |
           pip install black[jupyter]==22.3.0
+      - name: Remove Notebook Output
+        run: |
+          pip install nbstripout
+          find . -type f -name "*.ipynb" -exec nbstripout "{}" +
       - uses: pre-commit/action@v3.0.0

@@ -50,7 +50,7 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.tensor import ListToRagged, ProcessList
+from merlin.models.tf.transforms.tensor import ProcessList
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -396,7 +396,7 @@ class BaseModel(tf.keras.Model):
             name="should_compute_train_metrics_for_batch",
             trainable=False,
             synchronization=tf.VariableSynchronization.NONE,
-            initial_value=lambda: False,
+            initial_value=lambda: True,
         )
 
         num_v1_blocks = len(self.prediction_tasks)
@@ -909,6 +909,9 @@ class BaseModel(tf.keras.Model):
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
+        outputs = outputs.copy_with_updates(
+            sample_weight=self._extract_positive_sample_weights(outputs.sample_weight)
+        )
         metrics = self.train_compute_metrics(outputs, self.compiled_metrics)
 
         # Batch regularization loss
@@ -945,6 +948,9 @@ class BaseModel(tf.keras.Model):
 
         loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
+        outputs = outputs.copy_with_updates(
+            sample_weight=self._extract_positive_sample_weights(outputs.sample_weight)
+        )
         metrics = self.compute_metrics(outputs)
 
         # Batch regularization loss
@@ -972,7 +978,6 @@ class BaseModel(tf.keras.Model):
 
         return self(x, training=False)
 
-    @tf.function
     def train_compute_metrics(self, outputs: PredictionOutput, compiled_metrics: MetricsContainer):
         """Returns metrics for the outputs of this step.
 
@@ -981,9 +986,11 @@ class BaseModel(tf.keras.Model):
         # Compiled_metrics as an argument here because it is re-defined by `model.compile()`
         # And checking `self.compiled_metrics` inside this function results in a reference to
         # a deleted version of `compiled_metrics` if the model is re-compiled.
-        if self._should_compute_train_metrics_for_batch:
-            return self.compute_metrics(outputs, compiled_metrics)
-        return self.metrics_results()
+        return tf.cond(
+            self._should_compute_train_metrics_for_batch,
+            lambda: self.compute_metrics(outputs, compiled_metrics),
+            lambda: self.metrics_results(),
+        )
 
     def compute_metrics(
         self,
@@ -1176,6 +1183,24 @@ class BaseModel(tf.keras.Model):
 
         return callbacks
 
+    def _extract_positive_sample_weights(self, sample_weights):
+        # 2-D sample weights are set for retrieval models to differentiate
+        # between positive and negative candidates of the same sample.
+        # For metrics calculation, we extract the sample weights of
+        # the positive class (i.e. the first column)
+        if sample_weights is None:
+            return sample_weights
+
+        if isinstance(sample_weights, tf.Tensor) and (len(sample_weights.shape) == 2):
+            return tf.expand_dims(sample_weights[:, 0], -1)
+
+        for name, weights in sample_weights.items():
+            if isinstance(weights, dict):
+                sample_weights[name] = self._extract_positive_sample_weights(weights)
+            elif (weights is not None) and (len(weights.shape) == 2):
+                sample_weights[name] = tf.expand_dims(weights[:, 0], -1)
+        return sample_weights
+
     def _add_horovod_callbacks(self, callbacks):
         if not (hvd_installed and hvd.size() > 1):
             return callbacks
@@ -1365,6 +1390,8 @@ class Model(BaseModel):
             can be disabled, so that only the configs of each layer are
             stored, by default True
         """
+        if hvd_installed and hvd.rank() != 0:
+            return
         super().save(
             export_path,
             include_optimizer=include_optimizer,
@@ -1407,7 +1434,7 @@ class Model(BaseModel):
                     f"\n\t{call_input_features.difference(model_input_features)}"
                 )
 
-            _ragged_inputs = ListToRagged()(inputs)
+            _ragged_inputs = self.process_list(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
@@ -1428,6 +1455,8 @@ class Model(BaseModel):
             The input shape, by default None
         """
         last_layer = None
+
+        input_shape = self.process_list.compute_output_shape(input_shape)
 
         if self.pre is not None:
             self.pre.build(input_shape)

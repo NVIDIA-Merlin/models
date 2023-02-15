@@ -451,12 +451,15 @@ class EmbeddingTable(EmbeddingTableBase):
             input_shape = tf.TensorShape([input_shape[1][0], None])
 
         first_dims = input_shape
-        if (self.sequence_combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
-            if len(input_shape) == 3:
+
+        if input_shape.rank > 1:
+            if self.sequence_combiner is not None:
                 first_dims = [input_shape[0]]
-            else:
+
+            elif input_shape[-1] == 1:
                 first_dims = input_shape[:-1]
-        output_shapes = tf.TensorShape(first_dims + [self.dim])
+
+        output_shapes = tf.TensorShape(list(first_dims) + [self.dim])
 
         return output_shapes
 
@@ -615,6 +618,7 @@ def _get_dim(col, embedding_dims, infer_dim_fn):
     return dim
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
     def __init__(self, weight_feature_name: str, axis=1, **kwargs):
         """Computes the weighted average of a Tensor based
@@ -644,7 +648,9 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
                 "and weight features."
             )
 
-        weights = tf.expand_dims(tf.cast(weight_feature, tf.float32), -1)
+        weights = tf.cast(weight_feature, tf.float32)
+        if len(weight_feature.shape) == 2:
+            weights = tf.expand_dims(weights, -1)
         output = tf.divide(
             tf.reduce_sum(tf.multiply(inputs, weights), axis=self.axis),
             tf.reduce_sum(weights, axis=self.axis),
@@ -690,6 +696,13 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
                 seq_combiners[cat_col.name] = combiner
 
         return seq_combiners
+
+    def get_config(self):
+        config = super().get_config()
+        config["axis"] = self.axis
+        config["weight_feature_name"] = self.weight_feature_name
+
+        return config
 
 
 @dataclass
