@@ -855,7 +855,7 @@ class TestBroadcastToSequence(tf.test.TestCase):
         outputs = broadcast_layer(inputs)
         self.assertAllEqual(outputs["sequence_embedding"].shape, tf.TensorShape([3, None, 2]))
         self.assertAllEqual(outputs["context_a"].shape, tf.TensorShape([3, None, 1]))
-        self.assertAllEqual(outputs["context_b"].shape, tf.TensorShape([3, None]))
+        self.assertAllEqual(outputs["context_b"].shape, tf.TensorShape([3, None, 1]))
 
 
 @pytest.mark.parametrize(
@@ -1010,3 +1010,83 @@ def test_to_target_compute_output_schema():
     to_target = mm.ToTarget(schema, "label")
     output_schema = to_target.compute_output_schema(schema)
     assert "label" in output_schema.select_by_tag(Tags.TARGET).column_names
+
+
+def test_broadcast_to_sequence_input_block(sequence_testing_data: Dataset):
+    schema = sequence_testing_data.schema
+    seq_schema = schema.select_by_name(["item_id_seq", "categories", "item_age_days_norm"])
+    context_schema = schema.select_by_name(["user_age"])
+    sequence_testing_data.schema = seq_schema + context_schema
+
+    input_block = mm.InputBlockV2(
+        sequence_testing_data.schema,
+        embeddings=mm.Embeddings(
+            seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+        ),
+        post=mm.BroadcastToSequence(context_schema, seq_schema),
+        aggregation=None,
+    )
+
+    batch = mm.sample_batch(
+        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+    )
+    input_batch = input_block(batch)
+    assert set(input_batch.keys()) == set(
+        ["item_id_seq", "categories", "item_age_days_norm", "user_age"]
+    )
+    assert set([len(v.shape) for v in input_batch.values()]) == set([3])
+    assert set([v.shape[:-1] for v in input_batch.values()]) == set([tf.TensorShape([100, None])])
+    assert list(input_batch["user_age"].shape) == [100, None, 1]
+
+
+def test_model_with_broadcast_to_sequence(sequence_testing_data: Dataset):
+    schema = sequence_testing_data.schema
+    seq_schema = schema.select_by_name(["item_id_seq", "categories", "item_age_days_norm"])
+    context_schema = schema.select_by_name(["user_age"])
+    sequence_testing_data.schema = seq_schema + context_schema
+
+    target = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    item_id_name = schema.select_by_tag(Tags.ITEM_ID).first.properties["domain"]["name"]
+
+    input_block = mm.InputBlockV2(
+        sequence_testing_data.schema,
+        embeddings=mm.Embeddings(
+            seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+        ),
+        post=mm.BroadcastToSequence(context_schema, seq_schema),
+    )
+
+    dmodel = 32
+    mlp_block = mm.MLPBlock([128, dmodel], activation="relu")
+
+    dense_block = mm.SequentialBlock(
+        input_block,
+        mlp_block,
+        mm.XLNetBlock(
+            d_model=dmodel,
+            n_head=4,
+            n_layer=2,
+            pre=mm.ReplaceMaskedEmbeddings(),
+            post="inference_hidden_state",
+        ),
+    )
+
+    mlp_block2 = mm.MLPBlock([128, dmodel], activation="relu", no_activation_last_layer=True)
+
+    prediction_task = mm.CategoricalOutput(
+        to_call=input_block["categorical"][item_id_name],
+    )
+    model_transformer = mm.Model(dense_block, mlp_block2, prediction_task)
+
+    model_transformer.compile(
+        run_eagerly=False,
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=mm.TopKMetricsAggregator.default_metrics(top_ks=[4]),
+    )
+    model_transformer.fit(
+        sequence_testing_data,
+        batch_size=512,
+        epochs=1,
+        pre=mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3),
+    )

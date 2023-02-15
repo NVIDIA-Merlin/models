@@ -812,7 +812,7 @@ def reshape_categorical_input_tensor_for_encoding(
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class BroadcastToSequence(tf.keras.layers.Layer):
+class BroadcastToSequence(Block):
     """Broadcast context features to match the timesteps of sequence features.
 
     This layer supports mask propagation. If the sequence features have a mask. The
@@ -884,6 +884,8 @@ class BroadcastToSequence(tf.keras.layers.Layer):
     @tf.function
     def _broadcast(self, inputs, target):
         seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs)
+        first_seq_feature_name = list(seq_features_shapes.keys())[0]
+        first_seq_feature_value = inputs[first_seq_feature_name]
         if len(seq_features_shapes) > 0:
             non_seq_features = set(inputs.keys()).difference(set(seq_features_shapes.keys()))
             non_seq_target = {}
@@ -891,9 +893,20 @@ class BroadcastToSequence(tf.keras.layers.Layer):
                 if fname in self.context_schema.column_names:
                     if target[fname] is None:
                         continue
-                    if isinstance(sequence_length, tf.Tensor):
-                        non_seq_target[fname] = tf.RaggedTensor.from_row_lengths(
-                            tf.repeat(target[fname], sequence_length, axis=0), sequence_length
+                    if isinstance(first_seq_feature_value, tf.RaggedTensor):
+                        target_value = target[fname]
+                        if len(target_value.shape) == 1:
+                            target_value = tf.expand_dims(target_value, -1)
+                        if len(target_value.shape) == 2:
+                            target_value = tf.expand_dims(target_value, -1)
+                        # Here broadcast the context feature in a 3D feature with compatible
+                        # shape to the ragged sequential features
+                        non_seq_target[fname] = (
+                            tf.ones_like(
+                                target[first_seq_feature_name][:, :, 0:1],
+                                dtype=target[fname].dtype,
+                            )
+                            * target_value
                         )
                     else:
                         shape = target[fname].shape
@@ -912,6 +925,7 @@ class BroadcastToSequence(tf.keras.layers.Layer):
         for k in input_shape:
             if k in self.sequence_schema.column_names:
                 sequence_length = input_shape[k][1]
+                break
 
         context_shapes = {}
         for k in input_shape:
@@ -934,6 +948,7 @@ class BroadcastToSequence(tf.keras.layers.Layer):
         for k in mask:
             if mask[k] is not None and k in self.sequence_schema.column_names:
                 sequence_mask = mask[k]
+                break
 
         # no sequence mask found
         if sequence_mask is None:
