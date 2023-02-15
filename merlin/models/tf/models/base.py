@@ -396,7 +396,7 @@ class BaseModel(tf.keras.Model):
             name="should_compute_train_metrics_for_batch",
             trainable=False,
             synchronization=tf.VariableSynchronization.NONE,
-            initial_value=lambda: False,
+            initial_value=lambda: True,
         )
 
         num_v1_blocks = len(self.prediction_tasks)
@@ -978,7 +978,6 @@ class BaseModel(tf.keras.Model):
 
         return self(x, training=False)
 
-    @tf.function
     def train_compute_metrics(self, outputs: PredictionOutput, compiled_metrics: MetricsContainer):
         """Returns metrics for the outputs of this step.
 
@@ -987,9 +986,11 @@ class BaseModel(tf.keras.Model):
         # Compiled_metrics as an argument here because it is re-defined by `model.compile()`
         # And checking `self.compiled_metrics` inside this function results in a reference to
         # a deleted version of `compiled_metrics` if the model is re-compiled.
-        if self._should_compute_train_metrics_for_batch:
-            return self.compute_metrics(outputs, compiled_metrics)
-        return self.metrics_results()
+        return tf.cond(
+            self._should_compute_train_metrics_for_batch,
+            lambda: self.compute_metrics(outputs, compiled_metrics),
+            lambda: self.metrics_results(),
+        )
 
     def compute_metrics(
         self,
