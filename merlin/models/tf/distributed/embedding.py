@@ -131,9 +131,10 @@ class SOKEmbedding(EmbeddingTableBase):
                     if not len(cur_input.shape) == 2:
                         raise ValueError("The rank of input RaggedTensor must be 2")
         emb_vectors = sok.lookup_sparse(
-            self._vars,
-            inputs,
-            combiners,
+            params=self._vars,
+            sp_ids=inputs,
+            sp_weights=None,
+            combiners=combiners,
         )
         return emb_vectors
 
