@@ -141,7 +141,7 @@ def get_output_schema(export_path: str) -> Schema:
     output_schema = Schema()
     for output_name, output_spec in signature.structured_outputs.items():
         col_schema = ColumnSchema(output_name, dtype=output_spec.dtype.as_numpy_dtype)
-        shape = output_spec.shape
+        shape = tf.shape(output_spec)
         if shape.rank > 1 and (shape[1] is None or shape[1] > 1):
             is_ragged = shape[1] is None
             properties = {}
@@ -1434,7 +1434,7 @@ class Model(BaseModel):
                 )
 
             _ragged_inputs = self.process_list(inputs)
-            feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
+            feature_shapes = {k: tf.shape(v) for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
             for block in self.blocks:

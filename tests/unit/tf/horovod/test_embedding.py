@@ -48,15 +48,11 @@ def test_distributed_embeddings_basic(embedding_dim=4, global_batch_size=8):
     assert outputs[1].shape == (global_batch_size // hvd.size(), embedding_dim)
 
 
-def test_dlrm_model_with_embeddings(music_streaming_data, batch_size=8, embedding_dim=4):
+def test_dlrm_model_with_embeddings(music_streaming_data, batch_size=8, embedding_dim=16, learning_rate=0.03):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_id", "user_age", "click"]
     )
-    schema = music_streaming_data.schema
-
-    ddf = music_streaming_data.to_ddf().repartition(npartitions=hvd.size())
-    train = Dataset(ddf, schema=schema)
-
+    train = music_streaming_data.repartition(npartitions=hvd.size())
     train_loader = mm.Loader(
         train,
         schema=train.schema,
@@ -65,13 +61,20 @@ def test_dlrm_model_with_embeddings(music_streaming_data, batch_size=8, embeddin
         drop_last=True,
     )
 
+    target_column = train.schema.select_by_tag(Tags.TARGET).column_names[0]
+
     model = mm.DLRMModel(
-        schema,
+        train.schema,
         embeddings=mm.DistributedEmbeddings(
-            schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim
+            train.schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim
         ),
-        bottom_block=mm.MLPBlock([embedding_dim]),
-        prediction_tasks=mm.BinaryOutput("click"),
+        bottom_block=mm.MLPBlock([32, embedding_dim]),
+        top_block=mm.MLPBlock([32, embedding_dim]),
+        prediction_tasks=mm.BinaryClassificationTask(target_column),
     )
 
-    testing_utils.model_test(model, train_loader, run_eagerly=True)
+    opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
+    model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
+
+    losses = model.fit(train_loader, epochs=2)
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
