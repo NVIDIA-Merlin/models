@@ -36,7 +36,8 @@ def build_arg_parser():
     parser.add_argument("--timestamp_feature", default="", help="")
     parser.add_argument("--session_id_feature", default="", help="")
 
-    parser.add_argument("--groupby_feature", default="", help="")
+    # parser.add_argument("--groupby_feature", default="", help="")
+    parser.add_argument("--timestamp_feature", default="", help="")
 
     parser.add_argument("--to_int32", default="", help="")
     parser.add_argument("--to_int16", default="", help="")
@@ -49,6 +50,8 @@ def build_arg_parser():
     parser.add_argument("--max_item_freq", default=None, type=int, help="")
     parser.add_argument("--num_max_rounds_filtering", default=5, type=int, help="")
 
+    parser.add_argument("--filter_query", default=None, type=str, help="")
+
     parser.add_argument(
         "--dataset_split_strategy",
         default=None,
@@ -59,6 +62,9 @@ def build_arg_parser():
 
     parser.add_argument("--random_split_eval_perc", default=None, type=float, help="")
     parser.add_argument("--temporal_timestamp_split", default=None, type=int, help="")
+
+    parser.add_argument("--visible_gpu_devices", default="0", type=str, help="")
+    parser.add_argument("--gpu_device_spill_frac", default=0.7, type=float, help="")
 
     return parser
 
@@ -97,5 +103,8 @@ def parse_arguments():
     args.to_int16 = parse_list_arg(args.to_int16)
     args.to_int8 = parse_list_arg(args.to_int8)
     args.to_float32 = parse_list_arg(args.to_float32)
+
+    if args.filter_query:
+        args.filter_query = args.filter_query.replace('"', "")
 
     return args

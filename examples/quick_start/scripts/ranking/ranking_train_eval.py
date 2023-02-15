@@ -299,6 +299,8 @@ class RankingTrainEvalRunner:
 
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
+
     args = parse_arguments()
 
     logger = None

@@ -2,7 +2,7 @@
 
 This is a template for building a pipeline for preprocessing, training and exporting ranking models for serving. It is composed by generic scripts that can be used with your own dataset. We also share some best practices for preprocessing and training ranking models.
 
-In this example, we use the TenRec dataset from Tencent, which is large (140 million interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).
+In this example, we use the TenRec dataset from Tencent, which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).
 
 ## Setup
 You can run these scripts either using the latest Merlin TensorFlow image or installing the necessary Merlin libraries according to their documentation (core, NVTabular, dataloader, models).
@@ -61,9 +61,10 @@ In this example, we set some options for preprocessing. Here is the explanation 
 
 ```bash
 cd /models/examples/quick_start/scripts/preproc/
-OUT_DATASET_PATH=/outputs/preproc/
-python preprocessing.py --input_data_format=csv --csv_na_values=\\N --input_data_path /data/QK-video-10M.csv --output_path=$OUT_DATASET_PATH --categorical_features=user_id,item_id,video_category,gender,age --binary_classif_targets=click,follow,like,share --regression_targets=watching_times --to_int32=user_id,item_id --to_int16=watching_times --to_int8=gender,age,video_category,click,follow,like,share --user_id_feature=user_id --item_id_feature=item_id --min_user_freq 5 --persist_intermediate_files --dataset_split_strategy=random --random_split_eval_perc=0.2 	
+OUT_DATASET_PATH=/outputs/
+python preprocessing.py --input_data_format=csv --csv_na_values=\\N --input_data_path /data/QK-video.csv --filter_query="click==1 or (click==0 and follow==0 and like==0 and share==0)" --output_path=$OUT_DATASET_PATH --categorical_features=user_id,item_id,video_category,gender,age --binary_classif_targets=click,follow,like,share --regression_targets=watching_times --to_int32=user_id,item_id --to_int16=watching_times --to_int8=gender,age,video_category,click,follow,like,share --user_id_feature=user_id --item_id_feature=item_id --min_item_freq=30 --min_user_freq=30 --max_user_freq=150 --num_max_rounds_filtering=5 --dataset_split_strategy=random_by_user --random_split_eval_perc=0.2
 ```
+
 
 After you execute this script, a folder `preproc` will be created in `--output_path` with the preprocessed datasets (with `train` and `eval` folders). You will find a number of partitioned parquet files in those dataset folders, as well as the `schema.yaml` file produced by `NVTabular` which is very important for automated model building in the next step.
 
@@ -83,7 +84,8 @@ You can find the full documentation of the training script arguments [here](TODO
 
 ```bash
 cd /models/examples/quick_start/scripts/ranking/
-CUDA_VISIBLE_DEVICES=0 TF_MEMORY_ALLOCATION=0.8 python  ranking_train_eval.py --train_path $OUT_DATASET_PATH/final_dataset/train --eval_path $OUT_DATASET_PATH/final_dataset/eval --output_path ./outputs/ --tasks=click --stl_positive_class_weight 4 --model dlrm --embeddings_dim 64 --l2_reg 1e-5 --embeddings_l2_reg 1e-6 --dropout 0.05 --mlp_layers 64,32  --lr 1e-4 --lr_decay_rate 0.99 --lr_decay_steps 100 --train_batch_size 4096 --eval_batch_size 4096 --epochs 1 --train_steps_per_epoch 10 
+CUDA_VISIBLE_DEVICES=0 TF_GPU_ALLOCATOR=cuda_malloc_async python  ranking_train_eval.py --train_path $OUT_DATASET_PATH/dataset/train --eval_path $OUT_DATASET_PATH/dataset/eval --output_path ./outputs/ --tasks=click --stl_positive_class_weight 3 --model dlrm --embeddings_dim 64 --l2_reg 1e-2 --embeddings_l2_reg 1e-6 --dropout 0.05 --mlp_layers 64,32  --lr 1e-4 --lr_decay_rate 0.99 --lr_decay_steps 100 --train_batch_size 65536 --eval_batch_size 65536 --epochs 1 
+//--train_steps_per_epoch 10 
 ```
 
 
