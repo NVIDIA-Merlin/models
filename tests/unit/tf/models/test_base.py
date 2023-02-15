@@ -220,6 +220,7 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
             self.call_count.assign(tf.constant([0.0]))
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize(
     ["num_rows", "batch_size", "train_metrics_steps", "expected_steps", "expected_metrics_steps"],
     [
@@ -230,7 +231,7 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
     ],
 )
 def test_train_metrics_steps(
-    num_rows, batch_size, train_metrics_steps, expected_steps, expected_metrics_steps
+    run_eagerly, num_rows, batch_size, train_metrics_steps, expected_steps, expected_metrics_steps
 ):
     dataset = generate_data("e-commerce", num_rows=num_rows)
     model = mm.Model(
@@ -239,7 +240,7 @@ def test_train_metrics_steps(
         mm.BinaryClassificationTask("click"),
     )
     model.compile(
-        run_eagerly=True,
+        run_eagerly=run_eagerly,
         optimizer="adam",
         metrics=[UpdateCountMetric()],
     )

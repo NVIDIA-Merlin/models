@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import warnings
 from typing import Dict, Optional, Sequence, Set, Tuple, Union
 
 import tensorflow as tf
@@ -158,6 +159,7 @@ def _set_task_block(
             output_block.pre = SequentialBlock([output_block.pre, task_block])
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ColumnBasedSampleWeight(Block):
     """Allows using columns (features or targets) as sample weights
     for a give ModelOutput.
@@ -249,24 +251,26 @@ class ColumnBasedSampleWeight(Block):
             elif features is not None and self.weight_column_name in features:
                 sample_weight = features[self.weight_column_name]
             else:
-                raise ValueError(
-                    f"Not able to find the weight_column_name"
-                    f"{self.weight_column_name} among "
-                    "features and targets"
+                warnings.warn(
+                    f"Not able to find the weight_column_name "
+                    f"{self.weight_column_name} among neither"
+                    "features or targets"
                 )
 
-            sample_weight = tf.cast(sample_weight, tf.float32)
+            if sample_weight is not None:
+                sample_weight = tf.cast(sample_weight, tf.float32)
 
         # If binary class weights are provided
         if self.binary_class_weights is not None:
             (neg_weight, pos_weight) = self.binary_class_weights
 
-            if self.weight_column_name is None:
+            if self.weight_column_name is None and targets is not None and target_name is not None:
                 # If weight column is not provided, assumes the target column should
                 # be used
                 sample_weight = targets[target_name]
 
-            sample_weight = tf.where(sample_weight == 1, pos_weight, neg_weight)
+            if sample_weight is not None:
+                sample_weight = tf.where(sample_weight == 1, pos_weight, neg_weight)
 
         if isinstance(inputs, Prediction):
             if inputs.sample_weight is not None:
@@ -286,3 +290,11 @@ class ColumnBasedSampleWeight(Block):
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+    def get_config(self):
+        config = super().get_config()
+        config.update(
+            weight_column_name=self.weight_column_name,
+            binary_class_weights=self.binary_class_weights,
+        )
+        return config
