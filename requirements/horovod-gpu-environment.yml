@@ -11,13 +11,11 @@ dependencies:
   - cudatoolkit=11.2
   - cudnn=8.1
   - cxx-compiler
-  - mpi4py # installs cuda-aware openmpi
+  - mpi4py
   - nccl
   - nvcc_linux-64=11.2
   - openmpi
   - pip
   - pip:
-      - tensorflow-cpu==2.8.*
-      - -r base.txt
-      - -r dev.txt
+      - tensorflow-gpu==2.8.*
   - python=3.8
