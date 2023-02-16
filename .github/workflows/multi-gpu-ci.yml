@@ -4,16 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths:
-      - 'merlin/models/tf/distributed/**'
-      - 'tests/unit/tf/horovod/**'
     tags:
       - v*
   pull_request:
     branches: [ main ]
-    paths:
-      - 'merlin/models/tf/distributed/**'
-      - 'tests/unit/tf/horovod/**'
     types: [opened, synchronize, reopened, closed]
 
 jobs:
