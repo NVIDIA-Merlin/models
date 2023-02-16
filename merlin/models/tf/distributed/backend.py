@@ -1,6 +1,5 @@
 from merlin.core.dispatch import HAS_GPU
 
-
 hvd = None
 hvd_installed = False
 
