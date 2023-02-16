@@ -35,7 +35,11 @@ def read_requirements(filename):
     base = os.path.abspath(os.path.dirname(__file__))
     with codecs.open(os.path.join(base, filename), "rb", "utf-8") as f:
         lineiter = (line.strip() for line in f)
-        return [line for line in lineiter if line and not line.startswith("#") and not line.startswith("--")]
+        return [
+            line
+            for line in lineiter
+            if line and not line.startswith("#") and not line.startswith("--")
+        ]
 
 
 _dev = read_requirements("requirements/dev.txt")
