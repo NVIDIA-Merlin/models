@@ -103,7 +103,7 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
-        x, y = sample_batch(dataloader, batch_size=50, to_ragged=False, process_lists=False)
+        x, y = sample_batch(dataloader, batch_size=50, to_ragged=False, prepare_features=False)
         batch = [(x, y)]
 
         model_preds = model.predict(iter(batch))
