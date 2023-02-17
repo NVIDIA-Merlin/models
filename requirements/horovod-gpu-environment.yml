@@ -17,7 +17,7 @@ dependencies:
   - openmpi
   - pip
   - pip:
-     - tensorflow-gpu==2.8.*
+      - tensorflow-gpu==2.8.*
       - -r base.txt
       - -r dev.txt
   - python=3.8
