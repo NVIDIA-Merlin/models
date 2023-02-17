@@ -4,11 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    tags:
-      - v*
   pull_request:
     branches: [ main ]
-    types: [opened, synchronize, reopened, closed]
 
 jobs:
   gpu-ci:
@@ -37,4 +34,4 @@ jobs:
           raw=$(git branch -r --contains ${{ github.ref_name }})
           branch=${raw/origin\/}
         fi
-        cd ${{ github.workspace }}; tox -r -e py38-multi-gpu -- $branch
+        cd ${{ github.workspace }}; rm -rf .tox; tox -r -e py38-multi-gpu -- $branch
