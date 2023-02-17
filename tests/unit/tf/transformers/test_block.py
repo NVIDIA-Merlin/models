@@ -418,3 +418,57 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     # Ensures metrics masking only last positions are different then the ones
     # considering all positions
     assert not _metrics_almost_equal(metrics_all_positions1, metrics_last_positions)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_model_with_masking_and_broadcast_to_sequence(
+    sequence_testing_data: Dataset, run_eagerly: bool
+):
+    schema = sequence_testing_data.schema
+    seq_schema = schema.select_by_name(["item_id_seq", "categories", "item_age_days_norm"])
+    context_schema = schema.select_by_name(["user_country", "user_age"])
+    sequence_testing_data.schema = seq_schema + context_schema
+
+    target = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    item_id_name = schema.select_by_tag(Tags.ITEM_ID).first.properties["domain"]["name"]
+
+    input_block = mm.InputBlockV2(
+        sequence_testing_data.schema,
+        embeddings=mm.Embeddings(
+            seq_schema.select_by_tag(Tags.CATEGORICAL)
+            + context_schema.select_by_tag(Tags.CATEGORICAL),
+            sequence_combiner=None,
+        ),
+        post=mm.BroadcastToSequence(context_schema, seq_schema),
+    )
+
+    dmodel = 32
+    mlp_block = mm.MLPBlock([128, dmodel], activation="relu")
+
+    dense_block = mm.SequentialBlock(
+        input_block,
+        mlp_block,
+        mm.GPT2Block(
+            d_model=dmodel,
+            n_head=4,
+            n_layer=2,
+            pre=mm.ReplaceMaskedEmbeddings(),
+            post="inference_hidden_state",
+        ),
+    )
+
+    mlp_block2 = mm.MLPBlock([128, dmodel], activation="relu")
+
+    prediction_task = mm.CategoricalOutput(
+        to_call=input_block["categorical"][item_id_name],
+    )
+    model = mm.Model(dense_block, mlp_block2, prediction_task)
+
+    fit_pre = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
+    testing_utils.model_test(
+        model,
+        sequence_testing_data,
+        run_eagerly=run_eagerly,
+        reload_model=False,
+        fit_kwargs={"pre": fit_pre},
+    )

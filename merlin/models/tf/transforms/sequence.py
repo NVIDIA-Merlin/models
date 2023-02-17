@@ -21,7 +21,6 @@ from tensorflow.keras.backend import random_bernoulli
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.base import Block, BlockType, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock
-from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.transformers.transforms import (
     TransformerInferenceHiddenState,
     TransformerOutputToRagged,
@@ -490,7 +489,7 @@ class SequenceTargetAsInput(SequenceTransform):
     @tf.function
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Prediction:
+    ) -> Tuple:
         self._check_seq_inputs_targets(inputs)
 
         new_target = tf.identity(inputs[self.target_name])
@@ -501,7 +500,7 @@ class SequenceTargetAsInput(SequenceTransform):
         else:
             raise ValueError("Targets should be None or a dict of tensors")
 
-        return Prediction(inputs, targets)
+        return (inputs, targets)
 
     @classmethod
     def from_config(cls, config):
@@ -570,13 +569,14 @@ class SequenceMaskRandom(SequenceTargetAsInput):
         self.target_mask = self._generate_target_mask(item_id_seq)
 
         inputs_mask = dict()
-        for k, v in inputs.items():
+        for k in inputs:
             if k in self.schema.column_names:
                 inputs_mask[k] = self.target_mask
             else:
                 inputs_mask[k] = None
 
-        return (inputs_mask, self.target_mask)
+        targets_mask = dict({self.target_name: self.target_mask})
+        return (inputs_mask, targets_mask)
 
     def _generate_target_mask(self, ids_seq: tf.RaggedTensor) -> tf.RaggedTensor:
         """Generates a target mask according to the defined probability and
