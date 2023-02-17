@@ -162,8 +162,7 @@ def test_seq_random_masking(sequence_testing_data: Dataset):
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
 
-    output = predict_masked(batch)
-    output_x, output_y = output.outputs, output.targets
+    output_x, output_y = predict_masked(batch)
     output_y = output_y[target]
 
     tf.Assert(tf.reduce_all(output_y == output_x[target]), [output_y, output_x[target]])
@@ -216,8 +215,7 @@ def test_seq_mask_random_replace_embeddings(
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
 
-    output = predict_masked(batch)
-    inputs, targets = output.outputs, output.targets
+    inputs, targets = predict_masked(batch)
     targets = targets[target]
 
     emb = tf.keras.layers.Embedding(1000, 16)

@@ -84,7 +84,7 @@ class ProcessList(TabularBlock):
 
         for name, val in inputs.items():
             is_ragged = True
-            if name in self.schema:
+            if name in self.schema.column_names:
                 val_count = self.schema[name].properties.get("value_count")
                 if (
                     val_count
@@ -101,6 +101,13 @@ class ProcessList(TabularBlock):
             elif isinstance(val, tf.RaggedTensor):
                 ragged = val
             else:
+                # Expanding / setting last dim of non-list features to be 1D
+                if (
+                    name in self.schema.column_names
+                    and not self.schema[name].is_list
+                    and not self.schema[name].is_ragged
+                ):
+                    val = tf.reshape(val, (-1, 1))
                 outputs[name] = val
                 continue
 
