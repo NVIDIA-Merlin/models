@@ -833,90 +833,121 @@ class BroadcastToSequence(Block):
         self.sequence_schema = sequence_schema
 
     def call(self, inputs: TabularData) -> TabularData:
-        inputs = self._broadcast(inputs, inputs)
+        inputs = self._broadcast(inputs)
         return inputs
 
-    def _get_seq_features_shapes(self, inputs: TabularData):
-        inputs_sizes = {k: v.shape for k, v in inputs.items()}
+    def _check_sequence_features(self, inputs: TabularData):
+        sequence_features = self.sequence_schema.column_names
 
-        seq_features_shapes = dict()
-        for fname, fshape in inputs_sizes.items():
-            # Saves the shapes of sequential features
-            if fname in self.sequence_schema.column_names:
-                seq_features_shapes[fname] = tuple(fshape[:2])
+        if len(sequence_features) == 0:
+            return
+
+        not_found_seq_features = set(sequence_features).difference(set(inputs.keys()))
+        if len(not_found_seq_features) > 0:
+            raise ValueError(
+                f"Some sequential features were not found in the inputs: {not_found_seq_features}"
+            )
 
         sequence_length = None
         sequence_is_ragged = None
-        if len(seq_features_shapes) > 0:
-            for k, v in inputs.items():
-                if k in self.sequence_schema.column_names:
-                    if isinstance(v, tf.RaggedTensor):
-                        if sequence_is_ragged is False:
-                            raise ValueError(
-                                "sequence features must all be ragged or all dense, not both."
-                            )
-                        new_sequence_length = v.row_lengths()
-                        sequence_is_ragged = True
-                    else:
-                        if sequence_is_ragged is True:
-                            raise ValueError(
-                                "sequence features must all be ragged or all dense, not both."
-                            )
-                        new_sequence_length = [v.shape[1]]
-                        sequence_is_ragged = False
-
-                    # check sequences lengths match
-                    if sequence_length is not None:
-                        sequence_lengths_equal = tf.math.reduce_all(
-                            tf.equal(new_sequence_length, sequence_length)
+        for k, v in inputs.items():
+            if k in sequence_features:
+                if isinstance(v, tf.RaggedTensor):
+                    if sequence_is_ragged is False:
+                        raise ValueError(
+                            "Sequential features must all be ragged or all dense, not both."
                         )
-                        tf.Assert(
-                            sequence_lengths_equal,
-                            [
-                                "sequence features must share the same sequence lengths",
-                                (sequence_length, new_sequence_length),
-                            ],
+                    new_sequence_length = v.row_lengths()
+                    sequence_is_ragged = True
+                else:
+                    if sequence_is_ragged is True:
+                        raise ValueError(
+                            "Sequential features must all be ragged or all dense, not both."
                         )
-                    sequence_length = new_sequence_length
+                    new_sequence_length = [v.shape[1]]
+                    sequence_is_ragged = False
 
-        return seq_features_shapes, sequence_length
+                # check sequences lengths match
+                if sequence_length is not None:
+                    sequence_lengths_equal = tf.math.reduce_all(
+                        tf.equal(new_sequence_length, sequence_length)
+                    )
+                    tf.Assert(
+                        sequence_lengths_equal,
+                        [
+                            "Sequential features must share the same sequence lengths",
+                            (sequence_length, new_sequence_length),
+                        ],
+                    )
+                sequence_length = new_sequence_length
+
+    def _check_context_features(self, inputs: TabularData):
+        context_features = self.context_schema.column_names
+
+        if len(context_features) == 0:
+            return
+
+        not_found_seq_features = set(context_features).difference(set(inputs.keys()))
+        if len(not_found_seq_features) > 0:
+            raise ValueError(
+                f"Some contextual features were not found in the inputs: {not_found_seq_features}"
+            )
+
+        for k in context_features:
+            v = inputs[k]
+            if not isinstance(v, tf.Tensor):
+                raise ValueError(f"A contextual feature ({k}) should be a dense tf.Tensor")
+
+            if len(v.shape) >= 3:
+                raise ValueError(
+                    f"A contextual feature ({k}) should be a 1D or " "2D tf.Tensor: {v.shape}."
+                )
 
     @tf.function
-    def _broadcast(self, inputs, target):
-        seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs)
-        first_seq_feature_name = list(seq_features_shapes.keys())[0]
-        first_seq_feature_value = inputs[first_seq_feature_name]
-        if len(seq_features_shapes) > 0:
-            non_seq_features = set(inputs.keys()).difference(set(seq_features_shapes.keys()))
-            non_seq_target = {}
-            for fname in non_seq_features:
-                if fname in self.context_schema.column_names:
-                    if target[fname] is None:
-                        continue
-                    if isinstance(first_seq_feature_value, tf.RaggedTensor):
-                        target_value = target[fname]
-                        if len(target_value.shape) == 1:
-                            target_value = tf.expand_dims(target_value, -1)
-                        if len(target_value.shape) == 2:
-                            target_value = tf.expand_dims(target_value, -1)
-                        # Here broadcast the context feature in a 3D feature with compatible
-                        # shape to the ragged sequential features
-                        non_seq_target[fname] = (
-                            tf.ones_like(
-                                target[first_seq_feature_name][:, :, 0:1],
-                                dtype=target[fname].dtype,
-                            )
-                            * target_value
-                        )
-                    else:
-                        shape = target[fname].shape
-                        target_shape = shape[:1] + sequence_length + shape[1:]
-                        non_seq_target[fname] = tf.broadcast_to(
-                            tf.expand_dims(target[fname], 1), target_shape
-                        )
-            target = {**target, **non_seq_target}
+    def _broadcast(self, inputs):
+        self._check_sequence_features(inputs)
+        self._check_context_features(inputs)
 
-        return target
+        sequence_features = self.sequence_schema.column_names
+        context_features = self.context_schema.column_names
+
+        if len(sequence_features) == 0 and len(context_features) == 0:
+            return inputs
+
+        sequence_features_values = list(
+            [inputs[k] for k in sequence_features if inputs[k] is not None]
+        )
+        if len(sequence_features_values) == 0:
+            return inputs
+        template_seq_feature_value = sequence_features_values[0]
+
+        non_seq_target = {}
+        for fname in context_features:
+            if inputs[fname] is None:
+                continue
+
+            if isinstance(template_seq_feature_value, tf.RaggedTensor):
+                new_value = inputs[fname]
+                while len(new_value.shape) < len(template_seq_feature_value.shape):
+                    new_value = tf.expand_dims(new_value, 1)
+
+                # Here broadcast the context feature using the same shape
+                # of a 3D ragged sequential feature with compatible
+                # So that the context feature shape becomes (batch size, seq length, feature dim)
+                non_seq_target[fname] = (
+                    tf.ones_like(template_seq_feature_value[..., :1], dtype=new_value.dtype)
+                    * new_value
+                )
+            else:
+                shape = inputs[fname].shape
+                sequence_length = template_seq_feature_value.shape[1]
+                target_shape = shape[:1] + [sequence_length] + shape[1:]
+                non_seq_target[fname] = tf.broadcast_to(
+                    tf.expand_dims(inputs[fname], 1), target_shape
+                )
+        inputs = {**inputs, **non_seq_target}
+
+        return inputs
 
     def compute_output_shape(
         self, input_shape: Dict[str, tf.TensorShape]
@@ -960,9 +991,7 @@ class BroadcastToSequence(Block):
             if mask[k] is None and k in self.context_schema.column_names:
                 masks_context[k] = sequence_mask
 
-        masks_other = self._broadcast(inputs, mask)
-
-        new_mask = {**masks_other, **masks_context}
+        new_mask = {**mask, **masks_context}
 
         return new_mask
 
