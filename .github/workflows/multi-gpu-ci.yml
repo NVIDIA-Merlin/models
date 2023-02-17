@@ -37,4 +37,4 @@ jobs:
           raw=$(git branch -r --contains ${{ github.ref_name }})
           branch=${raw/origin\/}
         fi
-        cd ${{ github.workspace }}; tox -e py38-multi-gpu -- $branch
+        cd ${{ github.workspace }}; tox -r -e py38-multi-gpu -- $branch
