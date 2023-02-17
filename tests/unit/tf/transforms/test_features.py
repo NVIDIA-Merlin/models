@@ -885,7 +885,9 @@ def test_broadcast_to_sequence_input_block(sequence_testing_data: Dataset):
         ["item_id_seq", "categories", "item_age_days_norm", "user_age", "user_country"]
     )
     assert set([len(v.shape) for v in input_batch.values()]) == set([3])
-    assert set([v.shape[:-1] for v in input_batch.values()]) == set([tf.TensorShape([100, None])])
+    assert set([tuple(list(v.shape)[:-1]) for v in input_batch.values()]) == set(
+        [tuple([100, None])]
+    )
     assert list(input_batch["item_id_seq"].shape) == [100, None, 32]
     assert list(input_batch["categories"].shape) == [100, None, 16]
     assert list(input_batch["item_age_days_norm"].shape) == [100, None, 1]
