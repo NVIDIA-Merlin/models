@@ -202,7 +202,7 @@ def test_seq_mask_random_replace_embeddings(
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_masked = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, prepare_features=False)
 
     inputs, targets = predict_masked(batch)
     targets = targets[target]
