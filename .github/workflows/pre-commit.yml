@@ -15,6 +15,7 @@ jobs:
           python-version: '3.8'
           cache: 'pip'
           cache-dependency-path: '**/**.txt'
+          check-latest: true
       - name: Install black Jupyter
         run : |
           pip install black[jupyter]==22.3.0
