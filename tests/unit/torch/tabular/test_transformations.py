@@ -96,7 +96,6 @@ def test_layer_norm(tabular_schema, torch_tabular_data, layer_norm):
 
 
 def test_stochastic_swap_noise_raise_exception_not_2d_item_id():
-
     s = Schema(
         [
             create_categorical_column("item_id_feat", num_items=1000, tags=[Tags.ITEM_ID.value]),

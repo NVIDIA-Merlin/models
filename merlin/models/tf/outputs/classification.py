@@ -246,7 +246,6 @@ class CategoricalTarget(tf.keras.layers.Dense):
         bias_constraint=None,
         **kwargs,
     ):
-
         if feature is not None:
             if isinstance(feature, Schema):
                 assert len(feature) == 1, "Schema can have max 1 feature"
