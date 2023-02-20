@@ -19,7 +19,6 @@ def test_two_tower_v2_with_contrastive_sample_weight(
     pos_class_weight,
     neg_class_weight,
 ):
-
     tower_dim = 64
     data = ecommerce_data
     input_features = ["user_categories", "item_id"]
@@ -73,7 +72,6 @@ def test_two_tower_v2_with_contrastive_sample_weight(
 
     assert metrics3["loss"] != metrics2["loss"]
     for m in metrics3:
-
         if m.startswith("weighted_"):
             assert metrics3[m] <= 1
             if isinstance(pos_class_weight, tf.Tensor):

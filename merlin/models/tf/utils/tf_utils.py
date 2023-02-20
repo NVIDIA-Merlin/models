@@ -198,7 +198,6 @@ def create_output_placeholder(scores, ks):
 
 
 def gather_torch_like(labels, indices, max_k):
-
     row_idxs = tf.repeat(tf.range(tf.shape(labels)[0]), max_k)
     col_idx = tf.reshape(indices, tf.shape(row_idxs))
     all_indices = tf.transpose(tf.stack([row_idxs, col_idx]))

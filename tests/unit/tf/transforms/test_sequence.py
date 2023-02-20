@@ -93,7 +93,6 @@ def test_seq_predict_random(sequence_testing_data: Dataset):
     batch_size = batch[target].shape[0]
 
     for k, v in batch.items():
-
         if k in seq_schema.column_names:
             # Check if output sequences length is smaller than input sequences length
             tf.Assert(

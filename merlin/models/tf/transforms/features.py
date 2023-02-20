@@ -486,7 +486,6 @@ class HashedCross(TabularBlock):
 
         _inputs = {}
         for name in self.schema.column_names:
-
             assertion_min_rank = tf.Assert(
                 tf.logical_and(
                     tf.greater_equal(tf.rank(inputs[name]), 1),
