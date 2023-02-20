@@ -365,7 +365,6 @@ def test_lazy_adam_sparse(dtype):
 
 @pytest.mark.parametrize("dtype", [tf.int32, tf.int64])
 def test_lazy_adam_sparse_device_placement(dtype):
-
     # If a GPU is available, tests that all optimizer ops can be placed on it (i.e. they have GPU
     # kernels).
     if HAS_GPU:

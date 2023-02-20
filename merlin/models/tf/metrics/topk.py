@@ -116,7 +116,6 @@ def dcg_at(
     k: int = 5,
     log_base: int = 2,
 ) -> tf.Tensor:
-
     """
     Compute discounted cumulative gain @K (ignoring ties)
     Parameters
