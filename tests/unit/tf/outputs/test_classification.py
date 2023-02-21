@@ -47,7 +47,6 @@ def test_binary_output(ecommerce_data: Dataset, run_eagerly):
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("use_output_block", [True, False])
 def test_binary_output_two_tasks(ecommerce_data: Dataset, run_eagerly, use_output_block):
-
     if use_output_block:
         output_block = mm.OutputBlock(ecommerce_data.schema)
     else:

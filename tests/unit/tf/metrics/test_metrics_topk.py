@@ -152,7 +152,6 @@ def test_mrr_at(topk_metrics_test_data_pre_sorted):
     ],
 )
 def test_topk_metrics_classes(topk_metrics_test_data_pre_sorted, metric_exp_result):
-
     labels, predictions, label_relevant_counts = topk_metrics_test_data_pre_sorted
     metric, expected_result = metric_exp_result
     metric.label_relevant_counts = label_relevant_counts
@@ -231,7 +230,6 @@ def test_topk_reload(topk_metrics_test_data, metric_class):
 
 
 def test_topk_metrics_sequential_3d_with_sample_weights():
-
     labels = tf.convert_to_tensor(
         [
             [[0, 1, 0, 1, 0], [0, 0, 0, 1, 1], [0, 0, 0, 0, 1]],

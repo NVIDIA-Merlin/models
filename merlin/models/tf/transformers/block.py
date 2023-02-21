@@ -227,7 +227,6 @@ class BertBlock(TransformerBlock):
         log_attention_weights=False,
         **kwargs,
     ) -> BertConfig:
-
         return BertConfig(
             hidden_size=d_model,
             num_attention_heads=n_head,
@@ -304,7 +303,6 @@ class AlbertBlock(TransformerBlock):
         log_attention_weights=False,
         **kwargs,
     ) -> AlbertConfig:
-
         return AlbertConfig(
             hidden_size=d_model,
             num_attention_heads=n_head,
@@ -381,7 +379,6 @@ class RobertaBlock(TransformerBlock):
         log_attention_weights=False,
         **kwargs,
     ) -> RobertaConfig:
-
         return RobertaConfig(
             hidden_size=d_model,
             num_hidden_layers=n_layer,
@@ -462,7 +459,6 @@ class XLNetBlock(TransformerBlock):
         mem_len=1,
         **kwargs,
     ) -> XLNetConfig:
-
         return XLNetConfig(
             d_model=d_model,
             d_inner=d_model * 4,
@@ -540,7 +536,6 @@ class GPT2Block(TransformerBlock):
         log_attention_weights=False,
         **kwargs,
     ) -> GPT2Config:
-
         return GPT2Config(
             n_embd=d_model,
             n_inner=d_model * 4,

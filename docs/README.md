@@ -6,43 +6,49 @@ documentation. You can view the generated
 
 ## Contributing to Docs
 
-Refer to the following instructions to build the docs.
+You build the documentation with the `tox` command and specify the `docs` environment.
+The following steps are one way of many to build the documentation before opening a merge request.
 
-## Build the documentation
-
-1. Follow the instructions to create a Python developer environment. See the
-   [installation instructions](https://github.com/NVIDIA-Merlin/models).
-
-1. Install required documentation tools and extensions:
+1. Create a virtual environment:
 
    ```shell
-   cd models
-   python3 -m virtualenv -p=python3.9 env
-   source env/bin/activate
-   pip install -r requirements/base.txt
-   pip install -r requirements/dev.txt
+   python -m venv .venv
    ```
 
-1. Build the documentation to HTML output:
+1. Activate the virtual environment:
 
    ```shell
-   make -C docs clean html
+   source .venv/bin/activate
    ```
 
-   This should run Sphinx in your shell, and output HTML in
-   `build/html/`.
-
-1. Start an HTTP server and review your updates:
+1. Install tox in the virtual environment:
 
    ```shell
-   python -m http.server 8000 -d docs/build/html
+   python -m pip install --upgrade pip
+   python -m pip install tox
    ```
 
-   Navigate a web browser to the IP address or hostname of the host machine at port 8000:
+1. Build the documentation with tox:
 
-   `https://localhost:8000`
+   ```shell
+   tox -e docs
+   ```
 
-   Check that your docs edits formatted correctly, and read well.
+These steps run Sphinx in your shell and create HTML in the `docs/build/html/`
+directory.
+
+## Preview the Changes
+
+View the docs web page by opening the HTML in your browser. First, navigate to
+the `build/html/` directory and then run the following command:
+
+```shell
+python -m http.server
+```
+
+Afterward, open a web browser and access <https://localhost:8000>.
+
+Check that yours edits formatted correctly and read well.
 
 ## Decisions
 

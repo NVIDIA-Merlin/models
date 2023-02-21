@@ -66,7 +66,6 @@ def test_popularity_sampler():
 
 
 def test_popularity_sampler_with_num_samples_greater_than_cardinality():
-
     num_classes = 50
     min_id = 2
     num_sampled = 100

@@ -121,7 +121,6 @@ def test_matrix_factorization_model_v2(music_streaming_data: Dataset, run_eagerl
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_matrix_factorization_topk_evaluation(music_streaming_data: Dataset, run_eagerly):
-
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(["user_id", "item_id"])
     model = mm.MatrixFactorizationModelV2(
         music_streaming_data.schema, negative_samplers="in-batch", dim=4
