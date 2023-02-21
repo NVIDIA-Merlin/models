@@ -297,7 +297,6 @@ class ItemRetrievalScorer(Block):
 
         neg_items_ids = None
         if training or testing:
-
             assert (
                 len(self.samplers) > 0
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"

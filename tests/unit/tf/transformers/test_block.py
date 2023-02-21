@@ -27,7 +27,6 @@ def test_import():
 
 @pytest.mark.parametrize("run_eagerly", [True])
 def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
-
     sequence_testing_data.schema = sequence_testing_data.schema.select_by_tag(
         Tags.SEQUENCE
     ).select_by_tag(Tags.CATEGORICAL)
@@ -232,7 +231,6 @@ def classification_loader(sequence_testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_transformer_with_causal_language_modeling(sequence_testing_data: Dataset, run_eagerly):
-
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
     )
@@ -276,7 +274,6 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_transformer_with_masked_language_modeling(sequence_testing_data: Dataset, run_eagerly):
-
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
 
     target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)
@@ -334,7 +331,6 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
 def test_transformer_with_masked_language_modeling_check_eval_masked(
     sequence_testing_data: Dataset, run_eagerly
 ):
-
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
 
     target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)

@@ -77,7 +77,6 @@ def test_cross_with_inputs_to_be_concat(testing_data: Dataset):
 
 
 def test_dcn_v2_stacked(testing_data: Dataset):
-
     dcn_body = (
         mm.InputBlock(
             testing_data.schema,
@@ -94,7 +93,6 @@ def test_dcn_v2_stacked(testing_data: Dataset):
 
 
 def test_dcn_v2_stacked_low_rank(testing_data: Dataset):
-
     dcn_body = (
         mm.InputBlock(
             testing_data.schema,
