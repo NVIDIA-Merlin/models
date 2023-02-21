@@ -30,7 +30,7 @@ def test_concat_sequence(sequence_testing_data):
         ),
     )
 
-    inputs = mm.sample_batch(sequence_testing_data, 8, include_targets=False, process_lists=True)
+    inputs = mm.sample_batch(sequence_testing_data, 8, include_targets=False, prepare_features=True)
 
     outputs = seq_inputs(inputs)
 
