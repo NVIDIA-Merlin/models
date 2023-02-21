@@ -46,7 +46,7 @@ def test_tf_tensors_generation_cpu():
 
     from merlin.models.tf import sample_batch
 
-    tensors, _ = sample_batch(data, batch_size=100, process_lists=False)
+    tensors, _ = sample_batch(data, batch_size=100)
     assert tensors["user_id"].shape == (100, 1)
     assert tensors["user_age"].dtype == tf.float64
     for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():
@@ -68,7 +68,7 @@ def test_sequence_data_length(generate_data_kwargs, expected_sequence_length):
 
     from merlin.models.tf import sample_batch
 
-    tensors, y = sample_batch(data, batch_size=1, process_lists=False)
+    tensors, y = sample_batch(data, batch_size=1)
 
     for col in ["item_id_seq", "categories"]:
         assert all(tensors[col][1] == expected_sequence_length)
