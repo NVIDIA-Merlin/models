@@ -66,7 +66,7 @@ class ListToRagged(TabularBlock):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ProcessList(TabularBlock):
+class PrepareFeatures(TabularBlock):
     """Process all list (multi-hot/sequential) features.add()
 
     In NVTabular, list-columns are represented as a tuple of (values, offsets).

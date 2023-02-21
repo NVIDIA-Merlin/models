@@ -29,7 +29,7 @@ from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
 from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
-from merlin.models.tf.transforms.tensor import ProcessList
+from merlin.models.tf.transforms.tensor import PrepareFeatures
 from merlin.models.tf.utils import tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -73,7 +73,7 @@ class Encoder(tf.keras.Model):
         self.blocks = [input_block] + list(blocks) if blocks else [input_block]
         self.pre = pre
         self.post = post
-        self.process_list = ProcessList(self._schema)
+        self.prepare_features = PrepareFeatures(self._schema)
 
     def encode(
         self,
@@ -163,7 +163,7 @@ class Encoder(tf.keras.Model):
         return combinators.call_sequentially(
             list(self.to_call),
             inputs=inputs,
-            features=self.process_list(inputs),
+            features=self.prepare_features(inputs),
             targets=targets,
             training=training,
             testing=testing,
