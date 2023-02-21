@@ -367,7 +367,7 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
         ),
     ]
 
-    batch, _ = mm.sample_batch(ml_dataset, batch_size=100, process_lists=False)
+    batch, _ = mm.sample_batch(ml_dataset, batch_size=100)
 
     output_wide_features = mm.ParallelBlock(wide_preprocessing_blocks)(batch)
     assert set(output_wide_features.keys()) == set(
