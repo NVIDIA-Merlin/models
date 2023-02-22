@@ -34,6 +34,7 @@ from merlin.models.tf.core.base import Block, block_registry
 from merlin.models.tf.transformers.transforms import (
     PrepareTransformerInputs,
     TransformerInferenceHiddenState,
+    TransformerOutputToRagged,
 )
 from merlin.models.tf.transforms.sequence import (
     ExtractMaskFromTargets,
@@ -118,16 +119,20 @@ class TransformerBlock(Block):
         if isinstance(pre, str):
             pre = block_registry.parse(pre)
 
-        inference_post = None
+        masking_post = None
         masking_pre = None
         self.masking = masking
         if self.masking == "masked":
-            inference_post = TransformerInferenceHiddenState()
+            masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
             masking_pre = combinators.SequentialBlock(
                 [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
             )
         elif self.masking == "causal":
-            inference_post = TransformerInferenceHiddenState()
+            masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
             masking_pre = SequenceCausalLastPosition()
 
         elif self.masking is not None:
@@ -141,7 +146,7 @@ class TransformerBlock(Block):
 
         self.post = post
         self.pre = pre
-        self.inference_post = inference_post
+        self.masking_post = masking_post
         self.masking_pre = masking_pre
 
     def build(self, input_shape=None):
@@ -182,8 +187,9 @@ class TransformerBlock(Block):
     @property
     def to_call_post(self):
         yield self.transformer_post
-        if self.inference_post:
-            yield self.inference_post
+
+        if self.masking_post:
+            yield self.masking_post
 
         if self.post:
             yield self.post
