@@ -249,6 +249,18 @@ class SequencePredictNext(SequenceTransform):
 
         return new_input_shapes
 
+    def compute_mask(self, inputs, mask=None):
+        new_item_id_seq = inputs[self.target_name][:, :-1]
+        self.target_mask = tf.sequence_mask(new_item_id_seq.row_lengths(1))
+        targets_mask = dict({self.target_name: self.target_mask})
+        inputs_mask = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                inputs_mask[k] = self.target_mask
+            else:
+                inputs_mask[k] = None
+        return (inputs_mask, targets_mask)
+
 
 @Block.registry.register_with_multiple_names("seq_predict_last")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -308,6 +320,41 @@ class SequencePredictLast(SequenceTransform):
                     new_input_shapes[k] = tf.TensorShape([v[0], v[1] - 1])
 
         return new_input_shapes
+
+    def compute_mask(self, inputs, mask=None):
+        new_item_id_seq = inputs[self.target_name][:, :-1]
+        self.target_mask = self._generate_target_mask(new_item_id_seq)
+        inputs_mask = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                inputs_mask[k] = self.target_mask
+            else:
+                inputs_mask[k] = None
+
+        return (inputs_mask, self.target_mask)
+
+    def _generate_target_mask(self, ids_seq: tf.RaggedTensor) -> tf.RaggedTensor:
+        """Returns a bool ragged tensor with the last positions of the sequence masked
+
+        Parameters
+        ----------
+        ids_seq : tf.RaggedTensor
+            Sequence of ids, which are used to infer how many values
+            each sequence contains
+
+        Returns
+        -------
+        tf.RaggedTensor
+            Mask tensor, with True at the last positions
+        """
+        row_lengths = ids_seq.row_lengths(1)
+        max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+
+        padding_mask = tf.sequence_mask(row_lengths)
+        targets_mask = tf.ragged.boolean_mask(
+            tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
+        )
+        return targets_mask
 
 
 @Block.registry.register_with_multiple_names("seq_predict_random")
@@ -685,7 +732,11 @@ class SequenceMaskLastInference(Block):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class SequenceCausalLastPosition(Block):
+class SequenceCausalLastInference(Block):
+    def call(self, inputs, training=False, testing=False):
+        self.inference_mode = not training and not testing
+        return inputs
+
     def compute_mask(self, inputs, mask=None):
         """Selects (masks) the last non padded position of the
         input sequence to be predicted.
@@ -694,14 +745,15 @@ class SequenceCausalLastPosition(Block):
         to the input tensors, being accessible
         by tensor._keras_mask
         """
-        if isinstance(inputs, tf.RaggedTensor):
-            row_lengths = inputs.row_lengths(1)
-            max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+        if self.inference_mode:
+            if isinstance(inputs, tf.RaggedTensor):
+                row_lengths = inputs.row_lengths(1)
+                max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
 
-            padding_mask = tf.sequence_mask(row_lengths)
-            mask = tf.ragged.boolean_mask(
-                tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
-            )
+                padding_mask = tf.sequence_mask(row_lengths)
+                mask = tf.ragged.boolean_mask(
+                    tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
+                )
         return mask
 
 

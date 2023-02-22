@@ -39,7 +39,7 @@ from merlin.models.tf.transformers.transforms import (
 from merlin.models.tf.transforms.sequence import (
     ExtractMaskFromTargets,
     ReplaceMaskedEmbeddings,
-    SequenceCausalLastPosition,
+    SequenceCausalLastInference,
     SequenceMaskLastInference,
 )
 from merlin.models.tf.utils.tf_utils import (
@@ -123,18 +123,19 @@ class TransformerBlock(Block):
         masking_pre = None
         self.masking = masking
         if self.masking == "masked":
-            masking_post = combinators.SequentialBlock(
-                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
-            )
             masking_pre = combinators.SequentialBlock(
                 [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
             )
-        elif self.masking == "causal":
             masking_post = combinators.SequentialBlock(
                 [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
             )
-            masking_pre = SequenceCausalLastPosition()
-
+        elif self.masking == "causal":
+            masking_pre = combinators.SequentialBlock(
+                [SequenceCausalLastInference(), ExtractMaskFromTargets()]
+            )
+            masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
         elif self.masking is not None:
             raise ValueError(
                 f"The value `{masking}` is not valid for masking,"

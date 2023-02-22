@@ -812,6 +812,23 @@ class BaseModel(tf.keras.Model):
 
         return Prediction(predictions, targets, sample_weights)
 
+    def _extract_masked_predictions(self, prediction):
+        num_preds_per_example = tf.reduce_sum(tf.cast(prediction._keras_mask, tf.int32), axis=-1)
+        with tf.control_dependencies(
+            [
+                tf.debugging.assert_equal(
+                    num_preds_per_example,
+                    1,
+                    message="If targets are scalars (1-D) and predictions are"
+                    " sequential (3-D), the predictions mask should contain"
+                    " one masked position per example",
+                )
+            ]
+        ):
+            if isinstance(prediction, tf.Tensor):
+                return tf.boolean_mask(prediction, prediction._keras_mask)
+            return prediction
+
     def _adjust_dense_predictions_and_targets(
         self,
         prediction: TensorLike,
@@ -826,8 +843,8 @@ class BaseModel(tf.keras.Model):
         - One-hot encode targets if their rank is one less than the rank of predictions.
         - Ensure that targets have the same shape and dtype as predictions.
         """
-        # Convert ragged targets (and ragged mask) to dense
         if isinstance(target, tf.RaggedTensor):
+            # Converts ragged targets (and ragged mask) to dense
             dense_target_mask = None
             if getattr(target, "_keras_mask", None) is not None:
                 dense_target_mask = target._keras_mask.to_tensor()
@@ -835,7 +852,12 @@ class BaseModel(tf.keras.Model):
             if dense_target_mask is not None:
                 target._keras_mask = dense_target_mask
 
-        if getattr(target, "_keras_mask", None) is not None:
+        if prediction.shape.ndims == 2:
+            # Removes the mask information as the sequence is summarized into
+            # a single vector.
+            prediction._keras_mask = None
+
+        elif getattr(target, "_keras_mask", None) is not None:
             # Copies the mask from the targets to the predictions
             # because Keras considers the prediction mask in loss
             # and metrics computation
@@ -847,29 +869,14 @@ class BaseModel(tf.keras.Model):
         # If targets are scalars (1-D) and predictions are sequential (3-D),
         # extract predictions at target position because Keras expects
         # predictions and targets to have the same shape.
-        def _extract_masked_predictions():
-            num_preds_per_example = tf.reduce_sum(
-                tf.cast(prediction._keras_mask, tf.int32), axis=-1
-            )
-            with tf.control_dependencies(
-                [
-                    tf.debugging.assert_equal(
-                        num_preds_per_example,
-                        1,
-                        message="If targets are scalars (1-D) and predictions are"
-                        " sequential (3-D), the predictions mask should contain"
-                        " one masked position per example",
-                    )
-                ]
-            ):
-                return tf.boolean_mask(prediction, prediction._keras_mask)
-
         if getattr(prediction, "_keras_mask", None) is not None:
             rank_check = tf.logical_and(
                 tf.equal(tf.rank(target), 1),
                 tf.equal(tf.rank(prediction), 3),
             )
-            prediction = tf.cond(rank_check, _extract_masked_predictions, lambda: prediction)
+            prediction = tf.cond(
+                rank_check, lambda: self._extract_masked_predictions(prediction), lambda: prediction
+            )
 
         # Ensuring targets are one-hot encoded if they are not
         target = tf.cond(
@@ -881,9 +888,9 @@ class BaseModel(tf.keras.Model):
             ),
             lambda: target,
         )
-
         # Makes target shape equal to the predictions tensor, as shape is lost after tf.cond
-        # target = tf.reshape(target, tf.shape(prediction))
+        target = tf.reshape(target, tf.shape(prediction))
+
         return prediction, target
 
     def _adjust_ragged_predictions_and_targets(
@@ -898,7 +905,7 @@ class BaseModel(tf.keras.Model):
         - One-hot encode targets if their rank is one less than the rank of predictions.
         - Ensure that targets have the same shape and dtype as predictions.
         """
-        if getattr(target, "_keras_mask", None) is not None:
+        if isinstance(target, tf.RaggedTensor) and getattr(target, "_keras_mask", None) is not None:
             # Select targets at masked positions and return
             # a ragged tensor.
             target = tf.ragged.boolean_mask(
@@ -908,14 +915,34 @@ class BaseModel(tf.keras.Model):
         # Ensuring targets and preds have the same dtype
         target = tf.cast(target, prediction.dtype)
 
+        # If targets are scalars (1-D) and predictions are sequential (3-D),
+        # extract predictions at target position because Keras expects
+        # predictions and targets to have the same shape.
+        if getattr(prediction, "_keras_mask", None) is not None:
+            rank_check = tf.logical_and(
+                tf.equal(tf.rank(target), 1),
+                tf.equal(tf.rank(prediction), 3),
+            )
+            prediction = tf.cond(
+                rank_check, lambda: self._extract_masked_predictions(prediction), lambda: prediction
+            )
+
+        # Take the flat values of predictions and targets as Keras
+        # losses does not support RaggedVariantTensor on GPU:
+        prediction = prediction.flat_values
+        if isinstance(target, tf.RaggedTensor):
+            target = target.flat_values
+
         # Ensuring targets are one-hot encoded if they are not
         def _reshape_ragged():
             # Makes target shape equal to the predictions tensor,
             # as shape information is lost in graph mode execution of tf.cond()
             target_reshape = tf.reshape(target, tf.shape(prediction))
-            return tf.RaggedTensor.from_row_splits(
-                target_reshape.values, tf.cast(target_reshape.row_splits, tf.int64)
-            )
+            if isinstance(prediction, tf.RaggedTensor):
+                return tf.RaggedTensor.from_row_splits(
+                    target_reshape.values, tf.cast(target_reshape.row_splits, tf.int64)
+                )
+            return target_reshape
 
         target = tf.cond(
             tf.rank(target) == tf.rank(prediction) - 1,
@@ -927,7 +954,7 @@ class BaseModel(tf.keras.Model):
             _reshape_ragged,
         )
 
-        return prediction.flat_values, target.flat_values
+        return prediction, target
 
     def adjust_predictions_and_targets(
         self,
