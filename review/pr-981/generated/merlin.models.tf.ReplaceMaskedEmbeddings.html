@@ -98,29 +98,28 @@
 <dt id="merlin.models.tf.ReplaceMaskedEmbeddings">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">ReplaceMaskedEmbeddings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#ReplaceMaskedEmbeddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ReplaceMaskedEmbeddings" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">merlin.models.tf.core.base.Block</span></code></p>
-<dl>
-<dt>Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces</dt><dd><p>by a dummy trainable single embedding at the positions to be masked.
-This block looks for the Keras mask (<cite>._keras_mask</cite>) in the following order:</p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p>Checks if the input tensor has a mask</p></li>
-<li><p>Checks if there is a single target and if it has a mask</p></li>
-</ol>
-<p>3. If there are multiple targets (dict) returns the mask of the target
-that matches the first 2 dims of the input</p>
-</div></blockquote>
+<p>Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
+by a dummy trainable single embedding at the positions to be masked.</p>
 <p>This is useful to be used when PredictMasked() transformation is used in
 the Loader, which randomly selects some targets to be predicted and uses
 Keras Masking to cascade the <cite>_keras_mask</cite>. By replacing input embeddings
 at masked positions we avoid target leakage when training models with
-Masked Language Modeling (BERT-like)</p>
-<p><strong>Note:</strong> To support inference, the input sequence and its corresponding mask should be
+Masked Language Modeling (BERT-like).</p>
+<p><strong>Note 1:</strong> To ensure the mask information <cite>_keras_mask</cite> is not
+lost in previous blocks, you should set <cite>ExtractMaskFromTargets</cite> as a pre-layer of the
+<cite>ReplaceMaskedEmbeddings</cite> instance.</p>
+<p><strong>Note 2:</strong> To support inference, the input sequence and its corresponding mask should be
 extended by one position at the end to account for the next-item (<cite>target</cite>) position.
-To do this, you should set <cite>SequenceMaskLastInference</cite> as a pre-layer of</p>
-</dd>
-</dl>
-<p><cite>ReplaceMaskedEmbeddings()</cite> using the sequential-block:
-<code class="docutils literal notranslate"><span class="pre">`mm.SequentialBlock([mm.SequenceMaskLastInference(),</span> <span class="pre">mm.ReplaceMaskedEmbeddings()])`</span></code></p>
+To do this, you should set <cite>SequenceMaskLastInference</cite> as a default pre-layer of
+the <cite>ReplaceMaskedEmbeddings</cite>.</p>
+<p>To support masked training approach, the default pre-layer in the TransformerBlock is defined
+as follows:
+<a href="#id1"><span class="problematic" id="id2">``</span></a>`
+combinators.SequentialBlock(</p>
+<blockquote>
+<div><p>[SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]</p>
+</div></blockquote>
+<p><a href="#id3"><span class="problematic" id="id4">``</span></a><a href="#id5"><span class="problematic" id="id6">`</span></a></p>
 <dl class="py method">
 <dt id="merlin.models.tf.ReplaceMaskedEmbeddings.__init__">
 <code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#ReplaceMaskedEmbeddings.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ReplaceMaskedEmbeddings.__init__" title="Permalink to this definition"></a></dt>
@@ -157,8 +156,8 @@ To do this, you should set <cite>SequenceMaskLastInference</cite> as a pre-layer
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ReplaceMaskedEmbeddings.build" title="merlin.models.tf.ReplaceMaskedEmbeddings.build"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code></a>(input_shape)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ReplaceMaskedEmbeddings.call" title="merlin.models.tf.ReplaceMaskedEmbeddings.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs[, targets])</p></td>
-<td><p>If the sequence of input embeddings or the corresponding sequential targets is masked (with <cite>tensor._keras_mask</cite> defined), replaces the input embeddings for masked elements :param inputs: A tensor with sequences of vectors. Needs to be 3D (batch_size, sequence_length, embeddings dim). If inputs._keras_mask is defined uses it to infer the mask :type inputs: Union[tf.Tensor, tf.RaggedTensor] :param targets: The target values, from which the mask can be extracted                 if targets inputs._keras_mask is defined. :type targets: Union[tf.Tensor, tf.RaggedTensor, TabularData], optional.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ReplaceMaskedEmbeddings.call" title="merlin.models.tf.ReplaceMaskedEmbeddings.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs)</p></td>
+<td><p>If the sequence of input embeddings is masked (with <cite>tensor._keras_mask</cite> defined), replaces the input embeddings for masked elements :param inputs: A tensor with sequences of vectors. Needs to be 3D (batch_size, sequence_length, embeddings dim). If inputs._keras_mask is defined uses it to infer the mask :type inputs: Union[tf.Tensor, tf.RaggedTensor].</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_outputs</span></code>(outputs[, training])</p></td>
 <td><p></p></td>
@@ -391,9 +390,8 @@ To do this, you should set <cite>SequenceMaskLastInference</cite> as a pre-layer
 
 <dl class="py method">
 <dt id="merlin.models.tf.ReplaceMaskedEmbeddings.call">
-<code class="sig-name descname"><span class="pre">call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.ops.ragged.ragged_tensor.RaggedTensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.ops.ragged.ragged_tensor.RaggedTensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.ops.ragged.ragged_tensor.RaggedTensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#ReplaceMaskedEmbeddings.call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ReplaceMaskedEmbeddings.call" title="Permalink to this definition"></a></dt>
-<dd><p>If the sequence of input embeddings or the corresponding sequential
-targets is masked (with <cite>tensor._keras_mask</cite> defined),
+<code class="sig-name descname"><span class="pre">call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.ops.ragged.ragged_tensor.RaggedTensor</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.ops.ragged.ragged_tensor.RaggedTensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#ReplaceMaskedEmbeddings.call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ReplaceMaskedEmbeddings.call" title="Permalink to this definition"></a></dt>
+<dd><p>If the sequence of input embeddings is masked (with <cite>tensor._keras_mask</cite> defined),
 replaces the input embeddings for masked elements
 :param inputs: A tensor with sequences of vectors.</p>
 <blockquote>
@@ -401,15 +399,11 @@ replaces the input embeddings for masked elements
 If inputs._keras_mask is defined uses it to infer the mask</p>
 </div></blockquote>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>targets</strong> (<em>Union</em><em>[</em><em>tf.Tensor</em><em>, </em><em>tf.RaggedTensor</em><em>, </em><em>TabularData</em><em>]</em><em>, </em><em>optional</em>) – The target values, from which the mask can be extracted
-if targets inputs._keras_mask is defined.</p>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>returns a tensor with the masked inputs replaced by the dummy embedding</p>
 </dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>If training, returns a tensor with the masked inputs replaced by the dummy embedding</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Union[tf.Tensor, tf.RaggedTensor]</p>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Union[tf.Tensor, tf.RaggedTensor]</p>
 </dd>
 </dl>
 </dd></dl>

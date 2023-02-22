@@ -104,7 +104,6 @@
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span><span class="p">,</span> <span class="n">PredictionOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">TabularBlock</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.core.prediction</span> <span class="kn">import</span> <span class="n">Prediction</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">ListToRagged</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils</span> <span class="kn">import</span> <span class="n">tf_utils</span>
@@ -331,7 +330,19 @@
                     <span class="c1"># Reducing 1 position of the seq length</span>
                     <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
 
-        <span class="k">return</span> <span class="n">new_input_shapes</span></div></div>
+        <span class="k">return</span> <span class="n">new_input_shapes</span></div>
+
+<div class="viewcode-block" id="SequencePredictNext.compute_mask"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequencePredictNext.html#merlin.models.tf.SequencePredictNext.compute_mask">[docs]</a>    <span class="k">def</span> <span class="nf">compute_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">new_item_id_seq</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="p">][:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">new_item_id_seq</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">targets_mask</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">({</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span><span class="p">})</span>
+        <span class="n">inputs_mask</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="n">inputs_mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inputs_mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">inputs_mask</span><span class="p">,</span> <span class="n">targets_mask</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="SequencePredictLast"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequencePredictLast.html#merlin.models.tf.SequencePredictLast">[docs]</a><span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;seq_predict_last&quot;</span><span class="p">)</span>
@@ -391,7 +402,42 @@
                     <span class="c1"># Reducing 1 position of the seq length</span>
                     <span class="n">new_input_shapes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
 
-        <span class="k">return</span> <span class="n">new_input_shapes</span></div></div>
+        <span class="k">return</span> <span class="n">new_input_shapes</span></div>
+
+<div class="viewcode-block" id="SequencePredictLast.compute_mask"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequencePredictLast.html#merlin.models.tf.SequencePredictLast.compute_mask">[docs]</a>    <span class="k">def</span> <span class="nf">compute_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">new_item_id_seq</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="p">][:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_target_mask</span><span class="p">(</span><span class="n">new_item_id_seq</span><span class="p">)</span>
+        <span class="n">inputs_mask</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="n">inputs_mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inputs_mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">inputs_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_generate_target_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_seq</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a bool ragged tensor with the last positions of the sequence masked</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ids_seq : tf.RaggedTensor</span>
+<span class="sd">            Sequence of ids, which are used to infer how many values</span>
+<span class="sd">            each sequence contains</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.RaggedTensor</span>
+<span class="sd">            Mask tensor, with True at the last positions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">row_lengths</span> <span class="o">=</span> <span class="n">ids_seq</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">row_lengths</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">row_lengths</span><span class="p">)</span>
+        <span class="n">targets_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ragged</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">row_lengths</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">padding_mask</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">targets_mask</span></div>
 
 
 <div class="viewcode-block" id="SequencePredictRandom"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequencePredictRandom.html#merlin.models.tf.SequencePredictRandom">[docs]</a><span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;seq_predict_random&quot;</span><span class="p">)</span>
@@ -484,7 +530,7 @@
 <div class="viewcode-block" id="SequenceTargetAsInput.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequenceTargetAsInput.html#merlin.models.tf.SequenceTargetAsInput.call">[docs]</a>    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Prediction</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_seq_inputs_targets</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
         <span class="n">new_target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="p">])</span>
@@ -495,7 +541,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Targets should be None or a dict of tensors&quot;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">Prediction</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SequenceTargetAsInput.from_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.SequenceTargetAsInput.html#merlin.models.tf.SequenceTargetAsInput.from_config">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
@@ -564,13 +610,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_target_mask</span><span class="p">(</span><span class="n">item_id_seq</span><span class="p">)</span>
 
         <span class="n">inputs_mask</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
                 <span class="n">inputs_mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">inputs_mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="k">return</span> <span class="p">(</span><span class="n">inputs_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span><span class="p">)</span></div>
+        <span class="n">targets_mask</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">({</span><span class="bp">self</span><span class="o">.</span><span class="n">target_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_mask</span><span class="p">})</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">inputs_mask</span><span class="p">,</span> <span class="n">targets_mask</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_generate_target_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_seq</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates a target mask according to the defined probability and</span>
@@ -769,7 +816,11 @@
 
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">SequenceCausalLastPosition</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">SequenceCausalLastInference</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inference_mode</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">training</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">testing</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+
     <span class="k">def</span> <span class="nf">compute_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Selects (masks) the last non padded position of the</span>
 <span class="sd">        input sequence to be predicted.</span>
@@ -778,82 +829,43 @@
 <span class="sd">        to the input tensors, being accessible</span>
 <span class="sd">        by tensor._keras_mask</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
-            <span class="n">row_lengths</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">row_lengths</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_mode</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+                <span class="n">row_lengths</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">row_lengths</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
-            <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">row_lengths</span><span class="p">)</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ragged</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">row_lengths</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">padding_mask</span>
-            <span class="p">)</span>
+                <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">row_lengths</span><span class="p">)</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ragged</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">row_lengths</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">padding_mask</span>
+                <span class="p">)</span>
         <span class="k">return</span> <span class="n">mask</span>
 
 
-<div class="viewcode-block" id="ReplaceMaskedEmbeddings"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">ReplaceMaskedEmbeddings</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces</span>
-<span class="sd">     by a dummy trainable single embedding at the positions to be masked.</span>
-<span class="sd">     This block looks for the Keras mask (`._keras_mask`) in the following order:</span>
-<span class="sd">       1. Checks if the input tensor has a mask</span>
-<span class="sd">       2. Checks if there is a single target and if it has a mask</span>
-<span class="sd">       3. If there are multiple targets (dict) returns the mask of the target</span>
-<span class="sd">       that matches the first 2 dims of the input</span>
-<span class="sd">     This is useful to be used when PredictMasked() transformation is used in</span>
-<span class="sd">     the Loader, which randomly selects some targets to be predicted and uses</span>
-<span class="sd">     Keras Masking to cascade the `_keras_mask`. By replacing input embeddings</span>
-<span class="sd">     at masked positions we avoid target leakage when training models with</span>
-<span class="sd">     Masked Language Modeling (BERT-like)</span>
+<span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ExtractMaskFromTargets</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recover the mask information for the inputs from the mask information</span>
+<span class="sd">    stored in the targets.</span>
 
-<span class="sd">     **Note:** To support inference, the input sequence and its corresponding mask should be</span>
-<span class="sd">     extended by one position at the end to account for the next-item (`target`) position.</span>
-<span class="sd">     To do this, you should set `SequenceMaskLastInference` as a pre-layer of</span>
-<span class="sd">    `ReplaceMaskedEmbeddings()` using the sequential-block:</span>
-<span class="sd">    ```mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()])```</span>
+<span class="sd">    This block looks for the Keras mask (`._keras_mask`) in the following order:</span>
+<span class="sd">        1. Checks if the input tensor has a mask.</span>
+<span class="sd">        2. Checks if there is a single target and if it has a mask.</span>
+<span class="sd">        3. If there are multiple targets (dictionary), returns the mask of the target</span>
+<span class="sd">        that matches the first two dimensions of the input.</span>
+
+<span class="sd">    This is useful to use when the mask information for the inputs may be lost in</span>
+<span class="sd">    previous non-mask-aware Merlin blocks.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="ReplaceMaskedEmbeddings.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">supports_masking</span> <span class="o">=</span> <span class="kc">True</span></div>
-
-<div class="viewcode-block" id="ReplaceMaskedEmbeddings.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The last dim of inputs cannot be None&quot;</span><span class="p">)</span>
-        <span class="c1"># Create a trainable embedding to replace masked interactions</span>
-        <span class="n">initializer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal_initializer</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">masked_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">initializer</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="ReplaceMaskedEmbeddings.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">],</span>
         <span class="n">targets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;If the sequence of input embeddings or the corresponding sequential</span>
-<span class="sd">        targets is masked (with `tensor._keras_mask` defined),</span>
-<span class="sd">        replaces the input embeddings for masked elements</span>
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        inputs : Union[tf.Tensor, tf.RaggedTensor]</span>
-<span class="sd">            A tensor with sequences of vectors.</span>
-<span class="sd">            Needs to be 3D (batch_size, sequence_length, embeddings dim).</span>
-<span class="sd">            If inputs._keras_mask is defined uses it to infer the mask</span>
-<span class="sd">        targets : Union[tf.Tensor, tf.RaggedTensor, TabularData], optional</span>
-<span class="sd">            The target values, from which the mask can be extracted</span>
-<span class="sd">            if targets inputs._keras_mask is defined.</span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        Union[tf.Tensor, tf.RaggedTensor]</span>
-<span class="sd">            If training, returns a tensor with the masked inputs replaced by the dummy embedding</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
-        <span class="c1"># Infers the mask from the inputs or targets</span>
+
         <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infer_mask_from_inputs_or_targets</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Replaces the embeddings at masked positions by a dummy trainable embedding</span>
-            <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace_masked_embeddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">outputs</span></div>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">_keras_mask</span> <span class="o">=</span> <span class="n">mask</span>
+        <span class="k">return</span> <span class="n">inputs</span>
 
     <span class="k">def</span> <span class="nf">_infer_mask_from_inputs_or_targets</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -876,7 +888,7 @@
                     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">targets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span>
                             <span class="n">v</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span>
-                        <span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs_mask_compatible_shape</span><span class="p">(</span>
+                        <span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tf_utils</span><span class="o">.</span><span class="n">check_inputs_mask_compatible_shape</span><span class="p">(</span>
                             <span class="n">inputs</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">_keras_mask</span>
                         <span class="p">):</span>
                             <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -893,18 +905,73 @@
 
         <span class="k">return</span> <span class="n">mask</span>
 
-    <span class="k">def</span> <span class="nf">_check_inputs_mask_compatible_shape</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">],</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">]</span>
-    <span class="p">):</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()):</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
-                <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span>
-                    <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">result</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="ReplaceMaskedEmbeddings"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ReplaceMaskedEmbeddings</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces</span>
+<span class="sd">    by a dummy trainable single embedding at the positions to be masked.</span>
+
+<span class="sd">    This is useful to be used when PredictMasked() transformation is used in</span>
+<span class="sd">    the Loader, which randomly selects some targets to be predicted and uses</span>
+<span class="sd">    Keras Masking to cascade the `_keras_mask`. By replacing input embeddings</span>
+<span class="sd">    at masked positions we avoid target leakage when training models with</span>
+<span class="sd">    Masked Language Modeling (BERT-like).</span>
+
+<span class="sd">    **Note 1:** To ensure the mask information `_keras_mask` is not</span>
+<span class="sd">    lost in previous blocks, you should set `ExtractMaskFromTargets` as a pre-layer of the</span>
+<span class="sd">    `ReplaceMaskedEmbeddings` instance.</span>
+
+<span class="sd">    **Note 2:** To support inference, the input sequence and its corresponding mask should be</span>
+<span class="sd">    extended by one position at the end to account for the next-item (`target`) position.</span>
+<span class="sd">    To do this, you should set `SequenceMaskLastInference` as a default pre-layer of</span>
+<span class="sd">    the `ReplaceMaskedEmbeddings`.</span>
+
+<span class="sd">    To support masked training approach, the default pre-layer in the TransformerBlock is defined</span>
+<span class="sd">    as follows:</span>
+<span class="sd">    ```</span>
+<span class="sd">    combinators.SequentialBlock(</span>
+<span class="sd">                [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ReplaceMaskedEmbeddings.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supports_masking</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="ReplaceMaskedEmbeddings.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The last dim of inputs cannot be None&quot;</span><span class="p">)</span>
+        <span class="c1"># Create a trainable embedding to replace masked interactions</span>
+        <span class="n">initializer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal_initializer</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masked_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">initializer</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ReplaceMaskedEmbeddings.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;If the sequence of input embeddings is masked (with `tensor._keras_mask` defined),</span>
+<span class="sd">        replaces the input embeddings for masked elements</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputs : Union[tf.Tensor, tf.RaggedTensor]</span>
+<span class="sd">            A tensor with sequences of vectors.</span>
+<span class="sd">            Needs to be 3D (batch_size, sequence_length, embeddings dim).</span>
+<span class="sd">            If inputs._keras_mask is defined uses it to infer the mask</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Union[tf.Tensor, tf.RaggedTensor]</span>
+<span class="sd">            returns a tensor with the masked inputs replaced by the dummy embedding</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Replaces the embeddings at masked positions by a dummy trainable embedding</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace_masked_embeddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">_keras_mask</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">outputs</span></div>
 
     <span class="k">def</span> <span class="nf">_replace_masked_embeddings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">],</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">]</span>
@@ -915,7 +982,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs_mask_compatible_shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="p">),</span>
+            <span class="n">tf_utils</span><span class="o">.</span><span class="n">check_inputs_mask_compatible_shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="p">),</span>
             <span class="p">[</span>
                 <span class="s2">&quot;The inputs and mask need to be compatible: have the same dtype &quot;</span>
                 <span class="s2">&quot;(tf.Tensor or tf.RaggedTensor) and the tf.rank(mask) == tf.rank(inputs)-1&quot;</span>

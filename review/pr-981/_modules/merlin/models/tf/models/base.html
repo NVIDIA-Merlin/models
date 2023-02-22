@@ -134,7 +134,7 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.base</span> <span class="kn">import</span> <span class="n">ModelOutput</span><span class="p">,</span> <span class="n">ModelOutputType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.contrastive</span> <span class="kn">import</span> <span class="n">ContrastiveOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">ProcessList</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">PrepareFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.search_utils</span> <span class="kn">import</span> <span class="n">find_all_instances_in_layers</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="p">(</span>
@@ -480,7 +480,7 @@
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;should_compute_train_metrics_for_batch&quot;</span><span class="p">,</span>
             <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
-            <span class="n">initial_value</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">num_v1_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prediction_tasks</span><span class="p">)</span>
@@ -896,91 +896,164 @@
 
         <span class="k">return</span> <span class="n">Prediction</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">sample_weights</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_extract_masked_predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prediction</span><span class="p">):</span>
+        <span class="n">num_preds_per_example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">_keras_mask</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
+                    <span class="n">num_preds_per_example</span><span class="p">,</span>
+                    <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="s2">&quot;If targets are scalars (1-D) and predictions are&quot;</span>
+                    <span class="s2">&quot; sequential (3-D), the predictions mask should contain&quot;</span>
+                    <span class="s2">&quot; one masked position per example&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">_keras_mask</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">to_tensor</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_adjust_dense_predictions_and_targets</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">TensorLike</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adjusts the predictions and targets to ensure compatibility with most Keras losses and metrics.</span>
+<span class="sd">        This methods applies the following transformations to the target and prediction tensors:</span>
+<span class="sd">        - Convert ragged targets (and their masks) to dense format.</span>
+<span class="sd">        - Copy the targets mask to the predictions mask, if defined.</span>
+<span class="sd">        - If predictions are sequential (3-D) and targets are scalar (1-D), use the predictions mask</span>
+<span class="sd">        to extract the predictions at target positions.</span>
+<span class="sd">        - One-hot encode targets if their rank is one less than the rank of predictions.</span>
+<span class="sd">        - Ensure that targets have the same shape and dtype as predictions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Convert ragged targets (and ragged mask) to dense</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+            <span class="n">dense_target_mask</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">dense_target_mask</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">_keras_mask</span><span class="o">.</span><span class="n">to_tensor</span><span class="p">()</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">to_tensor</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">dense_target_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">_keras_mask</span> <span class="o">=</span> <span class="n">dense_target_mask</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Copies the mask from the targets to the predictions</span>
+            <span class="c1"># because Keras considers the prediction mask in loss</span>
+            <span class="c1"># and metrics computation</span>
+            <span class="n">prediction</span><span class="o">.</span><span class="n">_keras_mask</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">_keras_mask</span>
+
+        <span class="c1"># Ensuring targets and preds have the same dtype</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># If targets are scalars (1-D) and predictions are sequential (3-D),</span>
+        <span class="c1"># extract predictions at target position because Keras expects</span>
+        <span class="c1"># predictions and targets to have the same shape.</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rank_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">target</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">prediction</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">rank_check</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_masked_predictions</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">prediction</span><span class="p">)</span>
+
+        <span class="c1"># Ensuring targets are one-hot encoded if they are not</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">target</span><span class="p">)</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prediction</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">prediction</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="n">target</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Makes target shape equal to the predictions tensor, as shape is lost after tf.cond</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prediction</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">target</span>
+
+    <span class="k">def</span> <span class="nf">_adjust_ragged_predictions_and_targets</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">TensorLike</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adjusts the predictions and targets to ensure compatibility with most Keras losses and metrics.</span>
+<span class="sd">        This methods applies the following transformations to the target and prediction tensors:</span>
+<span class="sd">        - Select ragged targets based on the mask information, if defined.</span>
+<span class="sd">        - Remove mask information from the ragged targets and predictions.</span>
+<span class="sd">        - One-hot encode targets if their rank is one less than the rank of predictions.</span>
+<span class="sd">        - Ensure that targets have the same shape and dtype as predictions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Select targets at masked positions and return</span>
+            <span class="c1"># a ragged tensor.</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ragged</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">with_row_splits_dtype</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">target</span><span class="o">.</span><span class="n">_keras_mask</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Ensuring targets and preds have the same dtype</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># If targets are scalars (1-D) and predictions are sequential (3-D),</span>
+        <span class="c1"># extract predictions at target position because Keras expects</span>
+        <span class="c1"># predictions and targets to have the same shape.</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rank_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">target</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">prediction</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">rank_check</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_masked_predictions</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">prediction</span><span class="p">)</span>
+
+        <span class="c1"># Ensuring targets are one-hot encoded if they are not</span>
+        <span class="k">def</span> <span class="nf">_reshape_ragged</span><span class="p">():</span>
+            <span class="c1"># Makes target shape equal to the predictions tensor,</span>
+            <span class="c1"># as shape information is lost in graph mode execution of tf.cond()</span>
+            <span class="n">target_reshape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prediction</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_row_splits</span><span class="p">(</span>
+                    <span class="n">target_reshape</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">target_reshape</span><span class="o">.</span><span class="n">row_splits</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">target_reshape</span>
+
+        <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">target</span><span class="p">)</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prediction</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">prediction</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">_reshape_ragged</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">prediction</span><span class="o">.</span><span class="n">flat_values</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">flat_values</span>
+
     <span class="k">def</span> <span class="nf">adjust_predictions_and_targets</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">predictions</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TensorLike</span><span class="p">],</span>
         <span class="n">targets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adjusts the predictions and targets, doing the following transformations</span>
-<span class="sd">        if the target is provided:</span>
-<span class="sd">        - Converts ragged targets (and their masks) to dense, so that they are compatible</span>
-<span class="sd">        with most losses and metrics</span>
-<span class="sd">        - Copies the targets mask to predictions mask, if defined</span>
-<span class="sd">        - If predictions are sequential (3-D) and targets are scalar (1-D), use predictions</span>
-<span class="sd">        mask to extract the predictions at target positions.</span>
-<span class="sd">        - One-hot encode targets if their tf.rank(targets) == tf.rank(predictions)-1</span>
-<span class="sd">        - Ensures targets have the same shape and dtype as predictions</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adjusts the predictions and targets to ensure compatibility with most Keras losses and metrics.</span>
+
+<span class="sd">        If the predictions are ragged tensors, `_adjust_ragged_predictions_and_targets` is called,</span>
+<span class="sd">        otherwise `_adjust_dense_predictions_and_targets` is called.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        predictions : Dict[str, TensorLike]</span>
-<span class="sd">            A dict with predictions for the tasks</span>
+<span class="sd">            A dictionary with predictions for the tasks.</span>
 <span class="sd">        targets : Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]]</span>
-<span class="sd">            A dict with targets for the tasks</span>
+<span class="sd">            A dictionary with targets for the tasks, or None if targets are not provided.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
 
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
-            <span class="c1"># Convert ragged targets (and ragged mask) to dense</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
-                <span class="n">dense_target_mask</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">dense_target_mask</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">_keras_mask</span><span class="o">.</span><span class="n">to_tensor</span><span class="p">()</span>
-                <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">to_tensor</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">dense_target_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">_keras_mask</span> <span class="o">=</span> <span class="n">dense_target_mask</span>
-
-            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="c1"># Copies the mask from the targets to the predictions</span>
-                <span class="c1"># because Keras considers the prediction mask in loss</span>
-                <span class="c1"># and metrics computation</span>
-                <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">_keras_mask</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">_keras_mask</span>
-
-            <span class="c1"># Ensuring targets and preds have the same dtype</span>
-            <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-
-            <span class="c1"># If targets are scalars (1-D) and predictions are sequential (3-D),</span>
-            <span class="c1"># extract predictions at target position because Keras expects</span>
-            <span class="c1"># predictions and targets to have the same shape.</span>
-            <span class="k">def</span> <span class="nf">_extract_masked_predictions</span><span class="p">():</span>
-                <span class="n">num_preds_per_example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
-                    <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">_keras_mask</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+                <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_ragged_predictions_and_targets</span><span class="p">(</span>
+                    <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
                 <span class="p">)</span>
-                <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
-                    <span class="p">[</span>
-                        <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
-                            <span class="n">num_preds_per_example</span><span class="p">,</span>
-                            <span class="mi">1</span><span class="p">,</span>
-                            <span class="n">message</span><span class="o">=</span><span class="s2">&quot;If targets are scalars (1-D) and predictions are&quot;</span>
-                            <span class="s2">&quot; sequential (3-D), the predictions mask should contain&quot;</span>
-                            <span class="s2">&quot; one masked position per example&quot;</span><span class="p">,</span>
-                        <span class="p">)</span>
-                    <span class="p">]</span>
-                <span class="p">):</span>
-                    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">_keras_mask</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">rank_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-                    <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
-                    <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_dense_predictions_and_targets</span><span class="p">(</span>
+                    <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
                 <span class="p">)</span>
-                <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
-                    <span class="n">rank_check</span><span class="p">,</span> <span class="n">_extract_masked_predictions</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-                <span class="p">)</span>
-
-            <span class="c1"># Ensuring targets are one-hot encoded if they are not</span>
-            <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
-                    <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
-                    <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="k">lambda</span><span class="p">:</span> <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
-            <span class="p">)</span>
-            <span class="c1"># Makes target shape equal to the predictions tensor, as shape is lost after tf.cond</span>
-            <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
 
     <span class="k">def</span> <span class="nf">train_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Custom train step using the `compute_loss` method.&quot;&quot;&quot;</span>
@@ -1093,7 +1166,6 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
     <span class="k">def</span> <span class="nf">train_compute_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">PredictionOutput</span><span class="p">,</span> <span class="n">compiled_metrics</span><span class="p">:</span> <span class="n">MetricsContainer</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns metrics for the outputs of this step.</span>
 
@@ -1102,9 +1174,11 @@
         <span class="c1"># Compiled_metrics as an argument here because it is re-defined by `model.compile()`</span>
         <span class="c1"># And checking `self.compiled_metrics` inside this function results in a reference to</span>
         <span class="c1"># a deleted version of `compiled_metrics` if the model is re-compiled.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_compute_train_metrics_for_batch</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_metrics</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">compiled_metrics</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_results</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_should_compute_train_metrics_for_batch</span><span class="p">,</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_metrics</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">compiled_metrics</span><span class="p">),</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_results</span><span class="p">(),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">compute_metrics</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1481,7 +1555,7 @@
             <span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">input_block_schemas</span><span class="p">,</span> <span class="n">Schema</span><span class="p">())</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span> <span class="o">=</span> <span class="n">ProcessList</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_features</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_frozen_blocks</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">save</span><span class="p">(</span>
@@ -1548,7 +1622,7 @@
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">call_input_features</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">model_input_features</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
-            <span class="n">_ragged_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">_ragged_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">feature_shapes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_ragged_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
             <span class="n">feature_dtypes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_ragged_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
@@ -1570,7 +1644,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">last_layer</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_features</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
@@ -1597,7 +1671,7 @@
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
             <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span>
             <span class="n">training</span><span class="o">=</span><span class="n">training</span><span class="p">,</span>
             <span class="n">testing</span><span class="o">=</span><span class="n">testing</span><span class="p">,</span>
