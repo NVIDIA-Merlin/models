@@ -927,8 +927,8 @@
 <span class="sd">        - One-hot encode targets if their rank is one less than the rank of predictions.</span>
 <span class="sd">        - Ensure that targets have the same shape and dtype as predictions.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Convert ragged targets (and ragged mask) to dense</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+            <span class="c1"># Converts ragged targets (and ragged mask) to dense</span>
             <span class="n">dense_target_mask</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">dense_target_mask</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">_keras_mask</span><span class="o">.</span><span class="n">to_tensor</span><span class="p">()</span>
@@ -936,7 +936,12 @@
             <span class="k">if</span> <span class="n">dense_target_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">target</span><span class="o">.</span><span class="n">_keras_mask</span> <span class="o">=</span> <span class="n">dense_target_mask</span>
 
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">prediction</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># Removes the mask information as the sequence is summarized into</span>
+            <span class="c1"># a single vector.</span>
+            <span class="n">prediction</span><span class="o">.</span><span class="n">_keras_mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">elif</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;_keras_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Copies the mask from the targets to the predictions</span>
             <span class="c1"># because Keras considers the prediction mask in loss</span>
             <span class="c1"># and metrics computation</span>
@@ -965,8 +970,10 @@
                 <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prediction</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">prediction</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="p">),</span>
-            <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prediction</span><span class="p">)),</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="n">target</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="c1"># Makes target shape equal to the predictions tensor, as shape is lost after tf.cond</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prediction</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">target</span>
 
