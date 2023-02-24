@@ -825,9 +825,8 @@ class BaseModel(tf.keras.Model):
                 )
             ]
         ):
-            if isinstance(prediction, tf.Tensor):
-                return tf.boolean_mask(prediction, prediction._keras_mask)
-            return prediction
+
+            return tf.boolean_mask(prediction, prediction._keras_mask)
 
     def _adjust_dense_predictions_and_targets(
         self,
@@ -914,18 +913,6 @@ class BaseModel(tf.keras.Model):
 
         # Ensuring targets and preds have the same dtype
         target = tf.cast(target, prediction.dtype)
-
-        # If targets are scalars (1-D) and predictions are sequential (3-D),
-        # extract predictions at target position because Keras expects
-        # predictions and targets to have the same shape.
-        if getattr(prediction, "_keras_mask", None) is not None:
-            rank_check = tf.logical_and(
-                tf.equal(tf.rank(target), 1),
-                tf.equal(tf.rank(prediction), 3),
-            )
-            prediction = tf.cond(
-                rank_check, lambda: self._extract_masked_predictions(prediction), lambda: prediction
-            )
 
         # Take the flat values of predictions and targets as Keras
         # losses does not support RaggedVariantTensor on GPU:
