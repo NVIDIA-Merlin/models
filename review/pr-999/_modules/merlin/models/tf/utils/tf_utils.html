@@ -153,17 +153,17 @@
         <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">input_shapes</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;__values&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;__offsets&quot;</span><span class="p">)]</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_list_features</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">input_shapes</span><span class="p">[</span><span class="n">non_list_features</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">input_shapes</span><span class="p">[</span><span class="n">non_list_features</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">batch_size</span>
 
     <span class="n">list_features_offsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">input_shapes</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;__offsets&quot;</span><span class="p">)])</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_list_features</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">input_shapes</span><span class="p">[</span><span class="n">list_features_offsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_features_offsets</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">input_shapes</span><span class="p">[</span><span class="n">list_features_offsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">batch_size</span> <span class="o">-=</span> <span class="mi">1</span>
         <span class="k">return</span> <span class="n">batch_size</span>
 
-    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Not possible to infer the batch size from the input shapes&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
 
 
 <span class="k">def</span> <span class="nf">maybe_serialize_keras_objects</span><span class="p">(</span>
