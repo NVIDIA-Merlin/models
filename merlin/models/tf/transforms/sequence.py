@@ -20,7 +20,7 @@ from tensorflow.keras.backend import random_bernoulli
 
 from merlin.models.tf.core.base import Block, BlockType, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock
-from merlin.models.tf.transforms.tensor import ListToRagged
+from merlin.models.tf.transforms.features import PrepareFeatures
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
@@ -85,7 +85,7 @@ class SequenceTransform(TabularBlock):
         The sequential input column that will be used to extract the target
     pre : Optional[BlockType], optional
         A block that is called before this method call().
-        If not set, the ListToRagged() block is applied to convert
+        P.s. The PrepareFeatures() block is applied to convert
         the tuple representation of sequential features to RaggedTensors,
         so that the tensors sequences can be shifted/truncated
     """
@@ -97,7 +97,7 @@ class SequenceTransform(TabularBlock):
         pre: Optional[BlockType] = None,
         **kwargs,
     ):
-        _pre = ListToRagged()
+        _pre = PrepareFeatures(schema)
         if pre:
             _pre = _pre.connect(pre)
         super().__init__(pre=_pre, schema=schema, **kwargs)
@@ -205,9 +205,9 @@ class SequencePredictNext(SequenceTransform):
         The sequential input column that will be used to extract the target
     pre : Optional[BlockType], optional
         A block that is called before this method call().
-        If not set, the ListToRagged() block is applied to convert
-        the tuple representation of sequential features to RaggedTensors,
-        so that the tensors sequences can be shifted/truncated
+        P.s. The PrepareFeatures() is called automatically before the pre
+        to convert the list features representation
+        (with "__values" and "__offsets" suffix) to Ragged/Dense 2D features
     """
 
     def call(
@@ -264,9 +264,9 @@ class SequencePredictLast(SequenceTransform):
         The sequential input column that will be used to extract the target
     pre : Optional[BlockType], optional
         A block that is called before this method call().
-        If not set, the ListToRagged() block is applied to convert
-        the tuple representation of sequential features to RaggedTensors,
-        so that the tensors sequences can be processed
+        P.s. The PrepareFeatures() is called automatically before the pre
+        to convert the list features representation
+        (with "__values" and "__offsets" suffix) to Ragged/Dense 2D features
     """
 
     @tf.function
@@ -326,9 +326,9 @@ class SequencePredictRandom(SequenceTransform):
         The sequential input column that will be used to extract the target
     pre : Optional[BlockType], optional
         A block that is called before this method call().
-        If not set, the ListToRagged() block is applied to convert
-        the tuple representation of sequential features to RaggedTensors,
-        so that the tensors sequences can be shifted/truncated
+        P.s. The PrepareFeatures() is called automatically before the pre
+        to convert the list features representation
+        (with "__values" and "__offsets" suffix) to Ragged/Dense 2D features
     """
 
     def call(
@@ -392,9 +392,9 @@ class SequenceTargetAsInput(SequenceTransform):
         The sequential input column that will be used to extract the target
     pre : Optional[BlockType], optional
         A block that is called before this method call().
-        If not set, the ListToRagged() block is applied to convert
-        the tuple representation of sequential features to RaggedTensors,
-        so that the tensors sequences can be processed
+        P.s. The PrepareFeatures() is called automatically before the pre
+        to convert the list features representation
+        (with "__values" and "__offsets" suffix) to Ragged/Dense 2D features
     """
 
     @tf.function

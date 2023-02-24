@@ -247,8 +247,11 @@ def _retrieval_inputs_(batch_size):
 
 
 def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
+    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+    prepare_features = mm.PrepareFeatures(schema)
+
     def _last_interaction_as_target(inputs, targets):
-        inputs = mm.ListToRagged()(inputs)
+        inputs = prepare_features(inputs)
         items = inputs["item_id_seq"]
         _items = items[:, :-1]
 
@@ -258,7 +261,6 @@ def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
         inputs["item_id_seq"] = _items
         return inputs, targets
 
-    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     sequence_testing_data.schema = schema
     loader = mm.Loader(sequence_testing_data, batch_size=50)
     loader = loader.map(_last_interaction_as_target)

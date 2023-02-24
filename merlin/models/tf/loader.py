@@ -365,11 +365,10 @@ KerasSequenceValidater = (
 def sample_batch(
     dataset_or_loader: Union[Dataset, Loader],
     batch_size: Optional[int] = None,
-    shuffle: bool = False,
-    include_targets: bool = True,
-    to_ragged: bool = False,
-    to_dense: bool = False,
-    prepare_features=False,
+    shuffle: Optional[bool] = False,
+    include_targets: Optional[bool] = True,
+    prepare_features: Optional[bool] = False,
+    list_to_dense: Optional[bool] = False,
 ):
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
@@ -383,26 +382,20 @@ def sample_batch(
         Whether to sample a random batch or not, by default False.
     include_targets: bool
         Whether to include the targets in the returned batch, by default True.
-    to_ragged: bool
-        Whether to convert the tuple of sparse tensors into ragged tensors, by default False.
-    to_dense: bool
-        Whether to convert the tuple of sparse tensors into dense tensors, by default False.
     prepare_features: bool
         Whether to prepare features from dataloader for the model, by default False.
         If enabled, it converts multi-hot/list features to dense or ragged based on the schema.
         It also ensures that scalar features are converted to 2D (batch size, 1).
         P.s. The features are automatically prepared by InputBlockV2 if it is used
+    list_to_dense: bool
+        Whether to convert all ragged list features into dense tensors, by default False.
     Returns:
     -------
     batch: Dict[tf.tensor]
         dictionary of input tensors.
     """
-    if to_ragged and to_dense:
-        raise ValueError(
-            "Sparse values cannot be converted to both ragged tensors and dense tensors"
-        )
 
-    from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged, PrepareFeatures
+    from merlin.models.tf.transforms.features import PrepareFeatures
 
     if isinstance(dataset_or_loader, Dataset):
         if not batch_size:
@@ -415,12 +408,8 @@ def sample_batch(
     # batch could be of type Prediction, so we can't unpack directly
     inputs, targets = batch[0], batch[1]
 
-    if to_ragged:
-        inputs = ListToRagged()(inputs)
-    elif to_dense:
-        inputs = ListToDense()(inputs)
     if prepare_features:
-        inputs = PrepareFeatures(loader.schema)(inputs)
+        inputs = PrepareFeatures(loader.schema, list_to_dense)(inputs)
     if not include_targets:
         return inputs
     return inputs, targets

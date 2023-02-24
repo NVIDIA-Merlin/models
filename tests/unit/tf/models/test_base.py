@@ -160,7 +160,7 @@ def test_simple_seq_model_with_custom_emb_combiner(sequence_testing_data: Datase
 
     testing_utils.model_test(model, loader, run_eagerly=run_eagerly, reload_model=True)
 
-    batch = mm.sample_batch(loader, include_targets=False, to_ragged=True)
+    batch = mm.sample_batch(loader, include_targets=False, prepare_features=True)
     out = model(batch)
     assert out.shape == (100, 1)
 

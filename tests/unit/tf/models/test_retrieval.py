@@ -825,11 +825,11 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     )
     model.compile(optimizer="adam", run_eagerly=False)
 
-    as_ragged = mm.ListToRagged()
+    prepare_features = mm.PrepareFeatures(sequence_testing_data.schema)
 
     class LastInteractionAsTarget(tf.keras.layers.Layer):
         def call(self, inputs, **kwargs):
-            inputs = as_ragged(inputs)
+            inputs = prepare_features(inputs)
             items = inputs["item_id_seq"]
             _items = items[:, :-1]
             targets = items[:, -1:].flat_values

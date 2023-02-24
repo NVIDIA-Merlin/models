@@ -27,6 +27,7 @@ from tensorflow.python.framework.test_util import disable_cudnn_autotune
 import merlin.io
 from merlin.models.tf.loader import Loader, sample_batch
 from merlin.models.tf.models.base import Model
+from merlin.models.tf.transforms.features import expected_input_cols_from_schema
 from merlin.schema import Schema
 
 
@@ -103,7 +104,7 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
-        x, y = sample_batch(dataloader, batch_size=50, to_ragged=False, prepare_features=False)
+        x, y = sample_batch(dataloader, batch_size=50)
         batch = [(x, y)]
 
         model_preds = model.predict(iter(batch))
@@ -124,15 +125,7 @@ def model_test(
             signature = loaded_model.signatures["serving_default"]
             signature_input_names = set(signature.structured_input_signature[1].keys())
 
-            model_input_names = []
-            for col in model.input_schema:
-                if col.is_list:
-                    # list columns are currently always passed
-                    # in as a tuple of (values, row_lengths)
-                    for i in ["1", "2"]:
-                        model_input_names.append(f"{col.name}_{i}")
-                else:
-                    model_input_names.append(col.name)
+            model_input_names = expected_input_cols_from_schema(model.input_schema)
 
             assert signature_input_names == set(model_input_names)
 

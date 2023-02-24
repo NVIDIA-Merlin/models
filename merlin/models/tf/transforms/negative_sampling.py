@@ -19,7 +19,7 @@ import tensorflow as tf
 
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import list_col_to_ragged
+from merlin.models.tf.utils.tf_utils import calculate_batch_size_from_inputs, list_col_to_ragged
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
@@ -71,10 +71,7 @@ class InBatchNegatives(tf.keras.layers.Layer):
             return get_tuple(inputs, targets)
 
         # 1. Select item-features
-        fist_input = list(inputs.values())[0]
-        batch_size = (
-            fist_input.shape[0] if not isinstance(fist_input, tuple) else fist_input[1].shape[0]
-        )
+        batch_size = calculate_batch_size_from_inputs(inputs)
 
         if batch_size is None:
             return get_tuple(inputs, targets)

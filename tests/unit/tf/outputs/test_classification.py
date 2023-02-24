@@ -124,13 +124,16 @@ def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
 
 
 def _next_item_loader(sequence_testing_data: Dataset):
+    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+    prepare_features = mm.PrepareFeatures(schema)
+
     class LastInteractionAsTarget:
         def compute_output_schema(self, input_schema):
             return input_schema
 
         @tf.function
         def __call__(self, inputs, targets):
-            inputs = mm.ListToRagged()(inputs)
+            inputs = prepare_features(inputs)
             items = inputs["item_id_seq"]
             _items = items[:, :-1]
             targets = tf.one_hot(items[:, -1:].flat_values, 51997)
@@ -145,7 +148,6 @@ def _next_item_loader(sequence_testing_data: Dataset):
 
             return inputs, targets
 
-    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     sequence_testing_data.schema = schema
     dataloader = mm.Loader(sequence_testing_data, batch_size=50)
     _last_interaction_as_target = LastInteractionAsTarget()

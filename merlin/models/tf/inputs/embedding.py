@@ -36,18 +36,12 @@ from merlin.models.tf.core.tabular import (
     TabularAggregationType,
     TabularBlock,
 )
-from merlin.models.tf.transforms.tensor import ListToDense, ListToSparse
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import (
-    call_layer,
-    df_to_tensor,
-    list_col_to_ragged,
-    tensor_to_df,
-)
+from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, tensor_to_df
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
@@ -388,8 +382,8 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def _call_table(self, inputs, **kwargs):
-        if isinstance(inputs, tuple) and len(inputs) == 2:
-            inputs = list_col_to_ragged(inputs)
+        # if isinstance(inputs, tuple) and len(inputs) == 2:
+        #    inputs = list_col_to_ragged(inputs)
 
         # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor) or (
@@ -447,8 +441,8 @@ class EmbeddingTable(EmbeddingTableBase):
     def _compute_output_shape_table(
         self, input_shape: Union[tf.TensorShape, tuple]
     ) -> tf.TensorShape:
-        if isinstance(input_shape, tuple) and isinstance(input_shape[1], tf.TensorShape):
-            input_shape = tf.TensorShape([input_shape[1][0], None])
+        # if isinstance(input_shape, tuple) and isinstance(input_shape[1], tf.TensorShape):
+        #    input_shape = tf.TensorShape([input_shape[1][0], None])
 
         first_dims = input_shape
 
@@ -748,7 +742,7 @@ class EmbeddingFeatures(TabularBlock):
         **kwargs,
     ):
         if add_default_pre:
-            embedding_pre = [Filter(list(feature_config.keys())), ListToSparse()]
+            embedding_pre = [Filter(list(feature_config.keys()))]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
         self.l2_reg = l2_reg
@@ -1094,7 +1088,6 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
     def __init__(
         self,
         feature_config: Dict[str, FeatureConfig],
-        max_seq_length: Optional[int] = None,
         mask_zero: bool = True,
         padding_idx: int = 0,
         pre: Optional[BlockType] = None,
@@ -1106,7 +1099,7 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         **kwargs,
     ):
         if add_default_pre:
-            embedding_pre = [Filter(list(feature_config.keys())), ListToDense(max_seq_length)]
+            embedding_pre = [Filter(list(feature_config.keys()))]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
 
         super().__init__(

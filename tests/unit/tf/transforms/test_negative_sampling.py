@@ -23,6 +23,7 @@ from merlin.io import Dataset
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.transforms.negative_sampling import InBatchNegatives
 from merlin.models.tf.utils import testing_utils
+from merlin.models.tf.utils.tf_utils import calculate_batch_size_from_inputs
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -90,13 +91,13 @@ class TestAddRandomNegativesToBatch:
 
         assert input_user_item_pairs.intersection(negatives_user_item_pairs) == set()
 
-    def assert_outputs_batch_size(self, assert_fn, *outputs):
-        for values in zip(*outputs):
-            for value in values:
-                if isinstance(value, tuple):
-                    assert_fn(value[1].shape[0])
-                else:
-                    assert_fn(value.shape[0])
+    def assert_outputs_batch_size(self, assert_fn, outputs, targets=None):
+        batch_size = calculate_batch_size_from_inputs(outputs)
+        assert_fn(batch_size)
+
+        if targets is not None:
+            batch_size = calculate_batch_size_from_inputs(targets)
+            assert_fn(batch_size)
 
     @pytest.mark.parametrize("to_dense", [True, False])
     def test_calling_without_targets(
@@ -105,7 +106,11 @@ class TestAddRandomNegativesToBatch:
         schema = music_streaming_data.schema
         batch_size, n_per_positive = 10, 5
         features = mm.sample_batch(
-            music_streaming_data, batch_size=batch_size, include_targets=False, to_dense=to_dense
+            music_streaming_data,
+            batch_size=batch_size,
+            include_targets=False,
+            prepare_features=True,
+            to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(schema, n_per_positive, seed=tf_random_seed)
@@ -115,14 +120,18 @@ class TestAddRandomNegativesToBatch:
         def assert_fn(output_batch_size):
             assert output_batch_size == batch_size
 
-        self.assert_outputs_batch_size(assert_fn, outputs.values())
+        self.assert_outputs_batch_size(assert_fn, outputs)
 
     @pytest.mark.parametrize("to_dense", [True, False])
     def test_calling(self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int):
         schema = music_streaming_data.schema
         batch_size, n_per_positive = 10, 5
         inputs, targets = mm.sample_batch(
-            music_streaming_data, batch_size=batch_size, include_targets=True, to_dense=to_dense
+            music_streaming_data,
+            batch_size=batch_size,
+            include_targets=True,
+            prepare_features=True,
+            to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(schema, 5, seed=tf_random_seed)
@@ -136,8 +145,8 @@ class TestAddRandomNegativesToBatch:
 
         self.assert_outputs_batch_size(
             assert_fn,
-            outputs.values(),
-            targets.values(),
+            outputs,
+            targets,
         )
 
     @pytest.mark.parametrize("to_dense", [True, False])
@@ -147,7 +156,11 @@ class TestAddRandomNegativesToBatch:
         schema = music_streaming_data.schema
         batch_size, n_per_positive = 10, 5
         inputs, targets = mm.sample_batch(
-            music_streaming_data, batch_size=batch_size, include_targets=True, to_dense=to_dense
+            music_streaming_data,
+            batch_size=batch_size,
+            include_targets=True,
+            prepare_features=True,
+            to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(
@@ -163,8 +176,8 @@ class TestAddRandomNegativesToBatch:
 
         self.assert_outputs_batch_size(
             assert_fn,
-            outputs.values(),
-            targets.values(),
+            outputs,
+            targets,
         )
 
     # The sampling layer currnetly only works correctly as part of the model when run in eager mode

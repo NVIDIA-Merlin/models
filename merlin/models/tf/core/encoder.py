@@ -29,7 +29,7 @@ from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
 from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
-from merlin.models.tf.transforms.tensor import PrepareFeatures
+from merlin.models.tf.transforms.features import PrepareFeatures
 from merlin.models.tf.utils import tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 

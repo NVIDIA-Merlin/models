@@ -112,8 +112,7 @@ def test_transformer_encoder_with_pooling():
     assert list(outputs.shape) == [NUM_ROWS, EMBED_DIM]
 
 
-@pytest.mark.parametrize("max_seq_length", [None, 5, 20])
-def test_transformer_encoder_with_list_to_dense(max_seq_length):
+def test_transformer_encoder_with_list_to_dense():
     NUM_ROWS = 100
     SEQ_LENGTH = 10
     EMBED_DIM = 128
@@ -121,14 +120,11 @@ def test_transformer_encoder_with_list_to_dense(max_seq_length):
 
     transformer_encod = mm.TransformerBlock(
         transformer=BertConfig(hidden_size=EMBED_DIM, num_attention_heads=16),
-        pre=mm.ListToDense(max_seq_length=max_seq_length),
+        pre=mm.ToDense(),
     )
     outputs = transformer_encod(inputs)
 
-    if max_seq_length is not None:
-        assert list(outputs.shape) == [NUM_ROWS, max_seq_length, EMBED_DIM]
-    else:
-        assert list(outputs.shape) == [NUM_ROWS, SEQ_LENGTH, EMBED_DIM]
+    assert list(outputs.shape) == [NUM_ROWS, SEQ_LENGTH, EMBED_DIM]
 
 
 def test_transformer_encoder_with_post():
@@ -139,7 +135,7 @@ def test_transformer_encoder_with_post():
 
     transformer_encod = mm.TransformerBlock(
         transformer=BertConfig(hidden_size=EMBED_DIM, num_attention_heads=16),
-        pre=mm.ListToDense(max_seq_length=5),
+        pre=mm.ToDense(),
         post="sequence_mean",
     )
     outputs = transformer_encod(inputs)

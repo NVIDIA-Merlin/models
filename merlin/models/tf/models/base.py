@@ -50,7 +50,7 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.tensor import PrepareFeatures
+from merlin.models.tf.transforms.features import PrepareFeatures, expected_input_cols_from_schema
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -855,8 +855,12 @@ class BaseModel(tf.keras.Model):
             targets[k] = tf.cast(targets[k], predictions[k].dtype)
 
             # Ensuring targets are one-hot encoded if they are not
+            condition = tf.logical_and(
+                tf.rank(targets[k]) == tf.rank(predictions[k]),
+                tf.logical_and(tf.shape(targets[k])[-1] == 1, tf.shape(predictions[k])[-1] > 1),
+            )
             targets[k] = tf.cond(
-                tf.rank(targets[k]) == tf.rank(predictions[k]) - 1,
+                condition,
                 lambda: tf.one_hot(
                     tf.cast(targets[k], tf.int32),
                     tf.shape(predictions[k])[-1],
@@ -1413,27 +1417,28 @@ class Model(BaseModel):
         """
         return tf.keras.models.load_model(export_path)
 
-    def _maybe_build(self, inputs):
-        if isinstance(inputs, dict):
-            if isinstance(self.input_schema, Schema) and set(inputs.keys()) != set(
-                self.input_schema.column_names
-            ):
-                model_input_features = set(self.input_schema.column_names)
-                call_input_features = set(inputs.keys())
+    def _check_schema_and_inputs_matching(self, inputs):
+        if isinstance(self.input_schema, Schema):
+            model_expected_features = set(expected_input_cols_from_schema(self.input_schema))
+            call_input_features = set(inputs.keys())
+            if model_expected_features != call_input_features:
                 raise ValueError(
                     "Model called with a different set of features "
                     "compared with the input schema it was configured with. "
                     "Please check that the inputs passed to the model are only  "
                     "those required by the model. If you're using a Merlin Dataset, "
                     "the `schema` property can be changed to control the features being returned. "
-                    f"\nModel input features:\n\t{model_input_features}"
+                    f"\nModel expected features:\n\t{model_expected_features}"
                     f"\nCall input features:\n\t{call_input_features}"
-                    f"\nFeatures in model only:"
-                    f"\n\t{model_input_features.difference(call_input_features)}"
-                    f"\nFeatures in call only:"
-                    f"\n\t{call_input_features.difference(model_input_features)}"
+                    f"\nFeatures expected by model input schema only:"
+                    f"\n\t{model_expected_features.difference(call_input_features)}"
+                    f"\nFeatures provided in inputs only:"
+                    f"\n\t{call_input_features.difference(model_expected_features)}"
                 )
 
+    def _maybe_build(self, inputs):
+        if isinstance(inputs, dict):
+            self._check_schema_and_inputs_matching(inputs)
             _ragged_inputs = self.prepare_features(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}

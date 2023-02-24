@@ -23,11 +23,11 @@ from typing import Any, Optional
 
 import numpy as np
 import tensorflow as tf
-import wandb
 from tensorflow.keras import regularizers
 from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
+import wandb
 from merlin.io.dataset import Dataset
 from merlin.models.tf.outputs.base import DotProduct
 from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
@@ -404,7 +404,6 @@ def get_dual_encoder_model_v2(
 
 def get_youtube_dnn_model(
     schema,
-    max_seq_length,
     item_id_emb_size=32,
     emb_init_distr="truncated_normal",
     emb_init_range=0.05,
@@ -445,7 +444,6 @@ def get_youtube_dnn_model(
 
     model = mm.YoutubeDNNRetrievalModel(
         schema=schema_selected,
-        max_seq_length=max_seq_length,
         num_sampled=youtubednn_sampled_softmax_n_candidates,
         sampled_softmax=youtubednn_sampled_softmax,
         logits_temperature=logits_temperature,

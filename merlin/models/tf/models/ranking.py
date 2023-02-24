@@ -371,8 +371,7 @@ def WideAndDeepModel(
         # Multi-hot features
         multi_hot_encoding = mm.SequentialBlock(
                 mm.Filter(multi_hot_schema),
-                # Assuming max size of multi-hot features is 5
-                ml.AsDenseFeatures(max_seq_length=5),
+                ml.ToDense(multi_hot_schema),
                 mm.CategoryEncoding(multi_hot_schema, sparse=True, output_mode="multi_hot")
         )
         ```
@@ -396,8 +395,7 @@ def WideAndDeepModel(
         # 2nd-level features interaction
         features_crossing = mm.SequentialBlock(
                     mm.Filter(wide_schema),
-                    # Assuming max size of multi-hot features is 5
-                    ml.AsDenseFeatures(max_seq_length=5),
+                    ml.ToDense(wide_schema),
                     mm.HashedCrossAll(
                         wide_schema,
                         # The crossed features will be hashed to this number of bins

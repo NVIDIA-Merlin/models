@@ -878,7 +878,7 @@ def test_broadcast_to_sequence_input_block(sequence_testing_data: Dataset):
     )
 
     batch = mm.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+        sequence_testing_data, batch_size=100, include_targets=False, prepare_features=True
     )
     input_batch = input_block(batch)
     assert set(input_batch.keys()) == set(

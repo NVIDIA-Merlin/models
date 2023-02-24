@@ -58,11 +58,28 @@ def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None)
     return sizes
 
 
+def calculate_batch_size_from_inputs(inputs):
+    input_shapes = {k: v.shape for k, v in inputs.items()}
+    batch_size = calculate_batch_size_from_input_shapes(input_shapes)
+    return batch_size
+
+
 def calculate_batch_size_from_input_shapes(input_shapes):
-    val = list(input_shapes.values())[0]
-    if isinstance(val, tuple) and isinstance(val[1], tf.TensorShape):
-        val = val[1]
-    return val[0]
+    non_list_features = list(
+        [k for k in input_shapes if not k.endswith("__values") and not k.endswith("__offsets")]
+    )
+    if len(non_list_features) > 0:
+        batch_size = input_shapes[non_list_features[0]]
+        return batch_size
+
+    list_features_offsets = list([k for k in input_shapes if k.endswith("__offsets")])
+    if len(non_list_features) > 0:
+        batch_size = input_shapes[list_features_offsets[0]]
+        if batch_size is not None:
+            batch_size -= 1
+        return batch_size
+
+    raise Exception("Not possible to infer the batch size from the input shapes")
 
 
 def maybe_serialize_keras_objects(
@@ -460,11 +477,8 @@ def get_sub_blocks(blocks: Sequence[Block]) -> List[Block]:
 
 
 @tf.function
-def list_col_to_ragged(col: Tuple[tf.Tensor, tf.Tensor]):
-    values = col[0][:, 0]
-    row_lengths = col[1][:, 0]
+def list_col_to_ragged(values: tf.Tensor, offsets: tf.Tensor):
+    if offsets.dtype.is_floating:
+        offsets = tf.cast(offsets, tf.int32)
 
-    if row_lengths.dtype.is_floating:
-        row_lengths = tf.cast(row_lengths, tf.int32)
-
-    return tf.RaggedTensor.from_row_lengths(values, row_lengths)
+    return tf.RaggedTensor.from_row_splits(values, offsets)
