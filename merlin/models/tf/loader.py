@@ -409,7 +409,12 @@ def sample_batch(
     inputs, targets = batch[0], batch[1]
 
     if prepare_features:
-        inputs = PrepareFeatures(loader.schema, list_to_dense)(inputs)
+        pf = PrepareFeatures(loader.schema, list_to_dense)
+        if targets:
+            inputs, targets = pf(inputs, targets)
+        else:
+            inputs = pf(inputs)
+
     if not include_targets:
         return inputs
     return inputs, targets

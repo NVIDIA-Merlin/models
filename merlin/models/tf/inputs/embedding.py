@@ -382,14 +382,13 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def _call_table(self, inputs, **kwargs):
-        # if isinstance(inputs, tuple) and len(inputs) == 2:
-        #    inputs = list_col_to_ragged(inputs)
-
-        # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor) or (
             isinstance(inputs, tf.RaggedTensor) and inputs.shape[-1] == 1
         ):
-            inputs = tf.squeeze(inputs, axis=-1)
+            # Eliminating the last dim==1 of dense tensors before embedding lookup
+            inputs = tf.cond(
+                tf.shape(inputs)[-1] == 1, lambda: tf.squeeze(inputs, axis=-1), lambda: inputs
+            )
 
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):

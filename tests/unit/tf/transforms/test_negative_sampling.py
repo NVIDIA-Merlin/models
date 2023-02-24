@@ -110,7 +110,7 @@ class TestAddRandomNegativesToBatch:
             batch_size=batch_size,
             include_targets=False,
             prepare_features=True,
-            to_dense=to_dense,
+            list_to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(schema, n_per_positive, seed=tf_random_seed)
@@ -131,7 +131,7 @@ class TestAddRandomNegativesToBatch:
             batch_size=batch_size,
             include_targets=True,
             prepare_features=True,
-            to_dense=to_dense,
+            list_to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(schema, 5, seed=tf_random_seed)
@@ -160,7 +160,7 @@ class TestAddRandomNegativesToBatch:
             batch_size=batch_size,
             include_targets=True,
             prepare_features=True,
-            to_dense=to_dense,
+            list_to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(

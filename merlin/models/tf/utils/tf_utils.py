@@ -69,17 +69,17 @@ def calculate_batch_size_from_input_shapes(input_shapes):
         [k for k in input_shapes if not k.endswith("__values") and not k.endswith("__offsets")]
     )
     if len(non_list_features) > 0:
-        batch_size = input_shapes[non_list_features[0]]
+        batch_size = input_shapes[non_list_features[0]][0]
         return batch_size
 
     list_features_offsets = list([k for k in input_shapes if k.endswith("__offsets")])
-    if len(non_list_features) > 0:
-        batch_size = input_shapes[list_features_offsets[0]]
+    if len(list_features_offsets) > 0:
+        batch_size = input_shapes[list_features_offsets[0]][0]
         if batch_size is not None:
             batch_size -= 1
         return batch_size
 
-    raise Exception("Not possible to infer the batch size from the input shapes")
+    return None
 
 
 def maybe_serialize_keras_objects(

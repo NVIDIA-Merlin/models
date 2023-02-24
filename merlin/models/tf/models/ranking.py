@@ -6,7 +6,7 @@ from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.interaction import FMBlock
 from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures
-from merlin.models.tf.core.base import Block
+from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
@@ -14,7 +14,7 @@ from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutputType
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.features import CategoryEncoding
+from merlin.models.tf.transforms.features import CategoryEncoding, PrepareFeatures
 from merlin.schema import Schema, Tags
 
 
@@ -285,6 +285,7 @@ def WideAndDeepModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock, ModelOutputType]
     ] = None,
+    pre: Optional[BlockType] = None,
     **wide_body_kwargs,
 ) -> Model:
     """
@@ -551,7 +552,11 @@ def WideAndDeepModel(
             " or wide part (wide_schema/wide_input_block) must be provided."
         )
 
-    wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
+    _pre = PrepareFeatures(schema)
+    if pre:
+        _pre = _pre.connect(pre)
+
+    wide_and_deep_body = ParallelBlock(branches, pre=_pre, aggregation="element-wise-sum")
     model = Model(wide_and_deep_body, prediction_blocks)
 
     return model

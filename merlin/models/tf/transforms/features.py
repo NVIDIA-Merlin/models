@@ -29,10 +29,6 @@ from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
-from merlin.models.utils.schema_utils import (
-    schema_to_tensorflow_metadata_json,
-    tensorflow_metadata_json_to_schema,
-)
 from merlin.schema import ColumnSchema, Schema, Tags
 
 ONE_HOT = p_utils.ONE_HOT
@@ -51,10 +47,8 @@ class FeaturesTensorTypeConversion(TabularBlock):
     """
 
     def __init__(self, schema: Optional[Schema] = None, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(schema=schema, **kwargs)
         self.column_names = None
-        if schema is not None:
-            self.column_names = schema.column_names
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         raise NotImplementedError("The call method need to be implemented by child classes")
@@ -65,7 +59,7 @@ class FeaturesTensorTypeConversion(TabularBlock):
 
         outputs = {}
         for name, val in input_shape.items():
-            if self.schema is not None and name in self.column_names:
+            if self.has_schema and name in self.schema.column_names:
                 col_schema_shape = self.schema[name].shape
                 if col_schema_shape.is_list:
                     max_seq_length = col_schema_shape.dims[1].max
@@ -82,18 +76,6 @@ class FeaturesTensorTypeConversion(TabularBlock):
     def compute_output_schema(self, input_schema: Schema) -> Schema:
         return input_schema
 
-    def get_config(self):
-        config = super().get_config()
-        config.update({"schema": schema_to_tensorflow_metadata_json(self.schema)})
-
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
-
-        return cls(schema, **config)
-
 
 @Block.registry.register("to_sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -108,7 +90,7 @@ class ToSparse(FeaturesTensorTypeConversion):
 
         outputs = {}
         for name, val in inputs.items():
-            if self.schema is not None and name in self.column_names:
+            if not self.has_schema or name in self.schema.column_names:
                 val = to_sparse(val)
 
             outputs[name] = val
@@ -131,14 +113,19 @@ class ToDense(FeaturesTensorTypeConversion):
 
         outputs = {}
         for name, val in inputs.items():
-            if self.schema is not None and name in self.column_names:
-                col_schema_shape = self.schema[name].shape
-                if col_schema_shape.is_list:
-                    # TODO: Not sure if we really need to extract the
-                    # max seq length from the col schema to
-                    # have a dense tensor properly set
-                    max_seq_length = col_schema_shape.dims[1].max
-                    val = to_dense(val, max_seq_length=max_seq_length)
+            if self.has_schema:
+                if name in self.schema.column_names:
+                    col_schema_shape = self.schema[name].shape
+                    if col_schema_shape.is_list:
+                        # TODO: Not sure if we really need to extract the
+                        # max seq length from the col schema to
+                        # have a dense tensor properly set
+                        max_seq_length = col_schema_shape.dims[1].max
+                        val = to_dense(val, max_seq_length=max_seq_length)
+                    else:
+                        val = to_dense(val)
+            else:
+                val = to_dense(val)
 
             outputs[name] = val
 
@@ -169,13 +156,16 @@ class PrepareListFeatures(TabularBlock):
     """
 
     def __init__(self, schema: Schema, list_as_dense: Optional[bool] = False, **kwargs):
-        super().__init__(**kwargs)
-        self.schema = schema
+        super().__init__(schema=schema, **kwargs)
         self.list_as_dense = list_as_dense
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        if not inputs:
+            return inputs
+
         outputs = {}
         for name in self.schema.column_names:
+            val = None
             col_schema_shape = self.schema[name].shape
             if col_schema_shape.is_list:
                 if name in inputs:
@@ -193,23 +183,32 @@ class PrepareListFeatures(TabularBlock):
                         )
                     val = list_col_to_ragged(inputs[f"{name}__values"], inputs[f"{name}__offsets"])
 
-                if len(val.shape) == 2:
-                    val = tf.expand_dims(val, axis=-1)
+                # if len(val.shape) == 2:
+                #    val = tf.expand_dims(val, axis=-1)
 
-                if self.list_as_dense or not col_schema_shape.is_ragged:
+                if self.list_as_dense:
                     val = to_dense(val, max_seq_length=col_schema_shape.dims[1].max)
-            else:
+
+            elif name in inputs:
                 val = inputs[name]
 
-            outputs[name] = val
+            if val is not None:
+                outputs[name] = val
 
         return outputs
 
     def compute_output_shape(self, input_shapes):
+        if not input_shapes:
+            return input_shapes
+
         output_shapes = {}
         for name in self.schema.column_names:
             col_schema_shape = self.schema[name].shape
-            if col_schema_shape.is_list and name not in input_shapes:
+            if (
+                col_schema_shape.is_list
+                and name not in input_shapes
+                and f"{name}__offsets" in input_shapes
+            ):
                 batch_size = input_shapes[f"{name}__offsets"][0]
                 if batch_size is not None:
                     # The length of offset is always batch size + 1
@@ -219,9 +218,10 @@ class PrepareListFeatures(TabularBlock):
                 if self.list_as_dense or not self.schema[name].shape.is_ragged:
                     seq_length = col_schema_shape.dims[1].max
 
-                output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
+                # output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
+                output_shapes[name] = tf.TensorShape([batch_size, seq_length])
 
-            else:
+            elif name in input_shapes:
                 output_shapes[name] = input_shapes[name]
 
         return output_shapes
@@ -231,12 +231,7 @@ class PrepareListFeatures(TabularBlock):
 
     def get_config(self):
         config = super().get_config()
-        config.update(
-            {
-                "list_as_dense": self.list_as_dense,
-                "schema": schema_to_tensorflow_metadata_json(self.schema),
-            }
-        )
+        config.update({"list_as_dense": self.list_as_dense})
 
         return config
 
@@ -267,38 +262,49 @@ class PrepareFeatures(TabularBlock):
     """
 
     def __init__(self, schema: Schema, list_as_dense: Optional[bool] = False, **kwargs):
-        super().__init__(**kwargs)
-        self.schema = schema
+        super().__init__(schema=schema, **kwargs)
         self.list_as_dense = list_as_dense
         self.prepare_lists = PrepareListFeatures(schema, list_as_dense)
 
-    def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        outputs = {}
-
+    def call(
+        self, inputs: TabularData, targets: TabularData = None, **kwargs
+    ) -> Union[TabularData, Tuple[TabularData, TabularData]]:
+        # targets = self.prepare_lists(targets)
         inputs = self.prepare_lists(inputs)
+        if not inputs:
+            return inputs
 
+        outputs = {}
+        out_targets = {}
+        # Preparing non-list features and targets
         for name in self.schema.column_names:
-            val = inputs[name]
+            if name in inputs:
+                val = inputs[name]
 
-            if not self.schema[name].shape.is_list:
-                if name not in inputs:
-                    raise Exception(
-                        f"The column {name} is present the schema "
-                        f"but was not found among inputs: {list(inputs.keys())}"
-                    )
+                if not self.schema[name].shape.is_list:
+                    # Expanding / setting last dim of non-list input features to be 1D
+                    val = tf.reshape(val, (-1, 1))
 
-                # Expanding / setting last dim of non-list features to be 1D
-                val = tf.reshape(val, (-1, 1))
+                outputs[name] = val
 
-            outputs[name] = val
+            if targets is not None and name in targets:
+                val = targets[name]
 
+                if not self.schema[name].shape.is_list:
+                    # Expanding / setting last dim of non-list target features to be 1D
+                    val = tf.reshape(val, (-1, 1))
+
+                out_targets[name] = val
+
+        if out_targets:
+            return (outputs, out_targets)
         return outputs
 
     def compute_output_shape(self, input_shapes):
         output_shapes = self.prepare_lists.compute_output_shape(input_shapes)
 
         for name in self.schema.column_names:
-            if not self.schema[name].shape.is_list:
+            if not self.schema[name].shape.is_list and name in input_shapes:
                 output_shapes[name] = tf.TensorShape([input_shapes[name][0], 1])
 
         return output_shapes
@@ -308,20 +314,9 @@ class PrepareFeatures(TabularBlock):
 
     def get_config(self):
         config = super().get_config()
-        config.update(
-            {
-                "list_as_dense": self.list_as_dense,
-                "schema": schema_to_tensorflow_metadata_json(self.schema),
-            }
-        )
+        config.update({"list_as_dense": self.list_as_dense})
 
         return config
-
-    @classmethod
-    def from_config(cls, config):
-        schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
-
-        return cls(schema, **config)
 
 
 @Block.registry.register("as-ragged")
@@ -469,6 +464,8 @@ class CategoryEncoding(TabularBlock):
                     f"{name} with type of {type(inputs[name])}"
                 )
 
+            inputs[name] = tf.squeeze(inputs[name])
+
             assertion_min_rank = tf.Assert(
                 tf.logical_and(
                     tf.greater_equal(tf.rank(inputs[name]), 1),
@@ -525,11 +522,18 @@ class CategoryEncoding(TabularBlock):
         batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
         outputs = {}
         for key in self.schema.column_names:
-            outputs[key] = tf.TensorShape([batch_size, self.cardinalities[key]])
+            if key in input_shapes:
+                outputs[key] = tf.TensorShape([batch_size, self.cardinalities[key]])
 
-            input_shape = input_shapes[key]
-            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
-                self.features_2d_last_dim[key] = input_shape[-1]
+                input_shape = input_shapes[key]
+                if input_shape[-1] == 1:
+                    input_shape = input_shape[:-1]
+                # if not isinstance(input_shape, tuple) and len(input_shape) == 2:
+                if len(input_shape) == 2:
+                    self.features_2d_last_dim[key] = input_shape[-1]
+                    # self.features_2d_last_dim[key] = (
+                    #       self.schema[key].shape.dims[1].max or
+                    #       self.schema[key].shape.dims[1].min)
 
         return outputs
 
@@ -688,6 +692,8 @@ class HashedCross(TabularBlock):
 
         _inputs = {}
         for name in self.schema.column_names:
+            inputs[name] = tf.squeeze(inputs[name])
+
             assertion_min_rank = tf.Assert(
                 tf.logical_and(
                     tf.greater_equal(tf.rank(inputs[name]), 1),
@@ -734,8 +740,10 @@ class HashedCross(TabularBlock):
         # Save the last dim for 2D features so that we can reshape them in graph mode in call()
         for key in self.schema.column_names:
             input_shape = input_shapes[key]
-
-            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
+            if input_shape[-1] == 1:
+                input_shape = input_shape[:-1]
+            # if not isinstance(input_shape, tuple) and len(input_shape) == 2:
+            if len(input_shape) == 2:
                 self.features_2d_last_dim[key] = input_shape[-1]
 
         output_shape = {}
@@ -776,6 +784,9 @@ class HashedCross(TabularBlock):
         _inputs_shapes = []
         for name in self.schema.column_names:
             shape = inputs_shapes[name]
+
+            if shape[-1] == 1:
+                shape = shape[:-1]
 
             if shape.rank not in [1, 2]:
                 raise ValueError(

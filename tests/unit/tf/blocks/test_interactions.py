@@ -87,7 +87,7 @@ def test_fm_block_with_multi_hot_categ_features(testing_data: Dataset):
         factors_dim=32,
     )
 
-    batch, _ = mm.sample_batch(testing_data, batch_size=16)
+    batch, _ = mm.sample_batch(testing_data, batch_size=16, prepare_features=True)
 
     output = fm_block(batch)
     assert output.shape.as_list() == [16, 1]
