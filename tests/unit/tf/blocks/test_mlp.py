@@ -103,10 +103,10 @@ def test_mlp_model_with_sequential_features_and_combiner(
         model, loader, run_eagerly=run_eagerly, reload_model=True, fit_kwargs={"pre": predict_last}
     )
 
-    metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_last)
+    metrics = model.evaluate(loader, steps=1, return_dict=True, pre=predict_last)
     assert len(metrics) > 0
 
-    predictions = model.predict(loader, batch_size=8, steps=1)
+    predictions = model.predict(loader, steps=1)
     assert predictions.shape == (8, 51997)
 
 
