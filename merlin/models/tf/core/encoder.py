@@ -238,7 +238,7 @@ class Encoder(tf.keras.Model):
         )
         input_schema = self.schema
         output_schema = get_output_schema(export_path)
-        save_merlin_metadata(export_path, self, input_schema, output_schema)
+        save_merlin_metadata(export_path, input_schema, output_schema)
 
     @property
     def to_call(self):

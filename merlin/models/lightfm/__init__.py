@@ -14,12 +14,24 @@
 # limitations under the License.
 #
 import multiprocessing
+import os
+import pickle
+from pathlib import Path
+from typing import Optional, Union
 
 import lightfm
 import lightfm.evaluation
 
 from merlin.io import Dataset
-from merlin.models.utils.dataset import dataset_to_coo
+from merlin.models.io import save_merlin_metadata
+from merlin.models.utils.dataset import (
+    dataset_to_coo,
+    item_id_column_name,
+    target_column_name,
+    user_id_column_name,
+)
+from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
+from merlin.schema import Schema
 
 
 class LightFM:
@@ -41,12 +53,35 @@ class LightFM:
 
         # evaluate the model given the validation set
         print(model.evaluate(valid))
+
+        # save the model
+        model.save("/path/to/dir")
+
+        # reload the model
+        model = LightFM.load("/path/to/dir")
     """
 
-    def __init__(self, *args, epochs=10, num_threads=0, **kwargs):
+    def __init__(
+        self,
+        *args,
+        epochs: int = 10,
+        num_threads: int = 0,
+        schema: Optional[Schema] = None,
+        target_column: Optional[str] = None,
+        **kwargs,
+    ):
         self.lightfm_model = lightfm.LightFM(*args, **kwargs)
         self.epochs = epochs
         self.num_threads = num_threads or multiprocessing.cpu_count()
+        self.schema = schema
+        self.target_column = target_column
+        self._select_features_and_column_from_schema()
+
+    def _select_features_and_column_from_schema(self):
+        if self.schema:
+            self.user_id_column = user_id_column_name(self.schema)
+            self.item_id_column = item_id_column_name(self.schema)
+            self.target_column = self.target_column or target_column_name(self.schema)
 
     def fit(self, train: Dataset):
         """Trains the lightfm model
@@ -59,7 +94,11 @@ class LightFM:
             If there is a column tagged as Tags.TARGET we will also use that for the values,
             otherwise will be set to 1
         """
-        data = dataset_to_coo(train).tocsr()
+        if not self.schema:
+            self.schema = train.schema
+            self._select_features_and_column_from_schema()
+
+        data = dataset_to_coo(train, target_column=self.target_column).tocsr()
         self.lightfm_model.fit(data, epochs=self.epochs, num_threads=self.num_threads)
         self.train_data = data
 
@@ -77,7 +116,7 @@ class LightFM:
             How many items to return per prediction
         """
 
-        test = dataset_to_coo(test_dataset).tocsr()
+        test = dataset_to_coo(test_dataset, target_column=self.target_column).tocsr()
 
         # lightfm needs the test set to have the same dimensionality as the train set
         test.resize(self.train_data.shape)
@@ -99,5 +138,45 @@ class LightFM:
         k: int
             The number of recommendations to generate for each user
         """
-        data = dataset_to_coo(dataset)
+        data = dataset_to_coo(dataset, target_column=self.target_column)
         return self.lightfm_model.predict(data.row, data.col)
+
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        """Saves the model to export_path using pickle, along with merlin
+        model metadata.
+
+        Parameters
+        ----------
+        path: Union[str, os.PathLike]
+            Directory where the model will be saved.
+        """
+        export_dir = Path(path)
+        export_dir.mkdir(parents=True)
+
+        with open(export_dir / "lightfm_model.pkl", "wb") as f:
+            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        schema_to_tensorflow_metadata_json(self.schema, export_dir / "schema.json")
+        save_merlin_metadata(
+            export_dir,
+            self.schema.select_by_name([self.user_id_column, self.item_id_column]),
+            self.schema.select_by_name(self.target_column) if self.target_column else None,
+        )
+
+    @classmethod
+    def load(self, path: Union[str, os.PathLike]) -> "LightFM":
+        """Load the model from a directory where a model has been saved.
+
+        Parameters
+        ----------
+        path: Union[str, os.PathLike]
+            Path where a Merlin LightFM model has been saved.
+
+        Returns
+        -------
+        LightFM model instance.
+        """
+        load_dir = Path(path)
+        with open(load_dir / "lightfm_model.pkl", "rb") as f:
+            model = pickle.load(f)
+        return model

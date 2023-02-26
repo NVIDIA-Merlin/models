@@ -14,33 +14,30 @@
 # limitations under the License.
 #
 import warnings
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
 from scipy.sparse import coo_matrix
 
 from merlin.io import Dataset
-from merlin.schema import Tags
+from merlin.schema import Schema, Tags
 
 
-def dataset_to_coo(dataset: Dataset):
+def dataset_to_coo(
+    dataset: Dataset,
+    target_column: Optional[str] = None,
+):
     """Converts a merlin.io.Dataset object to a scipy coo matrix"""
-    user_id_column = dataset.schema.select_by_tag(Tags.USER_ID).first.name
-    item_id_column = dataset.schema.select_by_tag(Tags.ITEM_ID).first.name
+    user_id_column = user_id_column_name(dataset.schema)
+    item_id_column = item_id_column_name(dataset.schema)
 
     columns = [user_id_column, item_id_column]
-    target_column = None
-    target = dataset.schema.select_by_tag(Tags.TARGET)
 
-    if len(target) > 1:
-        raise ValueError(
-            "Found more than one column tagged Tags.TARGET in the dataset schema."
-            f" Expected a single target column but found  {target.column_names}"
-        )
+    if not target_column:
+        target_column = target_column_name(dataset.schema)
 
-    elif len(target) == 1:
-        target_column = target.first.name
+    if target_column:
         columns.append(target_column)
 
     df = dataset.to_ddf()[columns].compute(scheduler="synchronous")
@@ -49,6 +46,27 @@ def dataset_to_coo(dataset: Dataset):
     itemids = _to_numpy(df[item_id_column])
     targets = _to_numpy(df[target_column]) if target_column else np.ones(len(userids))
     return coo_matrix((targets.astype("float32"), (userids, itemids)))
+
+
+def user_id_column_name(schema: Schema) -> str:
+    return schema.select_by_tag(Tags.USER_ID).first.name
+
+
+def item_id_column_name(schema: Schema) -> str:
+    return schema.select_by_tag(Tags.ITEM_ID).first.name
+
+
+def target_column_name(schema: Schema) -> Optional[str]:
+    target_column = None
+    target = schema.select_by_tag(Tags.TARGET)
+    if len(target) > 1:
+        raise ValueError(
+            "Found more than one column tagged Tags.TARGET in the dataset schema."
+            f" Expected a single target column but found  {target.column_names}"
+        )
+    elif len(target) == 1:
+        target_column = target.first.name
+    return target_column
 
 
 def unique_rows_by_features(

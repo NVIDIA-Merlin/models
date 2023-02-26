@@ -14,14 +14,18 @@
 # limitations under the License.
 #
 import numpy as np
+from pathlib import Path
+import pytest
 
 from merlin.datasets.synthetic import generate_data
 from merlin.models.lightfm import LightFM
 from merlin.schema import Tags
 
 
+np.random.seed(0)
+
+
 def test_warp():
-    np.random.seed(0)
     train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
     train.schema = train.schema.remove_by_tag(Tags.TARGET)
     valid.schema = valid.schema.remove_by_tag(Tags.TARGET)
@@ -33,3 +37,68 @@ def test_warp():
 
     metrics = model.evaluate(valid, k=10)
     assert metrics["auc"] > 0.01
+
+
+def test_warp():
+    train, _ = generate_data("music-streaming", 100, (0.95, 0.05))
+
+    model = LightFM()
+
+    with pytest.raises(ValueError) as excinfo:
+        model.fit(train)
+
+    error_message = (
+        "Found more than one column tagged Tags.TARGET in the dataset schema. "
+        "Expected a single target column but found  ['click', 'play_percentage', 'like']"
+    )
+    assert error_message in str(excinfo.value)
+
+
+
+def test_reload_no_target_column(tmpdir):
+    train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
+    train.schema = train.schema.remove_by_tag(Tags.TARGET)
+    valid.schema = valid.schema.remove_by_tag(Tags.TARGET)
+
+    model = LightFM(learning_rate=0.05, loss="warp", epochs=10)
+    model.fit(train)
+
+    _ = model.evaluate(valid)
+
+    model_dir = Path(tmpdir) / "lightfm_model"
+
+    model.save(model_dir)
+    reloaded = LightFM.load(model_dir)
+
+    np.testing.assert_array_almost_equal(model.predict(valid), reloaded.predict(valid))
+
+    assert reloaded.schema == model.schema
+    assert reloaded.user_id_column == model.user_id_column
+    assert reloaded.item_id_column == model.item_id_column
+    assert reloaded.target_column == model.target_column
+
+
+def test_reload_with_target_column(tmpdir):
+    train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
+    train.schema = train.schema.excluding_by_name(["play_percentage", "like"])
+    valid.schema = valid.schema.excluding_by_name(["play_percentage", "like"])
+
+    assert "click" in train.schema.column_names
+    assert "click" in valid.schema.column_names
+
+    model = LightFM(learning_rate=0.05, loss="warp", epochs=10)
+    model.fit(train)
+
+    _ = model.evaluate(valid)
+
+    model_dir = Path(tmpdir) / "lightfm_model"
+
+    model.save(model_dir)
+    reloaded = LightFM.load(model_dir)
+
+    np.testing.assert_array_almost_equal(model.predict(valid), reloaded.predict(valid))
+
+    assert reloaded.schema == model.schema
+    assert reloaded.user_id_column == model.user_id_column
+    assert reloaded.item_id_column == model.item_id_column
+    assert reloaded.target_column == model.target_column
