@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import json
 import multiprocessing
 import os
 import pickle
@@ -30,7 +31,10 @@ from merlin.models.utils.dataset import (
     get_target_column_name,
     get_user_id_column_name,
 )
-from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
 from merlin.schema import Schema
 
 
@@ -68,9 +72,27 @@ class LightFM:
         num_threads: int = 0,
         schema: Optional[Schema] = None,
         target_column: Optional[str] = None,
+        lightfm_model: Optional[lightfm.LightFM] = None,
         **kwargs,
     ):
-        self.lightfm_model = lightfm.LightFM(*args, **kwargs)
+        """
+        Parameters
+        ----------
+        epochs: int
+            Number of epochs to run.
+        num_threads: int
+            Number of parallel computation threads to use.
+            Should not be higher than the number of physical cores.
+        schema: merlin.schema.Schema
+            The schema of the data that will be used to train and evaluate the model.
+        target_column: Optional[str]
+            The target column to use.
+            If the schema contains multiple columns with Tags.TARGET, specify
+            the column name to use for the target column.
+        lightfm_model: Optional[lightfm.LightFM]
+            If provided, an existing lightfm.LightFM instance will be loaded.
+        """
+        self.lightfm_model = lightfm_model or lightfm.LightFM(*args, **kwargs)
         self.epochs = epochs
         self.num_threads = num_threads or multiprocessing.cpu_count()
         self.schema = schema
@@ -154,7 +176,7 @@ class LightFM:
         export_dir.mkdir(parents=True)
 
         with open(export_dir / "lightfm_model.pkl", "wb") as f:
-            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.lightfm_model, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         schema_to_tensorflow_metadata_json(self.schema, export_dir / "schema.json")
         save_merlin_metadata(
@@ -163,8 +185,19 @@ class LightFM:
             self.schema.select_by_name(self.target_column) if self.target_column else None,
         )
 
+        with open(export_dir / "config.json", "w") as f:
+            json.dump(
+                dict(
+                    epochs=self.epochs,
+                    num_threads=self.num_threads,
+                    target_column=self.target_column,
+                ),
+                f,
+                indent=4,
+            )
+
     @classmethod
-    def load(self, path: Union[str, os.PathLike]) -> "LightFM":
+    def load(cls, path: Union[str, os.PathLike]) -> "LightFM":
         """Load the model from a directory where a model has been saved.
 
         Parameters
@@ -177,6 +210,14 @@ class LightFM:
         LightFM model instance.
         """
         load_dir = Path(path)
+        schema = tensorflow_metadata_json_to_schema(load_dir / "schema.json")
         with open(load_dir / "lightfm_model.pkl", "rb") as f:
-            model = pickle.load(f)
-        return model
+            lightfm_model = pickle.load(f)
+        with open(load_dir / "config.json", "r") as f:
+            config = json.load(f)
+        return cls(
+            epochs=config.get("epochs"),
+            num_threads=config.get("num_threads"),
+            schema=schema,
+            lightfm_model=lightfm_model,
+        )
