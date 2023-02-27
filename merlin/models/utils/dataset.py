@@ -29,13 +29,13 @@ def dataset_to_coo(
     target_column: Optional[str] = None,
 ):
     """Converts a merlin.io.Dataset object to a scipy coo matrix"""
-    user_id_column = user_id_column_name(dataset.schema)
-    item_id_column = item_id_column_name(dataset.schema)
+    user_id_column = get_user_id_column_name(dataset)
+    item_id_column = get_item_id_column_name(dataset)
 
     columns = [user_id_column, item_id_column]
 
     if not target_column:
-        target_column = target_column_name(dataset.schema)
+        target_column = get_target_column_name(dataset)
 
     if target_column:
         columns.append(target_column)
@@ -48,16 +48,29 @@ def dataset_to_coo(
     return coo_matrix((targets.astype("float32"), (userids, itemids)))
 
 
-def user_id_column_name(schema: Schema) -> str:
+def get_schema(dataset_or_schema: Union[Dataset, Schema]) -> Schema:
+    if isinstance(dataset_or_schema, Dataset):
+        schema = dataset_or_schema.schema
+    elif isinstance(dataset_or_schema, Schema):
+        schema = dataset_or_schema
+    else:
+        raise ValueError(f"Cannot get schema from {type(dataset_or_schema)}.")
+    return schema
+
+
+def get_user_id_column_name(dataset_or_schema: Union[Dataset, Schema]) -> str:
+    schema = get_schema(dataset_or_schema)
     return schema.select_by_tag(Tags.USER_ID).first.name
 
 
-def item_id_column_name(schema: Schema) -> str:
+def get_item_id_column_name(dataset_or_schema: Union[Dataset, Schema]) -> str:
+    schema = get_schema(dataset_or_schema)
     return schema.select_by_tag(Tags.ITEM_ID).first.name
 
 
-def target_column_name(schema: Schema) -> Optional[str]:
+def get_target_column_name(dataset_or_schema: Union[Dataset, Schema]) -> Optional[str]:
     target_column = None
+    schema = get_schema(dataset_or_schema)
     target = schema.select_by_tag(Tags.TARGET)
     if len(target) > 1:
         raise ValueError(

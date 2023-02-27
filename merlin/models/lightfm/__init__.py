@@ -26,9 +26,9 @@ from merlin.io import Dataset
 from merlin.models.io import save_merlin_metadata
 from merlin.models.utils.dataset import (
     dataset_to_coo,
-    item_id_column_name,
-    target_column_name,
-    user_id_column_name,
+    get_item_id_column_name,
+    get_target_column_name,
+    get_user_id_column_name,
 )
 from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
 from merlin.schema import Schema
@@ -79,9 +79,9 @@ class LightFM:
 
     def _select_features_and_column_from_schema(self):
         if self.schema:
-            self.user_id_column = user_id_column_name(self.schema)
-            self.item_id_column = item_id_column_name(self.schema)
-            self.target_column = self.target_column or target_column_name(self.schema)
+            self.user_id_column = get_user_id_column_name(self.schema)
+            self.item_id_column = get_item_id_column_name(self.schema)
+            self.target_column = self.target_column or get_target_column_name(self.schema)
 
     def fit(self, train: Dataset):
         """Trains the lightfm model
