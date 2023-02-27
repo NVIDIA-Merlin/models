@@ -13,14 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 import pytest
 
 from merlin.datasets.synthetic import generate_data
 from merlin.models.lightfm import LightFM
 from merlin.schema import Tags
-
 
 np.random.seed(0)
 
@@ -39,7 +39,7 @@ def test_warp():
     assert metrics["auc"] > 0.01
 
 
-def test_warp():
+def test_multiple_targets_raise_error():
     train, _ = generate_data("music-streaming", 100, (0.95, 0.05))
 
     model = LightFM()
@@ -52,7 +52,6 @@ def test_warp():
         "Expected a single target column but found  ['click', 'play_percentage', 'like']"
     )
     assert error_message in str(excinfo.value)
-
 
 
 def test_reload_no_target_column(tmpdir):
@@ -75,7 +74,7 @@ def test_reload_no_target_column(tmpdir):
     assert reloaded.schema == model.schema
     assert reloaded.user_id_column == model.user_id_column
     assert reloaded.item_id_column == model.item_id_column
-    assert reloaded.target_column == model.target_column
+    assert reloaded.target_column is None
 
 
 def test_reload_with_target_column(tmpdir):
@@ -101,4 +100,4 @@ def test_reload_with_target_column(tmpdir):
     assert reloaded.schema == model.schema
     assert reloaded.user_id_column == model.user_id_column
     assert reloaded.item_id_column == model.item_id_column
-    assert reloaded.target_column == model.target_column
+    assert reloaded.target_column == "click"
