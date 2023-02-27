@@ -461,7 +461,6 @@ def test_cgc_model(music_streaming_data: Dataset, run_eagerly: bool, task_blocks
         expert_block=mm.MLPBlock([64]),
         num_task_experts=2,
         num_shared_experts=3,
-        schema=schema,
     )
     model = mm.Model(inputs, cgc, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
