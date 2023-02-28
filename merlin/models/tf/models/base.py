@@ -1400,7 +1400,7 @@ class Model(BaseModel):
         )
         input_schema = self.schema
         output_schema = get_output_schema(export_path)
-        save_merlin_metadata(export_path, self, input_schema, output_schema)
+        save_merlin_metadata(export_path, input_schema, output_schema)
 
     @classmethod
     def load(cls, export_path: Union[str, os.PathLike]) -> "Model":
