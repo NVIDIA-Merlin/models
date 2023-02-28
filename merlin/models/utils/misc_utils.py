@@ -22,6 +22,8 @@ import sys
 import time
 from typing import Any, Dict
 
+from merlin.io.dataset import Dataset
+
 logger = logging.getLogger(__name__)
 
 
@@ -193,11 +195,6 @@ def validate_dataset(paths_or_dataset, batch_size, buffer_size, engine, reader_k
     reader_kwargs: dict
         Additional arguments of the specified reader.
     """
-    try:
-        from nvtabular.io.dataset import Dataset
-    except ImportError:
-        raise ValueError("NVTabular is necessary for this function, please install: " "nvtabular.")
-
     # TODO: put this in parent class and allow
     # torch dataset to leverage as well?
 
