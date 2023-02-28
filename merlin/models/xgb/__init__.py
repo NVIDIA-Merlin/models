@@ -258,7 +258,6 @@ class XGBoost:
 
         save_merlin_metadata(
             export_dir,
-            self,
             self.schema.select_by_name(self.feature_columns),
             self.schema.select_by_name(self.target_columns),
         )
