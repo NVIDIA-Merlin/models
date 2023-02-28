@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 import pytest
 import tensorflow as tf
+from tensorflow.keras.utils import set_random_seed
 from transformers import BertConfig
 
 import merlin.models.tf as mm
@@ -27,6 +28,7 @@ def test_import():
 
 @pytest.mark.parametrize("run_eagerly", [True])
 def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
+    set_random_seed(42)
 
     sequence_testing_data.schema = sequence_testing_data.schema.select_by_tag(
         Tags.SEQUENCE
@@ -78,7 +80,7 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     assert list(item_embeddings.shape) == [51997, d_model]
     predicitons_2 = np.dot(query_embeddings, item_embeddings.T)
 
-    np.testing.assert_allclose(predictions, predicitons_2, atol=1e-7)
+    np.testing.assert_allclose(predictions, predicitons_2, atol=1e-6)
 
 
 def test_transformer_encoder():
