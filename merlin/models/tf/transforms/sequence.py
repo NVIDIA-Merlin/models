@@ -18,9 +18,16 @@ from typing import Optional, Tuple, Union
 import tensorflow as tf
 from tensorflow.keras.backend import random_bernoulli
 
+from merlin.models.tf.core import combinators
 from merlin.models.tf.core.base import Block, BlockType, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock
+from merlin.models.tf.transformers.block import TransformerBlock
+from merlin.models.tf.transformers.transforms import (
+    TransformerInferenceHiddenState,
+    TransformerOutputToRagged,
+)
 from merlin.models.tf.transforms.features import PrepareFeatures
+from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
@@ -88,6 +95,9 @@ class SequenceTransform(TabularBlock):
         P.s. The PrepareFeatures() block is applied to convert
         the tuple representation of sequential features to RaggedTensors,
         so that the tensors sequences can be shifted/truncated
+    transformer:  Optional[TransformerBlock]
+        The transformer block that leverages the group of sequences returned
+        by the given SequenceTransform, by default None.
     """
 
     def __init__(
@@ -95,6 +105,7 @@ class SequenceTransform(TabularBlock):
         schema: Schema,
         target: Union[str, Tags, ColumnSchema],
         pre: Optional[BlockType] = None,
+        transformer: Optional[TransformerBlock] = None,
         **kwargs,
     ):
         _pre = PrepareFeatures(schema)
@@ -104,6 +115,7 @@ class SequenceTransform(TabularBlock):
 
         self.target = target
         self.target_name = self._get_target(target)
+        self.transformer = transformer
 
     def _get_target(self, target):
         if (
@@ -189,6 +201,18 @@ class SequenceTransform(TabularBlock):
         target = config.pop("target")
         return cls(schema, target, **config)
 
+    def on_train_begin(self):
+        """Method called by the model.fit() to set additional model's
+        configuration before calling keras parent class `fit()`
+        """
+        pass
+
+    def on_test_begin(self):
+        """Method called by the model.evaluate() to check any custom model's
+        configuration before calling keras parent class `evaluate()`
+        """
+        pass
+
 
 @Block.registry.register_with_multiple_names("seq_predict_next")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -246,6 +270,63 @@ class SequencePredictNext(SequenceTransform):
                     new_input_shapes[k] = tf.TensorShape([v[0], v[1] - 1])
 
         return new_input_shapes
+
+    def compute_mask(self, inputs, mask=None):
+        new_item_id_seq = inputs[self.target_name][:, :-1]
+        self.target_mask = tf.sequence_mask(new_item_id_seq.row_lengths(1))
+        targets_mask = dict({self.target_name: self.target_mask})
+        inputs_mask = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                inputs_mask[k] = self.target_mask
+            else:
+                inputs_mask[k] = None
+        return (inputs_mask, targets_mask)
+
+    def on_train_begin(self):
+        """Method called by the model.fit() to set the specialized
+        `masking_post` and `masking_pre` needed by the TransformerBlock
+        to align with the SequencePredictNext outputs.
+        """
+        if self.transformer is not None:
+            # set the tansformer block with the correct masking block
+            self.transformer.masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
+            self.transformer.masking_pre = combinators.SequentialBlock(
+                [SequenceCausalLastInference(), ExtractMaskFromTargets()]
+            )
+
+    def on_test_begin(self):
+        """Method called by the model.evaluate() to check that the
+        `masking_post` and `masking_pre` set in the TransformerBlock
+        are aligned with the evaluation strategy of SequencePredictNext
+        """
+        if self.transformer is not None:
+            if self.transformer.masking_pre is None:
+                raise ValueError(
+                    "To evaluate using `SequencePredictNext`, ensure that your TransformerBlock has"
+                    " `masking_pre` set as"
+                    " `combinators.SequentialBlock("
+                    "    [SequenceCausalLastInference(), ExtractMaskFromTargets()]"
+                    ")`."
+                    " You can automatically set `masking_pre` by passing `SequencePredictNext`"
+                    " as the `pre` argument to the `fit` method: "
+                    "`model.fit(..., pre=SequencePredictNext(...))`."
+                )
+
+            if any(
+                isinstance(layer, ReplaceMaskedEmbeddings)
+                for layer in self.transformer.masking_pre.layers
+            ):
+                ValueError(
+                    "You cannot use `ReplaceMaskedEmbeddings` as `masking_pre`"
+                    " of your TransformerBlock with the `SequencePredictNext`"
+                    " evaluation strategy. Please ensure that your Transformer"
+                    " model has been trained with `SequencePredictNext`"
+                    " by passing it as the `pre` argument to the `fit` method: "
+                    "`model.fit(..., pre=SequencePredictNext(...))`."
+                )
 
 
 @Block.registry.register_with_multiple_names("seq_predict_last")
@@ -305,6 +386,41 @@ class SequencePredictLast(SequenceTransform):
                     new_input_shapes[k] = tf.TensorShape([v[0], v[1] - 1])
 
         return new_input_shapes
+
+    def compute_mask(self, inputs, mask=None):
+        new_item_id_seq = inputs[self.target_name][:, :-1]
+        self.target_mask = self._generate_target_mask(new_item_id_seq)
+        inputs_mask = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                inputs_mask[k] = self.target_mask
+            else:
+                inputs_mask[k] = None
+
+        return (inputs_mask, self.target_mask)
+
+    def _generate_target_mask(self, ids_seq: tf.RaggedTensor) -> tf.RaggedTensor:
+        """Returns a bool ragged tensor with the last positions of the sequence masked
+
+        Parameters
+        ----------
+        ids_seq : tf.RaggedTensor
+            Sequence of ids, which are used to infer how many values
+            each sequence contains
+
+        Returns
+        -------
+        tf.RaggedTensor
+            Mask tensor, with True at the last positions
+        """
+        row_lengths = ids_seq.row_lengths(1)
+        max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+
+        padding_mask = tf.sequence_mask(row_lengths)
+        targets_mask = tf.ragged.boolean_mask(
+            tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
+        )
+        return targets_mask
 
 
 @Block.registry.register_with_multiple_names("seq_predict_random")
@@ -575,6 +691,56 @@ class SequenceMaskRandom(SequenceTargetAsInput):
         masking_prob = config.pop("masking_prob")
         return cls(schema, target, masking_prob, **config)
 
+    def on_train_begin(self):
+        """Method called by the model.fit() to set the specialized
+        `masking_post` and `masking_pre` needed by the TransformerBlock
+        to align with the SequencePredictNext outputs.
+        """
+        if self.transformer is not None:
+            # set the tansformer block with the correct masking blocks
+            self.transformer.masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
+            self.transformer.masking_pre = combinators.SequentialBlock(
+                [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
+            )
+
+    def on_test_begin(self):
+        """Method called by the model.evaluate() to check that the
+        `masking_pre` set in the TransformerBlock is aligned with
+        the evaluation strategy of SequenceMaskRandom
+        """
+        if self.transformer is not None:
+            if self.transformer.masking_pre is None:
+                raise ValueError(
+                    "To evaluate using `SequenceMaskRandom`, ensure that your TransformerBlock has"
+                    " `masking_pre` set as"
+                    " `combinators.SequentialBlock("
+                    "   ["
+                    "        SequenceMaskLastInference(),"
+                    "        ExtractMaskFromTargets(),"
+                    "        ReplaceMaskedEmbeddings()"
+                    "   ]"
+                    ")`"
+                    " You can automatically set `masking_pre` by passing `SequenceMaskRandom`"
+                    " as the `pre` argument to the `fit` method:"
+                    " `model.fit(..., pre=SequenceMaskRandom(...))`."
+                )
+
+            if not any(
+                isinstance(layer, ReplaceMaskedEmbeddings)
+                for layer in self.transformer.masking_pre.layers
+            ):
+                ValueError(
+                    " The block `ReplaceMaskedEmbeddings` must be part of the `masking_pre`"
+                    " of your TransformerBlock to be able to use `SequenceMaskRandom`"
+                    " evaluation strategy."
+                    " Please ensure that your Transformer model has been trained with"
+                    " `SequenceMaskRandom` or `SequenceMaskLast`"
+                    " by passing it as the `pre` argument to the `fit` method: "
+                    "`model.fit(..., pre=SequenceMaskRandom(...))`."
+                )
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class SequenceMaskLast(SequenceTargetAsInput):
@@ -646,6 +812,56 @@ class SequenceMaskLast(SequenceTargetAsInput):
         target = config.pop("target")
         return cls(schema, target, **config)
 
+    def on_train_begin(self):
+        """Method called by the model.fit() to set the specialized
+        `masking_post` and `masking_pre` needed by the TransformerBlock
+        to align with the SequencePredictNext outputs.
+        """
+        if self.transformer is not None:
+            # set the tansformer block with the correct masking blocks
+            self.transformer.masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
+            self.transformer.masking_pre = combinators.SequentialBlock(
+                [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
+            )
+
+    def on_test_begin(self):
+        """Method called by the model.evaluate() to check that the
+        `masking_pre` set in the TransformerBlock is aligned with
+        the evaluation strategy of SequenceMaskRandom
+        """
+        if self.transformer is not None:
+            if self.transformer.masking_pre is None:
+                raise ValueError(
+                    "To evaluate using `SequenceMaskLast`, ensure that your TransformerBlock has"
+                    " `masking_pre` set as"
+                    " `combinators.SequentialBlock("
+                    "   ["
+                    "        SequenceMaskLastInference(),"
+                    "        ExtractMaskFromTargets(),"
+                    "        ReplaceMaskedEmbeddings()"
+                    "   ]"
+                    ")`"
+                    " You can automatically set `masking_pre` by passing `SequenceMaskRandom`"
+                    " or `SequenceMaskLast` as the `pre` argument to the `fit` method:"
+                    " `model.fit(..., pre=SequenceMaskRandom(...))`."
+                )
+
+            if not any(
+                isinstance(layer, ReplaceMaskedEmbeddings)
+                for layer in self.transformer.masking_pre.layers
+            ):
+                ValueError(
+                    "The block `ReplaceMaskedEmbeddings` must be part of the `masking_pre`"
+                    " of your TransformerBlock to be able to use `SequenceMaskRandom`"
+                    " evaluation strategy."
+                    " Please ensure that your Transformer model has been trained with"
+                    " `SequenceMaskRandom` or `SequenceMaskLast`"
+                    " by passing it as the `pre` argument to the `fit` method: "
+                    "`model.fit(..., pre=SequenceMaskLast(...))`."
+                )
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class SequenceMaskLastInference(Block):
@@ -659,7 +875,7 @@ class SequenceMaskLastInference(Block):
         return inputs
 
     def compute_mask(self, inputs, mask=None):
-        """Selects (masks) the nex position after the
+        """Selects (masks) the next position after the
         last valid (non-padded) position of the sequential targets
         to be predicted.
         This method is called by Keras after call()
@@ -685,23 +901,18 @@ class SequenceMaskLastInference(Block):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ReplaceMaskedEmbeddings(Block):
     """Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
-     by a dummy trainable single embedding at the positions to be masked.
-     This block looks for the Keras mask (`._keras_mask`) in the following order:
-       1. Checks if the input tensor has a mask
-       2. Checks if there is a single target and if it has a mask
-       3. If there are multiple targets (dict) returns the mask of the target
-       that matches the first 2 dims of the input
-     This is useful to be used when PredictMasked() transformation is used in
-     the Loader, which randomly selects some targets to be predicted and uses
-     Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
-     at masked positions we avoid target leakage when training models with
-     Masked Language Modeling (BERT-like)
+    by a dummy trainable single embedding at the positions to be masked.
 
-     **Note:** To support inference, the input sequence and its corresponding mask should be
-     extended by one position at the end to account for the next-item (`target`) position.
-     To do this, you should set `SequenceMaskLastInference` as a pre-layer of
-    `ReplaceMaskedEmbeddings()` using the sequential-block:
-    ```mm.SequentialBlock([mm.SequenceMaskLastInference(), mm.ReplaceMaskedEmbeddings()])```
+    This is useful to be used when PredictMasked() transformation is used in
+    the fit()/eval() methods, which randomly selects some targets to be predicted and uses
+    Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
+    at masked positions we avoid target leakage when training models with
+    Masked Language Modeling (BERT-like).
+
+    To support masked training approach in Transformer-based model,
+    SequenceMaskRandom and SequenceLastRandom implements `on_train_begin` method
+    that sets `ReplaceMaskedEmbeddings` as part of the `masking_pre` of
+    the transformer block.
     """
 
     def __init__(self, **kwargs):
@@ -721,10 +932,8 @@ class ReplaceMaskedEmbeddings(Block):
     def call(
         self,
         inputs: Union[tf.Tensor, tf.RaggedTensor],
-        targets: Optional[Union[tf.Tensor, tf.RaggedTensor, TabularData]] = None,
     ) -> Union[tf.Tensor, tf.RaggedTensor]:
-        """If the sequence of input embeddings or the corresponding sequential
-        targets is masked (with `tensor._keras_mask` defined),
+        """If the sequence of input embeddings is masked (with `tensor._keras_mask` defined),
         replaces the input embeddings for masked elements
         Parameters
         ----------
@@ -732,21 +941,69 @@ class ReplaceMaskedEmbeddings(Block):
             A tensor with sequences of vectors.
             Needs to be 3D (batch_size, sequence_length, embeddings dim).
             If inputs._keras_mask is defined uses it to infer the mask
-        targets : Union[tf.Tensor, tf.RaggedTensor, TabularData], optional
-            The target values, from which the mask can be extracted
-            if targets inputs._keras_mask is defined.
+
         Returns
         -------
         Union[tf.Tensor, tf.RaggedTensor]
-            If training, returns a tensor with the masked inputs replaced by the dummy embedding
+            returns a tensor with the masked inputs replaced by the dummy embedding
         """
         outputs = inputs
-        # Infers the mask from the inputs or targets
-        mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
-        if mask is not None:
+        if getattr(inputs, "_keras_mask", None) is not None:
             # Replaces the embeddings at masked positions by a dummy trainable embedding
-            outputs = self._replace_masked_embeddings(inputs, mask)
+            outputs = self._replace_masked_embeddings(inputs, inputs._keras_mask)
         return outputs
+
+    def _replace_masked_embeddings(
+        self, inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
+    ) -> tf.RaggedTensor:
+        """
+        Replaces in the inputs tensors the values masked as targets by a common trainable
+        embedding
+        """
+
+        tf.Assert(
+            tf_utils.check_inputs_mask_compatible_shape(inputs, mask),
+            [
+                "The inputs and mask need to be compatible: have the same dtype "
+                "(tf.Tensor or tf.RaggedTensor) and the tf.rank(mask) == tf.rank(inputs)-1"
+            ],
+        )
+
+        if isinstance(mask, tf.RaggedTensor):
+            mask = mask.with_row_splits_dtype(inputs.row_splits.dtype)
+
+        output = tf.where(
+            tf.cast(tf.expand_dims(mask, -1), tf.bool),
+            tf.cast(self.masked_embedding, dtype=inputs.dtype),
+            inputs,
+        )
+        return output
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExtractMaskFromTargets(Block):
+    """
+    Recovers the mask information for the inputs from the mask information
+    stored in the targets.
+
+    This block looks for the Keras mask (`._keras_mask`) in the following order:
+        1. Checks if the input tensor has a mask.
+        2. Checks if there is a single target and if it has a mask.
+        3. If there are multiple targets (dictionary), returns the mask of the target
+        that matches the first two dimensions of the input.
+
+    This is useful to use when the mask information for the inputs may be lost in
+    previous non-mask-aware Merlin blocks.
+    """
+
+    def call(
+        self,
+        inputs: Union[tf.Tensor, tf.RaggedTensor],
+        targets: Optional[Union[tf.Tensor, tf.RaggedTensor, TabularData]] = None,
+    ) -> Union[tf.Tensor, tf.RaggedTensor]:
+        mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
+        inputs._keras_mask = mask
+        return inputs
 
     def _infer_mask_from_inputs_or_targets(
         self,
@@ -769,7 +1026,7 @@ class ReplaceMaskedEmbeddings(Block):
                     for _, v in targets.items():
                         if getattr(
                             v, "_keras_mask", None
-                        ) is not None and self._check_inputs_mask_compatible_shape(
+                        ) is not None and tf_utils.check_inputs_mask_compatible_shape(
                             inputs, v._keras_mask
                         ):
                             if mask is None:
@@ -786,41 +1043,28 @@ class ReplaceMaskedEmbeddings(Block):
 
         return mask
 
-    def _check_inputs_mask_compatible_shape(
-        self, inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
-    ):
-        result = False
-        if type(inputs) == type(mask) and (inputs.shape.as_list()[:-1] == mask.shape.as_list()):
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequenceCausalLastInference(Block):
+    def call(self, inputs, training=False, testing=False):
+        self.inference_mode = not training and not testing
+        return inputs
+
+    def compute_mask(self, inputs, mask=None):
+        """Selects (masks) the last non padded position of the
+        input sequence to be predicted.
+        This method is called by Keras after call()
+        and returns the mask that is going to be assigned
+        to the input tensors, being accessible
+        by tensor._keras_mask
+        """
+        if self.inference_mode:
             if isinstance(inputs, tf.RaggedTensor):
-                result = tf.reduce_all(
-                    tf.cast(inputs.row_lengths(), tf.int32) == tf.cast(mask.row_lengths(), tf.int32)
+                row_lengths = inputs.row_lengths(1)
+                max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+
+                padding_mask = tf.sequence_mask(row_lengths)
+                mask = tf.ragged.boolean_mask(
+                    tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
                 )
-            else:
-                result = True
-        return result
-
-    def _replace_masked_embeddings(
-        self, inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
-    ) -> tf.RaggedTensor:
-        """
-        Replaces in the inputs tensors the values masked as targets by a common trainable
-        embedding
-        """
-
-        tf.Assert(
-            self._check_inputs_mask_compatible_shape(inputs, mask),
-            [
-                "The inputs and mask need to be compatible: have the same dtype "
-                "(tf.Tensor or tf.RaggedTensor) and the tf.rank(mask) == tf.rank(inputs)-1"
-            ],
-        )
-
-        if isinstance(mask, tf.RaggedTensor):
-            mask = mask.with_row_splits_dtype(inputs.row_splits.dtype)
-
-        output = tf.where(
-            tf.cast(tf.expand_dims(mask, -1), tf.bool),
-            tf.cast(self.masked_embedding, dtype=inputs.dtype),
-            inputs,
-        )
-        return output
+        return mask

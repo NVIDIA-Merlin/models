@@ -194,9 +194,11 @@ def test_seq_predict_masked_serialize_deserialize(sequence_testing_data):
 def test_seq_mask_random_replace_embeddings(
     sequence_testing_data: Dataset, dense: bool, target_as_dict: bool
 ):
-    sequence_testing_data.schema = sequence_testing_data.schema.select_by_tag(
-        Tags.SEQUENCE
-    ).select_by_name(["item_id_seq", "categories"])
+    from merlin.models.tf.transforms.sequence import ExtractMaskFromTargets
+
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_name(
+        ["item_id_seq", "categories"]
+    )
 
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_masked = mm.SequenceMaskRandom(
@@ -221,7 +223,7 @@ def test_seq_mask_random_replace_embeddings(
         # Making targets different in dict, the valid one is "target2" which is 2D
         targets = {"target1": tf.ragged.constant([1, 2, 3, 4, 5, 6, 7, 8]), "target2": targets}
 
-    masked_embeddings = mm.ReplaceMaskedEmbeddings()
+    masked_embeddings = mm.SequentialBlock(ExtractMaskFromTargets(), mm.ReplaceMaskedEmbeddings())
     output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
 
     replaced_mask = tf.logical_not(tf.reduce_all(output == item_id_emb_seq, axis=2))
@@ -233,23 +235,27 @@ def test_seq_mask_random_replace_embeddings(
 
 
 def test_replace_masked_input_embeddings_no_target():
+    from merlin.models.tf.transforms.sequence import ExtractMaskFromTargets
+
     item_id_emb_seq = tf.random.uniform((8, 10), dtype=tf.float32)
     item_id_emb_seq._keras_mask = tf.cast(
         tf.random.uniform((8,), minval=0, maxval=2, dtype=tf.int32), tf.bool
     )
     targets = None
 
-    masked_embeddings = mm.ReplaceMaskedEmbeddings()
+    masked_embeddings = mm.SequentialBlock(ExtractMaskFromTargets(), mm.ReplaceMaskedEmbeddings())
     output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
     # Checks that no input embedding was replaced, as there was no masking defined
     tf.Assert(tf.logical_not(tf.reduce_all(output == item_id_emb_seq)), [])
 
 
 def test_not_replace_unmasked_sequence_embeddings():
+    from merlin.models.tf.transforms.sequence import ExtractMaskFromTargets
+
     item_id_emb_seq = tf.random.uniform((8, 10), dtype=tf.float32)
     targets = tf.random.uniform((8, 10), dtype=tf.float32)
 
-    masked_embeddings = mm.ReplaceMaskedEmbeddings()
+    masked_embeddings = mm.SequentialBlock(ExtractMaskFromTargets(), mm.ReplaceMaskedEmbeddings())
     output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
     # Checks that no input embedding was replaced, as there was no masking defined
     tf.Assert(tf.reduce_all(output == item_id_emb_seq), [])
