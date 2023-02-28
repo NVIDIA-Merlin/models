@@ -240,12 +240,10 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     target = target_schema.column_names[0]
 
     sequence_testing_data.schema = seq_schema + target_schema
-
-    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
-    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
     model_schema = sequence_testing_data.schema
 
     transformer_input_dim = 48
+    transformer_block = GPT2Block(d_model=transformer_input_dim, n_head=8, n_layer=2)
     model = mm.Model(
         mm.InputBlockV2(
             model_schema,
@@ -254,18 +252,24 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
             ),
         ),
         mm.MLPBlock([transformer_input_dim]),
-        GPT2Block(d_model=transformer_input_dim, n_head=8, n_layer=2, masking="causal"),
+        transformer_block,
         mm.CategoricalOutput(
             model_schema.select_by_name(target), default_loss="categorical_crossentropy"
         ),
     )
 
-    batch = next(iter(loader))[0]
-    outputs = model(batch)
-    assert list(outputs.shape) == [8, 51997]
+    predict_next = mm.SequencePredictNext(
+        schema=seq_schema, target=target, transformer=transformer_block
+    )
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
+
     testing_utils.model_test(
         model, loader, run_eagerly=run_eagerly, reload_model=True, fit_kwargs={"pre": predict_next}
     )
+
+    batch = next(iter(loader))[0]
+    outputs = model(batch)
+    assert list(outputs.shape) == [8, 51997]
 
     metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_next)
     assert len(metrics) > 0
@@ -273,7 +277,9 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     predictions = model.predict(loader, batch_size=8, steps=1)
     assert predictions.shape == (8, 51997)
 
-    predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
+    predict_last = mm.SequencePredictLast(
+        schema=seq_schema, target=target, transformer=transformer_block
+    )
     metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_last)
     assert len(metrics) > 0
 
@@ -291,6 +297,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
 
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
     transformer_input_dim = 48
+    transformer_block = XLNetBlock(d_model=transformer_input_dim, n_head=8, n_layer=2)
     model = mm.Model(
         mm.InputBlockV2(
             seq_schema,
@@ -299,18 +306,15 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
             ),
         ),
         mm.MLPBlock([transformer_input_dim]),
-        XLNetBlock(
-            d_model=transformer_input_dim,
-            n_head=8,
-            n_layer=2,
-            masking="masked",
-        ),
+        transformer_block,
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
         ),
     )
-    seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
+    seq_mask_random = mm.SequenceMaskRandom(
+        schema=seq_schema, target=target, masking_prob=0.3, transformer=transformer_block
+    )
 
     inputs, targets = loader.peek()
 
@@ -324,7 +328,9 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
         fit_kwargs={"pre": seq_mask_random},
     )
 
-    seq_mask_last = mm.SequenceMaskLast(schema=seq_schema, target=target)
+    seq_mask_last = mm.SequenceMaskLast(
+        schema=seq_schema, target=target, transformer=transformer_block
+    )
     metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=seq_mask_last)
     assert len(metrics) > 0
 
@@ -348,6 +354,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
 
     transformer_input_dim = 48
+    transformer_block = BertBlock(d_model=transformer_input_dim, n_head=8, n_layer=2)
     model = mm.Model(
         mm.InputBlockV2(
             seq_schema,
@@ -356,17 +363,15 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
             ),
         ),
         mm.MLPBlock([transformer_input_dim]),
-        BertBlock(d_model=transformer_input_dim, n_head=8, n_layer=2, masking="masked"),
+        transformer_block,
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
         ),
     )
-    seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
-
-    inputs = itertools.islice(iter(loader), 1)
-    outputs = model.predict(inputs, pre=seq_mask_random)
-    assert list(outputs.shape) == [8, 51997]
+    seq_mask_random = mm.SequenceMaskRandom(
+        schema=seq_schema, target=target, masking_prob=0.3, transformer=transformer_block
+    )
 
     testing_utils.model_test(
         model,
@@ -376,6 +381,10 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
         fit_kwargs={"pre": seq_mask_random},
         metrics=[mm.RecallAt(5000), mm.NDCGAt(5000, seed=4)],
     )
+
+    inputs = itertools.islice(iter(loader), 1)
+    outputs = model.predict(inputs, pre=seq_mask_random)
+    assert list(outputs.shape) == [8, 51997]
 
     # This transform only extracts targets, but without applying mask
     seq_target_as_input_no_mask = mm.SequenceTargetAsInput(schema=seq_schema, target=target)

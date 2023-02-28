@@ -18,9 +18,14 @@ from typing import Optional, Tuple, Union
 import tensorflow as tf
 from tensorflow.keras.backend import random_bernoulli
 
+from merlin.models.tf.core import combinators
 from merlin.models.tf.core.base import Block, BlockType, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock
 from merlin.models.tf.core.prediction import Prediction
+from merlin.models.tf.transformers.transforms import (
+    TransformerInferenceHiddenState,
+    TransformerOutputToRagged,
+)
 from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
@@ -96,6 +101,7 @@ class SequenceTransform(TabularBlock):
         schema: Schema,
         target: Union[str, Tags, ColumnSchema],
         pre: Optional[BlockType] = None,
+        transformer=None,
         **kwargs,
     ):
         _pre = ListToRagged()
@@ -105,6 +111,7 @@ class SequenceTransform(TabularBlock):
 
         self.target = target
         self.target_name = self._get_target(target)
+        self.transformer = transformer
 
     def _get_target(self, target):
         if (
@@ -190,6 +197,32 @@ class SequenceTransform(TabularBlock):
         target = config.pop("target")
         return cls(schema, target, **config)
 
+    def on_train_begin(self):
+        if self.transformer is not None:
+            # set the tansformer block with the correct masking block
+            self.transformer.masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
+            self.transformer.masking_pre = combinators.SequentialBlock(
+                [SequenceCausalLastInference(), ExtractMaskFromTargets()]
+            )
+
+    def on_test_begin(self):
+        if self.transformer is not None:
+            # check the masking post and pre are correct
+            tf.assert_equal(
+                self.transformer.masking_post,
+                combinators.SequentialBlock(
+                    [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+                ),
+            )
+            tf.assert_equal(
+                self.transformer.masking_pre,
+                combinators.SequentialBlock(
+                    [SequenceCausalLastInference(), ExtractMaskFromTargets()]
+                ),
+            )
+
 
 @Block.registry.register_with_multiple_names("seq_predict_next")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -260,6 +293,16 @@ class SequencePredictNext(SequenceTransform):
             else:
                 inputs_mask[k] = None
         return (inputs_mask, targets_mask)
+
+    def on_train_begin(self):
+        if self.transformer is not None:
+            # set the tansformer block with the correct masking blocks
+            self.transformer.masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
+            self.transformer.masking_pre = combinators.SequentialBlock(
+                [SequenceCausalLastInference(), ExtractMaskFromTargets()]
+            )
 
 
 @Block.registry.register_with_multiple_names("seq_predict_last")
@@ -695,6 +738,16 @@ class SequenceMaskLast(SequenceTargetAsInput):
         target = config.pop("target")
         return cls(schema, target, **config)
 
+    def on_train_begin(self):
+        if self.transformer is not None:
+            # set the tansformer block with the correct masking blocks
+            self.transformer.masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
+            self.transformer.masking_pre = combinators.SequentialBlock(
+                [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
+            )
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class SequenceMaskLastInference(Block):
@@ -729,6 +782,16 @@ class SequenceMaskLastInference(Block):
                 )
 
         return targets_mask
+
+    def on_train_begin(self):
+        if self.transformer is not None:
+            # set the tansformer block with the correct masking blocks
+            self.transformer.masking_post = combinators.SequentialBlock(
+                [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
+            )
+            self.transformer.masking_pre = combinators.SequentialBlock(
+                [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
+            )
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

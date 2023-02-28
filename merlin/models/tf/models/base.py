@@ -50,7 +50,8 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.tensor import ProcessList
+from merlin.models.tf.transforms.sequence import SequenceTransform
+from merlin.models.tf.transforms.tensor import PrepareFeatures
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -996,6 +997,8 @@ class BaseModel(tf.keras.Model):
                         )
 
             if getattr(self, "train_pre", None):
+                if isinstance(self.train_pre, SequenceTransform):
+                    self.train_pre.on_train_begin()
                 out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
                 if isinstance(out, Prediction):
                     x, y = out.outputs, out.targets
