@@ -1,0 +1,3 @@
+--extra-index-url https://pypi.nvidia.com/
+cudf-cu11
+dask-cudf-cu11
