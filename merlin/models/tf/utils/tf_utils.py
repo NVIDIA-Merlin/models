@@ -469,3 +469,37 @@ def list_col_to_ragged(col: Tuple[tf.Tensor, tf.Tensor]):
         row_lengths = tf.cast(row_lengths, tf.int32)
 
     return tf.RaggedTensor.from_row_lengths(values, row_lengths)
+
+
+def check_inputs_mask_compatible_shape(
+    inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
+):
+    """Check if the shape and the type of the input and mask tensors are compatible.
+    Parameters
+    ----------
+    inputs : Union[tf.Tensor, tf.RaggedTensor]
+        The input tensor, which can be either a dense or ragged tensor.
+    mask : Union[tf.Tensor, tf.RaggedTensor]
+        The mask tensor, which can be either a dense or ragged tensor.
+
+    Returns
+    -------
+    bool:
+        Returns True if the shape of the input and mask tensors are compatible, False otherwise.
+
+    Notes
+    -----
+       The function assumes that the `inputs` tensor has one more dimension than the `mask` tensor,
+       with the extra dimension typically related to the embeddings dimension.
+    """
+    result = False
+    if type(inputs) == type(mask) and (
+        inputs.shape.as_list()[: len(inputs.shape) - 1] == mask.shape.as_list()
+    ):
+        if isinstance(inputs, tf.RaggedTensor):
+            result = tf.reduce_all(
+                tf.cast(inputs.row_lengths(), tf.int32) == tf.cast(mask.row_lengths(), tf.int32)
+            )
+        else:
+            result = True
+    return result

@@ -50,6 +50,7 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.transforms.sequence import SequenceTransform
 from merlin.models.tf.transforms.tensor import PrepareFeatures
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
@@ -812,60 +813,215 @@ class BaseModel(tf.keras.Model):
 
         return Prediction(predictions, targets, sample_weights)
 
+    def _extract_masked_predictions(self, prediction: TensorLike):
+        """Extracts the prediction scores corresponding to masked positions (targets).
+
+        This method assumes that the input predictions tensor is 3-D and contains a mask
+        indicating the positions of the targets. It requires that the mask information has
+        exactly one masked position per input sequence. The method returns a 2-D dense tensor
+        containing the prediction score corresponding to each masked position.
+
+        Parameters
+        ----------
+        prediction : TensorLike
+            A 3-D dense tensor of predictions, with a mask indicating the positions of the targets.
+
+        Returns
+        -------
+        tf.Tensor
+            A 2-D dense tensor of prediction scores, with one score per input.
+
+        Raises
+        ------
+        ValueError
+            If the mask does not have exactly one masked position per input sequence.
+        """
+        num_preds_per_example = tf.reduce_sum(tf.cast(prediction._keras_mask, tf.int32), axis=-1)
+        with tf.control_dependencies(
+            [
+                tf.debugging.assert_equal(
+                    num_preds_per_example,
+                    1,
+                    message="If targets are scalars (1-D) and predictions are"
+                    " sequential (3-D), the predictions mask should contain"
+                    " one masked position per example",
+                )
+            ]
+        ):
+
+            return tf.boolean_mask(prediction, prediction._keras_mask)
+
+    def _adjust_dense_predictions_and_targets(
+        self,
+        prediction: tf.Tensor,
+        target: TensorLike,
+    ):
+        """Adjusts the dense predictions tensor and the target tensor to ensure
+        compatibility with most Keras losses and metrics.
+
+        This method applies the following transformations to the target and prediction tensors:
+        - Converts ragged targets and their masks to dense format.
+        - Copies the target mask to the prediction mask, if defined.
+        - If predictions are sequential (3-D) and targets are scalar (1-D), extracts the predictions
+        at target positions using the predictions mask.
+        - One-hot encodes targets if their rank is one less than the rank of predictions.
+        - Ensures that targets have the same shape and dtype as predictions.
+
+        Parameters
+        ----------
+        prediction : tf.Tensor
+            The prediction tensor as a dense tensor.
+        target : TensorLike
+            The target tensor that can be either a dense or ragged tensor.
+
+        Returns:
+        --------
+            A tuple of the adjusted prediction and target tensors, with the same dtype and shape.
+        """
+        if isinstance(target, tf.RaggedTensor):
+            # Converts ragged targets (and ragged mask) to dense
+            dense_target_mask = None
+            if getattr(target, "_keras_mask", None) is not None:
+                dense_target_mask = target._keras_mask.to_tensor()
+            target = target.to_tensor()
+            if dense_target_mask is not None:
+                target._keras_mask = dense_target_mask
+
+        if prediction.shape.ndims == 2:
+            # Removes the mask information as the sequence is summarized into
+            # a single vector.
+            prediction._keras_mask = None
+
+        elif getattr(target, "_keras_mask", None) is not None:
+            # Copies the mask from the targets to the predictions
+            # because Keras considers the prediction mask in loss
+            # and metrics computation
+            prediction._keras_mask = target._keras_mask
+
+        # Ensuring targets and preds have the same dtype
+        target = tf.cast(target, prediction.dtype)
+
+        # If targets are scalars (1-D) and predictions are sequential (3-D),
+        # extract predictions at target position because Keras expects
+        # predictions and targets to have the same shape.
+        if getattr(prediction, "_keras_mask", None) is not None:
+            rank_check = tf.logical_and(
+                tf.equal(tf.rank(target), 1),
+                tf.equal(tf.rank(prediction), 3),
+            )
+            prediction = tf.cond(
+                rank_check, lambda: self._extract_masked_predictions(prediction), lambda: prediction
+            )
+
+        # Ensuring targets are one-hot encoded if they are not
+        target = tf.cond(
+            tf.rank(target) == tf.rank(prediction) - 1,
+            lambda: tf.one_hot(
+                tf.cast(target, tf.int32),
+                tf.shape(prediction)[-1],
+                dtype=prediction.dtype,
+            ),
+            lambda: target,
+        )
+        # Makes target shape equal to the predictions tensor, as shape is lost after tf.cond
+        target = tf.reshape(target, tf.shape(prediction))
+
+        return prediction, target
+
+    def _adjust_ragged_predictions_and_targets(
+        self,
+        prediction: tf.RaggedTensor,
+        target: TensorLike,
+    ):
+        """Adjusts the predictions (ragged tensor) and targets to ensure
+        compatibility with most Keras losses and metrics.
+
+        This methods applies the following transformations to the target and prediction tensors:
+        - Select ragged targets based on the mask information, if defined.
+        - Remove mask information from the ragged targets and predictions.
+        - One-hot encode targets if their rank is one less than the rank of predictions.
+        - Ensure that targets have the same shape and dtype as predictions.
+
+        Parameters
+        ----------
+        prediction : tf.RaggedTensor
+            The prediction tensor as a ragged tensor.
+        target : TensorLike
+            The target tensor that can be either a dense or ragged tensor.
+
+        Returns
+        -------
+        Tuple[tf.Tensor, tf.Tensor]
+            A tuple containing the adjusted prediction and target tensors.
+        """
+        if isinstance(target, tf.RaggedTensor) and getattr(target, "_keras_mask", None) is not None:
+            # Select targets at masked positions and return
+            # a ragged tensor.
+            target = tf.ragged.boolean_mask(
+                target.with_row_splits_dtype(target.dtype), target._keras_mask
+            )
+
+        # Ensuring targets and preds have the same dtype
+        target = tf.cast(target, prediction.dtype)
+
+        # Take the flat values of predictions and targets as Keras
+        # losses does not support RaggedVariantTensor on GPU:
+        prediction = prediction.flat_values
+        if isinstance(target, tf.RaggedTensor):
+            target = target.flat_values
+
+        # Ensuring targets are one-hot encoded if they are not
+        def _reshape_ragged():
+            # Makes target shape equal to the predictions tensor,
+            # as shape information is lost in graph mode execution of tf.cond()
+            target_reshape = tf.reshape(target, tf.shape(prediction))
+            if isinstance(prediction, tf.RaggedTensor):
+                return tf.RaggedTensor.from_row_splits(
+                    target_reshape.values, tf.cast(target_reshape.row_splits, tf.int64)
+                )
+            return target_reshape
+
+        target = tf.cond(
+            tf.rank(target) == tf.rank(prediction) - 1,
+            lambda: tf.one_hot(
+                tf.cast(target, tf.int32),
+                tf.shape(prediction)[-1],
+                dtype=prediction.dtype,
+            ),
+            _reshape_ragged,
+        )
+
+        return prediction, target
+
     def adjust_predictions_and_targets(
         self,
         predictions: Dict[str, TensorLike],
-        targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]],
+        targets: Optional[Union[TensorLike, Dict[str, TensorLike]]],
     ):
-        """Adjusts the predctions and targets, doing the following transformations
-        if the target is provided:
-        - Converts ragged targets (and their masks) to dense, so that they are compatible
-        with most losses and metrics
-        - Copies the targets mask to predictions mask, if defined
-        - One-hot encode targets if their tf.rank(targets) == tf.rank(predictions)-1
-        - Ensures targets has the same shape and dtype as predicitnos
+        """Adjusts the predictions and targets to ensure compatibility with most Keras losses and metrics.
+
+        If the predictions are ragged tensors, `_adjust_ragged_predictions_and_targets` is called,
+        otherwise `_adjust_dense_predictions_and_targets` is called.
 
         Parameters
         ----------
         predictions : Dict[str, TensorLike]
-            A dict with predictions for the tasks
+            A dictionary with predictions for the tasks.
         targets : Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]]
-            A dict with targets for the tasks
+            A dictionary with targets for the tasks, or None if targets are not provided.
         """
         if targets is None:
             return
 
         for k in targets:
-            # Convert ragged targets (and ragged mask) to dense
-            if isinstance(targets[k], tf.RaggedTensor):
-                dense_target_mask = None
-                if getattr(targets[k], "_keras_mask", None) is not None:
-                    dense_target_mask = targets[k]._keras_mask.to_tensor()
-                targets[k] = targets[k].to_tensor()
-                if dense_target_mask is not None:
-                    targets[k]._keras_mask = dense_target_mask
-
-            if getattr(targets[k], "_keras_mask", None) is not None:
-                # Copies the mask from the targets to the predictions
-                # because Keras considers the prediction mask in loss
-                # and metrics computation
-                predictions[k]._keras_mask = targets[k]._keras_mask
-
-            # Ensuring targets and preds have the same dtype
-            targets[k] = tf.cast(targets[k], predictions[k].dtype)
-
-            # Ensuring targets are one-hot encoded if they are not
-            targets[k] = tf.cond(
-                tf.rank(targets[k]) == tf.rank(predictions[k]) - 1,
-                lambda: tf.one_hot(
-                    tf.cast(targets[k], tf.int32),
-                    tf.shape(predictions[k])[-1],
-                    dtype=predictions[k].dtype,
-                ),
-                lambda: targets[k],
-            )
-            # Makes target shape equal to the predictions tensor, as shape is lost after tf.cond
-            targets[k] = tf.reshape(targets[k], tf.shape(predictions[k]))
+            if isinstance(predictions[k], tf.RaggedTensor):
+                predictions[k], targets[k] = self._adjust_ragged_predictions_and_targets(
+                    predictions[k], targets[k]
+                )
+            else:
+                predictions[k], targets[k] = self._adjust_dense_predictions_and_targets(
+                    predictions[k], targets[k]
+                )
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
@@ -1154,6 +1310,8 @@ class BaseModel(tf.keras.Model):
         if pre:
             self._reset_compile_cache()
             self.train_pre = pre
+            if isinstance(self.train_pre, SequenceTransform):
+                self.train_pre.on_train_begin()
 
         out = super().fit(**fit_kwargs)
 
@@ -1240,6 +1398,8 @@ class BaseModel(tf.keras.Model):
         if pre:
             self._reset_compile_cache()
             self.test_pre = pre
+            if isinstance(self.test_pre, SequenceTransform):
+                self.test_pre.on_test_begin()
 
         out = super().evaluate(
             x,
