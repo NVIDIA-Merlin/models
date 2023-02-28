@@ -269,6 +269,7 @@ class SequencePredictLast(SequenceTransform):
         so that the tensors sequences can be processed
     """
 
+    @tf.function
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
     ) -> Tuple:
