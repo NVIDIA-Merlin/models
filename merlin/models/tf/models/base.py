@@ -958,7 +958,7 @@ class BaseModel(tf.keras.Model):
             # Select targets at masked positions and return
             # a ragged tensor.
             target = tf.ragged.boolean_mask(
-                target.with_row_splits_dtype(target.dtype), target._keras_mask
+                target, target._keras_mask.with_row_splits_dtype(target.row_splits.dtype)
             )
 
         # Ensuring targets and preds have the same dtype
