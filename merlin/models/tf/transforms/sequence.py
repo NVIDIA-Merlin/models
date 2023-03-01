@@ -200,13 +200,13 @@ class SequenceTransform(TabularBlock):
         target = config.pop("target")
         return cls(schema, target, **config)
 
-    def on_train_begin(self):
+    def configure_for_train(self):
         """Method called by the model.fit() to set additional model's
         configuration before calling keras parent class `fit()`
         """
         pass
 
-    def on_test_begin(self):
+    def configure_for_test(self):
         """Method called by the model.evaluate() to check any custom model's
         configuration before calling keras parent class `evaluate()`
         """
@@ -283,7 +283,7 @@ class SequencePredictNext(SequenceTransform):
                 inputs_mask[k] = None
         return (inputs_mask, targets_mask)
 
-    def on_train_begin(self):
+    def configure_for_train(self):
         """Method called by the model.fit() to set the specialized
         `masking_post` and `masking_pre` needed by the TransformerBlock
         to align with the SequencePredictNext outputs.
@@ -297,7 +297,7 @@ class SequencePredictNext(SequenceTransform):
                 [SequenceCausalLastInference(), ExtractMaskFromTargets()]
             )
 
-    def on_test_begin(self):
+    def configure_for_test(self):
         """Method called by the model.evaluate() to check that the
         `masking_post` and `masking_pre` set in the TransformerBlock
         are aligned with the evaluation strategy of SequencePredictNext
@@ -693,7 +693,7 @@ class SequenceMaskRandom(SequenceTargetAsInput):
         masking_prob = config.pop("masking_prob")
         return cls(schema, target, masking_prob, **config)
 
-    def on_train_begin(self):
+    def configure_for_train(self):
         """Method called by the model.fit() to set the specialized
         `masking_post` and `masking_pre` needed by the TransformerBlock
         to align with the SequencePredictNext outputs.
@@ -707,7 +707,7 @@ class SequenceMaskRandom(SequenceTargetAsInput):
                 [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
             )
 
-    def on_test_begin(self):
+    def configure_for_test(self):
         """Method called by the model.evaluate() to check that the
         `masking_pre` set in the TransformerBlock is aligned with
         the evaluation strategy of SequenceMaskRandom
@@ -814,7 +814,7 @@ class SequenceMaskLast(SequenceTargetAsInput):
         target = config.pop("target")
         return cls(schema, target, **config)
 
-    def on_train_begin(self):
+    def configure_for_train(self):
         """Method called by the model.fit() to set the specialized
         `masking_post` and `masking_pre` needed by the TransformerBlock
         to align with the SequencePredictNext outputs.
@@ -828,7 +828,7 @@ class SequenceMaskLast(SequenceTargetAsInput):
                 [SequenceMaskLastInference(), ExtractMaskFromTargets(), ReplaceMaskedEmbeddings()]
             )
 
-    def on_test_begin(self):
+    def configure_for_test(self):
         """Method called by the model.evaluate() to check that the
         `masking_pre` set in the TransformerBlock is aligned with
         the evaluation strategy of SequenceMaskRandom
@@ -912,7 +912,7 @@ class ReplaceMaskedEmbeddings(Block):
     Masked Language Modeling (BERT-like).
 
     To support masked training approach in Transformer-based model,
-    SequenceMaskRandom and SequenceLastRandom implements `on_train_begin` method
+    SequenceMaskRandom and SequenceLastRandom implements `configure_for_train` method
     that sets `ReplaceMaskedEmbeddings` as part of the `masking_pre` of
     the transformer block.
     """
