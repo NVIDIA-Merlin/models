@@ -273,7 +273,10 @@ class SequencePredictNext(SequenceTransform):
 
     def compute_mask(self, inputs, mask=None):
         new_item_id_seq = inputs[self.target_name][:, :-1]
-        self.target_mask = tf.sequence_mask(new_item_id_seq.row_lengths(1))
+        self.target_mask = tf.RaggedTensor.from_row_lengths(
+            values=tf.ones_like(new_item_id_seq.flat_values, dtype=tf.bool),
+            row_lengths=new_item_id_seq.row_lengths(),
+        )
         targets_mask = dict({self.target_name: self.target_mask})
         inputs_mask = dict()
         for k, v in inputs.items():
