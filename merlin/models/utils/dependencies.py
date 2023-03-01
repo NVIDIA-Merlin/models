@@ -47,3 +47,14 @@ def is_transformers_available() -> bool:
     except ImportError:
         transformers = None
     return transformers is not None
+
+
+def is_cudf_available() -> bool:
+    try:
+        import cudf
+    except ImportError:
+        cudf = None
+    return cudf is not None
+
+
+assert is_cudf_available() is True
