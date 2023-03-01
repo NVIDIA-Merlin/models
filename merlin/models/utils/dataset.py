@@ -14,33 +14,30 @@
 # limitations under the License.
 #
 import warnings
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
 from scipy.sparse import coo_matrix
 
 from merlin.io import Dataset
-from merlin.schema import Tags
+from merlin.schema import Schema, Tags
 
 
-def dataset_to_coo(dataset: Dataset):
+def dataset_to_coo(
+    dataset: Dataset,
+    target_column: Optional[str] = None,
+):
     """Converts a merlin.io.Dataset object to a scipy coo matrix"""
-    user_id_column = dataset.schema.select_by_tag(Tags.USER_ID).first.name
-    item_id_column = dataset.schema.select_by_tag(Tags.ITEM_ID).first.name
+    user_id_column = get_user_id_column_name(dataset)
+    item_id_column = get_item_id_column_name(dataset)
 
     columns = [user_id_column, item_id_column]
-    target_column = None
-    target = dataset.schema.select_by_tag(Tags.TARGET)
 
-    if len(target) > 1:
-        raise ValueError(
-            "Found more than one column tagged Tags.TARGET in the dataset schema."
-            f" Expected a single target column but found  {target.column_names}"
-        )
+    if not target_column:
+        target_column = get_target_column_name(dataset)
 
-    elif len(target) == 1:
-        target_column = target.first.name
+    if target_column:
         columns.append(target_column)
 
     df = dataset.to_ddf()[columns].compute(scheduler="synchronous")
@@ -49,6 +46,40 @@ def dataset_to_coo(dataset: Dataset):
     itemids = _to_numpy(df[item_id_column])
     targets = _to_numpy(df[target_column]) if target_column else np.ones(len(userids))
     return coo_matrix((targets.astype("float32"), (userids, itemids)))
+
+
+def get_schema(dataset_or_schema: Union[Dataset, Schema]) -> Schema:
+    if isinstance(dataset_or_schema, Dataset):
+        schema = dataset_or_schema.schema
+    elif isinstance(dataset_or_schema, Schema):
+        schema = dataset_or_schema
+    else:
+        raise ValueError(f"Cannot get schema from {type(dataset_or_schema)}.")
+    return schema
+
+
+def get_user_id_column_name(dataset_or_schema: Union[Dataset, Schema]) -> str:
+    schema = get_schema(dataset_or_schema)
+    return schema.select_by_tag(Tags.USER_ID).first.name
+
+
+def get_item_id_column_name(dataset_or_schema: Union[Dataset, Schema]) -> str:
+    schema = get_schema(dataset_or_schema)
+    return schema.select_by_tag(Tags.ITEM_ID).first.name
+
+
+def get_target_column_name(dataset_or_schema: Union[Dataset, Schema]) -> Optional[str]:
+    target_column = None
+    schema = get_schema(dataset_or_schema)
+    target = schema.select_by_tag(Tags.TARGET)
+    if len(target) > 1:
+        raise ValueError(
+            "Found more than one column tagged Tags.TARGET in the dataset schema."
+            f" Expected a single target column but found  {target.column_names}"
+        )
+    elif len(target) == 1:
+        target_column = target.first.name
+    return target_column
 
 
 def unique_rows_by_features(
