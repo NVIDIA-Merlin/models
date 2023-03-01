@@ -252,7 +252,6 @@ def test_serialization_model(ecommerce_data: Dataset, prediction_task):
     "prediction_blocks", [None, mm.BinaryOutput("click"), mm.BinaryClassificationTask("click")]
 )
 def test_wide_deep_model(music_streaming_data, run_eagerly, prediction_blocks):
-
     # prepare wide_schema
     wide_schema = music_streaming_data.schema.select_by_name(["country"])
     deep_schema = music_streaming_data.schema.select_by_name(["country", "user_age"])
@@ -270,7 +269,6 @@ def test_wide_deep_model(music_streaming_data, run_eagerly, prediction_blocks):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_deep_model_wide_categorical_one_hot(ecommerce_data, run_eagerly):
-
     wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     deep_schema = ecommerce_data.schema
 
@@ -288,7 +286,6 @@ def test_wide_deep_model_wide_categorical_one_hot(ecommerce_data, run_eagerly):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_deep_model_hashed_cross(ecommerce_data, run_eagerly):
-
     wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     deep_schema = ecommerce_data.schema
 
@@ -306,7 +303,6 @@ def test_wide_deep_model_hashed_cross(ecommerce_data, run_eagerly):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly):
-
     schema = music_streaming_data.schema
     # prepare wide_schema
     wide_schema = schema.select_by_name(["country", "user_age"])
@@ -371,7 +367,7 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
         ),
     ]
 
-    batch, _ = mm.sample_batch(ml_dataset, batch_size=100, process_lists=False)
+    batch, _ = mm.sample_batch(ml_dataset, batch_size=100)
 
     output_wide_features = mm.ParallelBlock(wide_preprocessing_blocks)(batch)
     assert set(output_wide_features.keys()) == set(
@@ -444,7 +440,6 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_deep_model_wide_feature_interaction_multi_optimizer(ecommerce_data, run_eagerly):
-
     deep_schema = ecommerce_data.schema.select_by_name(
         names=["user_categories", "item_category", "user_brands", "item_brand"]
     )

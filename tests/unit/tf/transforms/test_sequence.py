@@ -26,15 +26,12 @@ from merlin.schema import Tags
 def test_seq_predict_next(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target, pre=mm.ListToRagged())
+    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
 
-    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, prepare_features=True)
     output = predict_next(batch)
     output_x, output_y = output
     output_y = output_y[target]
-
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
 
     # Checks if sequential input features were truncated in the last position
     for k, v in batch.items():
@@ -55,13 +52,10 @@ def test_seq_predict_last(sequence_testing_data: Dataset):
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
 
-    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, prepare_features=True)
     output = predict_last(batch)
     output_x, output_y = output
     output_y = output_y[target]
-
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
 
     # Checks if sequential input features were truncated in the last position
     for k, v in batch.items():
@@ -83,17 +77,14 @@ def test_seq_predict_random(sequence_testing_data: Dataset):
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_random = mm.SequencePredictRandom(schema=seq_schema, target=target)
 
-    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, prepare_features=True)
     output = predict_random(batch)
     output_x, output_y = output
     output_y = output_y[target]
 
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
     batch_size = batch[target].shape[0]
 
     for k, v in batch.items():
-
         if k in seq_schema.column_names:
             # Check if output sequences length is smaller than input sequences length
             tf.Assert(
@@ -108,7 +99,7 @@ def test_seq_predict_random(sequence_testing_data: Dataset):
             tf.Assert(tf.reduce_all(output_x[k] == v), [output_x[k], v])
 
     # Checks if the target has the right shape
-    tf.Assert(tf.reduce_all(tf.shape(output_y) == batch_size), [])
+    tf.Assert(tf.reduce_all(tf.shape(output_y) == tf.TensorShape((batch_size, 1))), [])
 
 
 def test_seq_predict_next_output_shape(sequence_testing_data):
@@ -160,10 +151,9 @@ def test_seq_random_masking(sequence_testing_data: Dataset):
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_masked = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, prepare_features=True)
 
-    output = predict_masked(batch)
-    output_x, output_y = output.outputs, output.targets
+    output_x, output_y = predict_masked(batch)
     output_y = output_y[target]
 
     tf.Assert(tf.reduce_all(output_y == output_x[target]), [output_y, output_x[target]])
@@ -171,9 +161,6 @@ def test_seq_random_masking(sequence_testing_data: Dataset):
     target_mask = output_y._keras_mask
 
     asserts_mlm_target_mask(target_mask)
-
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
 
     for k, v in batch.items():
         # Checking if inputs values didn't change
@@ -214,10 +201,9 @@ def test_seq_mask_random_replace_embeddings(
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     predict_masked = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, process_lists=False)
+    batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, prepare_features=False)
 
-    output = predict_masked(batch)
-    inputs, targets = output.outputs, output.targets
+    inputs, targets = predict_masked(batch)
     targets = targets[target]
 
     emb = tf.keras.layers.Embedding(1000, 16)

@@ -50,7 +50,6 @@ class InBatchNegatives(tf.keras.layers.Layer):
         run_when_testing: bool = True,
         **kwargs
     ):
-
         super(InBatchNegatives, self).__init__(**kwargs)
         self.n_per_positive = n_per_positive
         self.item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]

@@ -587,7 +587,6 @@ def get_callbacks(train_batch_size=16, metrics_log_frequency=10, wandb_logger=No
     ]
 
     if wandb_logger:
-
         wandb_callback = wandb_logger.get_callback(metrics_log_frequency=metrics_log_frequency)
         if wandb_callback:
             callbacks.append(wandb_callback)

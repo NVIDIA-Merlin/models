@@ -50,7 +50,7 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.tensor import ProcessList
+from merlin.models.tf.transforms.tensor import PrepareFeatures
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -1367,7 +1367,7 @@ class Model(BaseModel):
             ]
             self.schema = sum(input_block_schemas, Schema())
 
-        self.process_list = ProcessList(self.schema)
+        self.prepare_features = PrepareFeatures(self.schema)
         self._frozen_blocks = set()
 
     def save(
@@ -1400,7 +1400,7 @@ class Model(BaseModel):
         )
         input_schema = self.schema
         output_schema = get_output_schema(export_path)
-        save_merlin_metadata(export_path, self, input_schema, output_schema)
+        save_merlin_metadata(export_path, input_schema, output_schema)
 
     @classmethod
     def load(cls, export_path: Union[str, os.PathLike]) -> "Model":
@@ -1434,7 +1434,7 @@ class Model(BaseModel):
                     f"\n\t{call_input_features.difference(model_input_features)}"
                 )
 
-            _ragged_inputs = self.process_list(inputs)
+            _ragged_inputs = self.prepare_features(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
@@ -1456,7 +1456,7 @@ class Model(BaseModel):
         """
         last_layer = None
 
-        input_shape = self.process_list.compute_output_shape(input_shape)
+        input_shape = self.prepare_features.compute_output_shape(input_shape)
 
         if self.pre is not None:
             self.pre.build(input_shape)
@@ -1483,7 +1483,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            self.process_list(inputs),
+            self.prepare_features(inputs),
             targets=targets,
             training=training,
             testing=testing,

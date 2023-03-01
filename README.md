@@ -113,7 +113,7 @@ You can find more details and information about a low-level API in our overview 
 
 View the example notebooks in the [documentation](https://nvidia-merlin.github.io/models/main/examples/README.html) to help you become familiar with Merlin Models.
 
-The same notebooks are available in the `examples` directory from the [Merlin Models](https://github.com/NVIDIA-Merlin/models) GitHub repostory.
+The same notebooks are available in the `examples` directory from the [Merlin Models](https://github.com/NVIDIA-Merlin/models) GitHub repository.
 
 ### Feedback and Support
 

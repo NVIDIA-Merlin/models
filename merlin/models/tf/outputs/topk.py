@@ -144,7 +144,6 @@ class BruteForce(TopKLayer):
         self._candidates = kwargs.pop("_candidates", None)
 
     def index(self, candidates: tf.Tensor, identifiers: Optional[tf.Tensor] = None) -> "BruteForce":
-
         tf.assert_equal(
             tf.rank(candidates), 2, f"candidates must be 2-D tensor (got {candidates.shape})"
         )
@@ -280,7 +279,6 @@ class TopKOutput(ModelOutput):
         default_metrics_fn: MetricsFn = default_categorical_prediction_metrics,
         **kwargs,
     ):
-
         if isinstance(to_call, str):
             if candidates is None:
                 raise ValueError(
