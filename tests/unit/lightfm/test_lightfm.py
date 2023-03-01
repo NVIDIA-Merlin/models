@@ -62,8 +62,6 @@ def test_reload_no_target_column(tmpdir):
     model = LightFM(learning_rate=0.05, loss="warp", epochs=10)
     model.fit(train)
 
-    _ = model.evaluate(valid)
-
     model_dir = Path(tmpdir) / "lightfm_model"
 
     model.save(model_dir)
@@ -87,8 +85,6 @@ def test_reload_with_target_column(tmpdir):
 
     model = LightFM(learning_rate=0.05, loss="warp", epochs=10)
     model.fit(train)
-
-    _ = model.evaluate(valid)
 
     model_dir = Path(tmpdir) / "lightfm_model"
 
