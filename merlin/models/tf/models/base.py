@@ -1313,7 +1313,7 @@ class BaseModel(tf.keras.Model):
             self._reset_compile_cache()
             self.train_pre = pre
             if isinstance(self.train_pre, SequenceTransform):
-                self.train_pre.on_train_begin()
+                self.train_pre.configure_for_train()
 
         out = super().fit(**fit_kwargs)
 
@@ -1401,7 +1401,7 @@ class BaseModel(tf.keras.Model):
             self._reset_compile_cache()
             self.test_pre = pre
             if isinstance(self.test_pre, SequenceTransform):
-                self.test_pre.on_test_begin()
+                self.test_pre.configure_for_test()
 
         out = super().evaluate(
             x,

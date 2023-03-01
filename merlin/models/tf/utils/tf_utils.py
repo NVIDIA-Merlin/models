@@ -506,9 +506,7 @@ def check_inputs_mask_compatible_shape(
        with the extra dimension typically related to the embeddings dimension.
     """
     result = False
-    if type(inputs) == type(mask) and (
-        inputs.shape.as_list()[: len(inputs.shape) - 1] == mask.shape.as_list()
-    ):
+    if type(inputs) == type(mask) and (inputs.shape.as_list()[:-1] == mask.shape.as_list()):
         if isinstance(inputs, tf.RaggedTensor):
             result = tf.reduce_all(
                 tf.cast(inputs.row_lengths(), tf.int32) == tf.cast(mask.row_lengths(), tf.int32)
