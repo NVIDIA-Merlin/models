@@ -15,4 +15,4 @@
 #
 import pytest
 
-pytest.importorskip("horovod")
+pytest.importorskip("horovod.tensorflow")
