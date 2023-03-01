@@ -1,4 +1,4 @@
-name: GPU CI
+name: horovod (2GPU)
 
 on:
   workflow_dispatch:
