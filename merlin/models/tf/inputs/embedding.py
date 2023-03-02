@@ -385,9 +385,6 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def _call_table(self, inputs, **kwargs):
-        if inputs.shape == tf.TensorShape(None):
-            raise Exception(f"INPUTS2: {tf.shape(inputs)}")
-
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
                 if isinstance(inputs, tf.RaggedTensor):
@@ -397,11 +394,6 @@ class EmbeddingTable(EmbeddingTableBase):
 
                 # if len(inputs.shape.as_list()) == 3 and inputs.shape.as_list()[-1] == 1:
                 #     inputs = tf.sparse.reshape(inputs, tf.shape(inputs)[:-1])
-
-                if inputs.shape == tf.TensorShape(None) or inputs.shape == tf.TensorShape(
-                    None,
-                ):
-                    raise Exception(f"INPUTS3.5: {tf.shape(inputs)}")
 
                 out = tf.nn.safe_embedding_lookup_sparse(
                     self.table.embeddings, inputs, None, combiner=self.sequence_combiner
@@ -432,9 +424,6 @@ class EmbeddingTable(EmbeddingTableBase):
             # this is mathematically equivalent but is faster.
             out = tf.cast(out, self._dtype_policy.compute_dtype)
 
-        if out.shape == tf.TensorShape(None):
-            raise Exception(f"INPUTS4: {tf.shape(out)} - OUT4: {tf.shape(inputs)}")
-
         return out
 
     def compute_output_shape(
@@ -455,9 +444,6 @@ class EmbeddingTable(EmbeddingTableBase):
     def _compute_output_shape_table(
         self, input_shape: Union[tf.TensorShape, tuple]
     ) -> tf.TensorShape:
-        # if isinstance(input_shape, tuple) and isinstance(input_shape[1], tf.TensorShape):
-        #    input_shape = tf.TensorShape([input_shape[1][0], None])
-
         first_dims = input_shape
 
         if input_shape.rank > 1:
@@ -918,8 +904,11 @@ class EmbeddingFeatures(TabularBlock):
         if isinstance(val, (tf.RaggedTensor, tf.SparseTensor)):
             if isinstance(val, tf.RaggedTensor):
                 val = val.to_sparse()
-            if len(val.dense_shape) == 3 and val.dense_shape[-1] == 1:
-                val = tf.sparse.reshape(val, val.dense_shape[:-1])
+
+            # if len(val.dense_shape) == 3 and val.dense_shape[-1] == 1:
+            #     val = tf.sparse.reshape(val, val.dense_shape[:-1])
+
+            val = tf.sparse.reshape(val, tf.shape(val)[:-1])
 
             out = tf.nn.safe_embedding_lookup_sparse(table_var, val, None, combiner=table.combiner)
         else:

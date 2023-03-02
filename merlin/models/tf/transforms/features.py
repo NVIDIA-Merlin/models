@@ -236,8 +236,8 @@ class PrepareListFeatures(TabularBlock):
                         output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
 
                     else:
-                        if len(output_shapes[name]) == 2:
-                            output_shapes[name] = output_shapes[name] + [1]
+                        if len(input_shapes[name]) == 2:
+                            output_shapes[name] = input_shapes[name] + [1]
 
                 elif name in input_shapes:
                     output_shapes[name] = input_shapes[name]

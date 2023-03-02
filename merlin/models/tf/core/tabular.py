@@ -49,9 +49,6 @@ class TabularAggregation(
     def _check_concat_shapes(self, inputs: TabularData):
         input_sizes = {k: v.shape for k, v in inputs.items()}
 
-        if len([v for v in input_sizes.values() if v.rank is None]):
-            raise Exception(f"INPUTS: {input_sizes}")
-
         if len(set([tuple(v[:-1]) for v in input_sizes.values()])) > 1:
             raise Exception(
                 "All features dimensions except the last one must match: {}".format(input_sizes)
