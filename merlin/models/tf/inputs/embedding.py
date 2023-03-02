@@ -151,6 +151,9 @@ CombinerType = Union[str, tf.keras.layers.Layer]
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingTable(EmbeddingTableBase):
     """Embedding table that is backed by a standard Keras Embedding Layer.
+    It accepts as input features for lookup tf.Tensor, tf.RaggedTensor,
+    and tf.SparseTensor which might be 2D (batch_size, 1) for scalars
+    or 3d (batch_size, seq_length, 1) for sequential features
 
      Parameters
      ----------
@@ -382,18 +385,28 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def _call_table(self, inputs, **kwargs):
-        if isinstance(inputs, (tf.Tensor, tf.RaggedTensor)) and inputs.shape.as_list()[-1] == 1:
-            inputs = tf.squeeze(inputs, axis=-1)
+        if inputs.shape == tf.TensorShape(None):
+            raise Exception(f"INPUTS2: {tf.shape(inputs)}")
 
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
                 if isinstance(inputs, tf.RaggedTensor):
                     inputs = inputs.to_sparse()
-                if len(inputs.dense_shape) == 3 and inputs.dense_shape[-1] == 1:
-                    inputs = tf.sparse.reshape(inputs, inputs.dense_shape[:-1])
+
+                inputs = tf.sparse.reshape(inputs, tf.shape(inputs)[:-1])
+
+                # if len(inputs.shape.as_list()) == 3 and inputs.shape.as_list()[-1] == 1:
+                #     inputs = tf.sparse.reshape(inputs, tf.shape(inputs)[:-1])
+
+                if inputs.shape == tf.TensorShape(None) or inputs.shape == tf.TensorShape(
+                    None,
+                ):
+                    raise Exception(f"INPUTS3.5: {tf.shape(inputs)}")
+
                 out = tf.nn.safe_embedding_lookup_sparse(
                     self.table.embeddings, inputs, None, combiner=self.sequence_combiner
                 )
+
             else:
                 if isinstance(inputs, tf.SparseTensor):
                     raise ValueError(
@@ -401,10 +414,14 @@ class EmbeddingTable(EmbeddingTableBase):
                         "please convert the tensor to a ragged or dense.",
                     )
 
+                inputs = tf.squeeze(inputs, axis=-1)
+
                 out = call_layer(self.table, inputs, **kwargs)
                 if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
                     out = call_layer(self.sequence_combiner, out, **kwargs)
         else:
+            if inputs.shape.as_list()[-1] == 1:
+                inputs = tf.squeeze(inputs, axis=-1)
             out = call_layer(self.table, inputs, **kwargs)
 
         if self.l2_batch_regularization_factor > 0:
@@ -414,6 +431,9 @@ class EmbeddingTable(EmbeddingTableBase):
             # Instead of casting the variable as in most layers, cast the output, as
             # this is mathematically equivalent but is faster.
             out = tf.cast(out, self._dtype_policy.compute_dtype)
+
+        if out.shape == tf.TensorShape(None):
+            raise Exception(f"INPUTS4: {tf.shape(out)} - OUT4: {tf.shape(inputs)}")
 
         return out
 

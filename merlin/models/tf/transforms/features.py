@@ -222,21 +222,22 @@ class PrepareListFeatures(TabularBlock):
         if self.has_schema:
             for name in self.schema.column_names:
                 col_schema_shape = self.schema[name].shape
-                if (
-                    col_schema_shape.is_list
-                    and name not in input_shapes
-                    and f"{name}__offsets" in input_shapes
-                ):
-                    batch_size = input_shapes[f"{name}__offsets"][0]
-                    if batch_size is not None:
-                        # The length of offset is always batch size + 1
-                        batch_size -= 1
+                if col_schema_shape.is_list:
+                    if name not in input_shapes and f"{name}__offsets" in input_shapes:
+                        batch_size = input_shapes[f"{name}__offsets"][0]
+                        if batch_size is not None:
+                            # The length of offset is always batch size + 1
+                            batch_size -= 1
 
-                    seq_length = None
-                    if self.list_as_dense or not self.schema[name].shape.is_ragged:
-                        seq_length = int(col_schema_shape.dims[1].max)
+                        seq_length = None
+                        if self.list_as_dense or not self.schema[name].shape.is_ragged:
+                            seq_length = int(col_schema_shape.dims[1].max)
 
-                    output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
+                        output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
+
+                    else:
+                        if len(output_shapes[name]) == 2:
+                            output_shapes[name] = output_shapes[name] + [1]
 
                 elif name in input_shapes:
                     output_shapes[name] = input_shapes[name]

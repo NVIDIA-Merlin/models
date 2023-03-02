@@ -27,7 +27,8 @@ from tensorflow.python.framework.test_util import disable_cudnn_autotune
 import merlin.io
 from merlin.models.tf.loader import Loader, sample_batch
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.transforms.features import expected_input_cols_from_schema
+from merlin.models.tf.transforms.features import PrepareFeatures, expected_input_cols_from_schema
+from merlin.schema import Tags
 
 
 def mark_run_eagerly_modes(*args, **kwargs):
@@ -460,3 +461,38 @@ def assert_output_shape(output, expected_output_shape):
     else:
         output_shape = _get_shape(output)
         assert list(output_shape) == list(expected_output_shape)
+
+
+def loader_for_last_item_prediction(sequence_testing_data: merlin.io.Dataset, to_one_hot=True):
+    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+    prepare_features = PrepareFeatures(schema)
+
+    class LastInteractionAsTarget:
+        def compute_output_schema(self, input_schema):
+            return input_schema
+
+        def __call__(self, inputs, targets):
+            inputs = prepare_features(inputs)
+
+            seq_item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+            targets = tf.squeeze(inputs[seq_item_id_col][:, -1:].flat_values, -1)
+            if to_one_hot:
+                targets = tf.one_hot(targets, schema[seq_item_id_col].int_domain.max + 1)
+
+            for name in schema.select_by_tag(Tags.SEQUENCE).column_names:
+                inputs[name] = inputs[name][:, :-1]
+
+            col_names = list(inputs.keys())
+            for k in col_names:
+                if isinstance(inputs[k], tf.RaggedTensor):
+                    inputs[f"{k}__values"] = inputs[k].values
+                    inputs[f"{k}__offsets"] = inputs[k].row_splits
+                    del inputs[k]
+
+            return inputs, targets
+
+    sequence_testing_data.schema = schema
+    dataloader = Loader(sequence_testing_data, batch_size=50)
+    _last_interaction_as_target = LastInteractionAsTarget()
+    dataloader = dataloader.map(_last_interaction_as_target)
+    return dataloader, schema

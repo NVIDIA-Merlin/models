@@ -20,15 +20,12 @@ import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.outputs.classification import CategoricalTarget, EmbeddingTablePrediction
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_binary_output(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
-        mm.InputBlock(ecommerce_data.schema),
-        mm.MLPBlock([8]),
-        mm.BinaryOutput("click"),
+        mm.InputBlock(ecommerce_data.schema), mm.MLPBlock([8]), mm.BinaryOutput("click"),
     )
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -77,11 +74,9 @@ def test_binary_output_two_tasks(ecommerce_data: Dataset, run_eagerly, use_outpu
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
-    dataloader, schema = _next_item_loader(sequence_testing_data)
+    dataloader, schema = testing_utils.loader_for_last_item_prediction(sequence_testing_data)
     model = mm.Model(
-        mm.InputBlock(schema),
-        mm.MLPBlock([8]),
-        mm.CategoricalOutput(schema["item_id_seq"]),
+        mm.InputBlockV2(schema), mm.MLPBlock([8]), mm.CategoricalOutput(schema["item_id_seq"]),
     )
 
     _, history = testing_utils.model_test(model, dataloader, run_eagerly=run_eagerly)
@@ -99,11 +94,10 @@ def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
-    dataloader, schema = _next_item_loader(sequence_testing_data)
+def test_last_item_prediction(sequence_testing_data: Dataset, run_eagerly):
+    dataloader, schema = testing_utils.loader_for_last_item_prediction(sequence_testing_data)
     embeddings = mm.Embeddings(
-        schema,
-        sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
+        schema, sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
     )
 
     predictions = [
@@ -122,34 +116,3 @@ def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
         )
         testing_utils.model_test(model, dataloader, run_eagerly=run_eagerly)
 
-
-def _next_item_loader(sequence_testing_data: Dataset):
-    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
-    prepare_features = mm.PrepareFeatures(schema)
-
-    class LastInteractionAsTarget:
-        def compute_output_schema(self, input_schema):
-            return input_schema
-
-        @tf.function
-        def __call__(self, inputs, targets):
-            inputs = prepare_features(inputs)
-            items = inputs["item_id_seq"]
-            _items = items[:, :-1]
-            targets = tf.one_hot(tf.squeeze(items[:, -1:].flat_values, -1), 51997)
-            inputs["item_id_seq"] = _items
-
-            col_names = list(inputs.keys())
-            for k in col_names:
-                if isinstance(inputs[k], tf.RaggedTensor):
-                    inputs[f"{k}__values"] = inputs[k].values
-                    inputs[f"{k}__offsets"] = inputs[k].row_splits
-                    del inputs[k]
-
-            return inputs, targets
-
-    sequence_testing_data.schema = schema
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
-    _last_interaction_as_target = LastInteractionAsTarget()
-    dataloader = dataloader.map(_last_interaction_as_target)
-    return dataloader, schema

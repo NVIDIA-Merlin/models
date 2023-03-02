@@ -131,7 +131,9 @@ def test_contrastive_output(ecommerce_data: Dataset, run_eagerly):
 
 
 def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
-    dataloader, schema = _next_item_loader(sequence_testing_data, to_one_hot=False)
+    dataloader, schema = testing_utils.loader_for_last_item_prediction(
+        sequence_testing_data, to_one_hot=False
+    )
     model_out = mm.ContrastiveOutput(schema["item_id_seq"], "in-batch")
     model = mm.Model(mm.InputBlockV2(schema), mm.MLPBlock([32]), model_out)
     model.compile(optimizer="adam")
@@ -244,24 +246,3 @@ def _retrieval_inputs_(batch_size):
     inputs = {"query": users_embeddings, "candidate": items_embeddings}
     features = {"item_id": positive_items, "user_id": None}
     return inputs, features
-
-
-def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
-    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
-    prepare_features = mm.PrepareFeatures(schema)
-
-    def _last_interaction_as_target(inputs, targets):
-        inputs, targets = prepare_features(inputs, targets)
-        items = inputs["item_id_seq"]
-        _items = items[:, :-1]
-
-        targets = items[:, -1:].flat_values
-        if to_one_hot:
-            targets = tf.one_hot(targets, 51997)
-        inputs["item_id_seq"] = _items
-        return inputs, targets
-
-    sequence_testing_data.schema = schema
-    loader = mm.Loader(sequence_testing_data, batch_size=50)
-    loader = loader.map(_last_interaction_as_target)
-    return loader, schema
