@@ -136,15 +136,15 @@ def _next_item_loader(sequence_testing_data: Dataset):
             inputs = prepare_features(inputs)
             items = inputs["item_id_seq"]
             _items = items[:, :-1]
-            targets = tf.one_hot(items[:, -1:].flat_values, 51997)
+            targets = tf.one_hot(tf.squeeze(items[:, -1:].flat_values, -1), 51997)
             inputs["item_id_seq"] = _items
 
-            for k in inputs:
+            col_names = list(inputs.keys())
+            for k in col_names:
                 if isinstance(inputs[k], tf.RaggedTensor):
-                    inputs[k] = (
-                        tf.expand_dims(inputs[k].values, 1),
-                        tf.expand_dims(inputs[k].row_lengths(), 1),
-                    )
+                    inputs[f"{k}__values"] = inputs[k].values
+                    inputs[f"{k}__offsets"] = inputs[k].row_splits
+                    del inputs[k]
 
             return inputs, targets
 

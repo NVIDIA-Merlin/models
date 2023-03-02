@@ -14,7 +14,7 @@ from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutputType
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.features import CategoryEncoding, PrepareFeatures
+from merlin.models.tf.transforms.features import CategoryEncoding
 from merlin.schema import Schema, Tags
 
 
@@ -552,11 +552,7 @@ def WideAndDeepModel(
             " or wide part (wide_schema/wide_input_block) must be provided."
         )
 
-    _pre = PrepareFeatures(schema)
-    if pre:
-        _pre = _pre.connect(pre)
-
-    wide_and_deep_body = ParallelBlock(branches, pre=_pre, aggregation="element-wise-sum")
+    wide_and_deep_body = ParallelBlock(branches, pre=pre, aggregation="element-wise-sum")
     model = Model(wide_and_deep_body, prediction_blocks)
 
     return model

@@ -21,6 +21,7 @@ from tensorflow.keras import regularizers
 import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
+from merlin.models.tf.transforms.features import expected_input_cols_from_schema
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -43,7 +44,7 @@ def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
 )
 def test_dlrm_model(music_streaming_data, run_eagerly, prediction_blocks):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
-        ["item_id", "user_age", "click", "item_genres"]
+        ["item_id", "user_id", "user_age", "item_genres", "click"]
     )
     model = mm.DLRMModel(
         music_streaming_data.schema,
@@ -56,15 +57,13 @@ def test_dlrm_model(music_streaming_data, run_eagerly, prediction_blocks):
         model, music_streaming_data, run_eagerly=run_eagerly, reload_model=True
     )
 
-    features = testing_utils.get_model_inputs(
-        music_streaming_data.schema.remove_by_tag(Tags.TARGET), ["item_genres"]
-    )
+    expected_features = expected_input_cols_from_schema(music_streaming_data.schema)
     expected_output_signature = (
         "click/binary_classification_task"
         if isinstance(prediction_blocks, mm.PredictionTask)
         else "click/binary_output"
     )
-    testing_utils.test_model_signature(loaded_model, features, [expected_output_signature])
+    testing_utils.test_model_signature(loaded_model, expected_features, [expected_output_signature])
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

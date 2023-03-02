@@ -160,10 +160,11 @@ class Encoder(tf.keras.Model):
         return merlin.io.Dataset(predictions)
 
     def call(self, inputs, training=False, testing=False, targets=None, **kwargs):
+        inputs = self.prepare_features(inputs)
         return combinators.call_sequentially(
             list(self.to_call),
             inputs=inputs,
-            features=self.prepare_features(inputs),
+            features=inputs,
             targets=targets,
             training=training,
             testing=testing,

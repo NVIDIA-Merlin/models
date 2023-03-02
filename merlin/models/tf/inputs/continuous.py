@@ -90,14 +90,9 @@ class ContinuousFeatures(TabularBlock):
         name: Optional[str] = None,
         **kwargs
     ):
+        kwargs["is_input"] = kwargs.get("is_input", True)
         super().__init__(
-            pre=pre,
-            post=post,
-            aggregation=aggregation,
-            schema=schema,
-            name=name,
-            is_input=True,
-            **kwargs
+            pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs
         )
         self.filter_features = Filter(features)
 

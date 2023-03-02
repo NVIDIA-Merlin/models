@@ -138,13 +138,13 @@ class PrepareListFeatures(TabularBlock):
     """Prepares all list (multi-hot/sequential) features,
     so that they converted to tf.RaggedTensor or dense tf.Tensor
     based on the columns schema.
-    It manages in particular the Merlin dataloader representation of list
-    features, which consists of two keys in the inputs dict
+    It manages in particular the Merlin dataloader representation of
+    ragged list features, which consists of two keys in the inputs dict
     suffixed by "__values" and "__offsets".
-    For example, the "categories" list feature are represented
+    For example, the "categories" ragged list feature is represented
     by the Merlin Dataloader as "categories__values" and
     "categories__offsets" keys and this block converts them
-    to a single ragged or dense tensor "categories".
+    to a single tf.RaggedTensor "categories".
 
     Parameters
     ----------
@@ -164,36 +164,53 @@ class PrepareListFeatures(TabularBlock):
             return inputs
 
         outputs = {}
-        for name in self.schema.column_names:
-            val = None
-            col_schema_shape = self.schema[name].shape
-            if col_schema_shape.is_list:
-                if name in inputs:
-                    val = inputs[name]
-                    if isinstance(val, tf.RaggedTensor):
+        if self.has_schema:
+            for name in self.schema.column_names:
+                val = None
+                col_schema_shape = self.schema[name].shape
+                if col_schema_shape.is_list:
+                    if name in inputs:
                         val = inputs[name]
-                    elif isinstance(val, tf.SparseTensor):
-                        val = tf.RaggedTensor.from_sparse(val)
-                else:
-                    if f"{name}__values" not in inputs or f"{name}__offsets" not in inputs:
-                        raise ValueError(
-                            f"The list feature '{name}' is expected to be represented "
-                            f"as two features in the inputs: '{name}__values' and "
-                            f"'{name}__offsets'"
-                        )
-                    val = list_col_to_ragged(inputs[f"{name}__values"], inputs[f"{name}__offsets"])
+                        if isinstance(val, tf.RaggedTensor):
+                            val = inputs[name]
+                        elif isinstance(val, tf.SparseTensor):
+                            val = tf.RaggedTensor.from_sparse(val)
+                    else:
+                        # TODO: Change this condition to check is_ragged after this PR
+                        # from Oliver is merged https://github.com/NVIDIA-Merlin/dataloader/pull/103
+                        # if col_schema_shape.is_ragged:
+                        if True:
+                            if f"{name}__values" not in inputs or f"{name}__offsets" not in inputs:
+                                raise ValueError(
+                                    f"The ragged list feature '{name}' is expected to be "
+                                    f"represented by two features in the inputs: '{name}__values' "
+                                    f"and '{name}__offsets', but they were not found."
+                                )
+                            val = list_col_to_ragged(
+                                inputs[f"{name}__values"], inputs[f"{name}__offsets"]
+                            )
+                            del inputs[f"{name}__values"]
+                            del inputs[f"{name}__offsets"]
+                        else:
+                            raise ValueError(f"Feature '{name}' was not found in the inputs")
 
-                # if len(val.shape) == 2:
-                #    val = tf.expand_dims(val, axis=-1)
+                    if len(val.shape) == 2:
+                        val = tf.expand_dims(val, axis=-1)
 
-                if self.list_as_dense:
-                    val = to_dense(val, max_seq_length=col_schema_shape.dims[1].max)
+                    if self.list_as_dense:
+                        val = to_dense(val, max_seq_length=col_schema_shape.dims[1].max)
 
-            elif name in inputs:
-                val = inputs[name]
+                elif name in inputs:
+                    val = inputs[name]
 
-            if val is not None:
-                outputs[name] = val
+                if val is not None:
+                    outputs[name] = val
+
+        # Adding other inputs that might not be in the schema,
+        # as they might be treated by other block
+        for k, v in inputs.items():
+            if k not in outputs:
+                outputs[k] = v
 
         return outputs
 
@@ -202,27 +219,33 @@ class PrepareListFeatures(TabularBlock):
             return input_shapes
 
         output_shapes = {}
-        for name in self.schema.column_names:
-            col_schema_shape = self.schema[name].shape
-            if (
-                col_schema_shape.is_list
-                and name not in input_shapes
-                and f"{name}__offsets" in input_shapes
-            ):
-                batch_size = input_shapes[f"{name}__offsets"][0]
-                if batch_size is not None:
-                    # The length of offset is always batch size + 1
-                    batch_size -= 1
+        if self.has_schema:
+            for name in self.schema.column_names:
+                col_schema_shape = self.schema[name].shape
+                if (
+                    col_schema_shape.is_list
+                    and name not in input_shapes
+                    and f"{name}__offsets" in input_shapes
+                ):
+                    batch_size = input_shapes[f"{name}__offsets"][0]
+                    if batch_size is not None:
+                        # The length of offset is always batch size + 1
+                        batch_size -= 1
 
-                seq_length = None
-                if self.list_as_dense or not self.schema[name].shape.is_ragged:
-                    seq_length = col_schema_shape.dims[1].max
+                    seq_length = None
+                    if self.list_as_dense or not self.schema[name].shape.is_ragged:
+                        seq_length = int(col_schema_shape.dims[1].max)
 
-                # output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
-                output_shapes[name] = tf.TensorShape([batch_size, seq_length])
+                    output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
 
-            elif name in input_shapes:
-                output_shapes[name] = input_shapes[name]
+                elif name in input_shapes:
+                    output_shapes[name] = input_shapes[name]
+
+        # Adding other inputs that might not be in the schema,
+        # as they might be treated by other block
+        for k, v in input_shapes.items():
+            if k not in output_shapes:
+                output_shapes[k] = v
 
         return output_shapes
 
@@ -240,7 +263,8 @@ class PrepareListFeatures(TabularBlock):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PrepareFeatures(TabularBlock):
     """Prepares scalar and list (multi-hot/sequential) features
-    to be used with a Merlin model.
+    to be used with a Merlin model. The transformations are applied
+    only for features in the schema, the other features are kept the same.
     The scalar features are extended to be 2D (batch_size, 1) and
     list features are converted to either tf.RaggedTensor or dense tf.Tensor
     based on the columns schema.
@@ -276,36 +300,56 @@ class PrepareFeatures(TabularBlock):
 
         outputs = {}
         out_targets = {}
-        # Preparing non-list features and targets
-        for name in self.schema.column_names:
-            if name in inputs:
-                val = inputs[name]
+        if self.has_schema:
+            # Preparing non-list features and targets
+            for name in self.schema.column_names:
+                if name in inputs:
+                    val = inputs[name]
 
-                if not self.schema[name].shape.is_list:
-                    # Expanding / setting last dim of non-list input features to be 1D
-                    val = tf.reshape(val, (-1, 1))
+                    if not self.schema[name].shape.is_list:
+                        # Expanding / setting last dim of non-list input features to be 1D
+                        val = tf.reshape(val, (-1, 1))
 
-                outputs[name] = val
+                    outputs[name] = val
 
-            if targets is not None and name in targets:
-                val = targets[name]
+                if isinstance(targets, dict) and name in targets:
+                    val = targets[name]
 
-                if not self.schema[name].shape.is_list:
-                    # Expanding / setting last dim of non-list target features to be 1D
-                    val = tf.reshape(val, (-1, 1))
+                    if not self.schema[name].shape.is_list:
+                        # Expanding / setting last dim of non-list target features to be 1D
+                        val = tf.reshape(val, (-1, 1))
 
-                out_targets[name] = val
+                    out_targets[name] = val
 
-        if out_targets:
+        # Adding other inputs that might not be in the schema,
+        # as they might be treated by other block
+        for k, v in inputs.items():
+            if k not in outputs:
+                outputs[k] = v
+
+        if targets is not None:
+            if out_targets and isinstance(targets, dict):
+                for k, v in targets.items():
+                    if k not in out_targets:
+                        out_targets[k] = v
+            else:
+                out_targets = targets
             return (outputs, out_targets)
         return outputs
 
     def compute_output_shape(self, input_shapes):
         output_shapes = self.prepare_lists.compute_output_shape(input_shapes)
 
-        for name in self.schema.column_names:
-            if not self.schema[name].shape.is_list and name in input_shapes:
-                output_shapes[name] = tf.TensorShape([input_shapes[name][0], 1])
+        if self.has_schema:
+            for name in self.schema.column_names:
+                if not self.schema[name].shape.is_list and name in input_shapes:
+                    output_shapes[name] = tf.TensorShape([input_shapes[name][0], 1])
+
+        # Adding other inputs that might not be in the schema,
+        # as they might be treated by other block
+        for k, v in input_shapes.items():
+            if k not in output_shapes:
+                output_shapes[k] = v
 
         return output_shapes
 
@@ -1228,13 +1272,13 @@ class BroadcastToSequence(Block):
         return cls(context_schema, sequence_schema, **config)
 
 
-def expected_input_cols_from_schema(schema: Schema) -> str:
+def expected_input_cols_from_schema(schema: Schema, inputs: Optional[TabularData] = None) -> str:
     """Returns the columns/keys that are expected to be
     present in inputs dictionary based on the schema.
-    The particular cases are list/multi-hot columns
+    The particular cases are ragged list/multi-hot columns
     which are represented by two keys in the inputs dict,
     suffixed by "__values" and "__offsets".
-    For example, the "categories" list feature are
+    For example, the "categories" ragged list feature are
     represented by the Merlin Dataloader as
     "categories__values" and "categories__offsets" keys,
     which are converted by Merlin Models as single
@@ -1244,6 +1288,10 @@ def expected_input_cols_from_schema(schema: Schema) -> str:
     ----------
     schema : Schema
         The schema with the expected features
+    inputs : Optional[TabularData]
+        If provided, checks is ragged list features
+        are already converted from (__ragged, __offsets)
+        dict representation
 
     Returns
     -------
@@ -1251,9 +1299,13 @@ def expected_input_cols_from_schema(schema: Schema) -> str:
         Returns a list with the expected columns in the
         input dictionary
     """
+    schema = schema.remove_by_tag(Tags.TARGET)
     expected_features = []
     for name in schema.column_names:
-        if schema[name].shape.is_list:
+        # TODO: Change this condition to check is_ragged after this PR
+        # from Oliver is merged https://github.com/NVIDIA-Merlin/dataloader/pull/103
+        # if schema[name].shape.is_list and schema[name].shape.is_ragged ...
+        if schema[name].shape.is_list and (inputs is None or name not in inputs):
             expected_features.extend([f"{name}__values", f"{name}__offsets"])
         else:
             expected_features.append(name)

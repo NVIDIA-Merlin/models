@@ -382,13 +382,8 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def _call_table(self, inputs, **kwargs):
-        if isinstance(inputs, tf.Tensor) or (
-            isinstance(inputs, tf.RaggedTensor) and inputs.shape[-1] == 1
-        ):
-            # Eliminating the last dim==1 of dense tensors before embedding lookup
-            inputs = tf.cond(
-                tf.shape(inputs)[-1] == 1, lambda: tf.squeeze(inputs, axis=-1), lambda: inputs
-            )
+        if isinstance(inputs, (tf.Tensor, tf.RaggedTensor)) and inputs.shape.as_list()[-1] == 1:
+            inputs = tf.squeeze(inputs, axis=-1)
 
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
@@ -761,13 +756,13 @@ class EmbeddingFeatures(TabularBlock):
                 embeddings_initializer=table.initializer,
             )
 
+        kwargs["is_input"] = kwargs.get("is_input", True)
         super().__init__(
             pre=pre,
             post=post,
             aggregation=aggregation,
             name=name,
             schema=schema,
-            is_input=True,
             **kwargs,
         )
 
@@ -900,7 +895,9 @@ class EmbeddingFeatures(TabularBlock):
 
         table: TableConfig = self.feature_config[name].table
         table_var = self.embedding_tables[table.name].embeddings
-        if isinstance(val, tf.SparseTensor):
+        if isinstance(val, (tf.RaggedTensor, tf.SparseTensor)):
+            if isinstance(val, tf.RaggedTensor):
+                val = val.to_sparse()
             if len(val.dense_shape) == 3 and val.dense_shape[-1] == 1:
                 val = tf.sparse.reshape(val, val.dense_shape[:-1])
 
@@ -909,12 +906,10 @@ class EmbeddingFeatures(TabularBlock):
             if output_sequence:
                 out = tf.gather(table_var, tf.cast(val, tf.int32))
             else:
-                if len(val.shape) > 1:
-                    # TODO: Check if it is correct to retrieve only the 1st element
-                    # of second dim for non-sequential multi-hot categ features
-                    out = tf.gather(table_var, tf.cast(val, tf.int32)[:, 0])
-                else:
-                    out = tf.gather(table_var, tf.cast(val, tf.int32))
+                if len(val.shape) > 1 and val.shape.as_list()[-1] == 1:
+                    val = tf.squeeze(val, axis=-1)
+                out = tf.gather(table_var, tf.cast(val, tf.int32))
+
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
             # this is mathematically equivalent but is faster.

@@ -367,7 +367,7 @@ def sample_batch(
     batch_size: Optional[int] = None,
     shuffle: Optional[bool] = False,
     include_targets: Optional[bool] = True,
-    prepare_features: Optional[bool] = False,
+    prepare_features: Optional[bool] = True,
     list_to_dense: Optional[bool] = False,
 ):
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
@@ -410,8 +410,8 @@ def sample_batch(
 
     if prepare_features:
         pf = PrepareFeatures(loader.schema, list_to_dense)
-        if targets:
-            inputs, targets = pf(inputs, targets)
+        if targets is not None:
+            inputs, targets = pf(inputs, targets=targets)
         else:
             inputs = pf(inputs)
 

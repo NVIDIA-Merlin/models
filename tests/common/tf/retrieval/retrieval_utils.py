@@ -442,6 +442,7 @@ def get_youtube_dnn_model(
     # Appends the top MLP layer with the same size as the item id embedding
     layers_dims.append(item_id_emb_size)
 
+    # TODO: Update test to use YoutubeDNNRetrievalModelV2, as this one is deprecated
     model = mm.YoutubeDNNRetrievalModel(
         schema=schema_selected,
         num_sampled=youtubednn_sampled_softmax_n_candidates,

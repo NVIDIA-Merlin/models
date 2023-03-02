@@ -16,7 +16,7 @@
 import pathlib
 import platform
 import tempfile
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, Tuple, Union
 
 import numpy as np
 import pytest
@@ -28,7 +28,6 @@ import merlin.io
 from merlin.models.tf.loader import Loader, sample_batch
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.transforms.features import expected_input_cols_from_schema
-from merlin.schema import Schema
 
 
 def mark_run_eagerly_modes(*args, **kwargs):
@@ -104,7 +103,7 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
-        x, y = sample_batch(dataloader, batch_size=50)
+        x, y = sample_batch(dataloader, batch_size=50, prepare_features=False)
         batch = [(x, y)]
 
         model_preds = model.predict(iter(batch))
@@ -136,19 +135,6 @@ def model_test(
     assert isinstance(model.from_config(model.get_config()), type(model))
 
     return model, losses
-
-
-def get_model_inputs(schema: Schema, list_cols: Optional[Sequence[str]] = None):
-    list_cols = list_cols or []
-    features = schema.column_names
-
-    # Right now the model expects a tuple for each list-column
-    for list_col in list_cols:
-        features.pop(features.index(list_col))
-        for i in ["1", "2"]:
-            features.append(f"{list_col}_{i}")
-
-    return features
 
 
 def test_model_signature(model, input_names, output_names):

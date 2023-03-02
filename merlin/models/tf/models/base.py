@@ -856,8 +856,8 @@ class BaseModel(tf.keras.Model):
 
             # Ensuring targets are one-hot encoded if they are not
             condition = tf.logical_and(
-                tf.rank(targets[k]) == tf.rank(predictions[k]),
-                tf.logical_and(tf.shape(targets[k])[-1] == 1, tf.shape(predictions[k])[-1] > 1),
+                tf.shape(targets[k])[-1] == 1,
+                tf.shape(predictions[k])[-1] > 1,
             )
             targets[k] = tf.cond(
                 condition,
@@ -1104,6 +1104,7 @@ class BaseModel(tf.keras.Model):
                     loader.input_schema = self.input_schema + loader.input_schema.select_by_tag(
                         target_tags
                     )
+                    pass
             else:
                 # Bind input schema from dataset to model,
                 # to handle the case where this hasn't been set on an input block
@@ -1419,7 +1420,9 @@ class Model(BaseModel):
 
     def _check_schema_and_inputs_matching(self, inputs):
         if isinstance(self.input_schema, Schema):
-            model_expected_features = set(expected_input_cols_from_schema(self.input_schema))
+            model_expected_features = set(
+                expected_input_cols_from_schema(self.input_schema, inputs)
+            )
             call_input_features = set(inputs.keys())
             if model_expected_features != call_input_features:
                 raise ValueError(
@@ -1487,14 +1490,13 @@ class Model(BaseModel):
         self.built = True
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
+        outputs = self.prepare_features(inputs)
         context = self._create_context(
-            self.prepare_features(inputs),
+            outputs,
             targets=targets,
             training=training,
             testing=testing,
         )
-
-        outputs = inputs
         if self.pre:
             outputs, context = self._call_child(self.pre, outputs, context)
 

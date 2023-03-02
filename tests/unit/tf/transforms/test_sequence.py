@@ -194,12 +194,14 @@ def test_seq_predict_masked_serialize_deserialize(sequence_testing_data):
 def test_seq_mask_random_replace_embeddings(
     sequence_testing_data: Dataset, dense: bool, target_as_dict: bool
 ):
-    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_name(
-        ["item_id_seq", "categories"]
-    )
+    sequence_testing_data.schema = sequence_testing_data.schema.select_by_tag(
+        Tags.SEQUENCE
+    ).select_by_name(["item_id_seq", "categories"])
 
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_masked = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
+    predict_masked = mm.SequenceMaskRandom(
+        schema=sequence_testing_data.schema, target=target, masking_prob=0.3
+    )
 
     batch, _ = mm.sample_batch(sequence_testing_data, batch_size=8, prepare_features=False)
 
@@ -207,7 +209,7 @@ def test_seq_mask_random_replace_embeddings(
     targets = targets[target]
 
     emb = tf.keras.layers.Embedding(1000, 16)
-    item_id_emb_seq = emb(inputs["item_id_seq"])
+    item_id_emb_seq = emb(tf.squeeze(inputs["item_id_seq"], axis=-1))
     targets_mask = targets._keras_mask
     if dense:
         item_id_emb_seq = item_id_emb_seq.to_tensor()

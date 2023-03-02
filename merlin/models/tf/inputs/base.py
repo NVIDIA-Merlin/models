@@ -31,7 +31,6 @@ from merlin.models.tf.inputs.embedding import (
     Embeddings,
     SequenceEmbeddingFeatures,
 )
-from merlin.models.tf.transforms.features import PrepareFeatures
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
@@ -200,13 +199,8 @@ def InputBlock(
             name="continuous_projection",
         )
 
-    _pre = PrepareFeatures(schema)
-    if pre:
-        _pre = _pre.connect(pre)
-
-    return ParallelBlock(
-        branches, pre=_pre, aggregation=aggregation, post=post, is_input=True, **kwargs
-    )
+    kwargs["is_input"] = kwargs.get("is_input", True)
+    return ParallelBlock(branches, pre=pre, aggregation=aggregation, post=post, **kwargs)
 
 
 INPUT_TAG_TO_BLOCK: Dict[Tags, Callable[[Schema], Layer]] = {
@@ -323,13 +317,9 @@ def InputBlockV2(
     if not parsed:
         raise ValueError("No columns selected for the input block")
 
-    _pre = PrepareFeatures(schema)
-    if pre:
-        _pre = _pre.connect(pre)
-
     return ParallelBlock(
         parsed,
-        pre=_pre,
+        pre=pre,
         post=post,
         aggregation=aggregation,
         is_input=True,

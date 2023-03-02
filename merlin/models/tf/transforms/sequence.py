@@ -156,7 +156,7 @@ class SequenceTransform(TabularBlock):
         seq_shapes = list(seq_inputs_shapes.values())
         if not all(x == seq_shapes[0] for x in seq_shapes):
             raise ValueError(
-                "The sequential inputs must have the same shape, but the shapes"
+                "The sequential inputs must have the same shape, but the shapes "
                 f"are different: {seq_inputs_shapes}"
             )
 
@@ -207,7 +207,6 @@ class SequencePredictNext(SequenceTransform):
         A block that is called before this method call().
         P.s. The PrepareFeatures() is called automatically before the pre
         to convert the list features representation
-        (with "__values" and "__offsets" suffix) to Ragged/Dense 2D features
     """
 
     def call(
@@ -266,7 +265,6 @@ class SequencePredictLast(SequenceTransform):
         A block that is called before this method call().
         P.s. The PrepareFeatures() is called automatically before the pre
         to convert the list features representation
-        (with "__values" and "__offsets" suffix) to Ragged/Dense 2D features
     """
 
     @tf.function
@@ -276,8 +274,7 @@ class SequencePredictLast(SequenceTransform):
         self._check_seq_inputs_targets(inputs)
 
         # Shifts the target column to be the next item of corresponding input column
-        new_target = inputs[self.target_name][:, -1:]
-        new_target = tf.squeeze(tf.sparse.to_dense(new_target.to_sparse()), axis=1)
+        new_target = tf.squeeze(inputs[self.target_name][:, -1:], axis=1)
         if targets is None:
             targets = dict({self.target_name: new_target})
         elif isinstance(targets, dict):
@@ -328,7 +325,6 @@ class SequencePredictRandom(SequenceTransform):
         A block that is called before this method call().
         P.s. The PrepareFeatures() is called automatically before the pre
         to convert the list features representation
-        (with "__values" and "__offsets" suffix) to Ragged/Dense 2D features
     """
 
     def call(
@@ -361,7 +357,9 @@ class SequencePredictRandom(SequenceTransform):
         input_mask = positions_matrix < random_targets_indices
         target_mask = positions_matrix == random_targets_indices
 
-        new_target = tf.squeeze(tf.ragged.boolean_mask(inputs[self.target_name], target_mask), 1)
+        new_target = tf.squeeze(
+            tf.ragged.boolean_mask(inputs[self.target_name], target_mask), axis=1
+        )
         if targets is None:
             targets = dict({self.target_name: new_target})
         elif isinstance(targets, dict):
@@ -394,7 +392,6 @@ class SequenceTargetAsInput(SequenceTransform):
         A block that is called before this method call().
         P.s. The PrepareFeatures() is called automatically before the pre
         to convert the list features representation
-        (with "__values" and "__offsets" suffix) to Ragged/Dense 2D features
     """
 
     @tf.function
