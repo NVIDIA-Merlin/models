@@ -940,8 +940,8 @@
 
             <span class="c1"># Ensuring targets are one-hot encoded if they are not</span>
             <span class="n">condition</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
                 <span class="n">condition</span><span class="p">,</span>
@@ -1188,6 +1188,7 @@
                     <span class="n">loader</span><span class="o">.</span><span class="n">input_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span> <span class="o">+</span> <span class="n">loader</span><span class="o">.</span><span class="n">input_schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span>
                         <span class="n">target_tags</span>
                     <span class="p">)</span>
+                    <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Bind input schema from dataset to model,</span>
                 <span class="c1"># to handle the case where this hasn&#39;t been set on an input block</span>
@@ -1488,7 +1489,7 @@
         <span class="p">)</span>
         <span class="n">input_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
         <span class="n">output_schema</span> <span class="o">=</span> <span class="n">get_output_schema</span><span class="p">(</span><span class="n">export_path</span><span class="p">)</span>
-        <span class="n">save_merlin_metadata</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">input_schema</span><span class="p">,</span> <span class="n">output_schema</span><span class="p">)</span>
+        <span class="n">save_merlin_metadata</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="n">input_schema</span><span class="p">,</span> <span class="n">output_schema</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">export_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Model&quot;</span><span class="p">:</span>
@@ -1503,7 +1504,9 @@
 
     <span class="k">def</span> <span class="nf">_check_schema_and_inputs_matching</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">):</span>
-            <span class="n">model_expected_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">expected_input_cols_from_schema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="p">))</span>
+            <span class="n">model_expected_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">expected_input_cols_from_schema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+            <span class="p">)</span>
             <span class="n">call_input_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
             <span class="k">if</span> <span class="n">model_expected_features</span> <span class="o">!=</span> <span class="n">call_input_features</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1571,14 +1574,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">built</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
         <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
+            <span class="n">outputs</span><span class="p">,</span>
             <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span>
             <span class="n">training</span><span class="o">=</span><span class="n">training</span><span class="p">,</span>
             <span class="n">testing</span><span class="o">=</span><span class="n">testing</span><span class="p">,</span>
         <span class="p">)</span>
-
-        <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">:</span>
             <span class="n">outputs</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_child</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
 

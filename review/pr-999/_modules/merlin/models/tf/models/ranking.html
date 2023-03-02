@@ -98,7 +98,7 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.utils</span> <span class="kn">import</span> <span class="n">parse_prediction_blocks</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.base</span> <span class="kn">import</span> <span class="n">ModelOutputType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.features</span> <span class="kn">import</span> <span class="n">CategoryEncoding</span><span class="p">,</span> <span class="n">PrepareFeatures</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.features</span> <span class="kn">import</span> <span class="n">CategoryEncoding</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
@@ -636,11 +636,7 @@
             <span class="s2">&quot; or wide part (wide_schema/wide_input_block) must be provided.&quot;</span>
         <span class="p">)</span>
 
-    <span class="n">_pre</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">pre</span><span class="p">:</span>
-        <span class="n">_pre</span> <span class="o">=</span> <span class="n">_pre</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">pre</span><span class="p">)</span>
-
-    <span class="n">wide_and_deep_body</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">_pre</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;element-wise-sum&quot;</span><span class="p">)</span>
+    <span class="n">wide_and_deep_body</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;element-wise-sum&quot;</span><span class="p">)</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">wide_and_deep_body</span><span class="p">,</span> <span class="n">prediction_blocks</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>

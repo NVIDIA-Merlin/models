@@ -115,7 +115,6 @@
     <span class="n">Embeddings</span><span class="p">,</span>
     <span class="n">SequenceEmbeddingFeatures</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.features</span> <span class="kn">import</span> <span class="n">PrepareFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span><span class="p">,</span> <span class="n">TagsType</span>
 
 <span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;merlin-models&quot;</span><span class="p">)</span>
@@ -284,13 +283,8 @@
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;continuous_projection&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="n">_pre</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">pre</span><span class="p">:</span>
-        <span class="n">_pre</span> <span class="o">=</span> <span class="n">_pre</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">pre</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
-        <span class="n">branches</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">_pre</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-    <span class="p">)</span></div>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;is_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;is_input&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <span class="n">INPUT_TAG_TO_BLOCK</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Schema</span><span class="p">],</span> <span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
@@ -407,13 +401,9 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">parsed</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No columns selected for the input block&quot;</span><span class="p">)</span>
 
-    <span class="n">_pre</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">pre</span><span class="p">:</span>
-        <span class="n">_pre</span> <span class="o">=</span> <span class="n">_pre</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">pre</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
         <span class="n">parsed</span><span class="p">,</span>
-        <span class="n">pre</span><span class="o">=</span><span class="n">_pre</span><span class="p">,</span>
+        <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
         <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
         <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
         <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
