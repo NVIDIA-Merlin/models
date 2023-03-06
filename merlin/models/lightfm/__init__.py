@@ -20,9 +20,9 @@ import pickle
 from pathlib import Path
 from typing import Optional, Union
 
-import lightfm
 import lightfm.evaluation
 
+import lightfm
 from merlin.io import Dataset
 from merlin.models.io import save_merlin_metadata
 from merlin.models.utils.dataset import (

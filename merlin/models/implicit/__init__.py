@@ -13,12 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import importlib
+import json
+import os
+from pathlib import Path
+from typing import Optional, Union
+
 import implicit
 from implicit.evaluation import ranking_metrics_at_k
 
 from merlin.io import Dataset
-from merlin.models.utils.dataset import _to_numpy, dataset_to_coo
-from merlin.schema import Tags
+from merlin.models.io import save_merlin_metadata
+from merlin.models.utils.dataset import (
+    _to_numpy,
+    dataset_to_coo,
+    get_item_id_column_name,
+    get_user_id_column_name,
+)
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
+from merlin.schema import Schema
 
 
 class ImplicitModelAdaptor:
@@ -43,9 +59,10 @@ class ImplicitModelAdaptor:
         print(model.evaluate(valid))
     """
 
-    def __init__(self, implicit_model):
+    def __init__(self, implicit_model, schema: Optional[Schema] = None):
         self.implicit_model = implicit_model
         self.train_data = None
+        self.schema = schema
 
     def fit(self, train: Dataset):
         """Trains the implicit model
@@ -58,6 +75,8 @@ class ImplicitModelAdaptor:
             If there is a column tagged as Tags.TARGET we will also use that for the values,
             otherwise will be set to 1
         """
+        if not self.schema:
+            self.schema = train.schema
         data = dataset_to_coo(train).tocsr()
         self.implicit_model.fit(data)
         self.train_data = data
@@ -98,19 +117,80 @@ class ImplicitModelAdaptor:
             The number of recommendations to generate for each user
         """
         # Get the user-ids for the dataset,
-        user_id_column = dataset.schema.select_by_tag(Tags.USER_ID).first.name
+        user_id_column = get_user_id_column_name(self.schema)
         userids = _to_numpy(
             dataset.to_ddf()[user_id_column].unique().compute(scheduler="synchronous")
         )
 
         return self.implicit_model.recommend(userids, None, filter_already_liked_items=False, N=k)
 
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        """Saves the model to export_path using pickle, along with merlin
+        model metadata.
+        Parameters
+        ----------
+        path: Union[str, os.PathLike]
+            Directory where the model will be saved.
+        """
+        export_dir = Path(path)
+        export_dir.mkdir(parents=True)
+
+        self.implicit_model.save(export_dir / "implicit_model.npz")
+
+        schema_to_tensorflow_metadata_json(self.schema, export_dir / "schema.json")
+
+        user_id_column = get_user_id_column_name(self.schema)
+        item_id_column = get_item_id_column_name(self.schema)
+        save_merlin_metadata(
+            export_dir,
+            self.schema.select_by_name([user_id_column, item_id_column]),
+            None,
+        )
+        with open(export_dir / "config.json", "w") as f:
+            json.dump(
+                dict(
+                    implicit_model_module=self.implicit_model.__class__.__module__,
+                    implicit_model_name=self.implicit_model.__class__.__name__,
+                ),
+                f,
+                indent=4,
+            )
+
+    @classmethod
+    def load(
+        cls,
+        path: Union[str, os.PathLike],
+    ):
+        """Load the model from a directory where a model has been saved.
+        Parameters
+        ----------
+        path: Union[str, os.PathLike]
+            Path where a Merlin Implicit model has been saved.
+        Returns
+        -------
+        Merlin Implicit model instance.
+        """
+        load_dir = Path(path)
+        schema = tensorflow_metadata_json_to_schema(load_dir / "schema.json")
+
+        with open(load_dir / "config.json", "r") as f:
+            config = json.load(f)
+
+        implicit_model_module = importlib.import_module(config.get("implicit_model_module"))
+        implicit_model_name = config.get("implicit_model_name")
+        implicit_model_cls = getattr(implicit_model_module, implicit_model_name)
+        implicit_model = implicit_model_cls.load(load_dir / "implicit_model.npz")
+
+        loaded_model = cls(schema=schema)
+        loaded_model.implicit_model = implicit_model
+        return loaded_model
+
 
 class AlternatingLeastSquares(ImplicitModelAdaptor):
-    def __init__(self, *args, **kwargs):
-        super().__init__(implicit.als.AlternatingLeastSquares(*args, **kwargs))
+    def __init__(self, *args, schema=None, **kwargs):
+        super().__init__(implicit.als.AlternatingLeastSquares(*args, **kwargs), schema=schema)
 
 
 class BayesianPersonalizedRanking(ImplicitModelAdaptor):
-    def __init__(self, *args, **kwargs):
-        super().__init__(implicit.bpr.BayesianPersonalizedRanking(*args, **kwargs))
+    def __init__(self, *args, schema=None, **kwargs):
+        super().__init__(implicit.bpr.BayesianPersonalizedRanking(*args, **kwargs), schema=schema)

@@ -128,6 +128,7 @@ def _next_item_loader(sequence_testing_data: Dataset):
         def compute_output_schema(self, input_schema):
             return input_schema
 
+        @tf.function
         def __call__(self, inputs, targets):
             inputs = mm.ListToRagged()(inputs)
             items = inputs["item_id_seq"]
