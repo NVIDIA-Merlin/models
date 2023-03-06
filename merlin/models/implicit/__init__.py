@@ -57,6 +57,12 @@ class ImplicitModelAdaptor:
         # evaluate the model given the validation set
         # prints out {'precision@10': 0.3895182175113377, 'map@10': 0.2609445966914911, ...} etc
         print(model.evaluate(valid))
+
+        # save the model
+        model.save("/path/to/dir")
+
+        # reload the model
+        model = AlternatingLeastSquares.load("/path/to/dir")
     """
 
     def __init__(self, implicit_model, schema: Optional[Schema] = None):
@@ -127,6 +133,7 @@ class ImplicitModelAdaptor:
     def save(self, path: Union[str, os.PathLike]) -> None:
         """Saves the model to export_path using pickle, along with merlin
         model metadata.
+
         Parameters
         ----------
         path: Union[str, os.PathLike]
@@ -162,6 +169,7 @@ class ImplicitModelAdaptor:
         path: Union[str, os.PathLike],
     ):
         """Load the model from a directory where a model has been saved.
+
         Parameters
         ----------
         path: Union[str, os.PathLike]
@@ -187,10 +195,22 @@ class ImplicitModelAdaptor:
 
 
 class AlternatingLeastSquares(ImplicitModelAdaptor):
-    def __init__(self, *args, schema=None, **kwargs):
+    def __init__(self, *args, schema: Optional[Schema] = None, **kwargs):
+        """
+        Parameters
+        ----------
+        schema: Optional[merlin.schema.Schema]
+            The schema of the data that will be used to train and evaluate the model.
+        """
         super().__init__(implicit.als.AlternatingLeastSquares(*args, **kwargs), schema=schema)
 
 
 class BayesianPersonalizedRanking(ImplicitModelAdaptor):
-    def __init__(self, *args, schema=None, **kwargs):
+    def __init__(self, *args, schema: Optional[Schema] = None, **kwargs):
+        """
+        Parameters
+        ----------
+        schema: Optional[merlin.schema.Schema]
+            The schema of the data that will be used to train and evaluate the model.
+        """
         super().__init__(implicit.bpr.BayesianPersonalizedRanking(*args, **kwargs), schema=schema)
