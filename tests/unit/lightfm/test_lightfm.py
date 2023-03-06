@@ -22,10 +22,10 @@ from merlin.datasets.synthetic import generate_data
 from merlin.models.lightfm import LightFM
 from merlin.schema import Tags
 
-np.random.seed(0)
-
 
 def test_warp():
+    np.random.seed(0)
+
     train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
     train.schema = train.schema.remove_by_tag(Tags.TARGET)
     valid.schema = valid.schema.remove_by_tag(Tags.TARGET)
@@ -55,6 +55,8 @@ def test_multiple_targets_raise_error():
 
 
 def test_reload_no_target_column(tmpdir):
+    np.random.seed(0)
+
     train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
     train.schema = train.schema.remove_by_tag(Tags.TARGET)
     valid.schema = valid.schema.remove_by_tag(Tags.TARGET)
@@ -76,6 +78,8 @@ def test_reload_no_target_column(tmpdir):
 
 
 def test_reload_with_target_column(tmpdir):
+    np.random.seed(0)
+
     train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
     train.schema = train.schema.excluding_by_name(["play_percentage", "like"])
     valid.schema = valid.schema.excluding_by_name(["play_percentage", "like"])
