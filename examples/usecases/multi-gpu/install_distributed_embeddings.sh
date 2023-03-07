@@ -2,10 +2,11 @@
 
 set -e
 
-WORK_DIR=$(pwd)
-ROOT_DIR="/tmp"
+INSTALL_DIR=$1
 
-cd $ROOT_DIR
+WORK_DIR=$(pwd)
+
+cd $INSTALL_DIR
 
 if [ ! -d "distributed-embeddings" ]; then
   git clone https://github.com/NVIDIA-Merlin/distributed-embeddings.git
