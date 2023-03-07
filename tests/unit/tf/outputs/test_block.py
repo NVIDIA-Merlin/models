@@ -134,7 +134,9 @@ def test_model_with_multi_output_blocks_with_task_towers(
     model = mm.Model(inputs, mm.MLPBlock([64]), output_block)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(
+        mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
+    )
 
     assert metrics["loss"] >= 0
     assert set(list(metrics.keys())) == set(
@@ -294,7 +296,9 @@ def test_model_with_multi_output_blocks_metrics_tasks(music_streaming_data: Data
         weighted_metrics=weighted_metrics,
     )
 
-    metrics_results = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    metrics_results = model.train_step(
+        mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
+    )
 
     assert metrics_results["loss"] >= 0
     assert set(metrics_results.keys()) == set(expected_metrics)

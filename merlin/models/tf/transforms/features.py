@@ -245,7 +245,7 @@ class PrepareListFeatures(TabularBlock):
         # Adding other inputs that might not be in the schema,
         # as they might be treated by other block
         for k, v in input_shapes.items():
-            if k not in output_shapes:
+            if k.replace("__values", "").replace("__offsets", "") not in output_shapes:
                 output_shapes[k] = v
 
         return output_shapes
@@ -349,7 +349,11 @@ class PrepareFeatures(TabularBlock):
         # Adding other inputs that might not be in the schema,
         # as they might be treated by other block
         for k, v in input_shapes.items():
-            if k not in output_shapes:
+            if (
+                k not in output_shapes
+                and not k.endswith("__values")
+                and not k.endswith("__offsets")
+            ):
                 output_shapes[k] = v
 
         return output_shapes

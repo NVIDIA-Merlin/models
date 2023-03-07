@@ -276,7 +276,7 @@ def test_two_tower_model_v2(music_streaming_data: Dataset, run_eagerly, num_epoc
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
     query_features = expected_input_cols_from_schema(
-        music_streaming_data.schema.select_by_tag(Tags.USER), ["user_genres"]
+        music_streaming_data.schema.select_by_tag(Tags.USER)
     )
     testing_utils.test_model_signature(model.query_encoder, query_features, ["output_1"])
 

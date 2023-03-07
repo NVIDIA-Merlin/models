@@ -25,6 +25,7 @@ def test_encoder_block(music_streaming_data: Dataset):
     model = mm.Model(
         mm.ParallelBlock(user_encoder, item_encoder),
         mm.ContrastiveOutput(item_schema, "in-batch"),
+        prep_features=False,
     )
 
     assert model.blocks[0]["query"] == user_encoder
