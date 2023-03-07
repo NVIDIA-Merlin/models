@@ -43,6 +43,11 @@ class DistributedEmbeddings(TabularBlock):
                 f"{self.__class__.__name__}."
             )
 
+        if not tf.executing_eagerly:
+            raise RuntimeError(
+                f"Graph mode is not supported yet. Please use eager mode."
+            )
+
         super(DistributedEmbeddings, self).__init__(schema=schema, **kwargs)
 
         self.dim = dim
@@ -84,7 +89,6 @@ class DistributedEmbeddings(TabularBlock):
 
         return dim
 
-    @tf.function
     def build(self, input_shapes):
         super().build(input_shapes)
 
@@ -124,9 +128,6 @@ class DistributedEmbeddings(TabularBlock):
             else:
                 max_value = tf.reduce_max(tensor)
                 min_value = tf.reduce_min(tensor)
-                print('*'*80)
-                print(min_value, max_value)
-                print('*'*80)
             condition = tf.logical_and(
                 tf.greater(tf.cast(depth, max_value.dtype), max_value),
                 tf.greater_equal(min_value, tf.cast(0, min_value.dtype)),

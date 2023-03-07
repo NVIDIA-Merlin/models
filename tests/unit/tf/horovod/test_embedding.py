@@ -48,7 +48,8 @@ def test_distributed_embeddings_basic(embedding_dim=4, global_batch_size=8):
     assert outputs[1].shape == (global_batch_size // hvd.size(), embedding_dim)
 
 
-def test_dlrm_model_with_embeddings(music_streaming_data, batch_size=8, embedding_dim=16, learning_rate=0.03):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_dlrm_model_with_embeddings(music_streaming_data, run_eagerly, batch_size=8, embedding_dim=16, learning_rate=0.03):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_id", "user_age", "click"]
     )
@@ -74,7 +75,7 @@ def test_dlrm_model_with_embeddings(music_streaming_data, batch_size=8, embeddin
     )
 
     opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
-    model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
+    model.compile(optimizer=opt, run_eagerly=run_eagerly, metrics=[tf.keras.metrics.AUC()])
 
     losses = model.fit(train_loader, epochs=2)
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
