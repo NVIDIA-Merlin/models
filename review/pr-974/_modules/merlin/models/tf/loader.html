@@ -453,7 +453,7 @@
     <span class="n">include_targets</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">to_ragged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">to_dense</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">process_lists</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_features</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Util function to generate a batch of input tensors from a merlin.io.Dataset instance</span>
 
@@ -471,6 +471,11 @@
 <span class="sd">        Whether to convert the tuple of sparse tensors into ragged tensors, by default False.</span>
 <span class="sd">    to_dense: bool</span>
 <span class="sd">        Whether to convert the tuple of sparse tensors into dense tensors, by default False.</span>
+<span class="sd">    prepare_features: bool</span>
+<span class="sd">        Whether to prepare features from dataloader for the model, by default False.</span>
+<span class="sd">        If enabled, it converts multi-hot/list features to dense or ragged based on the schema.</span>
+<span class="sd">        It also ensures that scalar features are converted to 2D (batch size, 1).</span>
+<span class="sd">        P.s. The features are automatically prepared by InputBlockV2 if it is used</span>
 <span class="sd">    Returns:</span>
 <span class="sd">    -------</span>
 <span class="sd">    batch: Dict[tf.tensor]</span>
@@ -481,7 +486,7 @@
             <span class="s2">&quot;Sparse values cannot be converted to both ragged tensors and dense tensors&quot;</span>
         <span class="p">)</span>
 
-    <span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">ListToDense</span><span class="p">,</span> <span class="n">ListToRagged</span><span class="p">,</span> <span class="n">ProcessList</span>
+    <span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">ListToDense</span><span class="p">,</span> <span class="n">ListToRagged</span><span class="p">,</span> <span class="n">PrepareFeatures</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset_or_loader</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">batch_size</span><span class="p">:</span>
@@ -498,8 +503,8 @@
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">ListToRagged</span><span class="p">()(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">to_dense</span><span class="p">:</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">ListToDense</span><span class="p">()(</span><span class="n">inputs</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">process_lists</span><span class="p">:</span>
-        <span class="n">inputs</span> <span class="o">=</span> <span class="n">ProcessList</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">schema</span><span class="p">)(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">prepare_features</span><span class="p">:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">schema</span><span class="p">)(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">include_targets</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">inputs</span>
     <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span>

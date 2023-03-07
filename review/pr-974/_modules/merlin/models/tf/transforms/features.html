@@ -570,7 +570,6 @@
 
         <span class="n">_inputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-
             <span class="n">assertion_min_rank</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
                 <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
                     <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
@@ -896,7 +895,7 @@
 
 
 <div class="viewcode-block" id="BroadcastToSequence"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BroadcastToSequence.html#merlin.models.tf.BroadcastToSequence">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">BroadcastToSequence</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">BroadcastToSequence</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Broadcast context features to match the timesteps of sequence features.</span>
 
 <span class="sd">    This layer supports mask propagation. If the sequence features have a mask. The</span>
@@ -917,77 +916,121 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sequence_schema</span> <span class="o">=</span> <span class="n">sequence_schema</span></div>
 
 <div class="viewcode-block" id="BroadcastToSequence.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BroadcastToSequence.html#merlin.models.tf.BroadcastToSequence.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
-        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_broadcast</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_broadcast</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">inputs</span></div>
 
-    <span class="k">def</span> <span class="nf">_get_seq_features_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">):</span>
-        <span class="n">inputs_sizes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">def</span> <span class="nf">_check_sequence_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">):</span>
+        <span class="n">sequence_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_schema</span><span class="o">.</span><span class="n">column_names</span>
 
-        <span class="n">seq_features_shapes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">fshape</span> <span class="ow">in</span> <span class="n">inputs_sizes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="c1"># Saves the shapes of sequential features</span>
-            <span class="k">if</span> <span class="n">fname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-                <span class="n">seq_features_shapes</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">fshape</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence_features</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">not_found_seq_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">sequence_features</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">not_found_seq_features</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Some sequential features were not found in the inputs: </span><span class="si">{</span><span class="n">not_found_seq_features</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
 
         <span class="n">sequence_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">sequence_is_ragged</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_features_shapes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
-                        <span class="k">if</span> <span class="n">sequence_is_ragged</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                                <span class="s2">&quot;sequence features must all be ragged or all dense, not both.&quot;</span>
-                            <span class="p">)</span>
-                        <span class="n">new_sequence_length</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">()</span>
-                        <span class="n">sequence_is_ragged</span> <span class="o">=</span> <span class="kc">True</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">sequence_is_ragged</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                                <span class="s2">&quot;sequence features must all be ragged or all dense, not both.&quot;</span>
-                            <span class="p">)</span>
-                        <span class="n">new_sequence_length</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-                        <span class="n">sequence_is_ragged</span> <span class="o">=</span> <span class="kc">False</span>
-
-                    <span class="c1"># check sequences lengths match</span>
-                    <span class="k">if</span> <span class="n">sequence_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">sequence_lengths_equal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span>
-                            <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">new_sequence_length</span><span class="p">,</span> <span class="n">sequence_length</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">sequence_features</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">sequence_is_ragged</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;Sequential features must all be ragged or all dense, not both.&quot;</span>
                         <span class="p">)</span>
-                        <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
-                            <span class="n">sequence_lengths_equal</span><span class="p">,</span>
-                            <span class="p">[</span>
-                                <span class="s2">&quot;sequence features must share the same sequence lengths&quot;</span><span class="p">,</span>
-                                <span class="p">(</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">new_sequence_length</span><span class="p">),</span>
-                            <span class="p">],</span>
+                    <span class="n">new_sequence_length</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">()</span>
+                    <span class="n">sequence_is_ragged</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">sequence_is_ragged</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;Sequential features must all be ragged or all dense, not both.&quot;</span>
                         <span class="p">)</span>
-                    <span class="n">sequence_length</span> <span class="o">=</span> <span class="n">new_sequence_length</span>
+                    <span class="n">new_sequence_length</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="n">sequence_is_ragged</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="k">return</span> <span class="n">seq_features_shapes</span><span class="p">,</span> <span class="n">sequence_length</span>
+                <span class="c1"># check sequences lengths match</span>
+                <span class="k">if</span> <span class="n">sequence_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">sequence_lengths_equal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">new_sequence_length</span><span class="p">,</span> <span class="n">sequence_length</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
+                        <span class="n">sequence_lengths_equal</span><span class="p">,</span>
+                        <span class="p">[</span>
+                            <span class="s2">&quot;Sequential features must share the same sequence lengths&quot;</span><span class="p">,</span>
+                            <span class="p">(</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">new_sequence_length</span><span class="p">),</span>
+                        <span class="p">],</span>
+                    <span class="p">)</span>
+                <span class="n">sequence_length</span> <span class="o">=</span> <span class="n">new_sequence_length</span>
+
+    <span class="k">def</span> <span class="nf">_check_context_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">):</span>
+        <span class="n">context_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_schema</span><span class="o">.</span><span class="n">column_names</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">context_features</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">not_found_seq_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">context_features</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">not_found_seq_features</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Some contextual features were not found in the inputs: </span><span class="si">{</span><span class="n">not_found_seq_features</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">context_features</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;A contextual feature (</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">) should be a dense tf.Tensor&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;A contextual feature (</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">) should be a 1D or &quot;</span> <span class="s2">&quot;2D tf.Tensor: </span><span class="si">{v.shape}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
-    <span class="k">def</span> <span class="nf">_broadcast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-        <span class="n">seq_features_shapes</span><span class="p">,</span> <span class="n">sequence_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_seq_features_shapes</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_features_shapes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">non_seq_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">seq_features_shapes</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-            <span class="n">non_seq_target</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">non_seq_features</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">fname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">target</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="k">continue</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-                        <span class="n">non_seq_target</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_row_lengths</span><span class="p">(</span>
-                            <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">target</span><span class="p">[</span><span class="n">fname</span><span class="p">],</span> <span class="n">sequence_length</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">sequence_length</span>
-                        <span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">shape</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
-                        <span class="n">target_shape</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">sequence_length</span> <span class="o">+</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
-                        <span class="n">non_seq_target</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
-                            <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">target</span><span class="p">[</span><span class="n">fname</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">target_shape</span>
-                        <span class="p">)</span>
-            <span class="n">target</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">target</span><span class="p">,</span> <span class="o">**</span><span class="n">non_seq_target</span><span class="p">}</span>
+    <span class="k">def</span> <span class="nf">_broadcast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_sequence_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_context_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">target</span>
+        <span class="n">sequence_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_schema</span><span class="o">.</span><span class="n">column_names</span>
+        <span class="n">context_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_schema</span><span class="o">.</span><span class="n">column_names</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence_features</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">context_features</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">inputs</span>
+
+        <span class="n">sequence_features_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">inputs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">sequence_features</span> <span class="k">if</span> <span class="n">inputs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence_features_values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">inputs</span>
+        <span class="n">template_seq_feature_value</span> <span class="o">=</span> <span class="n">sequence_features_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">non_seq_target</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">context_features</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">inputs</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template_seq_feature_value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+                <span class="n">new_value</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_value</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">template_seq_feature_value</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+                    <span class="n">new_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">new_value</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+                <span class="c1"># Here broadcast the context feature using the same shape</span>
+                <span class="c1"># of a 3D ragged sequential feature with compatible</span>
+                <span class="c1"># So that the context feature shape becomes (batch size, seq length, feature dim)</span>
+                <span class="n">non_seq_target</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">template_seq_feature_value</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">new_value</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                    <span class="o">*</span> <span class="n">new_value</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+                <span class="n">sequence_length</span> <span class="o">=</span> <span class="n">template_seq_feature_value</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">target_shape</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">sequence_length</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="n">non_seq_target</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">fname</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">target_shape</span>
+                <span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">non_seq_target</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">inputs</span>
 
 <div class="viewcode-block" id="BroadcastToSequence.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BroadcastToSequence.html#merlin.models.tf.BroadcastToSequence.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">]</span>
@@ -996,6 +1039,7 @@
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">input_shape</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
                 <span class="n">sequence_length</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">break</span>
 
         <span class="n">context_shapes</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">input_shape</span><span class="p">:</span>
@@ -1018,6 +1062,7 @@
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">mask</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
                 <span class="n">sequence_mask</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="k">break</span>
 
         <span class="c1"># no sequence mask found</span>
         <span class="k">if</span> <span class="n">sequence_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1029,9 +1074,7 @@
             <span class="k">if</span> <span class="n">mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
                 <span class="n">masks_context</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">sequence_mask</span>
 
-        <span class="n">masks_other</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_broadcast</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
-
-        <span class="n">new_mask</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">masks_other</span><span class="p">,</span> <span class="o">**</span><span class="n">masks_context</span><span class="p">}</span>
+        <span class="n">new_mask</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">masks_context</span><span class="p">}</span>
 
         <span class="k">return</span> <span class="n">new_mask</span></div>
 
