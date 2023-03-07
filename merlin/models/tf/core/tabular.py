@@ -540,7 +540,6 @@ class Filter(TabularBlock):
             self.set_schema(schema=inputs)
 
     def set_schema(self, schema=None):
-
         out = super().set_schema(schema)
 
         if isinstance(self.feature_names, Tags):

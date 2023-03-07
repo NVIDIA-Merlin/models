@@ -47,6 +47,7 @@ class Continuous(Filter):
     ):
         if inputs is None:
             inputs = Tags.CONTINUOUS
+        self.supports_masking = True
         super().__init__(inputs, **kwargs)
 
 

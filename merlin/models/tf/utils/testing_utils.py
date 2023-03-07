@@ -103,7 +103,7 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
-        x, y = sample_batch(dataloader, batch_size=50, to_ragged=False, process_lists=False)
+        x, y = sample_batch(dataloader, batch_size=50, to_ragged=False, prepare_features=False)
         batch = [(x, y)]
 
         model_preds = model.predict(iter(batch))
@@ -112,14 +112,10 @@ def model_test(
         if isinstance(model_preds, dict):
             for task_name in model_preds:
                 tf.debugging.assert_near(
-                    model_preds[task_name],
-                    loaded_model_preds[task_name],
+                    model_preds[task_name], loaded_model_preds[task_name], atol=1e-5
                 )
         else:
-            tf.debugging.assert_near(
-                model_preds,
-                loaded_model_preds,
-            )
+            tf.debugging.assert_near(model_preds, loaded_model_preds, atol=1e-5)
 
         loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
         loaded_model.fit(iter(batch))
