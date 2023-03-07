@@ -131,8 +131,7 @@ class ImplicitModelAdaptor:
         return self.implicit_model.recommend(userids, None, filter_already_liked_items=False, N=k)
 
     def save(self, path: Union[str, os.PathLike]) -> None:
-        """Saves the model to export_path using pickle, along with merlin
-        model metadata.
+        """Saves the model to directory 'path', along with merlin model metadata.
 
         Parameters
         ----------
