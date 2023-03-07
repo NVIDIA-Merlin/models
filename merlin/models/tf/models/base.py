@@ -141,7 +141,7 @@ def get_output_schema(export_path: str) -> Schema:
     output_schema = Schema()
     for output_name, output_spec in signature.structured_outputs.items():
         col_schema = ColumnSchema(output_name, dtype=output_spec.dtype.as_numpy_dtype)
-        shape = tf.shape(output_spec)
+        shape = output_spec.shape
         if shape.rank > 1 and (shape[1] is None or shape[1] > 1):
             is_ragged = shape[1] is None
             properties = {}
