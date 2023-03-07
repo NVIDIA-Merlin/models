@@ -1,2 +1,1 @@
 horovod
-distributed-embeddings@git+https://github.com/NVIDIA-Merlin/distributed-embeddings

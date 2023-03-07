@@ -49,7 +49,9 @@ def test_distributed_embeddings_basic(embedding_dim=4, global_batch_size=8):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_dlrm_model_with_embeddings(music_streaming_data, run_eagerly, batch_size=8, embedding_dim=16, learning_rate=0.03):
+def test_dlrm_model_with_embeddings(
+    music_streaming_data, run_eagerly, batch_size=8, embedding_dim=16, learning_rate=0.03
+):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_id", "user_age", "click"]
     )

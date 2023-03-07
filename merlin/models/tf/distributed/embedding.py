@@ -100,7 +100,6 @@ class DistributedEmbeddings(TabularBlock):
             raise ValueError(f"Unexpected input type encountered: {input_shapes}")
         self.embedding_layers.build(ordered_input_shapes)
 
-
     @tf.function
     def call(
         self, inputs: Union[Dict[str, tf.Tensor], List[tf.Tensor]]
@@ -115,6 +114,7 @@ class DistributedEmbeddings(TabularBlock):
         -------
         A tensor or dict of tensors corresponding to the embeddings for inputs
         """
+
         def _validate_inputs(tensor):
             depth = 100
             if isinstance(tensor, tf.SparseTensor):

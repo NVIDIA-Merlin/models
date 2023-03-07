@@ -7,12 +7,11 @@ ROOT_DIR="/tmp"
 
 cd $ROOT_DIR
 
-git clone https://github.com/NVIDIA-Merlin/distributed-embeddings.git
+if [ ! -d "distributed-embeddings" ]; then
+  git clone https://github.com/NVIDIA-Merlin/distributed-embeddings.git
+fi
 
-git config --global --add safe.directory $ROOT_DIR/distributed-embeddings
-git config --global --add safe.directory $ROOT_DIR/distributed-embeddings/third_party/thrust
-
-cd $ROOT_DIR/distributed-embeddings
+cd distributed-embeddings
 
 git submodule update --init --recursive
 make pip_pkg
