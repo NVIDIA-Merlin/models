@@ -3,8 +3,6 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as mm
-from merlin.io.dataset import Dataset
-from merlin.models.tf.utils import testing_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 hvd = pytest.importorskip("horovod.tensorflow.keras")
