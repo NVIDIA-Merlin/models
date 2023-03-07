@@ -43,11 +43,6 @@ class DistributedEmbeddings(TabularBlock):
                 f"{self.__class__.__name__}."
             )
 
-        if not tf.executing_eagerly:
-            raise RuntimeError(
-                f"Graph mode is not supported yet. Please use eager mode."
-            )
-
         super(DistributedEmbeddings, self).__init__(schema=schema, **kwargs)
 
         self.dim = dim
