@@ -777,7 +777,7 @@ class BaseModel(tf.keras.Model):
                 predictions[task.task_name] = task_x
                 sample_weights[task.task_name] = task_sample_weight
 
-            self.adjust_predictions_and_targets(predictions, targets)
+            self.adjust_predictions_and_targets(predictions, targets, sample_weights)
 
             if len(predictions) == 1 and len(targets) == 1:
                 predictions = list(predictions.values())[0]
@@ -809,7 +809,7 @@ class BaseModel(tf.keras.Model):
             predictions[task.full_name] = task_x
             sample_weights[task.full_name] = task_sample_weight
 
-        self.adjust_predictions_and_targets(predictions, targets)
+        self.adjust_predictions_and_targets(predictions, targets, sample_weights)
 
         return Prediction(predictions, targets, sample_weights)
 
@@ -855,9 +855,10 @@ class BaseModel(tf.keras.Model):
         self,
         prediction: tf.Tensor,
         target: TensorLike,
+        sample_weight: TensorLike,
     ):
-        """Adjusts the dense predictions tensor and the target tensor to ensure
-        compatibility with most Keras losses and metrics.
+        """Adjusts the dense predictions tensor, the target tensor and sample_weight tensor
+        to ensure compatibility with most Keras losses and metrics.
 
         This method applies the following transformations to the target and prediction tensors:
         - Converts ragged targets and their masks to dense format.
@@ -873,10 +874,13 @@ class BaseModel(tf.keras.Model):
             The prediction tensor as a dense tensor.
         target : TensorLike
             The target tensor that can be either a dense or ragged tensor.
+        sample_weight : TensorLike
+            The sample weight tensor that can be either a dense or ragged tensor.
 
         Returns:
         --------
-            A tuple of the adjusted prediction and target tensors, with the same dtype and shape.
+            A tuple of the adjusted prediction, target, and sample_weight tensors,
+            with the same dtype and shape.
         """
         if isinstance(target, tf.RaggedTensor):
             # Converts ragged targets (and ragged mask) to dense
@@ -886,6 +890,9 @@ class BaseModel(tf.keras.Model):
             target = target.to_tensor()
             if dense_target_mask is not None:
                 target._keras_mask = dense_target_mask
+
+        if isinstance(sample_weight, tf.RaggedTensor):
+            sample_weight = sample_weight.to_tensor()
 
         if prediction.shape.ndims == 2:
             # Removes the mask information as the sequence is summarized into
@@ -926,15 +933,16 @@ class BaseModel(tf.keras.Model):
         # Makes target shape equal to the predictions tensor, as shape is lost after tf.cond
         target = tf.reshape(target, tf.shape(prediction))
 
-        return prediction, target
+        return prediction, target, sample_weight
 
     def _adjust_ragged_predictions_and_targets(
         self,
         prediction: tf.RaggedTensor,
         target: TensorLike,
+        sample_weight: TensorLike,
     ):
-        """Adjusts the predictions (ragged tensor) and targets to ensure
-        compatibility with most Keras losses and metrics.
+        """Adjusts the prediction (ragged tensor), target and sample weight
+        to ensure compatibility with most Keras losses and metrics.
 
         This methods applies the following transformations to the target and prediction tensors:
         - Select ragged targets based on the mask information, if defined.
@@ -948,27 +956,51 @@ class BaseModel(tf.keras.Model):
             The prediction tensor as a ragged tensor.
         target : TensorLike
             The target tensor that can be either a dense or ragged tensor.
+        sample_weight : TensorLike
+            The sample weight tensor that can be either a dense or ragged tensor.
 
         Returns
         -------
         Tuple[tf.Tensor, tf.Tensor]
-            A tuple containing the adjusted prediction and target tensors.
+            A tuple containing the adjusted prediction, target and sample_weight tensors.
         """
-        if isinstance(target, tf.RaggedTensor) and getattr(target, "_keras_mask", None) is not None:
+        target_mask = None
+        if getattr(target, "_keras_mask", None) is not None:
+            target_mask = target._keras_mask
+
+        if isinstance(target, tf.RaggedTensor) and target_mask is not None:
             # Select targets at masked positions and return
             # a ragged tensor.
             target = tf.ragged.boolean_mask(
-                target, target._keras_mask.with_row_splits_dtype(target.row_splits.dtype)
+                target, target_mask.with_row_splits_dtype(target.row_splits.dtype)
             )
 
         # Ensuring targets and preds have the same dtype
         target = tf.cast(target, prediction.dtype)
 
-        # Take the flat values of predictions and targets as Keras
+        # Align sample_weight with the ragged target tensor
+        if isinstance(target, tf.RaggedTensor) and sample_weight is not None:
+            if isinstance(sample_weight, tf.RaggedTensor):
+                # sample_weight is a 2-D tensor, weights in the same sequence are different
+                if target_mask is not None:
+                    # Select sample weights at masked positions and return a ragged tensor.
+                    sample_weight = tf.ragged.boolean_mask(
+                        sample_weight,
+                        target_mask.with_row_splits_dtype(sample_weight.row_splits.dtype),
+                    )
+            else:
+                # sample_weight is a 1-D tensor, one weight value per sequence
+                # repeat the weight value for each masked target position
+                row_lengths = tf.constant(target.row_lengths(), dtype=tf.int64)
+                sample_weight = tf.repeat(sample_weight, row_lengths)
+
+        # Take the flat values of predictions, targets and sample weihts as Keras
         # losses does not support RaggedVariantTensor on GPU:
         prediction = prediction.flat_values
         if isinstance(target, tf.RaggedTensor):
             target = target.flat_values
+        if isinstance(sample_weight, tf.RaggedTensor):
+            sample_weight = sample_weight.flat_values
 
         # Ensuring targets are one-hot encoded if they are not
         def _reshape_ragged():
@@ -991,12 +1023,13 @@ class BaseModel(tf.keras.Model):
             _reshape_ragged,
         )
 
-        return prediction, target
+        return prediction, target, sample_weight
 
     def adjust_predictions_and_targets(
         self,
         predictions: Dict[str, TensorLike],
         targets: Optional[Union[TensorLike, Dict[str, TensorLike]]],
+        sample_weights: Optional[Union[TensorLike, Dict[str, TensorLike]]],
     ):
         """Adjusts the predictions and targets to ensure compatibility with most Keras losses and metrics.
 
@@ -1009,18 +1042,30 @@ class BaseModel(tf.keras.Model):
             A dictionary with predictions for the tasks.
         targets : Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]]
             A dictionary with targets for the tasks, or None if targets are not provided.
+        sample_weights : Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]]
+            A dictionary with sample weights for the tasks,
+            or None if sample_weights are not provided.
+
         """
         if targets is None:
             return
 
         for k in targets:
             if isinstance(predictions[k], tf.RaggedTensor):
-                predictions[k], targets[k] = self._adjust_ragged_predictions_and_targets(
-                    predictions[k], targets[k]
+                (
+                    predictions[k],
+                    targets[k],
+                    sample_weights[k],
+                ) = self._adjust_ragged_predictions_and_targets(
+                    predictions[k], targets[k], sample_weights[k]
                 )
             else:
-                predictions[k], targets[k] = self._adjust_dense_predictions_and_targets(
-                    predictions[k], targets[k]
+                (
+                    predictions[k],
+                    targets[k],
+                    sample_weights[k],
+                ) = self._adjust_dense_predictions_and_targets(
+                    predictions[k], targets[k], sample_weights[k]
                 )
 
     def train_step(self, data):
