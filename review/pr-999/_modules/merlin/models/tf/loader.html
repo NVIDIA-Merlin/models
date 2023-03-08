@@ -452,7 +452,6 @@
     <span class="n">shuffle</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">include_targets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">prepare_features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">list_to_dense</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Util function to generate a batch of input tensors from a merlin.io.Dataset instance</span>
 
@@ -471,8 +470,6 @@
 <span class="sd">        If enabled, it converts multi-hot/list features to dense or ragged based on the schema.</span>
 <span class="sd">        It also ensures that scalar features are converted to 2D (batch size, 1).</span>
 <span class="sd">        P.s. The features are automatically prepared by InputBlockV2 if it is used</span>
-<span class="sd">    list_to_dense: bool</span>
-<span class="sd">        Whether to convert all ragged list features into dense tensors, by default False.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">    -------</span>
 <span class="sd">    batch: Dict[tf.tensor]</span>
@@ -493,7 +490,7 @@
     <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">prepare_features</span><span class="p">:</span>
-        <span class="n">pf</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="n">list_to_dense</span><span class="p">)</span>
+        <span class="n">pf</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">pf</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
