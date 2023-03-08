@@ -58,7 +58,7 @@ class TestAddRandomNegativesToBatch:
             ]
         )
         n_per_positive = 5
-        sampler = InBatchNegatives(schema, n_per_positive)
+        sampler = InBatchNegatives(schema, n_per_positive, prep_features=True)
 
         input_df = pd.DataFrame(
             [
@@ -99,10 +99,7 @@ class TestAddRandomNegativesToBatch:
             batch_size = calculate_batch_size_from_inputs(targets)
             assert_fn(batch_size)
 
-    @pytest.mark.parametrize("to_dense", [True, False])
-    def test_calling_without_targets(
-        self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int
-    ):
+    def test_calling_without_targets(self, music_streaming_data: Dataset, tf_random_seed: int):
         schema = music_streaming_data.schema
         batch_size, n_per_positive = 10, 5
         features = mm.sample_batch(
@@ -110,7 +107,6 @@ class TestAddRandomNegativesToBatch:
             batch_size=batch_size,
             include_targets=False,
             prepare_features=True,
-            list_to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(schema, n_per_positive, seed=tf_random_seed)
@@ -122,8 +118,7 @@ class TestAddRandomNegativesToBatch:
 
         self.assert_outputs_batch_size(assert_fn, outputs)
 
-    @pytest.mark.parametrize("to_dense", [True, False])
-    def test_calling(self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int):
+    def test_calling(self, music_streaming_data: Dataset, tf_random_seed: int):
         schema = music_streaming_data.schema
         batch_size, n_per_positive = 10, 5
         inputs, targets = mm.sample_batch(
@@ -131,7 +126,6 @@ class TestAddRandomNegativesToBatch:
             batch_size=batch_size,
             include_targets=True,
             prepare_features=True,
-            list_to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(schema, 5, seed=tf_random_seed)
@@ -149,10 +143,7 @@ class TestAddRandomNegativesToBatch:
             targets,
         )
 
-    @pytest.mark.parametrize("to_dense", [True, False])
-    def test_run_when_testing(
-        self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int
-    ):
+    def test_run_when_testing(self, music_streaming_data: Dataset, tf_random_seed: int):
         schema = music_streaming_data.schema
         batch_size, n_per_positive = 10, 5
         inputs, targets = mm.sample_batch(
@@ -160,7 +151,6 @@ class TestAddRandomNegativesToBatch:
             batch_size=batch_size,
             include_targets=True,
             prepare_features=True,
-            list_to_dense=to_dense,
         )
 
         sampler = InBatchNegatives(
@@ -213,13 +203,13 @@ class TestAddRandomNegativesToBatch:
         dataset = music_streaming_data
         schema = dataset.schema
 
-        add_negatives = InBatchNegatives(schema, 5, seed=tf_random_seed)
+        add_negatives = InBatchNegatives(schema, 5, seed=tf_random_seed, prep_features=True)
 
         batch_size, n_per_positive = 10, 5
         loader = mm.Loader(dataset, batch_size=batch_size)
 
         features, targets = next(loader)
-        features, targets = add_negatives(features, targets)
+        features, targets = add_negatives(features, targets=targets)
 
         expected_batch_size = batch_size + batch_size * n_per_positive
 

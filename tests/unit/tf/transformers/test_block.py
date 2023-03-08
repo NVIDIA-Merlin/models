@@ -75,7 +75,11 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     query_embeddings = query_encoder.predict(loader)
     assert list(query_embeddings.shape) == [100, d_model]
 
-    item_embeddings = model.candidate_embeddings().compute().to_numpy()
+    item_embeddings = model.candidate_embeddings().compute()
+    if not isinstance(item_embeddings, np.ndarray):
+        import cupy
+
+        item_embeddings = cupy.asnumpy(item_embeddings.values)
 
     assert list(item_embeddings.shape) == [51997, d_model]
     predicitons_2 = np.dot(query_embeddings, item_embeddings.T)
@@ -348,7 +352,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
             ),
         ),
         mm.MLPBlock([transformer_input_dim]),
-        BertBlock(
+        GPT2Block(
             d_model=transformer_input_dim, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()
         ),
         mm.CategoricalOutput(

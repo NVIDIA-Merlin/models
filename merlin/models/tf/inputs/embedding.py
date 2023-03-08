@@ -392,9 +392,6 @@ class EmbeddingTable(EmbeddingTableBase):
 
                 inputs = tf.sparse.reshape(inputs, tf.shape(inputs)[:-1])
 
-                # if len(inputs.shape.as_list()) == 3 and inputs.shape.as_list()[-1] == 1:
-                #     inputs = tf.sparse.reshape(inputs, tf.shape(inputs)[:-1])
-
                 out = tf.nn.safe_embedding_lookup_sparse(
                     self.table.embeddings, inputs, None, combiner=self.sequence_combiner
                 )
@@ -409,12 +406,18 @@ class EmbeddingTable(EmbeddingTableBase):
                 inputs = tf.squeeze(inputs, axis=-1)
 
                 out = call_layer(self.table, inputs, **kwargs)
-                if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
+                if len(out.get_shape()) > 2 and isinstance(
+                    self.sequence_combiner, tf.keras.layers.Layer
+                ):
                     out = call_layer(self.sequence_combiner, out, **kwargs)
         else:
             if inputs.shape.as_list()[-1] == 1:
                 inputs = tf.squeeze(inputs, axis=-1)
             out = call_layer(self.table, inputs, **kwargs)
+            if len(out.get_shape()) > 2 and isinstance(
+                self.sequence_combiner, tf.keras.layers.Layer
+            ):
+                out = call_layer(self.sequence_combiner, out, **kwargs)
 
         if self.l2_batch_regularization_factor > 0:
             self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
@@ -904,9 +907,6 @@ class EmbeddingFeatures(TabularBlock):
         if isinstance(val, (tf.RaggedTensor, tf.SparseTensor)):
             if isinstance(val, tf.RaggedTensor):
                 val = val.to_sparse()
-
-            # if len(val.dense_shape) == 3 and val.dense_shape[-1] == 1:
-            #     val = tf.sparse.reshape(val, val.dense_shape[:-1])
 
             val = tf.sparse.reshape(val, tf.shape(val)[:-1])
 

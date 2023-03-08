@@ -231,6 +231,11 @@ class PrepareListFeatures(TabularBlock):
 
                         seq_length = None
                         if self.list_as_dense or not self.schema[name].shape.is_ragged:
+                            if col_schema_shape.dims[1] is None:
+                                raise Exception(
+                                    f"List feature {name} does not have maximum"
+                                    "length set in the schema ({col_schema_shape})"
+                                )
                             seq_length = int(col_schema_shape.dims[1].max)
 
                         output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
@@ -294,6 +299,7 @@ class PrepareFeatures(TabularBlock):
     def call(
         self, inputs: TabularData, targets: TabularData = None, **kwargs
     ) -> Union[TabularData, Tuple[TabularData, TabularData]]:
+        # This might be needed for list targets prepared in the preprocessing
         # targets = self.prepare_lists(targets)
         inputs = self.prepare_lists(inputs)
         if not inputs:
@@ -308,7 +314,7 @@ class PrepareFeatures(TabularBlock):
                     val = inputs[name]
 
                     if not self.schema[name].shape.is_list:
-                        # Expanding / setting last dim of non-list input features to be 1D
+                        # Expanding / setting last dim of non-list input features to be 2D
                         val = tf.reshape(val, (-1, 1))
 
                     outputs[name] = val
@@ -317,7 +323,7 @@ class PrepareFeatures(TabularBlock):
                     val = targets[name]
 
                     if not self.schema[name].shape.is_list:
-                        # Expanding / setting last dim of non-list target features to be 1D
+                        # Expanding / setting last dim of non-list target features to be 2D
                         val = tf.reshape(val, (-1, 1))
 
                     out_targets[name] = val
@@ -329,10 +335,18 @@ class PrepareFeatures(TabularBlock):
                 outputs[k] = v
 
         if targets is not None:
-            if out_targets and isinstance(targets, dict):
+            if isinstance(targets, dict):
                 for k, v in targets.items():
                     if k not in out_targets:
                         out_targets[k] = v
+                        if v.get_shape().rank == 1:
+                            # Expanding / setting last dim of non-list
+                            # target features to be 2D
+                            out_targets[k] = tf.reshape(v, (-1, 1))
+            elif targets.get_shape().rank == 1:
+                # Expanding / setting last dim of non-list
+                # target features to be 2D
+                out_targets = tf.reshape(targets, (-1, 1))
             else:
                 out_targets = targets
             return (outputs, out_targets)
@@ -513,18 +527,22 @@ class CategoryEncoding(TabularBlock):
                     f"{name} with type of {type(inputs[name])}"
                 )
 
-            inputs[name] = tf.squeeze(inputs[name])
-
             assertion_min_rank = tf.Assert(
                 tf.logical_and(
-                    tf.greater_equal(tf.rank(inputs[name]), 1),
-                    tf.less_equal(tf.rank(inputs[name]), 2),
+                    tf.greater_equal(tf.rank(inputs[name]), 2),
+                    tf.less_equal(tf.rank(inputs[name]), 3),
                 ),
                 [
-                    "`CategoryEncoding` only accepts 1D or 2D-shaped inputs, but got "
-                    f"different rank for {name}"
+                    "`CategoryEncoding` only accepts 2D (batch_size,1)"
+                    " or 3D (batch_size,seq_length,1) inputs, but got different "
+                    "rank for {name}"
                 ],
             )
+
+            reshape_fn = (
+                tf.sparse.reshape if isinstance(inputs[name], tf.SparseTensor) else tf.reshape
+            )
+            inputs[name] = reshape_fn(inputs[name], tf.shape(inputs[name])[:-1])
 
             outputs[name] = p_utils.ensure_tensor(inputs[name])
 
@@ -577,12 +595,8 @@ class CategoryEncoding(TabularBlock):
                 input_shape = input_shapes[key]
                 if input_shape[-1] == 1:
                     input_shape = input_shape[:-1]
-                # if not isinstance(input_shape, tuple) and len(input_shape) == 2:
                 if len(input_shape) == 2:
                     self.features_2d_last_dim[key] = input_shape[-1]
-                    # self.features_2d_last_dim[key] = (
-                    #       self.schema[key].shape.dims[1].max or
-                    #       self.schema[key].shape.dims[1].min)
 
         return outputs
 
@@ -741,7 +755,10 @@ class HashedCross(TabularBlock):
 
         _inputs = {}
         for name in self.schema.column_names:
-            inputs[name] = tf.squeeze(inputs[name])
+            reshape_fn = (
+                tf.sparse.reshape if isinstance(inputs[name], tf.SparseTensor) else tf.reshape
+            )
+            inputs[name] = reshape_fn(inputs[name], tf.shape(inputs[name])[:-1])
 
             assertion_min_rank = tf.Assert(
                 tf.logical_and(
@@ -791,7 +808,6 @@ class HashedCross(TabularBlock):
             input_shape = input_shapes[key]
             if input_shape[-1] == 1:
                 input_shape = input_shape[:-1]
-            # if not isinstance(input_shape, tuple) and len(input_shape) == 2:
             if len(input_shape) == 2:
                 self.features_2d_last_dim[key] = input_shape[-1]
 
@@ -1049,7 +1065,7 @@ def reshape_categorical_input_tensor_for_encoding(
         if features_2d_last_dim.get(feat_name, None) == 1 or input.get_shape()[-1] == 1:
             output = reshape_fn(output, [-1])
         elif feat_name in features_2d_last_dim or (
-            input.get_shape()[-1] is not None and len(input.get_shape()) == 2
+            input.get_shape()[-1] is not None and input.get_shape().rank == 2
         ):
             raise ValueError(
                 "One-hot accepts input tensors that are squeezable to 1D, but received"
@@ -1061,7 +1077,7 @@ def reshape_categorical_input_tensor_for_encoding(
             input.get_shape()[-1] is not None and len(input.get_shape()) == 2
         ):
             # Ensures that the shape is known to avoid error on graph mode
-            new_shape = (-1, features_2d_last_dim.get(feat_name, input.get_shape()[-1]))
+            new_shape = (-1, features_2d_last_dim.get(feat_name, None) or input.get_shape()[-1])
             output = reshape_fn(output, new_shape)
         else:
             expand_dims_fn = (

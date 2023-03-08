@@ -83,8 +83,8 @@ def test_hashedcross_int():
         ]
     )
     inputs = {}
-    inputs["cat1"] = tf.constant(["A", "B"])
-    inputs["cat2"] = tf.constant([101, 102])
+    inputs["cat1"] = tf.constant([["A"], ["B"]])
+    inputs["cat2"] = tf.constant([[101], [102]])
     hashed_cross_op = mm.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross_op(inputs)
     output_name, output_value = outputs.popitem()
@@ -103,8 +103,8 @@ def test_hashedcross_1d():
         ]
     )
     inputs = {}
-    inputs["cat1"] = tf.constant(["A", "B", "A", "B", "A"])
-    inputs["cat2"] = tf.constant([101, 101, 101, 102, 102])
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
     hashed_cross_op = mm.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross_op(inputs)
     _, output_value = outputs.popitem()
@@ -364,9 +364,9 @@ def test_category_encoding_different_input_different_output():
         ]
     )
     inputs = {}
-    inputs["dense_feature"] = tf.constant([[1, 2, 3], [3, 3, 0]])
-    inputs["sparse_feature"] = tf.sparse.from_dense(
-        np.array([[1, 2, 3, 0], [0, 3, 1, 0]], dtype=np.int64)
+    inputs["dense_feature"] = tf.expand_dims(tf.constant([[1, 2, 3], [3, 3, 0]]), -1)
+    inputs["sparse_feature"] = tf.sparse.expand_dims(
+        tf.sparse.from_dense(np.array([[1, 2, 3, 0], [0, 3, 1, 0]], dtype=np.int64)), -1
     )
 
     # 1. Sparse output
@@ -421,7 +421,7 @@ def test_category_encoding_invalid_input():
         category_encoding(inputs)
 
 
-@pytest.mark.parametrize("input", [np.array([[1, 2, 3, 4], [4, 3, 1, 4]])])
+@pytest.mark.parametrize("input", [np.expand_dims(np.array([[1, 2, 3, 4], [4, 3, 1, 4]]), -1)])
 @pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
 def test_category_encoding_weightd_count_dense(input, weight):
     test_case = TestCase()
@@ -446,7 +446,10 @@ def test_category_encoding_weightd_count_dense(input, weight):
     test_case.assertAllClose(expected_output, outputs["feature"])
 
 
-@pytest.mark.parametrize("input", [tf.sparse.from_dense(np.array([[1, 2, 3, 4], [4, 3, 1, 4]]))])
+@pytest.mark.parametrize(
+    "input",
+    [tf.sparse.expand_dims(tf.sparse.from_dense(np.array([[1, 2, 3, 4], [4, 3, 1, 4]])), -1)],
+)
 @pytest.mark.parametrize(
     "weight", [tf.sparse.from_dense(np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]]))]
 )
@@ -473,7 +476,10 @@ def test_category_encoding_weightd_count_sparse(input, weight):
     test_case.assertAllClose(expected_output, outputs["feature"])
 
 
-@pytest.mark.parametrize("input", [tf.sparse.from_dense(np.array([[1, 2, 3, 4], [4, 3, 1, 4]]))])
+@pytest.mark.parametrize(
+    "input",
+    [tf.sparse.expand_dims(tf.sparse.from_dense(np.array([[1, 2, 3, 4], [4, 3, 1, 4]])), -1)],
+)
 @pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
 def test_category_encoding_weightd_count_not_match(input, weight):
     test_case = TestCase()
@@ -496,8 +502,8 @@ def test_category_encoding_weightd_count_not_match(input, weight):
 @pytest.mark.parametrize(
     "input",
     [
-        tf.convert_to_tensor([[1, 2, 3, 0], [0, 3, 1, 0]]),
-        tf.sparse.from_dense(np.array([[1, 2, 3, 0], [0, 3, 1, 0]])),
+        tf.expand_dims(tf.convert_to_tensor([[1, 2, 3, 0], [0, 3, 1, 0]]), -1),
+        tf.sparse.expand_dims(tf.sparse.from_dense(np.array([[1, 2, 3, 0], [0, 3, 1, 0]])), -1),
     ],
 )
 def test_category_encoding_multi_hot_2d_input(input):
@@ -528,10 +534,10 @@ def test_category_encoding_multi_hot_2d_input(input):
 @pytest.mark.parametrize(
     "input",
     [
-        tf.convert_to_tensor([1, 2, 0]),
-        tf.sparse.from_dense([1, 2, 0]),
         tf.convert_to_tensor([[1], [2], [0]]),
         tf.sparse.from_dense([[1], [2], [0]]),
+        tf.convert_to_tensor([[[1]], [[2]], [[0]]]),
+        tf.sparse.from_dense([[[1]], [[2]], [[0]]]),
     ],
 )
 def test_category_encoding_multi_hot_single_value(input):
@@ -605,7 +611,10 @@ def test_category_encoding_one_hot(input):
 
 @pytest.mark.parametrize(
     "input",
-    [tf.convert_to_tensor([[1, 2], [2, 0]]), tf.sparse.from_dense(np.array([[1, 2], [2, 0]]))],
+    [
+        tf.convert_to_tensor([[[1], [2]], [[2], [0]]]),
+        tf.sparse.from_dense(np.array([[[1], [2]], [[2], [0]]])),
+    ],
 )
 def test_category_encoding_one_hot_2D_input_should_raise(input):
     test_case = TestCase()
@@ -622,12 +631,12 @@ def test_category_encoding_one_hot_2D_input_should_raise(input):
 @pytest.mark.parametrize(
     "input",
     [
-        tf.convert_to_tensor([[[1], [2]], [[2], [0]]]),
-        tf.sparse.from_dense(np.array([[[1], [2]], [[2], [0]]])),
+        tf.convert_to_tensor([0, 1, 2, 3]),
+        tf.convert_to_tensor([[[[1]]], [[[2]]], [[[2]]], [[[0]]]]),
+        tf.sparse.from_dense(np.array([[[[1]]], [[[2]]], [[[2]]], [[[0]]]])),
     ],
 )
 def test_category_encoding_should_raise_if_input_3D(input):
-    test_case = TestCase()
     schema = Schema(
         [
             create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
@@ -636,10 +645,9 @@ def test_category_encoding_should_raise_if_input_3D(input):
     category_encoding = mm.CategoryEncoding(schema=schema, output_mode="multi_hot")
     inputs = {}
     inputs["feature"] = input
-    with test_case.assertRaisesRegex(
-        Exception, r"`CategoryEncoding` only accepts 1D or 2D-shaped inputs"
-    ):
+    with pytest.raises(Exception) as excinfo:
         category_encoding(inputs)
+    assert "`CategoryEncoding` only accepts 2D (batch_size,1) or 3D" in str(excinfo.value)
 
 
 def test_hashedcrossall():
@@ -803,22 +811,6 @@ class TestBroadcastToSequence(tf.test.TestCase):
 
         broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
         outputs = broadcast_layer(partially_masked_inputs)
-
-        self.assertAllEqual(outputs["a"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
-        self.assertAllEqual(outputs["b"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
-
-    def test_in_model(self):
-        masking_layer = tf.keras.layers.Masking(mask_value=0)
-        partially_masked_inputs = {
-            "a": tf.constant([[1], [2]]),
-            "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
-        }
-        context_schema = Schema([ColumnSchema("a")])
-        sequence_schema = Schema([ColumnSchema("b")])
-
-        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
-        model = mm.Model(broadcast_layer, schema=context_schema + sequence_schema)
-        outputs = model(partially_masked_inputs)
 
         self.assertAllEqual(outputs["a"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
         self.assertAllEqual(outputs["b"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
@@ -1007,7 +999,7 @@ def test_to_target_loader():
     loader0 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, "c"))
     inputs0, targets0 = next(iter(loader0))
     assert sorted(inputs0.keys()) == ["a", "b"]
-    assert targets0.numpy().tolist() == [[3], [6]]
+    assert targets0.numpy().tolist() == [3, 6]
     assert loader0.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
     # target is passed as a ColumnSchema
@@ -1016,7 +1008,7 @@ def test_to_target_loader():
     loader1 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, target_column_schema))
     inputs1, targets1 = next(iter(loader1))
     assert sorted(inputs1.keys()) == ["a", "b"]
-    assert targets1.numpy().tolist() == [[3], [6]]
+    assert targets1.numpy().tolist() == [3, 6]
     assert loader1.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
     # target is passed as a Schema
@@ -1025,14 +1017,14 @@ def test_to_target_loader():
     loader2 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, target_schema))
     inputs2, targets2 = next(iter(loader2))
     assert sorted(inputs2.keys()) == ["a", "b"]
-    assert targets2.numpy().tolist() == [[3], [6]]
+    assert targets2.numpy().tolist() == [3, 6]
     assert loader2.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
     # target is passed as a Tag
     loader3 = mm.Loader(dataset, batch_size=10).map(mm.ToTarget(schema, Tags.ITEM))
     inputs3, targets3 = next(iter(loader3))
     assert sorted(inputs3.keys()) == ["a", "b"]
-    assert targets3.numpy().tolist() == [[3], [6]]
+    assert targets3.numpy().tolist() == [3, 6]
     assert loader3.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
 

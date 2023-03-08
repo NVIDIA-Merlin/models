@@ -368,7 +368,6 @@ def sample_batch(
     shuffle: Optional[bool] = False,
     include_targets: Optional[bool] = True,
     prepare_features: Optional[bool] = True,
-    list_to_dense: Optional[bool] = False,
 ):
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
@@ -387,8 +386,6 @@ def sample_batch(
         If enabled, it converts multi-hot/list features to dense or ragged based on the schema.
         It also ensures that scalar features are converted to 2D (batch size, 1).
         P.s. The features are automatically prepared by InputBlockV2 if it is used
-    list_to_dense: bool
-        Whether to convert all ragged list features into dense tensors, by default False.
     Returns:
     -------
     batch: Dict[tf.tensor]
@@ -409,7 +406,7 @@ def sample_batch(
     inputs, targets = batch[0], batch[1]
 
     if prepare_features:
-        pf = PrepareFeatures(loader.schema, list_to_dense)
+        pf = PrepareFeatures(loader.schema)
         if targets is not None:
             inputs, targets = pf(inputs, targets=targets)
         else:

@@ -84,6 +84,7 @@ def test_fit_compile_twice():
         tf.keras.layers.Lambda(lambda x: x["feature"]),
         tf.keras.layers.Dense(1),
         mm.BinaryClassificationTask("target"),
+        schema=dataset.schema,
     )
     model.compile()
     model.fit(loader, epochs=2)

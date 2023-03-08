@@ -1,6 +1,8 @@
 import warnings
 from typing import List, Optional, Union
 
+import tensorflow as tf
+
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.interaction import FMBlock
@@ -508,7 +510,14 @@ def WideAndDeepModel(
 
     if not deep_input_block:
         if deep_schema is not None and len(deep_schema) > 0:
-            deep_input_block = InputBlockV2(deep_schema)
+            deep_input_block = InputBlockV2(
+                deep_schema,
+                categorical=Embeddings(
+                    deep_schema,
+                    sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
+                ),
+            )
+
     if deep_input_block:
         deep_body = deep_input_block.connect(deep_block).connect(
             MLPBlock(

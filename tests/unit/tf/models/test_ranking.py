@@ -324,7 +324,7 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_deep_model_wide_onehot_multihot_feature_interaction(run_eagerly):
-    ml_dataset = generate_data("movielens-1m", 100)
+    ml_dataset = generate_data("movielens-1m", 100, max_session_length=4)
 
     # Removing the rating regression target
     schema = ml_dataset.schema.remove_col("rating")

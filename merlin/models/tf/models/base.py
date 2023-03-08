@@ -1402,7 +1402,7 @@ class Model(BaseModel):
 
         self.prep_features = prep_features
 
-        self._prepare_features = PrepareFeatures(self.schema) if self.prep_features else NoOp()
+        self._prepare_features = PrepareFeatures(self.schema)
         self._frozen_blocks = set()
 
     def save(
@@ -1472,7 +1472,9 @@ class Model(BaseModel):
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
             self._check_schema_and_inputs_matching(inputs)
-            _ragged_inputs = self._prepare_features(inputs)
+            _ragged_inputs = inputs
+            if self.prep_features:
+                _ragged_inputs = self._prepare_features(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
@@ -1494,8 +1496,9 @@ class Model(BaseModel):
         """
         last_layer = None
 
-        self._prepare_features.build(input_shape)
-        input_shape = self._prepare_features.compute_output_shape(input_shape)
+        if self.prep_features:
+            self._prepare_features.build(input_shape)
+            input_shape = self._prepare_features.compute_output_shape(input_shape)
 
         if self.pre is not None:
             self.pre.build(input_shape)
@@ -1521,9 +1524,14 @@ class Model(BaseModel):
         self.built = True
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
-        outputs = self._prepare_features(inputs)
+        outputs = inputs
+        features = self._prepare_features(inputs, targets=targets)
+        if isinstance(features, tuple):
+            features, targets = features
+        if self.prep_features:
+            outputs = features
         context = self._create_context(
-            outputs,
+            features,
             targets=targets,
             training=training,
             testing=testing,

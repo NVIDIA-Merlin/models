@@ -18,8 +18,9 @@ from typing import Optional, Tuple, Union
 import tensorflow as tf
 
 from merlin.models.tf.core.prediction import Prediction
+from merlin.models.tf.transforms.features import PrepareFeatures
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import calculate_batch_size_from_inputs, list_col_to_ragged
+from merlin.models.tf.utils.tf_utils import calculate_batch_size_from_inputs
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
@@ -40,6 +41,9 @@ class InBatchNegatives(tf.keras.layers.Layer):
         The random seed, by default None
     run_when_testing : bool, optional
         Whether the negative sampling should happen when testing=True, by default True
+    prep_features: Optional[bool]
+        Whether this block should prepare list and scalar features
+        from the dataloader format. By default False.
     """
 
     def __init__(
@@ -48,14 +52,17 @@ class InBatchNegatives(tf.keras.layers.Layer):
         n_per_positive: int,
         seed: Optional[int] = None,
         run_when_testing: bool = True,
+        prep_features: Optional[bool] = False,
         **kwargs
     ):
-        super(InBatchNegatives, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.n_per_positive = n_per_positive
         self.item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
         self.run_when_testing = run_when_testing
+        self.prep_features = prep_features
+        self._prepare_features = PrepareFeatures(schema)
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
@@ -69,6 +76,11 @@ class InBatchNegatives(tf.keras.layers.Layer):
 
         if targets is None or (testing and not self.run_when_testing):
             return get_tuple(inputs, targets)
+
+        if self.prep_features:
+            inputs = self._prepare_features(inputs, targets=targets)
+            if isinstance(inputs, tuple):
+                inputs, targets = inputs
 
         # 1. Select item-features
         batch_size = calculate_batch_size_from_inputs(inputs)
@@ -103,9 +115,6 @@ class InBatchNegatives(tf.keras.layers.Layer):
         item_cols = self.schema.column_names
         outputs = {}
         for name, val in inputs.items():
-            if isinstance(val, tuple):
-                val = list_col_to_ragged(val)
-
             if name in item_cols:
                 negatives = tf.gather(val, sampled_positive_idx)
             else:
