@@ -513,7 +513,7 @@ def WideAndDeepModel(
             deep_input_block = InputBlockV2(
                 deep_schema,
                 categorical=Embeddings(
-                    deep_schema,
+                    deep_schema.select_by_tag(Tags.CATEGORICAL),
                     sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
                 ),
             )
