@@ -23,11 +23,13 @@ from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV
 
 def test_inbatch_sampler():
     item_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
-    item_ids = tf.random.uniform(shape=(10,), minval=1, maxval=10000, dtype=tf.int32)
+    item_ids = tf.random.uniform(shape=(10, 1), minval=1, maxval=10000, dtype=tf.int32)
 
     inbatch_sampler = mm.InBatchSamplerV2()
 
-    input_data = mm.Candidate(item_ids, {"item_ids": item_ids}).with_embedding(item_embeddings)
+    input_data = mm.Candidate(id=item_ids, metadata={"item_ids": item_ids}).with_embedding(
+        item_embeddings
+    )
     output_data = inbatch_sampler(input_data)
 
     tf.assert_equal(input_data.embedding, output_data.embedding)
@@ -36,11 +38,11 @@ def test_inbatch_sampler():
 
 
 def test_inbatch_sampler_no_metadata_features():
-    item_ids = tf.random.uniform(shape=(10,), minval=1, maxval=10000, dtype=tf.int32)
+    item_ids = tf.random.uniform(shape=(10, 1), minval=1, maxval=10000, dtype=tf.int32)
 
     inbatch_sampler = mm.InBatchSamplerV2()
 
-    input_data = mm.Candidate(item_ids, {})
+    input_data = mm.Candidate(id=item_ids, metadata={})
     output_data = inbatch_sampler(input_data)
 
     tf.assert_equal(input_data.id, output_data.id)
@@ -51,13 +53,13 @@ def test_popularity_sampler():
     num_classes = 1000
     min_id = 2
     num_sampled = 10
-    item_ids = tf.random.uniform(shape=(10,), minval=1, maxval=num_classes, dtype=tf.int32)
+    item_ids = tf.random.uniform(shape=(10, 1), minval=1, maxval=num_classes, dtype=tf.int32)
 
     popularity_sampler = PopularityBasedSamplerV2(
         max_num_samples=num_sampled, max_id=num_classes - 1, min_id=min_id
     )
 
-    input_data = mm.Candidate(item_ids, {})
+    input_data = mm.Candidate(id=item_ids, metadata={})
     output_data = popularity_sampler(input_data)
 
     assert len(tf.unique_with_counts(output_data.id)[0]) == num_sampled

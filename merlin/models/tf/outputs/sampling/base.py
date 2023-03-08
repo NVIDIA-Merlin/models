@@ -14,7 +14,8 @@
 # limitations under the License.
 #
 import abc
-from typing import Dict, List, NamedTuple, Optional, Sequence, Union
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Sequence, Union
 
 import tensorflow as tf
 
@@ -23,7 +24,8 @@ from merlin.models.utils.registry import Registry, RegistryMixin
 EMBEDDING_KEY = "__embedding__"
 
 
-class Candidate(NamedTuple):
+@dataclass
+class Candidate:
     """Store candidate id and their metadata
 
     Parameters
@@ -57,14 +59,13 @@ class Candidate(NamedTuple):
             if key in other.metadata:
                 metadata[key] = _list_to_tensor([self.metadata[key], other.metadata[key]])
 
-        return Candidate(
-            id=_list_to_tensor([self.id, other.id]),
-            metadata=metadata,
-        )
+        return Candidate(id=_list_to_tensor([self.id, other.id]), metadata=metadata)
 
     @property
     def shape(self) -> "Candidate":
-        return Candidate(self.id.shape, {key: val.shape for key, val in self.metadata.items()})
+        return Candidate(
+            id=self.id.shape, metadata={key: val.shape for key, val in self.metadata.items()}
+        )
 
     def __repr__(self):
         metadata = {key: str(val) for key, val in self.metadata.items()}
