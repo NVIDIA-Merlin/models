@@ -352,7 +352,7 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
             ),
         ),
         mm.MLPBlock([transformer_input_dim]),
-        GPT2Block(
+        XLNetBlock(
             d_model=transformer_input_dim, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()
         ),
         mm.CategoricalOutput(
