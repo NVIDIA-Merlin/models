@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 # Copyright 2022 NVIDIA Corporation. All Rights Reserved.
@@ -18,6 +18,9 @@
 # See the License for the specific language governing permissions anda
 # limitations under the License.
 # ==============================================================================
+
+# Each user is responsible for checking the content of datasets and the
+# applicable licenses and determining if suitable for the intended use.
 
 
 # <img src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_07-train-traditional-ml-models-using-the-merlin-models-api/nvidia_logo.png" style="width: 90px; float: right;">
@@ -46,7 +49,7 @@
 
 # ## Preparing the dataset
 
-# In[3]:
+# In[2]:
 
 
 from merlin.core.utils import Distributed
@@ -54,11 +57,12 @@ from merlin.models.xgb import XGBoost
 
 from merlin.datasets.entertainment import get_movielens
 from merlin.schema.tags import Tags
+from merlin.io import Dataset
 
 
 # We will use the `movielens-100k` dataset. The dataset consists of `userId` and `movieId` pairings. For each record, a user rates a movie and the record includes additional information such as genre of the movie, age of the user, and so on.
 
-# In[4]:
+# In[3]:
 
 
 train, valid = get_movielens(variant='ml-100k')
@@ -66,7 +70,7 @@ train, valid = get_movielens(variant='ml-100k')
 
 # The `get_movielens` function downloads the `movielens-100k` data for us and returns it materialized as a Merlin `Dataset`.
 
-# In[5]:
+# In[4]:
 
 
 train, valid
@@ -78,7 +82,7 @@ train, valid
 # 
 # During preprocessing that is performed by the `get_movielens` function, two columns in the dataset are assigned the `Tags.TARGET` tag:
 
-# In[6]:
+# In[5]:
 
 
 train.schema.select_by_tag(Tags.TARGET)
@@ -94,7 +98,7 @@ train.schema.select_by_tag(Tags.TARGET)
 # 
 # Before we begin to train, let us remove the `title` column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it is not useful in training.
 
-# In[7]:
+# In[6]:
 
 
 schema_without_title = train.schema.remove_col('title')
@@ -114,7 +118,7 @@ schema_without_title = train.schema.remove_col('title')
 # 
 # The `verbose_eval` parameter specifies how often metrics are reported during training.
 
-# In[8]:
+# In[7]:
 
 
 xgb_booster_params = {
@@ -135,7 +139,7 @@ xgb_train_params = {
 # 
 # Without further ado, let's train.
 
-# In[9]:
+# In[8]:
 
 
 with Distributed():
@@ -150,9 +154,20 @@ with Distributed():
 
 # ## Training an implicit model
 
-# There are two `implicit` models you can train. The `AlternatingLeastSquares` and `BayesianPersonalizedRanking` models. We will train a `BayesianPersonalizedRanking` model
+# `Implicit` provides fast Python implementations of several different popular recommendation algorithms for implicit feedback datasets.
+# 
+# These models are designed to work with implicit datasets, that is datasets that don't have explicit labels! What this translates to is that we will not be able to use these algorithms for training on data with labels such as `ratings` or `number of likes received`, etc. These models are geared toward predicting a binary target of the form of how likely a user is to interact with an item of given id.
+# 
+# There are two implicit models you can train with Merlin Models. One approach would be to pass only user-item id pairs. In this case the model will treat the pairs we pass as positive examples and will generate negative examples by itself. Alternatively, we can pass in a column of zeros and ones where ones indicate a positive example. We need to tag that column with `Tags.TARGET` (as outlined in the "Preparing the data" section above). From there on, all that remains is to pass the data to the `fit` method of our model to train it.
+# 
+# There are two `implicit` models you can train with `Merlin Models`:
+# 
+# * `AlternatingLeastSquares` from [Collaborative Filtering for Implicit Feedback Datasets](http://yifanhu.net/PUB/cf.pdf))
+# * `BayesianPersonalizedRanking` from [BPR: Bayesian Personalized Ranking from Implicit Feedback](https://arxiv.org/ftp/arxiv/papers/1205/1205.2618.pdf)
+# 
+# In this example, we will train a `BayesianPersonalizedRanking` model.
 
-# In[10]:
+# In[9]:
 
 
 from merlin.models.implicit import BayesianPersonalizedRanking
@@ -161,15 +176,47 @@ from merlin.models.implicit import BayesianPersonalizedRanking
 # `merlin.models.implicit` doesn't have the same facility as `merlin.models.xgb.XGBoost` for identifying which target column it should use.
 # 
 # Let's remove the `rating` column from the schema so that only `rating_binary` is left.
+# 
+# The `rating` column contains explicit information, that is a rating on a scale from 1 to 5 that a user assigned to a movie. The `rating_binary` column emulates implicit data. It could indicate that a user interacted with a given item, or that they watched a movie for some number of minutes, etc.
+# 
+# Essentially, implicit data is one where we don't ask the user to give us *explicit* information, but infer labeling from their actions!
 
-# In[11]:
+# In[10]:
 
 
 train.schema = schema_without_title.remove_col('rating')
 valid.schema = schema_without_title.remove_col('rating')
 
 
+# This is a shape of data that will go into our model:
+
+# In[11]:
+
+
+train.compute().head()
+
+
+# However, only the columns tagged with `Tags.USER_ID`, `Tags.ITEM_ID` or `Tags.TARGET` will be used.
+
 # In[12]:
+
+
+train.schema.select_by_tag([Tags.USER_ID, Tags.ITEM_ID, Tags.TARGET])
+
+
+# Let's train our model.
+# 
+# There are several options we can specify. Here are the 3 most important ones:
+# 
+# * factors - the number of latent factors to compute
+# * learning_rate – the learning rate to apply for SGD updates during training
+# * regularization – the regularization factor to use
+# 
+# Further information on the arguments that `BayesianPersonalizedRanking` accepts can be found in [implicit's documentation](https://implicit.readthedocs.io/en/latest/bpr.html).
+# 
+# We can also train without passing in any of the above values in which case `BayesianPersonalizedRanking` will use the defaults.
+
+# In[13]:
 
 
 implicit = BayesianPersonalizedRanking()
@@ -177,28 +224,54 @@ implicit.fit(train)
 
 
 # Having trained the model, we can now evaluate it.
-
-# In[13]:
-
-
-implicit_metrics = implicit.evaluate(valid)
-
-
-# And last but not least, lets use our trained implicit model to output predictions.
+# 
+# Implicit models can be best thought of as retrieval models and so we have the usual set of retrieval metrics at our disposal.
+# 
+# The metrics that are available to us are:
+# * [precision](https://en.wikipedia.org/wiki/Precision_and_recall)
+# * [mean average precision](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision)
+# * [normalized discounted cumulative gain](https://en.wikipedia.org/wiki/Discounted_cumulative_gain#Normalized_DCG)
+# * [area under the ROC operating curve](https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Area_under_the_curve)
 
 # In[14]:
 
 
-implicit_preds = implicit.predict(valid)
+implicit_metrics = implicit.evaluate(valid)
+implicit_metrics
 
+
+# And last but not least, let's use our trained implicit model to output predictions.
+# 
+# We can pass the `valid` Dataset with several columns, however, using the schema, the model will select the `userId` column and output predictions which will be an ordered list of movies that the user is most likely to enjoy.
+
+# In[15]:
+
+
+valid.head()
+
+
+# Let us now pass this information to our model and predict.
+
+# In[16]:
+
+
+implicit_preds = implicit.predict(valid)
+implicit_preds
+
+
+# The predictions are item ids for each of the user id that we passed in as our data. They are ordered from the most likely to be interacted with by the user to the least likely as predicted by our `implicit` model. These IDs are contained in the first array.
+# 
+# The second array consists of scores from the model. The higher the score, the better the chance a user will interact with a movie. They are not on any particular scale nor have a probabilistic interpretation.
 
 # ## Training a LightFM model
 
 # [LightFM](https://github.com/lyst/lightfm) implements of a number of popular recommendation algorithms for both implicit and explicit feedback, including efficient implementation of BPR and WARP ranking losses.
 # 
 # You can specify what type of model to train on through the use of the `loss` argument. Here we will train with a `warp` loss (Weighted Approximate-Rank Pairwise loss). You can read more about available losses as well as the parameters that can be used for training [here](https://making.lyst.com/lightfm/docs/lightfm.html).
+# 
+# Let us train a model that will again predict a score of how likely a user is to interact with a given item, following the same approach as we did above with the `implicit` model.
 
-# In[15]:
+# In[17]:
 
 
 from merlin.models.lightfm import LightFM
@@ -208,7 +281,7 @@ lightfm = LightFM(loss='warp')
 
 # We can now train our model.
 
-# In[16]:
+# In[18]:
 
 
 lightfm.fit(train)
@@ -216,16 +289,20 @@ lightfm.fit(train)
 
 # Now that the model is trained let's validate its performance.
 
-# In[17]:
+# In[19]:
 
 
 lightfm_metrics = lightfm.evaluate(valid)
+lightfm_metrics
 
 
 # We can now use the model to predict on our data.
+# 
+# We pass our `valid` Dataset again -- this time however our model will take the `userId` column and the `movieId` column and output a score for each pairing. The higher the score the higher the chance (according to the model) of a user interacting with a given movie.
 
-# In[18]:
+# In[20]:
 
 
 lightfm_preds = lightfm.predict(valid)
+lightfm_preds
 

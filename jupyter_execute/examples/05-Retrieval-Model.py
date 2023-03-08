@@ -19,10 +19,13 @@
 # limitations under the License.
 # ================================
 
+# Each user is responsible for checking the content of datasets and the
+# applicable licenses and determining if suitable for the intended use.
+
 
 # <img src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_05-retrieval-model/nvidia_logo.png" style="width: 90px; float: right;">
 # 
-# # Two-Stage Recommender Systems
+# # Building a Retrieval Model with Merlin Models
 # 
 # This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
 # 
@@ -36,6 +39,7 @@
 # - Preparing the data with NVTabular
 # - Training and evaluating Two-Tower model with Merlin Models
 # - Exporting the model for deployment
+# - Generating the top K recommendations from the trained model
 
 # ### Importing Libraries
 
@@ -52,6 +56,7 @@ from merlin.schema.tags import Tags
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
+from merlin.models.utils.dataset import unique_rows_by_features
 
 import tensorflow as tf
 
@@ -88,19 +93,53 @@ else:
 # In[5]:
 
 
-# define output path for the processed parquet files
-output_path = os.path.join(DATA_FOLDER, "processed")
+train = train.to_ddf().compute()
+valid = valid.to_ddf().compute()
 
 
-# We keep only positive interactions where clicks==1 in the dataset with `Filter()` op.
+# We keep only positive interactions where clicks==1 in the dataset.
 
 # In[6]:
 
 
-user_id = ["user_id"] >> Categorify() >> TagAsUserID()
-item_id = ["item_id"] >> Categorify() >> TagAsItemID()
+train = train.loc[train['click']==1].reset_index(drop=True)
+valid = valid.loc[valid['click']==1].reset_index(drop=True)
 
-item_features = ["item_category", "item_shop", "item_brand"] >> Categorify() >> TagAsItemFeatures()
+
+# We can drop the target column since in this example we will only use positive interactions and then generate negative samples via negative sampling technique.
+
+# In[7]:
+
+
+train = train.drop(['click', 'conversion'], axis=1)
+valid = valid.drop(['click', 'conversion'], axis=1)
+
+
+# Create Dataset objects
+
+# In[8]:
+
+
+train = Dataset(train)
+valid = Dataset(valid)
+
+
+# Define output path for the processed parquet files
+
+# In[9]:
+
+
+output_path = os.path.join(DATA_FOLDER, "processed")
+
+
+# In[10]:
+
+
+category_temp_directory = os.path.join(DATA_FOLDER, "categories")
+user_id = ["user_id"] >> Categorify(out_path=category_temp_directory) >> TagAsUserID()
+item_id = ["item_id"] >> Categorify(out_path=category_temp_directory) >> TagAsItemID()
+
+item_features = ["item_category", "item_shop", "item_brand"] >> Categorify(out_path=category_temp_directory) >> TagAsItemFeatures()
 
 user_features = (
     [
@@ -116,18 +155,16 @@ user_features = (
         "user_brands",
         "user_categories",
     ]
-    >> Categorify()
+    >> Categorify(out_path=category_temp_directory)
     >> TagAsUserFeatures()
 )
 
-inputs = user_id + item_id + item_features + user_features + ["click"]
-
-outputs = inputs >> Filter(f=lambda df: df["click"] == 1)
+outputs = user_id + item_id + item_features + user_features
 
 
 # With `transform_aliccp` function, we can execute fit() and transform() on the raw dataset applying the operators defined in the NVTabular workflow pipeline above. The processed parquet files are saved to output_path.
 
-# In[7]:
+# In[11]:
 
 
 from merlin.datasets.ecommerce import transform_aliccp
@@ -147,13 +184,7 @@ transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 
 # We use the `schema` object to define our model.
 
-# In[8]:
-
-
-output_path
-
-
-# In[9]:
+# In[12]:
 
 
 train = Dataset(os.path.join(output_path, "train", "*.parquet"))
@@ -162,7 +193,7 @@ valid = Dataset(os.path.join(output_path, "valid", "*.parquet"))
 
 # Select features with user and item tags, and be sure to exclude target column.
 
-# In[10]:
+# In[13]:
 
 
 schema = train.schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])
@@ -172,15 +203,15 @@ valid.schema = schema
 
 # We can print out the feature column names.
 
-# In[11]:
+# In[14]:
 
 
-schema.column_names
+schema
 
 
 # We expect the label names to be empty.
 
-# In[12]:
+# In[15]:
 
 
 label_names = schema.select_by_tag(Tags.TARGET).column_names
@@ -188,27 +219,47 @@ label_names
 
 
 # ### Negative sampling
+# 
 # Many datasets for recommender systems contain implicit feedback with logs of user interactions like clicks, add-to-cart, purchases, music listening events, rather than explicit ratings that reflects user preferences over items. To be able to learn from implicit feedback, we use the general (and naive) assumption that the interacted items are more relevant for the user than the non-interacted ones.
-# In Merlin Models we provide some scalable negative sampling algorithms for the Item Retrieval Task. In particular, we use in this example the in-batch sampling algorithm which uses the items interacted by other users as negatives within the same mini-batch.
+# In Merlin Models we provide some scalable negative sampling algorithms for the Item Retrieval Task. In particular, in this example, we use the `in-batch` sampling algorithm which uses the items interacted by other users as negatives within the same mini-batch.
 
 # ### Building the Model
-
+# 
 # Now, let's build our Two-Tower model. In a nutshell, we aggregate all user features to feed in user tower and feed the item features to the item tower. Then we compute the positive score by multiplying the user embedding with the item embedding and sample negative items (read more about negative sampling [here](https://openreview.net/pdf?id=824xC-SgWgU) and [here](https://medium.com/mlearning-ai/overview-negative-sampling-on-recommendation-systems-230a051c6cd7)), whose item embeddings are also multiplied by the user embedding. Then we apply the loss function on top of the positive and negative scores.
 
-# In[13]:
+# We make sure that the mlp blocks used for the user and query towers have the same last dimension. This is needed because we will compute the dot product between the two towers' outputs to get the similarity scores.
+
+# In[16]:
 
 
-model = mm.TwoTowerModel(
-    schema,
-    query_tower=mm.MLPBlock([128, 64], no_activation_last_layer=True),
-    samplers=[mm.InBatchSampler()],
-    embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),
-)
+tower_dim = 64 
+
+# create user schema using USER tag
+user_schema = schema.select_by_tag(Tags.USER)
+# create user (query) tower input block
+user_inputs = mm.InputBlockV2(user_schema)
+# create user (query) encoder block
+query = mm.Encoder(user_inputs, mm.MLPBlock([128, tower_dim], no_activation_last_layer=True))
+
+# create item schema using ITEM tag
+item_schema = schema.select_by_tag(Tags.ITEM)
+# create item (candidate) tower input block
+item_inputs = mm.InputBlockV2(item_schema)
+# create item (candidate) encoder block
+candidate = mm.Encoder(item_inputs, mm.MLPBlock([128, tower_dim], no_activation_last_layer=True))
 
 
-# Let's explain the parameters in the TwoTowerModel():
-# - no_activation_last_layer: when set True, no activation is used for top hidden layer. Learn more [here](https://storage.googleapis.com/pub-tools-public-publication-data/pdf/b9f4e78a8830fe5afcf2f0452862fb3c0d6584ea.pdf).
-# - infer_embedding_sizes: when set True, automatically defines the embedding dimension from the feature cardinality in the schema
+# `no_activation_last_layer:` when set True, no activation is used for top hidden layer. Learn more [here](https://storage.googleapis.com/pub-tools-public-publication-data/pdf/b9f4e78a8830fe5afcf2f0452862fb3c0d6584ea.pdf).
+
+# Build the model class.
+
+# In[17]:
+
+
+model = mm.TwoTowerModelV2(query, candidate)
+
+
+# Note that in the `TwoTowerModelV2` function we did not set `negative_samplers` arg, that means it is set to None. In that case, Two-tower model is trained with contrastive learning and `in-batch` negative sampling strategy.
 # 
 # **Metrics:**
 # 
@@ -220,11 +271,77 @@ model = mm.TwoTowerModel(
 
 # We need to initialize the dataloaders.
 
-# In[14]:
+# In[18]:
 
 
 model.compile(optimizer="adam", run_eagerly=False, metrics=[mm.RecallAt(10), mm.NDCGAt(10)])
-model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
+model.fit(train, validation_data=valid, batch_size=4096, epochs=2)
+
+
+# The validation metric values are calculated given the positive and negative scores in each batch, and then averaged over batches per epoch. That means validation metrics are not computed using the entire item catalog.
+
+# ### Evaluate the model accuracy
+
+# Note that above when we  set `validation_data=valid` in the `model.fit()`, we compute evaluation metrics on validation set using the negative sampling strategy used for training. To determine the exact accuracy of our trained retrieval model, we need to compute the similarity score between a given query and all possible candidates. The higher the score of the positive candidate (the one that is already interacted with, i.e. target item_id returned by dataloader), the more accurate the model is. We can do this using the `topk_model` model that we create below via `to_top_k_encoder` method, and the following section shows how to instantiate it. The `to_top_k_encoder()` is a method of the [RetrievalModelV2](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/models/base.py) class. 
+# 
+# `unique_rows_by_features` : A utility function allows extracting both unique user and item features tables as Merlin Dataset object that can easily be converted to a cuDF data frame. The function extracts unique rows from a specified dataset (transformed train set) based on a specified id-column tags (`ITEM` and `ITEM_ID`).
+
+# In[19]:
+
+
+# Top-K evaluation
+candidate_features = unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID)
+candidate_features.head()
+
+
+# Below, by using the `topk_model` we can evaluate the trained retrieval model using the entire item catalog. This is applying dot product for entire catalog, and by default it is brute force.
+
+# In[20]:
+
+
+topk = 20
+topk_model = model.to_top_k_encoder(candidate_features, k=topk, batch_size=128)
+
+# we can set `metrics` param in the `compile(), if we want
+topk_model.compile(run_eagerly=False)
+
+
+# In[21]:
+
+
+eval_loader = mm.Loader(valid, batch_size=1024).map(mm.ToTarget(schema, "item_id"))
+
+metrics = topk_model.evaluate(eval_loader, return_dict=True)
+metrics
+
+
+# ### Generate top-K recommendations
+
+# We trained a model, now we can generate recommendations offline using `to_top_k_encoder` method. The `to_top_k_encoder()` uses the pre-trained candidate and query encoders to initialize a top-k encoder model, called as `topk_model` in this example. Practically, this method applies the candidate_encoder on the provided candidate_features dataset to set the top-k index of the `topk_model`. Therefore, topk_model object is the one responsible of generating the top-k predictions.
+# 
+# Let's generate top-K (k=20 in our example) recommendations for a given batch of 8 samples. The `to_top_k_encoder()` method uses the candidate (item) features dataset as the identifiers, i.e., we extract the`  candidate_id` arg using `Tags.ITEM_ID` tag by default and set it as `index` when calculating the candidate embeddings. The forward method of `topk_model` takes as the query features as input, and computes the dot product scores between the given query embeddings and all the candidates of the top-k index. Then, it returns the top-k (k=20) item ids with the highest scores. Note that instead of calculating the candidate (item) tower embeddings for each user query, we compute the output of the item tower once and store it in the `TopKEncoder` class  to use for the Top-k index. This is computationally more efficient.
+
+# In[22]:
+
+
+eval_loader = mm.Loader(valid, batch_size=8, shuffle=False)
+batch =next(iter(eval_loader))
+
+
+# Let's check the `user_id` column in a given batch.
+
+# In[23]:
+
+
+batch[0]['user_id']
+
+
+# The recommended top 20 item ids are returned below. The output of the method is a named tuple `TopKPrediction`, where the first element is the dot product scores and the second element is the encoded item ids (not the original ids).
+
+# In[24]:
+
+
+topk_model(batch[0])
 
 
 # ## Exporting Retrieval Models
@@ -237,53 +354,63 @@ model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
 # - item and user features
 # - item embeddings
 
-# #### Save User (query) tower
+# #### Save and Load User (query) tower
 
 # We are able to save the user tower model as a TF model to disk. The user tower model is needed to generate a user embedding vector when a user feature vector <i>x</i> is fed into that model.
 
-# In[15]:
+# In[25]:
 
 
-query_tower = model.retrieval_block.query_block()
-query_tower.save("query_tower")
+query_tower = model.query_encoder
+query_tower.save(os.path.join(DATA_FOLDER, "query_tower"))
+
+## we can load back the saved model via the following script.
+#query_tower_loaded = tf.keras.models.load_model(os.path.join(DATA_FOLDER, 'query_tower'))
 
 
 # #### Extract and save User features
 
 # With `unique_rows_by_features` utility function we can easily extract both unique user and item features tables as cuDF dataframes. Note that for user features table, we use `USER` and `USER_ID` tags.
 
-# In[16]:
+# In[26]:
 
-
-from merlin.models.utils.dataset import unique_rows_by_features
 
 user_features = (
     unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)
 )
 
 
-# In[17]:
+# In[27]:
 
 
 user_features.head()
 
 
-# In[18]:
-
-
-user_features.shape
-
-
-# In[19]:
+# In[28]:
 
 
 # save to disk
-user_features.to_parquet("user_features.parquet")
+user_features.to_parquet(os.path.join(DATA_FOLDER, "user_features.parquet"))
+
+
+# #### Generate Query embeddings for entire user catalog
+
+# In[29]:
+
+
+queries = model.query_embeddings(Dataset(user_features, schema=schema), batch_size=1024, index=Tags.USER_ID)
+query_embs_df = queries.compute(scheduler="synchronous").reset_index()
+
+
+# In[30]:
+
+
+query_embs_df.head()
 
 
 # #### Extract and save Item features
 
-# In[20]:
+# In[31]:
 
 
 item_features = (
@@ -291,52 +418,44 @@ item_features = (
 )
 
 
-# In[21]:
+# In[32]:
 
 
 item_features.head()
 
 
-# In[22]:
+# In[33]:
 
 
 # save to disk
-item_features.to_parquet("item_features.parquet")
+item_features.to_parquet(os.path.join(DATA_FOLDER, "item_features.parquet"))
 
 
 # #### Extract and save Item embeddings
 
-# In[23]:
+# In[34]:
 
 
-item_embs = model.item_embeddings(Dataset(item_features, schema=schema), batch_size=1024)
+item_embs = model.candidate_embeddings(Dataset(item_features, schema=schema), batch_size=1024, index=Tags.ITEM_ID)
+
+
+# In[35]:
+
+
 item_embs_df = item_embs.compute(scheduler="synchronous")
 
 
-# In[24]:
+# In[36]:
 
 
 item_embs_df
 
 
-# In[25]:
-
-
-# select only embedding columns
-item_embeddings = item_embs_df.iloc[:, 4:]
-
-
-# In[26]:
-
-
-item_embeddings.head()
-
-
-# In[27]:
+# In[37]:
 
 
 # save to disk
-item_embeddings.to_parquet("item_embeddings.parquet")
+item_embs_df.to_parquet(os.path.join(DATA_FOLDER, "item_embeddings.parquet"))
 
 
 # That's it. You have learned how to train and evaluate your Two-Tower retrieval model, and then how to export the required components to be able to deploy this model to generate recommendations. In order to learn more on serving a model to [Triton Inference Server](https://github.com/triton-inference-server/server), please explore the examples in the [Merlin](https://github.com/NVIDIA-Merlin/Merlin) and [Merlin Systems](https://github.com/NVIDIA-Merlin/systems) repos.

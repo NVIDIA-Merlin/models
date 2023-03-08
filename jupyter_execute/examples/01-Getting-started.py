@@ -19,6 +19,9 @@
 # limitations under the License.
 # ==============================================================================
 
+# Each user is responsible for checking the content of datasets and the
+# applicable licenses and determining if suitable for the intended use.
+
 
 # <img src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_01-getting-started/nvidia_logo.png" style="width: 90px; float: right;">
 # 
@@ -63,17 +66,24 @@ train, valid = get_movielens(variant="ml-1m", path=input_path)
 
 # ## Training the DLRM Model with Merlin Models
 
-# We define the DLRM model, whose prediction task is a binary classification. From the `schema`, the categorical features are identified (and embedded) and the target column is also automatically inferred, because of the schema tags. We talk more about the schema in the next [example notebook (02)](02-Merlin-Models-and-NVTabular-integration.ipynb),
+# We define the DLRM model, whose prediction task is a binary classification. From the `schema`, the categorical features are identified (and embedded) and the target columns are also automatically inferred, because of the schema tags. We talk more about the schema in the next [example notebook (02)](02-Merlin-Models-and-NVTabular-integration.ipynb),
 
-# In[4]:
+# In[ ]:
+
+
+# Ignoring the rating regression target column, to keep only the rating_binary target column for prediction
+schema = train.schema.without(['rating'])
+
+
+# In[5]:
 
 
 model = mm.DLRMModel(
-    train.schema,
+    schema,
     embedding_dim=64,
     bottom_block=mm.MLPBlock([128, 64]),
     top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(train.schema),
+    prediction_tasks=mm.OutputBlock(schema),
 )
 
 model.compile(optimizer="adam")
@@ -81,7 +91,7 @@ model.compile(optimizer="adam")
 
 # Next, we train the model.
 
-# In[5]:
+# In[6]:
 
 
 model.fit(train, batch_size=1024)
@@ -89,15 +99,16 @@ model.fit(train, batch_size=1024)
 
 # We evaluate the model...
 
-# In[6]:
+# In[7]:
 
 
 metrics = model.evaluate(valid, batch_size=1024, return_dict=True)
 
 
-# ... and check the evaluation metrics. We use by default typical binary classification metrics -- Precision, Recall, Accuracy and AUC. But you can also provide your own metrics list by setting `BinaryClassificationTask(..., metrics=[])`.
+# ... and check the evaluation metrics. As there are two columns tagged as target in the schema (`rating_binary` and `rating`), the model has two heads (multi-task learning), one for binary classification and the other for regression.  
+# You can see from the list below that default metrics are provided -- Precision, Recall, Accuracy and AUC for binary classification and `RMSE` for regression tasks. You can also provide your own metrics in `model.compile()`.
 
-# In[7]:
+# In[8]:
 
 
 metrics
@@ -109,13 +120,11 @@ metrics
 # 
 # ```python
 # model = mm.DLRMModel(
-#     train.schema,
+#     schema,
 #     embedding_dim=64,
 #     bottom_block=mm.MLPBlock([128, 64]),
 #     top_block=mm.MLPBlock([128, 64, 32]),
-#     prediction_tasks=mm.BinaryClassificationTask(
-#         train.schema.select_by_tag(Tags.TARGET).column_names[0]
-#     ),
+#     prediction_tasks=mm.OutputBlock(schema),
 # )
 # model.compile(optimizer="adam")
 # model.fit(train, batch_size=1024)

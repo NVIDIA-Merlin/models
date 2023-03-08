@@ -19,6 +19,9 @@
 # limitations under the License.
 # ================================
 
+# Each user is responsible for checking the content of datasets and the
+# applicable licenses and determining if suitable for the intended use.
+
 
 # <img src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_06-define-your-own-architecture-with-merlin-models/nvidia_logo.png" style="width: 90px; float: right;">
 # 
@@ -75,13 +78,9 @@
 # - `connect_with_shortcut`: Connect the block to other blocks sequentially and apply a skip connection with the block's output. 
 # - `connect_with_residual`: Connect the block to other blocks sequentially and apply a residual sum with the block's output.
 
-# #### Prediction Tasks
+# #### Prediction Output Blocks
 
-# Merlin Models introduces the `PredictionTask` layer that defines the necessary blocks and transformation operations to compute the final prediction scores. It also provides the default loss and metrics related to the given prediction task.\
-# Merlin Models supports the core tasks:  `BinaryClassificationTask`, `MultiClassClassificationTask`, and`RegressionTask`. In addition to the preceding tasks, Merlin Models provides tasks that are specific to recommender systems: `NextItemPredictionTask`, and `ItemRetrievalTask`.
-# 
-# 
-# 
+# Merlin Models provides the base `ModelOutput` class that consists of one head of the model. It comprises a default loss and metrics related to the given prediction task. Merlin Models provides these blocks inheriting from `ModelOutput` for ranking models:  `BinaryOutput`, `CategoricalOutput`, and`RegressionOutput`. 
 
 # ### Implement the DLRM model with MovieLens-1M data
 
@@ -90,6 +89,7 @@
 # In[2]:
 
 
+import os
 import tensorflow as tf
 import merlin.models.tf as mm
 
@@ -102,6 +102,7 @@ from merlin.schema.tags import Tags
 # In[3]:
 
 
+DATA_FOLDER = os.getenv("DATA_FOLDER", "/workspace/data")
 train, valid = get_movielens(variant="ml-1m")
 
 
@@ -244,17 +245,12 @@ deep_dlrm_interaction(batch)
 
 # At this stage, we have created the DLRM block that accepts a dictionary of categorical and continuous tensors as input. The output of this block is the interaction representation vector of shape `512`. The next step is to use this hidden representation to conduct a given prediction task. In our case, we use the label `rating_binary` and the objective is: to predict if a user `A` will give a high rating to a movie `B` or not. 
 
-# We use the `BinaryClassificationTask` class and evaluate the performances using the `AUC` metric. We also use the `LogitsTemperatureScaler` block as a pre-transformation operation that scales the logits returned by the task before computing the loss and metrics:
+# We use the `BinaryOutput` class and evaluate the performances using the `AUC` metric.
 
 # In[16]:
 
 
-from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
-
-binary_task = mm.BinaryClassificationTask(
-    sub_schema,
-    pre=LogitsTemperatureScaler(temperature=2),
-)
+binary_task = mm.BinaryOutput("rating_binary")
 
 
 # #### Define, train, and evaluate the final DLRM Model
@@ -294,12 +290,12 @@ metrics
 # In[20]:
 
 
-model.save("custom_dlrm")
+model.save(os.path.join(DATA_FOLDER, "custom_dlrm"))
 
 
 # ## Conclusion 
 # 
-# Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, prediction tasks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our [documentation](https://nvidia-merlin.github.io/models/main/) to discover more. You can also [contribute](https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md) to the library by submitting new RecSys architectures and custom building Blocks.  
+# Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, output blocks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our [documentation](https://nvidia-merlin.github.io/models/main/) to discover more. You can also [contribute](https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md) to the library by submitting new RecSys architectures and custom building Blocks.  
 # 
 # 
 # 

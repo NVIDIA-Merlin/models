@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 # Copyright 2021 NVIDIA Corporation. All Rights Reserved.
@@ -18,6 +18,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ================================
+
+# Each user is responsible for checking the content of datasets and the
+# applicable licenses and determining if suitable for the intended use.
 
 
 # <img src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_04-exporting-ranking-models/nvidia_logo.png" style="width: 90px; float: right;">
@@ -68,7 +71,7 @@ import tensorflow as tf
 
 from merlin.datasets.synthetic import generate_data
 
-DATA_FOLDER = os.environ.get("DATA_FOLDER", "/workspace/data/")
+DATA_FOLDER = os.environ.get("DATA_FOLDER", "workspace/data/")
 NUM_ROWS = os.environ.get("NUM_ROWS", 1000000)
 SYNTHETIC_DATA = eval(os.environ.get("SYNTHETIC_DATA", "True"))
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 512))
@@ -95,7 +98,7 @@ output_path = os.path.join(DATA_FOLDER, "processed")
 # In[5]:
 
 
-get_ipython().run_cell_magic('time', '', 'user_id = ["user_id"] >> Categorify() >> TagAsUserID()\nitem_id = ["item_id"] >> Categorify() >> TagAsItemID()\ntargets = ["click"] >> AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, "target"])\n\nitem_features = ["item_category", "item_shop", "item_brand"] >> Categorify() >> TagAsItemFeatures()\n\nuser_features = (\n    [\n        "user_shops",\n        "user_profile",\n        "user_group",\n        "user_gender",\n        "user_age",\n        "user_consumption_2",\n        "user_is_occupied",\n        "user_geography",\n        "user_intentions",\n        "user_brands",\n        "user_categories",\n    ]\n    >> Categorify()\n    >> TagAsUserFeatures()\n)\n\noutputs = user_id + item_id + item_features + user_features + targets\n\nworkflow = nvt.Workflow(outputs)\n\ntrain_dataset = nvt.Dataset(train_path)\nvalid_dataset = nvt.Dataset(valid_path)\n\nworkflow.fit(train_dataset)\nworkflow.transform(train_dataset).to_parquet(output_path=output_path + "/train/")\nworkflow.transform(valid_dataset).to_parquet(output_path=output_path + "/valid/")\n')
+get_ipython().run_cell_magic('time', '', 'category_temp_directory = os.path.join(DATA_FOLDER, "categories")\nuser_id = ["user_id"] >> Categorify(out_path=category_temp_directory) >> TagAsUserID()\nitem_id = ["item_id"] >> Categorify(out_path=category_temp_directory) >> TagAsItemID()\ntargets = ["click"] >> AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, "target"])\n\nitem_features = ["item_category", "item_shop", "item_brand"] >> Categorify(out_path=category_temp_directory) >> TagAsItemFeatures()\n\nuser_features = (\n    [\n        "user_shops",\n        "user_profile",\n        "user_group",\n        "user_gender",\n        "user_age",\n        "user_consumption_2",\n        "user_is_occupied",\n        "user_geography",\n        "user_intentions",\n        "user_brands",\n        "user_categories",\n    ]\n    >> Categorify(out_path=category_temp_directory)\n    >> TagAsUserFeatures()\n)\n\noutputs = user_id + item_id + item_features + user_features + targets\n\nworkflow = nvt.Workflow(outputs)\n\ntrain_dataset = nvt.Dataset(train_path)\nvalid_dataset = nvt.Dataset(valid_path)\n\nworkflow.fit(train_dataset)\nworkflow.transform(train_dataset).to_parquet(output_path=output_path + "/train/")\nworkflow.transform(valid_dataset).to_parquet(output_path=output_path + "/valid/")\n')
 
 
 # We save NVTabular `workflow` model in the current working directory.
@@ -103,12 +106,12 @@ get_ipython().run_cell_magic('time', '', 'user_id = ["user_id"] >> Categorify() 
 # In[6]:
 
 
-workflow.save("workflow")
+workflow.save(os.path.join(DATA_FOLDER, "workflow"))
 
 
 # Let's check out our saved workflow model folder.
 
-# In[ ]:
+# In[7]:
 
 
 get_ipython().system('pip install seedir')
@@ -161,7 +164,7 @@ model = mm.DLRMModel(
     embedding_dim=64,
     bottom_block=mm.MLPBlock([128, 64]),
     top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column),
+    prediction_tasks=mm.BinaryOutput(target_column),
 )
 
 
@@ -177,10 +180,10 @@ get_ipython().run_cell_magic('time', '', '\nmodel.compile("adam", run_eagerly=Fa
 # 
 # Let's save our DLRM model.
 
-# In[ ]:
+# In[13]:
 
 
-model.save("dlrm")
+model.save(os.path.join(DATA_FOLDER, "dlrm"))
 
 
 # We have NVTabular wokflow  and DLRM model exported, now it is time to move on to the next step: model deployment with [Merlin Systems](https://github.com/NVIDIA-Merlin/systems).

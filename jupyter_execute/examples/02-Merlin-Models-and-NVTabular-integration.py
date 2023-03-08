@@ -19,6 +19,9 @@
 # limitations under the License.
 # ==============================================================================
 
+# Each user is responsible for checking the content of datasets and the
+# applicable licenses and determining if suitable for the intended use.
+
 
 # <img src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_02-merlin-models-and-nvtabular-integration/nvidia_logo.png" style="width: 90px; float: right;">
 # 
@@ -191,7 +194,6 @@ train.schema.select_by_tag(Tags.ITEM_ID)
 # In[14]:
 
 
-input_path = os.environ.get("INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/movielens/"))
 name = "ml-1m"
 download_file(
     "http://files.grouplens.org/datasets/movielens/ml-1m.zip",
@@ -240,7 +242,7 @@ valid.to_parquet(os.path.join(input_path, name, "valid.parquet"))
 # In[16]:
 
 
-cat_features = ["userId", "movieId"] >> ops.Categorify(dtype="int32")
+cat_features = ["userId", "movieId"] >> ops.Categorify(dtype="int32", out_path=os.path.join(input_path, "categories"))
 
 
 # The tags for `user`, `userId`, `item` and `itemId` cannot be inferred from the dataset. Therefore, we need to provide them manually during the NVTabular workflow. Actually, the `DLRMModel` does not differentiate between `user` and `item` features. But other architectures, such as the `TwoTowerModel` depends on the `user` and `item` features distinction. We will show how to tag features manually in a NVTabular workflow below. 
@@ -297,7 +299,9 @@ train.schema.column_names
 train.schema
 
 
-# Here we train our model.
+# Here we train our model.  
+# We use `BinaryOutput` because we want to train a binary classification task, and specify which column should be used as target. We could also have used `OutputBlock`, which automatically infers from schema which one target column is based on the tags. 
+# P.s. If there are multiple targets, `OutputBlock` would create a `ModelOutput` for each target column.
 
 # In[22]:
 
@@ -307,7 +311,7 @@ model = mm.DLRMModel(
     embedding_dim=64,
     bottom_block=mm.MLPBlock([128, 64]),
     top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(
+    prediction_tasks=mm.BinaryOutput(
         train.schema.select_by_tag(Tags.TARGET).column_names[0]
     ),
 )
