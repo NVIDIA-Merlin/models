@@ -568,10 +568,10 @@ def test_category_encoding_multi_hot_single_value(input):
 @pytest.mark.parametrize(
     "input",
     [
-        tf.convert_to_tensor([1, 2, 3, 0]),
-        tf.sparse.from_dense(np.array([1, 2, 3, 0])),
         tf.convert_to_tensor([[1], [2], [3], [0]]),
         tf.sparse.from_dense(np.array([[1], [2], [3], [0]])),
+        tf.convert_to_tensor([[[1]], [[2]], [[3]], [[0]]]),
+        tf.sparse.from_dense(np.array([[[1]], [[2]], [[3]], [[0]]])),
     ],
 )
 def test_category_encoding_one_hot(input):
