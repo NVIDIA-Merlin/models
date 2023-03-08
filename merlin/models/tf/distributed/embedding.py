@@ -21,10 +21,18 @@ class DistributedEmbeddings(TabularBlock):
         If int, the embedding size to use for all features, or a
         dictionary-like {"feature_name": embedding size, ...}.
         By default, None.
-    strategy:
-    column_slice_threshold:
-    dp_input:
-    input_table_map:
+    strategy: str
+        Indicates how embedding tables are distributed.
+        One of ["basic", "memory_balanced"]. Default: "basic".
+    column_slice_threshold: Optional[int]
+        Desired upper bound of element count in each slice.
+    dp_input: bool
+        If True, takes data-parallel input in shape [local_batch_size x global_num_embeddings].
+        Otherwise takes model-parallel input in shape [global_batch_size x local_num_embeddings].
+        Default: true.
+    input_table_map: Optional[List[int]]
+        A list with same length as inputs.  Maps `input[i]` to `table[input_table_map[i]]`.
+        If None, `input[i]` maps to `table[i]`. Default: None.
     """
 
     def __init__(
@@ -33,8 +41,8 @@ class DistributedEmbeddings(TabularBlock):
         dim: Optional[Union[Dict[str, int], int]] = None,
         strategy: str = "basic",
         column_slice_threshold: Optional[int] = None,
-        dp_input=True,
-        input_table_map=None,
+        dp_input: bool = True,
+        input_table_map: Optional[List[int]] = None,
         **kwargs,
     ):
         if not hvd_installed or not dmp_installed:
@@ -115,32 +123,16 @@ class DistributedEmbeddings(TabularBlock):
         A tensor or dict of tensors corresponding to the embeddings for inputs
         """
 
-        def _validate_inputs(tensor):
-            depth = 100
-            if isinstance(tensor, tf.SparseTensor):
-                max_value = tf.reduce_max(tensor.values)
-                min_value = tf.reduce_min(tensor.values)
-            else:
-                max_value = tf.reduce_max(tensor)
-                min_value = tf.reduce_min(tensor)
-            condition = tf.logical_and(
-                tf.greater(tf.cast(depth, max_value.dtype), max_value),
-                tf.greater_equal(min_value, tf.cast(0, min_value.dtype)),
-            )
-            return condition
-
         if isinstance(inputs, dict):
             ordered_inputs = []
             outputs = {}
             for feature_name in self.table_names:
-                with tf.control_dependencies([_validate_inputs(inputs[feature_name])]):
-                    ordered_inputs.append(inputs[feature_name])
+                ordered_inputs.append(inputs[feature_name])
             ordered_outputs = self.embedding_layers(ordered_inputs)
             for feature_name, output in zip(self.schema.column_names, ordered_outputs):
                 outputs[feature_name] = output
         elif isinstance(inputs, list):
-            with tf.control_dependencies([_validate_inputs(inputs)]):
-                outputs = self.embedding_layers(inputs)
+            outputs = self.embedding_layers(inputs)
         else:
             raise ValueError(f"Unexpected input type encountered: {inputs}")
 
