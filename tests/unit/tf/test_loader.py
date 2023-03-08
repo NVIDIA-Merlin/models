@@ -343,7 +343,7 @@ def test_block_with_categorical_target():
     data = Dataset(df, schema=s)
 
     batch = mm.sample_batch(data, batch_size=2)
-    assert batch[1].shape == (2,)
+    assert batch[1].shape == (2, 1)
 
     inputs = mm.InputBlock(data.schema)
     embeddings = inputs(batch[0])
