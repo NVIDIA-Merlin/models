@@ -903,6 +903,8 @@ class BaseModel(tf.keras.Model):
             # Copies the mask from the targets to the predictions
             # because Keras considers the prediction mask in loss
             # and metrics computation
+            if isinstance(target._keras_mask, tf.RaggedTensor):
+                target._keras_mask = target._keras_mask.to_tensor()
             prediction._keras_mask = target._keras_mask
 
         # Ensuring targets and preds have the same dtype

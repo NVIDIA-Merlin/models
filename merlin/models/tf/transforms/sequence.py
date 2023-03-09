@@ -476,7 +476,7 @@ class SequencePredictRandom(SequenceTransform):
         positions_matrix = tf.tile(
             tf.expand_dims(tf.range(0, max_length, dtype=tf.int32), 0), [batch_size, 1]
         )
-        input_mask = positions_matrix < random_targets_indices
+        self.random_mask = positions_matrix < random_targets_indices
         target_mask = positions_matrix == random_targets_indices
 
         new_target = tf.squeeze(tf.ragged.boolean_mask(inputs[self.target_name], target_mask), 1)
@@ -490,11 +490,47 @@ class SequencePredictRandom(SequenceTransform):
         new_inputs = dict()
         for k, v in inputs.items():
             if k in self.schema.column_names:
-                new_inputs[k] = tf.ragged.boolean_mask(v, input_mask)
+                new_inputs[k] = tf.ragged.boolean_mask(v, self.random_mask)
             else:
                 new_inputs[k] = v
 
         return (new_inputs, targets)
+
+    def compute_mask(self, inputs, mask=None):
+        new_item_id_seq = tf.ragged.boolean_mask(inputs[self.target_name], self.random_mask)
+
+        self.target_mask = self._generate_target_mask(new_item_id_seq)
+        inputs_mask = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                inputs_mask[k] = self.target_mask
+            else:
+                inputs_mask[k] = None
+
+        return (inputs_mask, self.target_mask)
+
+    def _generate_target_mask(self, ids_seq: tf.RaggedTensor) -> tf.RaggedTensor:
+        """Returns a bool ragged tensor with the last positions of the sequence masked
+
+        Parameters
+        ----------
+        ids_seq : tf.RaggedTensor
+            Sequence of ids, which are used to infer how many values
+            each sequence contains
+
+        Returns
+        -------
+        tf.RaggedTensor
+            Mask tensor, with True at the last positions
+        """
+        row_lengths = ids_seq.row_lengths(1)
+        max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+
+        padding_mask = tf.sequence_mask(row_lengths)
+        targets_mask = tf.ragged.boolean_mask(
+            tf.cast(tf.one_hot(row_lengths - 1, max_seq_length), tf.bool), padding_mask
+        )
+        return targets_mask
 
 
 @Block.registry.register_with_multiple_names("seq_target_as_input")
