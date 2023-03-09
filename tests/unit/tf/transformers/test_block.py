@@ -229,6 +229,50 @@ def classification_loader(sequence_testing_data: Dataset):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_with_predict_random(sequence_testing_data: Dataset, run_eagerly):
+
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
+        Tags.CATEGORICAL
+    )
+    target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)
+    target = target_schema.column_names[0]
+
+    sequence_testing_data.schema = seq_schema + target_schema
+    model_schema = sequence_testing_data.schema
+
+    transformer_input_dim = 48
+    transformer_block = GPT2Block(d_model=transformer_input_dim, n_head=8, n_layer=2)
+    model = mm.Model(
+        mm.InputBlockV2(
+            model_schema,
+            categorical=mm.Embeddings(
+                model_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+            ),
+        ),
+        mm.MLPBlock([transformer_input_dim]),
+        transformer_block,
+        mm.CategoricalOutput(
+            model_schema.select_by_name(target), default_loss="categorical_crossentropy"
+        ),
+    )
+
+    predict_next = mm.SequencePredictRandom(
+        schema=seq_schema, target=target, transformer=transformer_block
+    )
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
+
+    testing_utils.model_test(
+        model, loader, run_eagerly=run_eagerly, reload_model=True, fit_kwargs={"pre": predict_next}
+    )
+
+    predict_last = mm.SequencePredictLast(
+        schema=seq_schema, target=target, transformer=transformer_block
+    )
+    metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_last)
+    assert len(metrics) > 0
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_transformer_with_causal_language_modeling(sequence_testing_data: Dataset, run_eagerly):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
