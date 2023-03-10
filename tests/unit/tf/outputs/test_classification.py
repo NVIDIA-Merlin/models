@@ -25,7 +25,9 @@ from merlin.models.tf.utils import testing_utils
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_binary_output(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
-        mm.InputBlock(ecommerce_data.schema), mm.MLPBlock([8]), mm.BinaryOutput("click"),
+        mm.InputBlock(ecommerce_data.schema),
+        mm.MLPBlock([8]),
+        mm.BinaryOutput("click"),
     )
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -76,7 +78,9 @@ def test_binary_output_two_tasks(ecommerce_data: Dataset, run_eagerly, use_outpu
 def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
     dataloader, schema = testing_utils.loader_for_last_item_prediction(sequence_testing_data)
     model = mm.Model(
-        mm.InputBlockV2(schema), mm.MLPBlock([8]), mm.CategoricalOutput(schema["item_id_seq"]),
+        mm.InputBlockV2(schema),
+        mm.MLPBlock([8]),
+        mm.CategoricalOutput(schema["item_id_seq"]),
     )
 
     _, history = testing_utils.model_test(model, dataloader, run_eagerly=run_eagerly)
@@ -97,7 +101,8 @@ def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
 def test_last_item_prediction(sequence_testing_data: Dataset, run_eagerly):
     dataloader, schema = testing_utils.loader_for_last_item_prediction(sequence_testing_data)
     embeddings = mm.Embeddings(
-        schema, sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
+        schema,
+        sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
     )
 
     predictions = [
@@ -115,4 +120,3 @@ def test_last_item_prediction(sequence_testing_data: Dataset, run_eagerly):
             mm.CategoricalOutput(target),
         )
         testing_utils.model_test(model, dataloader, run_eagerly=run_eagerly)
-

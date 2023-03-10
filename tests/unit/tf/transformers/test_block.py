@@ -75,11 +75,7 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     query_embeddings = query_encoder.predict(loader)
     assert list(query_embeddings.shape) == [100, d_model]
 
-    item_embeddings = model.candidate_embeddings().compute()
-    if not isinstance(item_embeddings, np.ndarray):
-        import cupy
-
-        item_embeddings = cupy.asnumpy(item_embeddings.values)
+    item_embeddings = model.candidate_embeddings().compute().to_numpy()
 
     assert list(item_embeddings.shape) == [51997, d_model]
     predicitons_2 = np.dot(query_embeddings, item_embeddings.T)
