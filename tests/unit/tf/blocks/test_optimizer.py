@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from packaging import version
 
 import numpy as np
 import pytest
@@ -51,7 +52,7 @@ def generate_two_layers():
         ("rmsprop", "sgd"),
         ("adam", "adagrad"),
         ("adagrad", "rmsprop"),
-        (tf.keras.optimizers.SGD(), tf.keras.optimizers.Adagrad()),
+        (tf.keras.optimizers.legacy.SGD(), tf.keras.optimizers.legacy.Adagrad()),
     ],
 )
 def test_optimizers(optimizers):
@@ -297,7 +298,10 @@ def test_update_optimizer(ecommerce_data, run_eagerly):
     testing_utils.model_test(
         model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
     )
-    assert len(lazy_adam.get_weights()) == len(adam.get_weights())
+    if version.parse(tf.__version__) < version.parse("2.11.0"):
+        assert len(lazy_adam.get_weights()) == len(adam.get_weights())
+    else:
+        assert len(lazy_adam.get_weights()) == len(adam.variables())
 
 
 def adam_update_numpy(param, g_t, t, m, v, lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-7):
