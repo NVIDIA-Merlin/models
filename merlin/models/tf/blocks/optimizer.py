@@ -299,7 +299,9 @@ class MultiOptimizer(keras_optimizers.Optimizer):
             optimizer = optimizer_blocks.optimizer
             if hasattr(optimizer, "weights"):  # Tensorflow < 2.11
                 weights += optimizer_blocks.optimizer.weights
-            elif hasattr(optimizer, "variables") and callable(optimizer.variables):  # Tensorflow >= 2.11
+            elif hasattr(optimizer, "variables") and callable(
+                optimizer.variables
+            ):  # Tensorflow >= 2.11
                 weights += optimizer_blocks.optimizer.variables()
             else:
                 raise AttributeError(f"Unable to get weights from {optimizer.__class__.__name__}")

@@ -13,11 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from packaging import version
-
 import numpy as np
 import pytest
 import tensorflow as tf
+from packaging import version
 from tensorflow.test import TestCase
 
 import merlin.models.tf as ml
