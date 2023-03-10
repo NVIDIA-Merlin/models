@@ -85,7 +85,7 @@ class Candidate:
 
     def get_config(self):
         return {
-            "ids": self.id.as_list() if self.id else None,
+            "id": self.id.as_list() if self.id else None,
             "metadata": {key: val.as_list() for key, val in self.metadata.items()},
         }
 

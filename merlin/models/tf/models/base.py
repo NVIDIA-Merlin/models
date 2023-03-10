@@ -1112,7 +1112,6 @@ class BaseModel(tf.keras.Model):
                     loader.input_schema = self.input_schema + loader.input_schema.select_by_tag(
                         target_tags
                     )
-                    pass
             else:
                 # Bind input schema from dataset to model,
                 # to handle the case where this hasn't been set on an input block
