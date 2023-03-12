@@ -93,8 +93,8 @@ class SOKEmbedding(EmbeddingTableBase):
                         v = sok.DynamicVariable(
                             dimension=self._embedding_vec_size, initializer='random'
                         )
-                        indices = tf.convert_to_tensor(initializer[i][0])
-                        values = tf.convert_to_tensor(initializer[i][1])
+                        indices = tf.convert_to_tensor(initializer[i][0], dtype=tf.int64)
+                        values = tf.convert_to_tensor(initializer[i][1], dtype=tf.float32)
                         sok.assign(v, indices, values)
                 elif self._localized is not None:
                     if isinstance(initializer, str):
