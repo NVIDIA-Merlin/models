@@ -28,7 +28,7 @@ class TestSOKEmbedding:
         indices = np.array([0, 1, 2])
         values = np.arange(3 * 16).reshape(3, 16)
         weights["indice"]=indices
-        weight["values"]=values
+        weights["values"]=values
         embedding = SOKEmbedding.from_pretrained(16, vocab_sizes=[10], data=[weights], name='item_id')
         inputs = [tf.ragged.constant([[0, 1, 0], [1, 0]])]
         combiners = ["sum"]

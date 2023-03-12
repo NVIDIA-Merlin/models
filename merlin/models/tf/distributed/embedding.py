@@ -172,7 +172,7 @@ class SOKEmbedding(EmbeddingTableBase):
         if not col_schema:
             if not name:
                 raise ValueError("`name` is required when not using a ColumnSchema")
-            col_schema = create_categorical_column(name, num_items - 1)
+            col_schema = create_categorical_column(name, sum(vocab_sizes)-1)
 
         weights = []
         for i, item in enumerate(data):
