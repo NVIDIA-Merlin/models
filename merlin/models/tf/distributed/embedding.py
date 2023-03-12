@@ -69,6 +69,7 @@ class SOKEmbedding(EmbeddingTableBase):
         self._vocab_sizes = vocab_sizes
         self._use_dynamic_variable = use_dynamic_variable
         self._localized = localized
+        self._initializer = initialzier
         self._vars = []
         if self._localized is None and self._use_dynamic_variable is False:
             for i in range(len(vocab_sizes)):
@@ -148,6 +149,7 @@ class SOKEmbedding(EmbeddingTableBase):
     def from_pretrained(
         cls,
         dim: int,
+        vocab_sizes: list,
         data: list,
         trainable=True,
         name=None,
@@ -156,7 +158,7 @@ class SOKEmbedding(EmbeddingTableBase):
         localized=None,
         **kwargs,
     ) -> "SOKEmbedding":
-        """Create From pre-trained embeddings from a Dataset or DataFrame.
+        """Create From pre-trained embeddings from a Dataset.
         Parameters
         ----------
         data :
@@ -179,6 +181,7 @@ class SOKEmbedding(EmbeddingTableBase):
         return cls(
             dim,
             col_schema,
+            vocab_sizes=vocab_size
             name=name,
             initializer=weights,
             use_dynamic_variable=use_dynamic_variable,
