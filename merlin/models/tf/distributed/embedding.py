@@ -5,6 +5,7 @@ import tensorflow as tf
 from merlin.models.tf.distributed.backend import hvd_installed, sok, sok_installed
 from merlin.models.tf.inputs.embedding import EmbeddingTableBase
 from merlin.models.utils.schema_utils import (
+    create_categorical_column,
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
 )
@@ -69,7 +70,7 @@ class SOKEmbedding(EmbeddingTableBase):
         self._vocab_sizes = vocab_sizes
         self._use_dynamic_variable = use_dynamic_variable
         self._localized = localized
-        self._initializer = initialzier
+        self._initializer = initializer
         self._vars = []
         if self._localized is None and self._use_dynamic_variable is False:
             for i in range(len(vocab_sizes)):
@@ -140,7 +141,6 @@ class SOKEmbedding(EmbeddingTableBase):
         emb_vectors = sok.lookup_sparse(
             params=self._vars,
             sp_ids=inputs,
-            sp_weights=None,
             combiners=combiners,
         )
         return emb_vectors
@@ -168,6 +168,12 @@ class SOKEmbedding(EmbeddingTableBase):
         name : str
             The name of the layer.
         """
+
+        if not col_schema:
+            if not name:
+                raise ValueError("`name` is required when not using a ColumnSchema")
+            col_schema = create_categorical_column(name, num_items - 1)
+
         weights = []
         for i, item in enumerate(data):
             if use_dynamic_variable:
@@ -181,7 +187,7 @@ class SOKEmbedding(EmbeddingTableBase):
         return cls(
             dim,
             col_schema,
-            vocab_sizes=vocab_size
+            vocab_sizes=vocab_sizes,
             name=name,
             initializer=weights,
             use_dynamic_variable=use_dynamic_variable,

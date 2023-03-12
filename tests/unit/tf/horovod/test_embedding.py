@@ -25,7 +25,7 @@ class TestSOKEmbedding:
 
     def test_sok_embedding_pretrained(self):
         weights = np.random.rand(10, 16)
-        embedding = SOKEmbedding.from_pretrained(16, [weights])
+        embedding = SOKEmbedding.from_pretrained(16, vocab_sizes=[10], data=[weights])
         inputs = [tf.ragged.constant([[0, 1, 0], [1, 0]])]
         combiners = ["sum"]
         outputs = embedding(inputs, combiners)
