@@ -90,6 +90,9 @@ class SOKEmbedding(EmbeddingTableBase):
                             dimension=self._embedding_vec_size, initializer=initializer
                         )
                     else:
+                        v = sok.DynamicVariable(
+                            dimension=self._embedding_vec_size, initializer='random'
+                        )
                         indices = tf.convert_to_tensor(initializer[i][0])
                         values = tf.convert_to_tensor(initializer[i][1])
                         sok.assign(v, indices, values)
@@ -154,7 +157,7 @@ class SOKEmbedding(EmbeddingTableBase):
         trainable=True,
         name=None,
         col_schema=None,
-        use_dynamic_variable=False,
+        use_dynamic_variable=True,
         localized=None,
         **kwargs,
     ) -> "SOKEmbedding":
