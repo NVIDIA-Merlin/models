@@ -242,7 +242,7 @@ class PrepareListFeatures(TabularBlock):
 
                     else:
                         if len(input_shapes[name]) == 2:
-                            output_shapes[name] = input_shapes[name] + [1]
+                            output_shapes[name] = input_shapes[name] + (1,)
 
                 elif name in input_shapes:
                     output_shapes[name] = input_shapes[name]

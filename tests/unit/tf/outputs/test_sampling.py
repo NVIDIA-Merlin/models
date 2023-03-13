@@ -62,7 +62,7 @@ def test_popularity_sampler():
     input_data = mm.Candidate(id=item_ids, metadata={})
     output_data = popularity_sampler(input_data)
 
-    assert len(tf.unique_with_counts(output_data.id)[0]) == num_sampled
+    assert len(tf.unique_with_counts(tf.squeeze(output_data.id))[0]) == num_sampled
 
     tf.assert_equal(tf.reduce_all(output_data.id >= min_id), True)
 

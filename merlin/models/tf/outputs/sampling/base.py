@@ -14,8 +14,7 @@
 # limitations under the License.
 #
 import abc
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, NamedTuple, Optional, Sequence, Union
 
 import tensorflow as tf
 
@@ -24,8 +23,7 @@ from merlin.models.utils.registry import Registry, RegistryMixin
 EMBEDDING_KEY = "__embedding__"
 
 
-@dataclass
-class Candidate:
+class Candidate(NamedTuple):
     """Store candidate id and their metadata
 
     Parameters
@@ -85,14 +83,14 @@ class Candidate:
 
     def get_config(self):
         return {
-            "id": self.id.as_list() if self.id else None,
-            "metadata": {key: val.as_list() for key, val in self.metadata.items()},
+            "id": self.id,
+            "metadata": self.metadata,
         }
 
     @classmethod
     def from_config(cls, config):
-        ids = tf.TensorShape(config["config"]["id"])
-        metadata = {key: tf.TensorShape(val) for key, val in config["config"]["metadata"].items()}
+        ids = config["config"]["id"]
+        metadata = config["config"]["metadata"]
 
         return cls(ids, metadata)
 
