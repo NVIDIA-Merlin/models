@@ -282,6 +282,7 @@
 
 
 <span class="k">def</span> <span class="nf">gather_torch_like</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">max_k</span><span class="p">):</span>
+
     <span class="n">row_idxs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">labels</span><span class="p">)[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">max_k</span><span class="p">)</span>
     <span class="n">col_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">row_idxs</span><span class="p">))</span>
     <span class="n">all_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">row_idxs</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]))</span>
@@ -590,6 +591,10 @@
       <dd><a href="../../../../../../v0.8.0/index.html">v0.8.0</a></dd>
       <dd><a href="../../../../../../v0.9.0/index.html">v0.9.0</a></dd>
       <dd><a href="tf_utils.html">v23.02.00</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../../../../../main/index.html">main</a></dd>
     </dl>
   </div>
 </div><script>

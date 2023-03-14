@@ -106,8 +106,6 @@
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
 
-<span class="kn">from</span> <span class="nn">merlin.io.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
-
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
@@ -279,6 +277,11 @@
 <span class="sd">    reader_kwargs: dict</span>
 <span class="sd">        Additional arguments of the specified reader.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">nvtabular.io.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;NVTabular is necessary for this function, please install: &quot;</span> <span class="s2">&quot;nvtabular.&quot;</span><span class="p">)</span>
+
     <span class="c1"># TODO: put this in parent class and allow</span>
     <span class="c1"># torch dataset to leverage as well?</span>
 
@@ -354,6 +357,10 @@
       <dd><a href="../../../../../v0.8.0/index.html">v0.8.0</a></dd>
       <dd><a href="../../../../../v0.9.0/index.html">v0.9.0</a></dd>
       <dd><a href="misc_utils.html">v23.02.00</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../../../../main/index.html">main</a></dd>
     </dl>
   </div>
 </div><script>
