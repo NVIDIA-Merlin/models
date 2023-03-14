@@ -52,7 +52,7 @@ class TestGetOutputSchema:
         model.save(tmpdir)
         output_schema = get_output_schema(tmpdir)
         output_col = output_schema["my_output"]
-        assert output_col.value_count.min == output_col.value_count.max == 4
+        assert output_col.shape.dims[1].min == output_col.shape.dims[1].max == 4
         assert output_col.is_list is True
         assert output_col.is_ragged is False
 

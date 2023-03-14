@@ -47,7 +47,7 @@ def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None)
             sizes[name] = tf.TensorShape(
                 [
                     batch_size,
-                    max_sequence_length if max_sequence_length else feature.value_count.max,
+                    max_sequence_length if max_sequence_length else feature.shape.dims[1].max,
                 ]
             )
         elif feature.HasField("shape"):
