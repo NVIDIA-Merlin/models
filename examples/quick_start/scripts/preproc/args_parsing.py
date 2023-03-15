@@ -37,7 +37,6 @@ def build_arg_parser():
     parser.add_argument("--session_id_feature", default="", help="")
 
     # parser.add_argument("--groupby_feature", default="", help="")
-    parser.add_argument("--timestamp_feature", default="", help="")
 
     parser.add_argument("--to_int32", default="", help="")
     parser.add_argument("--to_int16", default="", help="")

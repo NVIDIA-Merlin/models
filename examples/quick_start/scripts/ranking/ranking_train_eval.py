@@ -86,10 +86,7 @@ class RankingTrainEvalRunner:
                 schema, args.in_batch_negatives_train
             )
         self.train_loader = mm.Loader(
-            self.train_ds,
-            batch_size=args.train_batch_size,
-            schema=schema,
-            **train_loader_kwargs,
+            self.train_ds, batch_size=args.train_batch_size, schema=schema, **train_loader_kwargs,
         )
 
         eval_loader_kwargs = {}
@@ -97,10 +94,7 @@ class RankingTrainEvalRunner:
             eval_loader_kwargs["transform"] = InBatchNegatives(schema, args.in_batch_negatives_eval)
 
         self.eval_loader = mm.Loader(
-            self.eval_ds,
-            batch_size=args.eval_batch_size,
-            schema=schema,
-            **eval_loader_kwargs,
+            self.eval_ds, batch_size=args.eval_batch_size, schema=schema, **eval_loader_kwargs,
         )
 
     def get_metrics(self):
@@ -136,13 +130,9 @@ class RankingTrainEvalRunner:
             )
 
         if self.args.optimizer == "adam":
-            opt = tf.keras.optimizers.Adam(
-                learning_rate=lerning_rate,
-            )
+            opt = tf.keras.optimizers.Adam(learning_rate=lerning_rate,)
         elif self.args.optimizer == "adagrad":
-            opt = tf.keras.optimizers.Adagrad(
-                learning_rate=lerning_rate,
-            )
+            opt = tf.keras.optimizers.Adagrad(learning_rate=lerning_rate,)
         else:
             raise ValueError("Invalid optimizer")
 
@@ -160,9 +150,7 @@ class RankingTrainEvalRunner:
 
         metrics = self.get_metrics()
         model.compile(
-            self.get_optimizer(),
-            run_eagerly=False,
-            metrics=metrics,
+            self.get_optimizer(), run_eagerly=False, metrics=metrics,
         )
 
         callbacks = get_callbacks(self.args)
@@ -177,8 +165,8 @@ class RankingTrainEvalRunner:
             shuffle=False,
             drop_last=False,
             callbacks=callbacks,
-            # validation_data=self.eval_ds,
-            # validation_steps=self.args.validation_steps,
+            validation_data=self.eval_loader,
+            validation_steps=self.args.validation_steps,
             train_metrics_steps=self.args.train_metrics_steps,
             class_weight=class_weights,
         )
@@ -207,10 +195,7 @@ class RankingTrainEvalRunner:
 
         metrics = self.get_metrics()
         model.compile(
-            self.get_optimizer(),
-            run_eagerly=False,
-            metrics=metrics,
-            loss_weights=loss_weights,
+            self.get_optimizer(), run_eagerly=False, metrics=metrics, loss_weights=loss_weights,
         )
         callbacks = get_callbacks(self.args)
 
@@ -225,8 +210,8 @@ class RankingTrainEvalRunner:
             shuffle=False,
             drop_last=False,
             callbacks=callbacks,
-            # validation_data=valid_ds,
-            # validation_steps=args.validation_steps,
+            validation_data=self.eval_loader,
+            validation_steps=args.validation_steps,
             train_metrics_steps=args.train_metrics_steps,
         )
 

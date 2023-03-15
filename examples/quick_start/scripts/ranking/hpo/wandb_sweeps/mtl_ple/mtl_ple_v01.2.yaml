@@ -1,0 +1,128 @@
+program: ranking_train_eval.py
+method: bayes
+metric:
+  name: auc_improv_avg-final
+  goal: maximize
+parameters:
+  activation:
+    distribution: categorical
+    values:
+      - relu  
+  model:
+    distribution: categorical
+    values:
+      - ple  
+  dropout:
+    distribution: categorical
+    values:
+      - 0.04469550797034103  
+  embeddings_l2_reg:
+    distribution: categorical
+    values:
+      - 3.941030203754672e-07  
+  embedding_sizes_multiplier:
+    distribution: categorical
+    values:
+      - 2  
+  l2_reg:
+    distribution: categorical
+    values:
+      - 4.164627075910557e-05  
+  lr:
+    distribution: categorical
+    values:
+      - 0.0016634567857365867  
+  lr_decay_rate:
+    distribution: categorical
+    values:
+      - 0.986870623403676  
+  lr_decay_steps:
+    distribution: categorical
+    values:
+      - 191  
+  expert_mlp_layers:
+    distribution: categorical
+    values:
+      - 256  
+  gate_dim:
+    distribution: categorical
+    values:
+      - 128  
+  use_task_towers:
+    distribution: categorical
+    values:
+      - True  
+  tower_layers:
+    distribution: categorical
+    values:
+      - 64  
+  ple_num_task_mlp_experts:
+    distribution: categorical
+    values:
+      - 1  
+  ple_num_task_dcn_experts:
+    distribution: categorical
+    values:
+      - 0  
+  ple_num_shared_mlp_experts:
+    distribution: categorical
+    values:
+      - 4  
+  ple_num_shared_dcn_experts:
+    distribution: categorical
+    values:
+      - 0  
+  tasks:
+    distribution: categorical
+    values:
+      - all  
+  train_batch_size:
+    distribution: categorical
+    values:
+      - 16384  
+  eval_batch_size:
+    distribution: categorical
+    values:
+      - 65536  
+  epochs:
+    distribution: categorical
+    values:
+      - 1  
+      
+  mtl_loss_weight_click:
+    distribution: categorical
+    values:
+      - 5
+  mtl_loss_weight_like:
+    distribution: int_uniform
+    min: 1
+    max: 10
+  mtl_loss_weight_share:
+    distribution: int_uniform
+    min: 1
+    max: 10
+  mtl_loss_weight_follow:
+    distribution: int_uniform
+    min: 1
+    max: 10
+  mtl_loss_weight_watching_times:
+    distribution: int_uniform
+    min: 1
+    max: 10  
+
+  mtl_pos_class_weight_click:
+    distribution: int_uniform
+    min: 1
+    max: 10
+  mtl_pos_class_weight_like:
+    distribution: int_uniform
+    min: 1
+    max: 100
+  mtl_pos_class_weight_share:
+    distribution: int_uniform
+    min: 1
+    max: 100
+  mtl_pos_class_weight_follow:
+    distribution: int_uniform
+    min: 1
+    max: 100

@@ -76,50 +76,33 @@ def build_arg_parser():
     parser = argparse.ArgumentParser(description="MTL & STL models")
 
     # Inputs
-    parser.add_argument("--train_path", default="/data/ranking/", help="")
-    parser.add_argument("--eval_path", default="/data/ranking/", help="")
+    parser.add_argument("--train_path", default="/data/train/", help="")
+    parser.add_argument("--eval_path", default="/data/eval/", help="")
     # Outputs
     parser.add_argument("--output_path", default="/results/", help="")
     parser.add_argument("--save_trained_model_path", default=None, help="")
 
     # Tasks
     parser.add_argument(
-        "--tasks",
-        help="",
+        "--tasks", help="",
     )
     parser.add_argument(
-        "--tasks_sample_space",
-        default="",
-        help="",
+        "--tasks_sample_space", default="", help="",
     )
     parser.add_argument(
-        "--ignore_tasks",
-        default="",
-        help="",
+        "--ignore_tasks", default="", help="",
     )
 
     # Model
     parser.add_argument(
         "--model",
         default="mlp",
-        choices=[
-            "mmoe",
-            "cgc",
-            "ple",
-            "dcn",
-            "dlrm",
-            "mlp",
-            "wide_n_deep",
-            "deepfm",
-        ],
+        choices=["mmoe", "cgc", "ple", "dcn", "dlrm", "mlp", "wide_n_deep", "deepfm",],
         help="",
     )
 
     parser.add_argument(
-        "--activation",
-        default="relu",
-        choices=["tanh", "selu", "relu", "elu", "swish"],
-        help="",
+        "--activation", default="relu", choices=["tanh", "selu", "relu", "elu", "swish"], help="",
     )
 
     parser.add_argument("--mlp_init", type=str, default="glorot_uniform", help="")
@@ -168,12 +151,7 @@ def build_arg_parser():
     parser.add_argument("--mtl_gates_softmax_temperature", default=1.0, type=float, help="")
 
     parser.add_argument(
-        "--use_task_towers",
-        type=str2bool,
-        nargs="?",
-        const=True,
-        default=False,
-        help="",
+        "--use_task_towers", type=str2bool, nargs="?", const=True, default=False, help="",
     )
 
     parser.add_argument("--tower_layers", default="64", type=str, help="")
@@ -189,7 +167,7 @@ def build_arg_parser():
 
     parser.add_argument("--train_metrics_steps", default=50, type=int, help="")
     parser.add_argument("--metrics_log_frequency", default=50, type=int, help="")
-    parser.add_argument("--validation_steps", default=1000, type=int, help="")
+    parser.add_argument("--validation_steps", default=0, type=int, help="")
 
     parser.add_argument("--random_seed", default=42, type=int, help="")
     parser.add_argument("--train_steps_per_epoch", type=int, help="")
@@ -200,24 +178,14 @@ def build_arg_parser():
 
     # Logging
     parser.add_argument(
-        "--log_to_tensorboard",
-        type=str2bool,
-        nargs="?",
-        const=True,
-        default=False,
-        help="",
+        "--log_to_tensorboard", type=str2bool, nargs="?", const=True, default=False, help="",
     )
 
     parser.add_argument(
-        "--log_to_wandb",
-        type=str2bool,
-        nargs="?",
-        const=True,
-        default=True,
-        help="",
+        "--log_to_wandb", type=str2bool, nargs="?", const=True, default=True, help="",
     )
 
-    parser.add_argument("--wandb_project", default="mtl-recsys-tenrec", help="")
+    parser.add_argument("--wandb_project", default="mm_quick_start", help="")
     parser.add_argument("--wandb_entity", default="merlin-research", help="")
     parser.add_argument("--wandb_exp_group", default="", help="")
 
