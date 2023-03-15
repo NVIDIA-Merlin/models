@@ -148,29 +148,15 @@
     <span class="k">if</span> <span class="n">num_items</span><span class="p">:</span>
         <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">domain_name</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="n">num_items</span><span class="p">}</span>
 
-    <span class="n">is_list</span><span class="p">,</span> <span class="n">is_ragged</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span>
-    <span class="n">value_count</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">if</span> <span class="n">min_value_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">value_count</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_value_count</span>
-    <span class="k">if</span> <span class="n">max_value_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">value_count</span><span class="p">[</span><span class="s2">&quot;max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_value_count</span>
-    <span class="k">if</span> <span class="n">value_count</span><span class="p">:</span>
-        <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;value_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_count</span>
-        <span class="n">is_list</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="n">is_ragged</span> <span class="o">=</span> <span class="n">min_value_count</span> <span class="o">!=</span> <span class="n">max_value_count</span>
-
     <span class="n">tags</span> <span class="o">=</span> <span class="n">tags</span> <span class="ow">or</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
         <span class="n">tags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">ColumnSchema</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-        <span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">properties</span><span class="o">=</span><span class="n">properties</span><span class="p">,</span>
-        <span class="n">is_list</span><span class="o">=</span><span class="n">is_list</span><span class="p">,</span>
-        <span class="n">is_ragged</span><span class="o">=</span><span class="n">is_ragged</span><span class="p">,</span>
-    <span class="p">)</span></div>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">min_value_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;dims&quot;</span><span class="p">:</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="p">(</span><span class="n">min_value_count</span><span class="p">,</span> <span class="n">max_value_count</span><span class="p">))}</span>
+
+    <span class="k">return</span> <span class="n">ColumnSchema</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">properties</span><span class="o">=</span><span class="n">properties</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="create_continuous_column"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.create_continuous_column.html#merlin.models.utils.schema_utils.create_continuous_column">[docs]</a><span class="k">def</span> <span class="nf">create_continuous_column</span><span class="p">(</span>

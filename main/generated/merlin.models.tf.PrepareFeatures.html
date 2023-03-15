@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>merlin.models.tf.SequenceEmbeddingFeatures &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>merlin.models.tf.PrepareFeatures &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.SequenceEmbeddingFeatures.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.PrepareFeatures.html" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -24,8 +24,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="merlin.models.tf.DLRMBlock" href="merlin.models.tf.DLRMBlock.html" />
-    <link rel="prev" title="merlin.models.tf.ContinuousProjection" href="merlin.models.tf.ContinuousProjection.html" /> 
+    <link rel="next" title="merlin.models.tf.ToSparse" href="merlin.models.tf.ToSparse.html" />
+    <link rel="prev" title="merlin.models.tf.MapValues" href="merlin.models.tf.MapValues.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -56,10 +56,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#modeling-prediction-output-constructors">Modeling Prediction Output Constructors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#model-evaluation-constructors">Model Evaluation Constructors</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#model-optimizer-constructors">Model Optimizer Constructors</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#model-optimizer-constructors">Model Optimizer Constructors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
@@ -83,7 +83,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../api.html">API Documentation</a> &raquo;</li>
-      <li>merlin.models.tf.SequenceEmbeddingFeatures</li>
+      <li>merlin.models.tf.PrepareFeatures</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -92,39 +92,37 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="merlin-models-tf-sequenceembeddingfeatures">
-<h1>merlin.models.tf.SequenceEmbeddingFeatures<a class="headerlink" href="#merlin-models-tf-sequenceembeddingfeatures" title="Permalink to this headline"></a></h1>
+  <div class="section" id="merlin-models-tf-preparefeatures">
+<h1>merlin.models.tf.PrepareFeatures<a class="headerlink" href="#merlin-models-tf-preparefeatures" title="Permalink to this headline"></a></h1>
 <dl class="py class">
-<dt id="merlin.models.tf.SequenceEmbeddingFeatures">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">SequenceEmbeddingFeatures</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#SequenceEmbeddingFeatures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceEmbeddingFeatures" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">merlin.models.tf.inputs.embedding.EmbeddingFeatures</span></code></p>
-<p>Input block for embedding-lookups for categorical features. This module produces 3-D tensors,
-this is useful for sequential models like transformers.
-:param feature_config: This specifies what TableConfig to use for each feature. For shared embeddings, the same</p>
-<blockquote>
-<div><p>TableConfig can be used for multiple features.</p>
-</div></blockquote>
+<dt id="merlin.models.tf.PrepareFeatures">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">PrepareFeatures</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/features.html#PrepareFeatures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PrepareFeatures" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">merlin.models.tf.core.tabular.TabularBlock</span></code></p>
+<p>Prepares scalar and list (multi-hot/sequential) features
+to be used with a Merlin model. The transformations are applied
+only for features in the schema, the other features are kept the same.
+The scalar features are extended to be 2D (batch_size, 1) and
+list features are converted to either tf.RaggedTensor or dense tf.Tensor
+based on the columns schema.
+It manages in particular the Merlin dataloader representation of list
+features, which consists of two keys in the inputs dict
+suffixed by “__values” and “__offsets”.
+For example, the “categories” list feature are represented
+by the Merlin Dataloader as “categories__values” and
+“categories__offsets” keys and this block converts them
+to a single ragged or dense tensor “categories”.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>item_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the feature that’s used for the item_id.</p></li>
-<li><p><strong>padding_idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – The symbol to use for padding.</p></li>
-<li><p><strong>pre</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>TabularTransformation</em><em>, </em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>]</em><em>, </em><em>List</em><em>[</em><em>TabularTransformation</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Transformations to apply on the inputs when the module is called (so <strong>before</strong> <cite>call</cite>).</p></li>
-<li><p><strong>post</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>TabularTransformation</em><em>, </em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>]</em><em>, </em><em>List</em><em>[</em><em>TabularTransformation</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Transformations to apply on the inputs after the module is called (so <strong>after</strong> <cite>call</cite>).</p></li>
-<li><p><strong>aggregation</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>TabularAggregation</em><em>]</em><em>, </em><em>optional</em>) – <p>Aggregation to apply after processing the <cite>call</cite>-method to output a single Tensor.</p>
-<p>Next to providing a class that extends TabularAggregation, it’s also possible to provide
-the name that the class is registered in the <cite>tabular_aggregation_registry</cite>. Out of the box
-this contains: “concat”, “stack”, “element-wise-sum” &amp;
-“element-wise-sum-item-multi”.</p>
-</p></li>
-<li><p><strong>schema</strong> (<em>Optional</em><em>[</em><em>DatasetSchema</em><em>]</em>) – DatasetSchema containing the columns used in this block.</p></li>
-<li><p><strong>name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>]</em>) – Name of the layer.</p></li>
+<li><p><strong>schema</strong> (<em>Schema</em>) – The features schema</p></li>
+<li><p><strong>list_as_dense</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to enforce all list features to be dense tf.Tensor (including
+the ragged ones), by default False</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py method">
-<dt id="merlin.models.tf.SequenceEmbeddingFeatures.__init__">
-<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feature_config</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.tpu.tpu_embedding_v2_utils.FeatureConfig</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_zero</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_idx</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.core.base.Block</span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.core.base.Block</span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregation</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.models.tf.core.tabular.TabularAggregation</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.schema.schema.Schema</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_default_pre</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#SequenceEmbeddingFeatures.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceEmbeddingFeatures.__init__" title="Permalink to this definition"></a></dt>
+<dt id="merlin.models.tf.PrepareFeatures.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.schema.schema.Schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_as_dense</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/features.html#PrepareFeatures.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PrepareFeatures.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <p class="rubric">Methods</p>
@@ -134,7 +132,7 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequenceEmbeddingFeatures.__init__" title="merlin.models.tf.SequenceEmbeddingFeatures.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(feature_config[, mask_zero, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.PrepareFeatures.__init__" title="merlin.models.tf.PrepareFeatures.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(schema[, list_as_dense])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_loss</span></code>(losses, **kwargs)</p></td>
@@ -164,7 +162,7 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_batch_size_from_input_shapes</span></code>(…)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(inputs, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.PrepareFeatures.call" title="merlin.models.tf.PrepareFeatures.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs[, targets])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_outputs</span></code>(outputs[, training])</p></td>
@@ -173,13 +171,13 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequenceEmbeddingFeatures.compute_call_output_shape" title="merlin.models.tf.SequenceEmbeddingFeatures.compute_call_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_call_output_shape</span></code></a>(input_shapes)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.PrepareFeatures.compute_call_output_shape" title="merlin.models.tf.PrepareFeatures.compute_call_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_call_output_shape</span></code></a>(input_shapes)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequenceEmbeddingFeatures.compute_mask" title="merlin.models.tf.SequenceEmbeddingFeatures.compute_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code></a>(inputs[, mask])</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
+<td><p>Computes an output mask tensor.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code>(input_shapes)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.PrepareFeatures.compute_output_shape" title="merlin.models.tf.PrepareFeatures.compute_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code></a>(input_shapes)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
@@ -206,34 +204,22 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_params</span></code>()</p></td>
 <td><p>Count the total number of scalars composing the weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">embedding_table_dataset</span></code>(table_name[, …])</p></td>
-<td><p>Creates a Dataset for the embedding table</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">embedding_table_df</span></code>(table_name[, …])</p></td>
-<td><p>Retrieves a dataframe with the embedding table</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_embedding_table</span></code>(table_name, export_path)</p></td>
-<td><p>Exports the embedding table to parquet file</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
 <td><p>Finalizes the layers state after updating layer weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_features</span></code>(features[, pre, post, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_features</span></code>(features[, pre, post, …])</p></td>
 <td><p>Initializes a TabularLayer instance where the contents of features will be filtered out</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code>(schema[, embedding_options, …])</p></td>
-<td><p>Instantiates embedding features from the schema</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code>(schema[, tags, allow_none])</p></td>
+<td><p>Instantiate a TabularLayer instance from a DatasetSchema.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequenceEmbeddingFeatures.get_config" title="merlin.models.tf.SequenceEmbeddingFeatures.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_embedding_table</span></code>(table_name[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.PrepareFeatures.get_config" title="merlin.models.tf.PrepareFeatures.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
@@ -263,71 +249,65 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
 <td><p>Returns the current weights of the layer, as NumPy arrays.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequenceEmbeddingFeatures.lookup_feature" title="merlin.models.tf.SequenceEmbeddingFeatures.lookup_feature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lookup_feature</span></code></a>(name, val, **kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse</span></code>(*block)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse</span></code>(*block)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_block</span></code>(input)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_block</span></code>(input)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">post_call</span></code>(inputs[, transformations, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">post_call</span></code>(inputs[, transformations, …])</p></td>
 <td><p>Method that’s typically called after the forward method for post-processing.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pre_call</span></code>(inputs[, transformations])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pre_call</span></code>(inputs[, transformations])</p></td>
 <td><p>Method that’s typically called before the forward method for pre-processing.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare</span></code>([block, post, aggregation])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare</span></code>([block, post, aggregation])</p></td>
 <td><p>Transform the inputs of this block.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_features</span></code>(feature_shapes)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_features</span></code>(feature_shapes)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat</span></code>([num])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat</span></code>([num])</p></td>
 <td><p>Repeat the block num times.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat_in_parallel</span></code>([num, prefix, names, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat_in_parallel</span></code>([num, prefix, names, …])</p></td>
 <td><p>Repeat the block num times in parallel.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_add</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_add</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_extra</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_extra</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_ignore</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_ignore</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_name</span></code>(name)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_name</span></code>(name)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_tag</span></code>(tags)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_tag</span></code>(tags)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_aggregation</span></code>(value)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_aggregation</span></code>(value)</p></td>
 <td><p><dl class="field-list simple">
 <dt class="field-odd">param value</dt>
 <dd class="field-odd"><p></p></dd>
 </dl>
 </p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_post</span></code>(value)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_post</span></code>(value)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_pre</span></code>(value)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_pre</span></code>(value)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
 <td><p>Sets the weights of the layer, from NumPy arrays.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">super</span></code>()</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">table_config</span></code>(feature_name)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">super</span></code>()</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
@@ -465,23 +445,23 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 </tbody>
 </table>
 <dl class="py method">
-<dt id="merlin.models.tf.SequenceEmbeddingFeatures.lookup_feature">
-<code class="sig-name descname"><span class="pre">lookup_feature</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#SequenceEmbeddingFeatures.lookup_feature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceEmbeddingFeatures.lookup_feature" title="Permalink to this definition"></a></dt>
+<dt id="merlin.models.tf.PrepareFeatures.call">
+<code class="sig-name descname"><span class="pre">call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/features.html#PrepareFeatures.call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PrepareFeatures.call" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="merlin.models.tf.SequenceEmbeddingFeatures.compute_call_output_shape">
-<code class="sig-name descname"><span class="pre">compute_call_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shapes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#SequenceEmbeddingFeatures.compute_call_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceEmbeddingFeatures.compute_call_output_shape" title="Permalink to this definition"></a></dt>
+<dt id="merlin.models.tf.PrepareFeatures.compute_output_shape">
+<code class="sig-name descname"><span class="pre">compute_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shapes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/features.html#PrepareFeatures.compute_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PrepareFeatures.compute_output_shape" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="merlin.models.tf.SequenceEmbeddingFeatures.compute_mask">
-<code class="sig-name descname"><span class="pre">compute_mask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#SequenceEmbeddingFeatures.compute_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceEmbeddingFeatures.compute_mask" title="Permalink to this definition"></a></dt>
+<dt id="merlin.models.tf.PrepareFeatures.compute_call_output_shape">
+<code class="sig-name descname"><span class="pre">compute_call_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shapes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/features.html#PrepareFeatures.compute_call_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PrepareFeatures.compute_call_output_shape" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="merlin.models.tf.SequenceEmbeddingFeatures.get_config">
-<code class="sig-name descname"><span class="pre">get_config</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#SequenceEmbeddingFeatures.get_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceEmbeddingFeatures.get_config" title="Permalink to this definition"></a></dt>
+<dt id="merlin.models.tf.PrepareFeatures.get_config">
+<code class="sig-name descname"><span class="pre">get_config</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/features.html#PrepareFeatures.get_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PrepareFeatures.get_config" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -492,8 +472,8 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="merlin.models.tf.ContinuousProjection.html" class="btn btn-neutral float-left" title="merlin.models.tf.ContinuousProjection" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="merlin.models.tf.DLRMBlock.html" class="btn btn-neutral float-right" title="merlin.models.tf.DLRMBlock" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="merlin.models.tf.MapValues.html" class="btn btn-neutral float-left" title="merlin.models.tf.MapValues" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.ToSparse.html" class="btn btn-neutral float-right" title="merlin.models.tf.ToSparse" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -531,7 +511,7 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
     </dl>
     <dl>
       <dt>Branches</dt>
-      <dd><a href="merlin.models.tf.SequenceEmbeddingFeatures.html">main</a></dd>
+      <dd><a href="merlin.models.tf.PrepareFeatures.html">main</a></dd>
     </dl>
   </div>
 </div><script>
