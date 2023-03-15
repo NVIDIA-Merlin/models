@@ -49,7 +49,7 @@ def test_dlrm_model(music_streaming_data, run_eagerly, prediction_blocks):
     model = mm.DLRMModel(
         music_streaming_data.schema,
         embedding_dim=2,
-        bottom_block=mm.MLPBlock([2]),
+        bottom_block=mm.MLPBlock([5, 2], dropout=0.05),
         prediction_tasks=prediction_blocks,
     )
 
