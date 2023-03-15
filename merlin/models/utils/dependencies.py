@@ -47,3 +47,13 @@ def is_transformers_available() -> bool:
     except ImportError:
         transformers = None
     return transformers is not None
+
+
+def is_distributed_embeddings_available() -> bool:
+    try:
+        import horovod  # isort: skip
+        import distributed_embeddings
+    except ImportError:
+        horovod = None
+        distributed_embeddings = None
+    return horovod is not None and distributed_embeddings is not None

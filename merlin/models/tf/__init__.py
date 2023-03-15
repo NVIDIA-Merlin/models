@@ -127,7 +127,10 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-from merlin.models.utils.dependencies import is_transformers_available
+from merlin.models.utils.dependencies import (
+    is_distributed_embeddings_available,
+    is_transformers_available,
+)
 
 if is_transformers_available():
     from merlin.models.tf.transformers.block import (
@@ -144,6 +147,9 @@ if is_transformers_available():
         LastHiddenState,
         LastHiddenStateAndAttention,
     )
+
+if is_distributed_embeddings_available():
+    from merlin.models.tf.distributed.embedding import DistributedEmbeddings
 
 from merlin.models.tf.transforms.features import (
     BroadcastToSequence,
