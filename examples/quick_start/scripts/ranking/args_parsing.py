@@ -84,25 +84,42 @@ def build_arg_parser():
 
     # Tasks
     parser.add_argument(
-        "--tasks", help="",
+        "--tasks",
+        help="",
     )
     parser.add_argument(
-        "--tasks_sample_space", default="", help="",
+        "--tasks_sample_space",
+        default="",
+        help="",
     )
     parser.add_argument(
-        "--ignore_tasks", default="", help="",
+        "--ignore_tasks",
+        default="",
+        help="",
     )
 
     # Model
     parser.add_argument(
         "--model",
         default="mlp",
-        choices=["mmoe", "cgc", "ple", "dcn", "dlrm", "mlp", "wide_n_deep", "deepfm",],
+        choices=[
+            "mmoe",
+            "cgc",
+            "ple",
+            "dcn",
+            "dlrm",
+            "mlp",
+            "wide_n_deep",
+            "deepfm",
+        ],
         help="",
     )
 
     parser.add_argument(
-        "--activation", default="relu", choices=["tanh", "selu", "relu", "elu", "swish"], help="",
+        "--activation",
+        default="relu",
+        choices=["tanh", "selu", "relu", "elu", "swish"],
+        help="",
     )
 
     parser.add_argument("--mlp_init", type=str, default="glorot_uniform", help="")
@@ -128,6 +145,10 @@ def build_arg_parser():
     # Wide&Deep
     parser.add_argument("--wnd_hashed_cross_num_bins", default=10000, type=int, help="")
     parser.add_argument("--wnd_wide_l2_reg", default=1e-5, type=float, help="")
+    parser.add_argument("--wnd_ignore_combinations", default=None, type=str, help="")
+
+    # DeepFM & Wide&Deep
+    parser.add_argument("--multihot_max_seq_length", default=5, type=float, help="")
 
     # hyperparams for experts
     parser.add_argument("--expert_mlp_layers", default="64", type=str, help="")
@@ -151,7 +172,12 @@ def build_arg_parser():
     parser.add_argument("--mtl_gates_softmax_temperature", default=1.0, type=float, help="")
 
     parser.add_argument(
-        "--use_task_towers", type=str2bool, nargs="?", const=True, default=False, help="",
+        "--use_task_towers",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="",
     )
 
     parser.add_argument("--tower_layers", default="64", type=str, help="")
@@ -178,11 +204,21 @@ def build_arg_parser():
 
     # Logging
     parser.add_argument(
-        "--log_to_tensorboard", type=str2bool, nargs="?", const=True, default=False, help="",
+        "--log_to_tensorboard",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="",
     )
 
     parser.add_argument(
-        "--log_to_wandb", type=str2bool, nargs="?", const=True, default=True, help="",
+        "--log_to_wandb",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=True,
+        help="",
     )
 
     parser.add_argument("--wandb_project", default="mm_quick_start", help="")

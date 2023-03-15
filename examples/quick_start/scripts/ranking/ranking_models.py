@@ -159,7 +159,7 @@ def get_deepfm_model(schema, args, prediction_tasks):
     if len(cat_schema_multihot) > 0:
         wide_inputs_block["categorical_mhe"] = mm.SequentialBlock(
             mm.Filter(cat_schema_multihot),
-            mm.ListToDense(max_seq_length=5),
+            mm.ListToDense(max_seq_length=args.multihot_max_seq_length),
             mm.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
         )
 
@@ -195,11 +195,9 @@ def get_wide_and_deep_model(schema, args, prediction_tasks):
         ),
     )
 
-    ignore_combinations = [
-        ["item_id", "video_category"],
-        ["user_id", "gender"],
-        ["user_id", "age"],
-    ]
+    ignore_combinations = None
+    if args.wnd_ignore_combinations:
+        ignore_combinations = [x.split(":") for x in args.wnd_ignore_combinations.split(",")]
 
     wide_preprocess = [
         # One-hot features
@@ -210,7 +208,7 @@ def get_wide_and_deep_model(schema, args, prediction_tasks):
         # 2nd level feature interactions of multi-hot features
         mm.SequentialBlock(
             mm.Filter(cat_schema.remove_by_tag(Tags.USER_ID)),
-            mm.ListToDense(max_seq_length=5),
+            mm.ListToDense(max_seq_length=args.multihot_max_seq_length),
             mm.HashedCrossAll(
                 cat_schema.remove_by_tag(Tags.USER_ID),
                 num_bins=args.wnd_hashed_cross_num_bins,
@@ -225,7 +223,7 @@ def get_wide_and_deep_model(schema, args, prediction_tasks):
         wide_preprocess.append(
             mm.SequentialBlock(
                 mm.Filter(cat_schema_multihot),
-                mm.ListToDense(max_seq_length=5),
+                mm.ListToDense(max_seq_length=args.multihot_max_seq_length),
                 mm.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
             )
         )
@@ -239,7 +237,7 @@ def get_wide_and_deep_model(schema, args, prediction_tasks):
             kernel_regularizer=regularizers.l2(args.l2_reg),
             bias_regularizer=regularizers.l2(args.l2_reg),
         ),
-        wide_schema=schema,
+        wide_schema=schema.remove_by_tag(Tags.TARGET),
         deep_regularizer=regularizers.l2(args.l2_reg),
         wide_regularizer=regularizers.l2(args.wnd_wide_l2_reg),
         wide_dropout=args.dropout,
@@ -334,7 +332,6 @@ def get_cgc_model(schema, args, prediction_tasks):
 
 
 def get_ple_model(schema, args, prediction_tasks):
-
     expert_block_mlp = mm.MLPBlock(
         args.expert_mlp_layers,
         activation=args.activation,
