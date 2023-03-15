@@ -146,7 +146,7 @@ def get_output_schema(export_path: str) -> Schema:
             col_schema = ColumnSchema(
                 output_name,
                 dtype=output_spec.dtype.as_numpy_dtype,
-                dims=((0, None), (shape[1], shape[1])),
+                dims=(None, shape[1]),
             )
 
         output_schema.column_schemas[output_name] = col_schema
