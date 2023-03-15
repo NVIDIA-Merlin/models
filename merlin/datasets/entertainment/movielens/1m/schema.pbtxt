@@ -53,8 +53,7 @@ feature {
 feature {
   name: "genres"
   value_count {
-    min: 1
-    max: 6
+    min: 1    
   }
   type: INT
   int_domain {

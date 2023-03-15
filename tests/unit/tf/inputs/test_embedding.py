@@ -71,12 +71,17 @@ class TestEmbeddingTable:
         ["dim", "kwargs", "inputs", "expected_output_shape"],
         [
             (32, {}, tf.constant([[1]]), [1, 32]),
-            (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
-            (16, {"sequence_combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
+            (16, {}, tf.ragged.constant([[[1], [2], [3]], [[4], [5]]]), [2, None, 16]),
             (
                 16,
                 {"sequence_combiner": "mean"},
-                tf.sparse.from_dense(tf.constant([[1, 2, 3]])),
+                tf.ragged.constant([[[1], [2], [3]], [[4], [5]]]),
+                [2, 16],
+            ),
+            (
+                16,
+                {"sequence_combiner": "mean"},
+                tf.sparse.from_dense(tf.constant([[[1], [2], [3]]])),
                 [1, 16],
             ),
             (12, {}, {"item_id": tf.constant([[1]])}, {"item_id": [1, 12]}),
@@ -234,15 +239,11 @@ class TestEmbeddingTable:
         assert embedding_table.schema == Schema([col_schema_a, col_schema_b, col_schema_c])
 
         result = embedding_table(
-            {
-                "a": tf.constant([[1]]),
-                "b": tf.ragged.constant([[1]]),
-                "c": tf.constant([1]),
-            }
+            {"a": tf.constant([[[1]]]), "b": tf.ragged.constant([[[1]]]), "c": tf.constant([1])}
         )
 
         assert set(result.keys()) == {"a", "b", "c"}
-        np.testing.assert_array_equal(result["a"].numpy(), result["b"].numpy()[0])
+        np.testing.assert_array_equal(result["a"].numpy(), result["b"].numpy())
 
     def test_incompatible_features(self):
         dim = 4
@@ -768,11 +769,11 @@ class TestEmbeddings:
 
         outputs = embeddings(
             {
-                "item_id": tf.constant([1]),
-                "user_item_history": tf.ragged.constant([[1], [2, 3]]),
-                "item_feature_a": tf.constant([2]),
+                "item_id": tf.constant([[1]]),
+                "user_item_history": tf.ragged.constant([[[1]], [[2], [3]]]),
+                "item_feature_a": tf.constant([[2]]),
             }
         )
 
         assert set(outputs.keys()) == {"item_id", "user_item_history", "item_feature_a"}
-        np.testing.assert_array_equal(outputs["item_id"], outputs["user_item_history"][0])
+        np.testing.assert_array_equal(outputs["item_id"], outputs["user_item_history"][:1])

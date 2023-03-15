@@ -22,6 +22,7 @@ from tensorflow.keras import regularizers
 import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
+from merlin.models.tf.transforms.features import expected_input_cols_from_schema
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -44,7 +45,7 @@ def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
 )
 def test_dlrm_model(music_streaming_data, run_eagerly, prediction_blocks):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
-        ["item_id", "user_age", "click", "item_genres"]
+        ["item_id", "user_id", "user_age", "item_genres", "click"]
     )
     model = mm.DLRMModel(
         music_streaming_data.schema,
@@ -57,15 +58,13 @@ def test_dlrm_model(music_streaming_data, run_eagerly, prediction_blocks):
         model, music_streaming_data, run_eagerly=run_eagerly, reload_model=True
     )
 
-    features = testing_utils.get_model_inputs(
-        music_streaming_data.schema.remove_by_tag(Tags.TARGET), ["item_genres"]
-    )
+    expected_features = expected_input_cols_from_schema(music_streaming_data.schema)
     expected_output_signature = (
         "click/binary_classification_task"
         if isinstance(prediction_blocks, mm.PredictionTask)
         else "click/binary_output"
     )
-    testing_utils.test_model_signature(loaded_model, features, [expected_output_signature])
+    testing_utils.test_model_signature(loaded_model, expected_features, [expected_output_signature])
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -325,10 +324,8 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data, run_eagerly):
-    ml_dataset = generate_data("movielens-1m", 100)
-    # data_ddf = ml_dataset.to_ddf()
-    # data_ddf = data_ddf[[c for c in list(data_ddf.columns) if c != "rating"]]
+def test_wide_deep_model_wide_onehot_multihot_feature_interaction(run_eagerly):
+    ml_dataset = generate_data("movielens-1m", 100, max_session_length=4)
 
     # Removing the rating regression target
     schema = ml_dataset.schema.remove_col("rating")
@@ -349,13 +346,13 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
         # Multi-hot features
         mm.SequentialBlock(
             mm.Filter(cat_schema_multihot),
-            mm.ListToDense(max_seq_length=6),
+            mm.ToDense(cat_schema_multihot),
             mm.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
         ),
         # 2nd level feature interactions of one-hot features
         mm.SequentialBlock(
             mm.Filter(cat_schema),
-            mm.ListToDense(max_seq_length=6),
+            mm.ToDense(cat_schema),
             mm.HashedCrossAll(
                 cat_schema,
                 num_bins=100,
@@ -367,8 +364,7 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
         ),
     ]
 
-    batch, _ = mm.sample_batch(ml_dataset, batch_size=100)
-
+    batch, _ = mm.sample_batch(ml_dataset, batch_size=100, prepare_features=True)
     output_wide_features = mm.ParallelBlock(wide_preprocessing_blocks)(batch)
     assert set(output_wide_features.keys()) == set(
         [

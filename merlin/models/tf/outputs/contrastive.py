@@ -220,7 +220,9 @@ class ContrastiveOutput(ModelOutput):
             positive_id = features[self.col_schema.name]
             positive_embedding = inputs[self.candidate_name]
 
-        positive = Candidate(positive_id, {**features}).with_embedding(positive_embedding)
+        positive = Candidate(id=positive_id, metadata={**features}).with_embedding(
+            positive_embedding
+        )
         negative = self.sample_negatives(positive, features, training=training, testing=testing)
         if self.has_candidate_weights and (
             positive.id.shape != negative.id.shape or positive != negative

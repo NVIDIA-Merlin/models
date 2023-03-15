@@ -103,7 +103,9 @@ class PopularityBasedSamplerV2(CandidateSampler):
         # Shifting the sampled ids to ignore the first ids (usually reserved for nulls, OOV)
         sampled_ids += self.min_id
 
-        return Candidate(sampled_ids, {})
+        sampled_ids = tf.expand_dims(sampled_ids, -1)
+
+        return Candidate(id=sampled_ids, metadata={})
 
     def get_config(self):
         config = super().get_config()

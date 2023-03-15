@@ -31,7 +31,9 @@ def test_model_with_multiple_tasks_with_task_towers(
     model = mm.Model(inputs, mm.MLPBlock([64]), prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(
+        mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
+    )
 
     assert metrics["loss"] >= 0
     assert set(list(metrics.keys())) == set(
@@ -169,7 +171,9 @@ def test_model_with_multiple_tasks_metrics(
         from_serialized=False,
     )
 
-    metrics_results = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    metrics_results = model.train_step(
+        mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
+    )
 
     assert metrics_results["loss"] >= 0
     assert set(metrics_results.keys()) == set(expected_metrics)
@@ -214,7 +218,7 @@ def test_model_with_multiple_tasks_loss_weights_and_weighted_metrics(
         weighted_metrics=weighted_metrics,
     )
 
-    batch = mm.sample_batch(music_streaming_data, batch_size=50)
+    batch = mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
 
     metrics = model.test_step(batch)
 
@@ -303,7 +307,9 @@ def test_mmoe_model(
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly, loss_weights=loss_weights)
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(
+        mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
+    )
 
     assert metrics["loss"] >= 0
 
@@ -348,7 +354,9 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
             **kwargs,
         ) -> PredictionOutput:
             # Computes loss for the like loss only for clicked items
-            outputs = outputs.copy_with_updates(sample_weight=targets)
+            outputs = outputs.copy_with_updates(
+                sample_weight=tf.expand_dims(targets["click"], -1),
+            )
             return outputs
 
     inputs = mm.InputBlockV2(music_streaming_data.schema)
@@ -389,7 +397,9 @@ def test_mmoe_block_task_specific_sample_weight_and_weighted_metrics(
         weighted_metrics=weighted_metrics,
     )
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(
+        mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
+    )
 
     assert metrics["loss"] >= 0
     assert set(metrics.keys()) == set(
@@ -465,7 +475,9 @@ def test_cgc_model(music_streaming_data: Dataset, run_eagerly: bool, task_blocks
     model = mm.Model(inputs, cgc, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(
+        mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
+    )
 
     assert metrics["loss"] >= 0
     assert set(metrics.keys()) == set(
@@ -508,7 +520,9 @@ def test_ple_model(music_streaming_data: Dataset, run_eagerly: bool, task_blocks
     model = mm.Model(inputs, cgc, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    metrics = model.train_step(mm.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(
+        mm.sample_batch(music_streaming_data, batch_size=50, prepare_features=False)
+    )
 
     assert metrics["loss"] >= 0
     assert set(metrics.keys()) == set(

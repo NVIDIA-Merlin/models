@@ -35,7 +35,7 @@ from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
 from merlin.models.io import save_merlin_metadata
-from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
+from merlin.models.tf.core.base import Block, ModelContext, NoOp, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
 from merlin.models.tf.core.tabular import TabularBlock
@@ -50,7 +50,7 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.tensor import PrepareFeatures
+from merlin.models.tf.transforms.features import PrepareFeatures, expected_input_cols_from_schema
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -142,18 +142,13 @@ def get_output_schema(export_path: str) -> Schema:
     for output_name, output_spec in signature.structured_outputs.items():
         col_schema = ColumnSchema(output_name, dtype=output_spec.dtype.as_numpy_dtype)
         shape = output_spec.shape
-        if shape.rank > 1 and (shape[1] is None or shape[1] > 1):
-            is_ragged = shape[1] is None
-            properties = {}
-            if not is_ragged:
-                properties["value_count"] = {"min": shape[1], "max": shape[1]}
+        if shape.rank > 1 and (shape[1] is not None and shape[1] > 1):
             col_schema = ColumnSchema(
                 output_name,
                 dtype=output_spec.dtype.as_numpy_dtype,
-                is_list=True,
-                is_ragged=is_ragged,
-                properties=properties,
+                dims=(None, shape[1]),
             )
+
         output_schema.column_schemas[output_name] = col_schema
 
     return output_schema
@@ -163,20 +158,27 @@ def get_output_schema(export_path: str) -> Schema:
 class ModelBlock(Block, tf.keras.Model):
     """Block that extends `tf.keras.Model` to make it saveable."""
 
-    def __init__(self, block: Block, **kwargs):
+    def __init__(self, block: Block, prep_features: Optional[bool] = True, **kwargs):
         super().__init__(**kwargs)
         self.block = block
         if hasattr(self, "set_schema"):
             block_schema = getattr(block, "schema", None)
             self.set_schema(block_schema)
 
+        self.prep_features = prep_features
+        self._prepare_features = PrepareFeatures(self.schema) if self.prep_features else NoOp()
+
     def call(self, inputs, **kwargs):
+        inputs = self._prepare_features(inputs)
         if "features" not in kwargs:
             kwargs["features"] = inputs
         outputs = call_layer(self.block, inputs, **kwargs)
         return outputs
 
     def build(self, input_shapes):
+        self._prepare_features.build(input_shapes)
+        input_shapes = self._prepare_features.compute_output_shape(input_shapes)
+
         self.block.build(input_shapes)
 
         if not hasattr(self.build, "_is_default"):
@@ -253,6 +255,7 @@ class ModelBlock(Block, tf.keras.Model):
         )
 
     def compute_output_shape(self, input_shape):
+        input_shape = self._prepare_features.compute_output_shape(input_shape)
         return self.block.compute_output_shape(input_shape)
 
     @property
@@ -855,8 +858,12 @@ class BaseModel(tf.keras.Model):
             targets[k] = tf.cast(targets[k], predictions[k].dtype)
 
             # Ensuring targets are one-hot encoded if they are not
+            condition = tf.logical_and(
+                tf.logical_and(tf.rank(targets[k]) > 0, tf.shape(targets[k])[-1] == 1),
+                tf.shape(predictions[k])[-1] > 1,
+            )
             targets[k] = tf.cond(
-                tf.rank(targets[k]) == tf.rank(predictions[k]) - 1,
+                condition,
                 lambda: tf.one_hot(
                     tf.cast(targets[k], tf.int32),
                     tf.shape(predictions[k])[-1],
@@ -1335,6 +1342,25 @@ class BaseModel(tf.keras.Model):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Model(BaseModel):
+    """Merlin Model class
+
+    Parameters
+    ----------
+    context : Optional[ModelContext], optional
+        ModelContext is used to store/retrieve public variables across blocks,
+        by default None.
+    pre : Optional[BlockType], optional
+        Optional `Block` instance to apply before the `call` method of the Two-Tower block
+    post : Optional[BlockType], optional
+        Optional `Block` instance to apply on both outputs of Two-tower model
+        to output a single Tensor.
+    schema : Optional[Schema], optional
+        The `Schema` object with the input features.
+    prep_features: Optional[bool]
+        Whether this block should prepare list and scalar features
+        from the dataloader format. By default True.
+    """
+
     def __init__(
         self,
         *blocks: Block,
@@ -1342,6 +1368,7 @@ class Model(BaseModel):
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
         schema: Optional[Schema] = None,
+        prep_features: Optional[bool] = True,
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
@@ -1367,7 +1394,9 @@ class Model(BaseModel):
             ]
             self.schema = sum(input_block_schemas, Schema())
 
-        self.prepare_features = PrepareFeatures(self.schema)
+        self.prep_features = prep_features
+
+        self._prepare_features = PrepareFeatures(self.schema)
         self._frozen_blocks = set()
 
     def save(
@@ -1413,28 +1442,33 @@ class Model(BaseModel):
         """
         return tf.keras.models.load_model(export_path)
 
-    def _maybe_build(self, inputs):
-        if isinstance(inputs, dict):
-            if isinstance(self.input_schema, Schema) and set(inputs.keys()) != set(
-                self.input_schema.column_names
-            ):
-                model_input_features = set(self.input_schema.column_names)
-                call_input_features = set(inputs.keys())
+    def _check_schema_and_inputs_matching(self, inputs):
+        if isinstance(self.input_schema, Schema):
+            model_expected_features = set(
+                expected_input_cols_from_schema(self.input_schema, inputs)
+            )
+            call_input_features = set(inputs.keys())
+            if model_expected_features != call_input_features:
                 raise ValueError(
                     "Model called with a different set of features "
                     "compared with the input schema it was configured with. "
                     "Please check that the inputs passed to the model are only  "
                     "those required by the model. If you're using a Merlin Dataset, "
                     "the `schema` property can be changed to control the features being returned. "
-                    f"\nModel input features:\n\t{model_input_features}"
+                    f"\nModel expected features:\n\t{model_expected_features}"
                     f"\nCall input features:\n\t{call_input_features}"
-                    f"\nFeatures in model only:"
-                    f"\n\t{model_input_features.difference(call_input_features)}"
-                    f"\nFeatures in call only:"
-                    f"\n\t{call_input_features.difference(model_input_features)}"
+                    f"\nFeatures expected by model input schema only:"
+                    f"\n\t{model_expected_features.difference(call_input_features)}"
+                    f"\nFeatures provided in inputs only:"
+                    f"\n\t{call_input_features.difference(model_expected_features)}"
                 )
 
-            _ragged_inputs = self.prepare_features(inputs)
+    def _maybe_build(self, inputs):
+        if isinstance(inputs, dict):
+            self._check_schema_and_inputs_matching(inputs)
+            _ragged_inputs = inputs
+            if self.prep_features:
+                _ragged_inputs = self._prepare_features(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
@@ -1456,7 +1490,9 @@ class Model(BaseModel):
         """
         last_layer = None
 
-        input_shape = self.prepare_features.compute_output_shape(input_shape)
+        if self.prep_features:
+            self._prepare_features.build(input_shape)
+            input_shape = self._prepare_features.compute_output_shape(input_shape)
 
         if self.pre is not None:
             self.pre.build(input_shape)
@@ -1482,14 +1518,18 @@ class Model(BaseModel):
         self.built = True
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
+        outputs = inputs
+        features = self._prepare_features(inputs, targets=targets)
+        if isinstance(features, tuple):
+            features, targets = features
+        if self.prep_features:
+            outputs = features
         context = self._create_context(
-            self.prepare_features(inputs),
+            features,
             targets=targets,
             training=training,
             testing=testing,
         )
-
-        outputs = inputs
         if self.pre:
             outputs, context = self._call_child(self.pre, outputs, context)
 
@@ -1788,6 +1828,10 @@ class RetrievalBlock(Protocol):
 class RetrievalModel(Model):
     """Embedding-based retrieval model."""
 
+    def __init__(self, *args, **kwargs):
+        kwargs["prep_features"] = False
+        super().__init__(*args, **kwargs)
+
     def evaluate(
         self,
         x=None,
@@ -2023,7 +2067,7 @@ class RetrievalModelV2(Model):
         else:
             encoder = query
 
-        super().__init__(encoder, output, pre=pre, post=post, **kwargs)
+        super().__init__(encoder, output, pre=pre, post=post, prep_features=False, **kwargs)
 
         self._query_name = query_name
         self._candidate_name = candidate_name

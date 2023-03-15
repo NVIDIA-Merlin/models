@@ -64,29 +64,15 @@ def create_categorical_column(
     if num_items:
         properties["domain"] = {"name": domain_name, "min": 0, "max": num_items}
 
-    is_list, is_ragged = False, False
-    value_count = {}
-    if min_value_count is not None:
-        value_count["min"] = min_value_count
-    if max_value_count is not None:
-        value_count["max"] = max_value_count
-    if value_count:
-        properties["value_count"] = value_count
-        is_list = True
-        is_ragged = min_value_count != max_value_count
-
     tags = tags or []
     if Tags.CATEGORICAL not in tags:
         tags.append(Tags.CATEGORICAL)
 
-    return ColumnSchema(
-        name=name,
-        tags=tags,
-        dtype=dtype,
-        properties=properties,
-        is_list=is_list,
-        is_ragged=is_ragged,
-    )
+    kwargs = {}
+    if min_value_count is not None:
+        kwargs = {"dims": ((0, None), (min_value_count, max_value_count))}
+
+    return ColumnSchema(name=name, tags=tags, dtype=dtype, properties=properties, **kwargs)
 
 
 def create_continuous_column(

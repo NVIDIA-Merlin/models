@@ -5,6 +5,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf.transforms.features import expected_input_cols_from_schema
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.dataset import unique_by_tag
 from merlin.schema import Tags
@@ -24,6 +25,7 @@ def test_encoder_block(music_streaming_data: Dataset):
     model = mm.Model(
         mm.ParallelBlock(user_encoder, item_encoder),
         mm.ContrastiveOutput(item_schema, "in-batch"),
+        prep_features=False,
     )
 
     assert model.blocks[0]["query"] == user_encoder
@@ -38,10 +40,10 @@ def test_encoder_block(music_streaming_data: Dataset):
 
     assert "This block is not meant to be trained by itself" in str(excinfo.value)
 
-    user_features = testing_utils.get_model_inputs(user_schema, ["user_genres"])
+    user_features = expected_input_cols_from_schema(user_schema)
     testing_utils.test_model_signature(user_encoder, user_features, ["output_1"])
 
-    item_features = testing_utils.get_model_inputs(item_schema)
+    item_features = expected_input_cols_from_schema(item_schema)
     testing_utils.test_model_signature(item_encoder, item_features, ["output_1"])
 
 

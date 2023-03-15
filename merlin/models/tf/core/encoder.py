@@ -24,12 +24,13 @@ from packaging import version
 import merlin.io
 from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core import combinators
+from merlin.models.tf.core.base import NoOp
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
 from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
-from merlin.models.tf.transforms.tensor import PrepareFeatures
+from merlin.models.tf.transforms.features import PrepareFeatures
 from merlin.models.tf.utils import tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -49,7 +50,9 @@ class Encoder(tf.keras.Model):
         A block to use before the main blocks
     post: Optional[tf.keras.layers.Layer]
         A block to use after the main blocks
-
+    prep_features: Optional[bool]
+        Whether this block should prepare list and scalar features
+        from the dataloader format. By default True.
     """
 
     def __init__(
@@ -58,6 +61,7 @@ class Encoder(tf.keras.Model):
         *blocks: tf.keras.layers.Layer,
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
+        prep_features: Optional[bool] = True,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -73,7 +77,10 @@ class Encoder(tf.keras.Model):
         self.blocks = [input_block] + list(blocks) if blocks else [input_block]
         self.pre = pre
         self.post = post
-        self.prepare_features = PrepareFeatures(self._schema)
+
+        self.prep_features = prep_features
+
+        self._prepare_features = PrepareFeatures(self.schema) if self.prep_features else NoOp()
 
     def encode(
         self,
@@ -159,11 +166,14 @@ class Encoder(tf.keras.Model):
 
         return merlin.io.Dataset(predictions)
 
-    def call(self, inputs, training=False, testing=False, targets=None, **kwargs):
+    def call(self, inputs, *, targets=None, training=False, testing=False, **kwargs):
+        inputs = self._prepare_features(inputs, targets=targets)
+        if isinstance(inputs, tuple):
+            inputs, targets = inputs
         return combinators.call_sequentially(
             list(self.to_call),
             inputs=inputs,
-            features=self.prepare_features(inputs),
+            features=inputs,
             targets=targets,
             training=training,
             testing=testing,
@@ -179,11 +189,15 @@ class Encoder(tf.keras.Model):
         return super().__call__(inputs, **kwargs)
 
     def build(self, input_shape):
+        self._prepare_features.build(input_shape)
+        input_shape = self._prepare_features.compute_output_shape(input_shape)
+
         combinators.build_sequentially(self, list(self.to_call), input_shape=input_shape)
         if not hasattr(self.build, "_is_default"):
             self._build_input_shape = input_shape
 
     def compute_output_shape(self, input_shape):
+        input_shape = self._prepare_features.compute_output_shape(input_shape)
         return combinators.compute_output_shape_sequentially(list(self.to_call), input_shape)
 
     def train_step(self, data):
@@ -540,6 +554,7 @@ class EmbeddingEncoder(Encoder):
         dynamic=False,
         post: Optional[tf.keras.layers.Layer] = None,
         embeddings_l2_batch_regularization: Optional[Union[float, Dict[str, float]]] = 0.0,
+        **kwargs,
     ):
         if isinstance(schema, ColumnSchema):
             col = schema
@@ -564,7 +579,7 @@ class EmbeddingEncoder(Encoder):
             l2_batch_regularization_factor=embeddings_l2_batch_regularization,
         )
 
-        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col_name]), post=post)
+        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col_name]), post=post, **kwargs)
 
     def to_dataset(self, gpu=None) -> merlin.io.Dataset:
         return self.blocks[0].to_dataset(gpu=gpu)

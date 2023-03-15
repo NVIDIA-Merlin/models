@@ -26,8 +26,7 @@
       "name": "item_age_days_norm",
       "type": "FLOAT",
       "valueCount": {
-        "min": "1",
-        "max": "4"
+        "min": "1"
       },
       "floatDomain": {
         "name": "item_age_days_norm",
@@ -37,7 +36,7 @@
       "annotation": {
         "tag": [
           "continuous",
-          "item", 
+          "item",
           "sequence"
         ]
       }
@@ -46,8 +45,7 @@
       "name": "event_hour_sin",
       "type": "FLOAT",
       "valueCount": {
-        "min": "1",
-        "max": "4"
+        "min": "1"
       },
       "floatDomain": {
         "name": "event_hour_sin",
@@ -65,8 +63,7 @@
       "name": "event_hour_cos",
       "type": "FLOAT",
       "valueCount": {
-        "min": "1",
-        "max": "4"
+        "min": "1"
       },
       "floatDomain": {
         "name": "event_hour_cos",
@@ -84,8 +81,7 @@
       "name": "event_weekday_sin",
       "type": "FLOAT",
       "valueCount": {
-        "min": "1",
-        "max": "4"
+        "min": "1"
       },
       "floatDomain": {
         "name": "event_weekday_sin",
@@ -103,8 +99,7 @@
       "name": "event_weekday_cos",
       "type": "FLOAT",
       "valueCount": {
-        "min": "1",
-        "max": "4"
+        "min": "1"
       },
       "floatDomain": {
         "name": "event_weekday_cos",
@@ -115,7 +110,6 @@
           "continuous",
           "item",
           "sequence"
-
         ]
       }
     },
@@ -123,8 +117,7 @@
       "name": "item_id_seq",
       "type": "INT",
       "valueCount": {
-        "min": "1",
-        "max": "4"
+        "min": "1"
       },
       "intDomain": {
         "name": "item_id_seq",
@@ -144,8 +137,7 @@
     {
       "name": "categories",
       "valueCount": {
-        "min": "1",
-        "max": "4"
+        "min": "1"
       },
       "type": "INT",
       "intDomain": {
