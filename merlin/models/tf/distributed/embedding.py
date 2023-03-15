@@ -216,9 +216,17 @@ class SOKEmbedding(EmbeddingTableBase):
     def from_config(cls, config):
         dim = config.pop("dim")
         schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
-        vocab_size = config["vocab_sizes"]
-        initializer = config["initializer"]
-        use_dynamic_variable = config["use_dynamic_variable"]
-        localized = config["localized"]
+        vocab_size = config.pop("vocab_sizes")
+        initializer = config.pop("initializer")
+        use_dynamic_variable = config.pop("use_dynamic_variable")
+        localized = config.pop("localized")
 
-        return cls(dim, *schema, vocab_size, initializer, use_dynamic_variable, localized, **config)
+        return cls(
+            dim,
+            *schema,
+            vocab_sizes=vocab_size,
+            initializer=initializer,
+            use_dynamic_variable=use_dynamic_variable, 
+            localized=localized,
+            **config,
+        )
