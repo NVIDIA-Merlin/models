@@ -50,8 +50,8 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.transforms.features import PrepareFeatures, expected_input_cols_from_schema
 from merlin.models.tf.transforms.sequence import SequenceTransform
-from merlin.models.tf.transforms.tensor import PrepareFeatures, expected_input_cols_from_schema
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -1035,7 +1035,8 @@ class BaseModel(tf.keras.Model):
         targets: Optional[Union[TensorLike, Dict[str, TensorLike]]],
         sample_weights: Optional[Union[TensorLike, Dict[str, TensorLike]]],
     ):
-        """Adjusts the predictions and targets to ensure compatibility with most Keras losses and metrics.
+        """Adjusts the predictions and targets to ensure compatibility with 
+        most Keras losses and metrics.
 
         If the predictions are ragged tensors, `_adjust_ragged_predictions_and_targets` is called,
         otherwise `_adjust_dense_predictions_and_targets` is called.

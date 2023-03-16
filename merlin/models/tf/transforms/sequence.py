@@ -27,7 +27,6 @@ from merlin.models.tf.transformers.transforms import (
     TransformerOutputToRagged,
 )
 from merlin.models.tf.transforms.features import PrepareFeatures
-from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
@@ -358,7 +357,8 @@ class SequencePredictLast(SequenceTransform):
         self._check_seq_inputs_targets(inputs)
 
         # Shifts the target column to be the next item of corresponding input column
-        new_target = tf.squeeze(inputs[self.target_name][:, -1:], axis=1)
+        new_target = tf.squeeze(inputs[self.target_name][:, -1:].to_tensor(), axis=1)
+        
         if targets is None:
             targets = dict({self.target_name: new_target})
         elif isinstance(targets, dict):

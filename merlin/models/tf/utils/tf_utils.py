@@ -481,7 +481,7 @@ def list_col_to_ragged(values: tf.Tensor, offsets: tf.Tensor):
     if offsets.dtype.is_floating:
         offsets = tf.cast(offsets, tf.int32)
 
-    return tf.RaggedTensor.from_row_lengths(values, row_lengths)
+    return tf.RaggedTensor.from_row_splits(values, offsets)
 
 
 def check_inputs_mask_compatible_shape(
