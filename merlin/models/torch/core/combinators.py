@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 from torch import nn
 
@@ -9,59 +9,62 @@ from merlin.models.torch.utils.torch_utils import apply_module
 
 
 class ParallelBlock(TabularBlock):
+    """
+    A block that processes inputs in parallel through multiple layers and returns their outputs.
+
+    Parameters
+    ----------
+    *inputs : Union[nn.Module, Dict[str, nn.Module]]
+        Variable length list of PyTorch modules or dictionaries of PyTorch modules.
+    pre : Callable, optional
+        Preprocessing function to apply on inputs before processing.
+    post : Callable, optional
+        Postprocessing function to apply on outputs after processing.
+    aggregation : Callable, optional
+        Aggregation function to apply on outputs.
+    """
+
     def __init__(
         self, *inputs: Union[nn.Module, Dict[str, nn.Module]], pre=None, post=None, aggregation=None
     ):
         super().__init__(pre, post, aggregation)
+
         if isinstance(inputs, tuple) and len(inputs) == 1 and isinstance(inputs[0], (list, tuple)):
             inputs = inputs[0]
+
         if all(isinstance(x, dict) for x in inputs):
-            to_merge: Dict[str, nn.Module] = reduce(
-                lambda a, b: dict(a, **b), inputs
-            )  # type: ignore
-            parsed_to_merge: Dict[str, TabularBlock] = {}
-            for key, val in to_merge.items():
-                parsed_to_merge[key] = val
-            self.parallel_layers = parsed_to_merge
+            self.parallel_dict = reduce(lambda a, b: dict(a, **b), inputs)
         elif all(isinstance(x, nn.Module) for x in inputs):
-            # if use_layer_name:
-            #     self.parallel_layers = {layer.name: layer for layer in inputs}
-            # else:
-            parsed: List[TabularBlock] = []
-            for inp in inputs:
-                parsed.append(inp)  # type: ignore
-            self.parallel_layers = parsed
+            self.parallel_dict = {i: m for i, m in enumerate(inputs)}
         else:
-            raise ValueError(
-                "Please provide one or multiple layer's to merge or "
-                f"dictionaries of layer. got: {inputs}"
-            )
+            raise ValueError(f"Invalid input. Got: {inputs}")
 
     def forward(self, inputs, **kwargs):
+        """
+        Process inputs through the parallel layers.
+
+        Parameters
+        ----------
+        inputs : Tensor
+            Input tensor to process through the parallel layers.
+        **kwargs : dict
+            Additional keyword arguments for layer processing.
+
+        Returns
+        -------
+        outputs : dict
+            Dictionary containing the outputs of the parallel layers.
+        """
         outputs = {}
 
-        for name, layer in self.parallel_dict.items():
-            layer_inputs = self._maybe_filter_layer_inputs_using_schema(name, layer, inputs)
-            out = apply_module(layer, layer_inputs, **kwargs)
+        for name, module in self.parallel_dict.items():
+            module_inputs = inputs  # TODO: Add filtering when adding schema
+            out = apply_module(module, module_inputs, **kwargs)
             if not isinstance(out, dict):
                 out = {name: out}
             outputs.update(out)
 
         return outputs
-
-    @property
-    def parallel_values(self) -> List[nn.Module]:
-        if isinstance(self.parallel_layers, dict):
-            return list(self.parallel_layers.values())
-
-        return self.parallel_layers
-
-    @property
-    def parallel_dict(self) -> Dict[Union[str, int], nn.Module]:
-        if isinstance(self.parallel_layers, dict):
-            return self.parallel_layers
-
-        return {i: m for i, m in enumerate(self.parallel_layers)}
 
 
 class WithShortcut(ParallelBlock):
