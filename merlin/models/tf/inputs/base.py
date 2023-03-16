@@ -31,6 +31,7 @@ from merlin.models.tf.inputs.embedding import (
     Embeddings,
     SequenceEmbeddingFeatures,
 )
+from merlin.models.tf.transforms.tensor import ListToDense, PrepareFeatures
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
@@ -39,7 +40,6 @@ LOG = logging.getLogger("merlin-models")
 def InputBlock(
     schema: Schema,
     branches: Optional[Dict[str, Block]] = None,
-    pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     seq: bool = False,
@@ -143,6 +143,7 @@ def InputBlock(
             post,
             aggregation=agg,
             seq=True,
+            max_seq_length=max_seq_length,
             add_continuous_branch=add_continuous_branch,
             continuous_tags=continuous_tags,
             continuous_projection=continuous_projection,
@@ -178,17 +179,25 @@ def InputBlock(
         add_continuous_branch
         and schema.select_by_tag(continuous_tags).excluding_by_tag(Tags.TARGET).column_schemas
     ):
+        pre = None
+        if max_seq_length and seq:
+            pre = ListToDense(max_seq_length)
         branches["continuous"] = ContinuousFeatures.from_schema(  # type: ignore
-            schema, tags=continuous_tags
+            schema,
+            tags=continuous_tags,
+            pre=pre,
         )
     if (
         add_embedding_branch
         and schema.select_by_tag(categorical_tags).excluding_by_tag(Tags.TARGET).column_schemas
     ):
         emb_cls: Type[EmbeddingFeatures] = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
+        emb_kwargs = {}
+        if max_seq_length and seq:
+            emb_kwargs["max_seq_length"] = max_seq_length
 
         branches["categorical"] = emb_cls.from_schema(  # type: ignore
-            schema, tags=categorical_tags, embedding_options=embedding_options
+            schema, tags=categorical_tags, embedding_options=embedding_options, **emb_kwargs
         )
     if continuous_projection:
         return ContinuousEmbedding(
@@ -199,8 +208,7 @@ def InputBlock(
             name="continuous_projection",
         )
 
-    kwargs["is_input"] = kwargs.get("is_input", True)
-    return ParallelBlock(branches, pre=pre, aggregation=aggregation, post=post, **kwargs)
+    return ParallelBlock(branches, aggregation=aggregation, post=post, is_input=True, **kwargs)
 
 
 INPUT_TAG_TO_BLOCK: Dict[Tags, Callable[[Schema], Layer]] = {
@@ -317,9 +325,13 @@ def InputBlockV2(
     if not parsed:
         raise ValueError("No columns selected for the input block")
 
+    _pre = PrepareFeatures(schema)
+    if pre:
+        _pre = _pre.connect(pre)
+
     return ParallelBlock(
         parsed,
-        pre=pre,
+        pre=_pre,
         post=post,
         aggregation=aggregation,
         is_input=True,
