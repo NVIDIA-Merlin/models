@@ -1035,7 +1035,7 @@ class BaseModel(tf.keras.Model):
         targets: Optional[Union[TensorLike, Dict[str, TensorLike]]],
         sample_weights: Optional[Union[TensorLike, Dict[str, TensorLike]]],
     ):
-        """Adjusts the predictions and targets to ensure compatibility with 
+        """Adjusts the predictions and targets to ensure compatibility with
         most Keras losses and metrics.
 
         If the predictions are ragged tensors, `_adjust_ragged_predictions_and_targets` is called,

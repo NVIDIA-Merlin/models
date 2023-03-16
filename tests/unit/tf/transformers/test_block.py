@@ -230,7 +230,6 @@ def classification_loader(sequence_testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_transformer_with_predict_random(sequence_testing_data: Dataset, run_eagerly):
-
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
         Tags.CATEGORICAL
     )

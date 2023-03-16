@@ -195,6 +195,7 @@ def test_seq_mask_random_replace_embeddings(
     sequence_testing_data: Dataset, dense: bool, target_as_dict: bool
 ):
     from merlin.models.tf.transforms.sequence import ExtractMaskFromTargets
+
     sequence_testing_data.schema = sequence_testing_data.schema.select_by_tag(
         Tags.SEQUENCE
     ).select_by_name(["item_id_seq", "categories"])

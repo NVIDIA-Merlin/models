@@ -358,7 +358,7 @@ class SequencePredictLast(SequenceTransform):
 
         # Shifts the target column to be the next item of corresponding input column
         new_target = tf.squeeze(inputs[self.target_name][:, -1:].to_tensor(), axis=1)
-        
+
         if targets is None:
             targets = dict({self.target_name: new_target})
         elif isinstance(targets, dict):
