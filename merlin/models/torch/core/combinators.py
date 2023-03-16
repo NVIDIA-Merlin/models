@@ -68,20 +68,63 @@ class ParallelBlock(TabularBlock):
 
 
 class WithShortcut(ParallelBlock):
+    """Parallel block for a shortcut connection.
+
+    This class broadcasts the inputs to 2 branches, one acting as the shortcut connection.
+    The structure of the connections can be visualized as follows:
+
+                          +--------+
+                          | inputs |
+                          +--------+
+                             |
+                             |
+                          +---------+
+                          |         |
+                          |    +----v---+
+                          |    |        |
+                          |    |shortcut|
+                          |    |        |
+                          |    +----+---+
+                          |         |
+                          |         |
+                          |    +----v---+
+                          |    |        |
+                          +--->| output |
+                               |        |
+                               +--------+
+
+    Parameters:
+    -----------
+    input : nn.Module
+        The input module.
+    aggregation : nn.Module or None, optional
+        Optional module that aggregates the dictionary output of the
+        parallel block into a single tensor.
+        Defaults to None.
+    post : nn.Module or None, optional
+        Optional module that takes in a dict of tensors and outputs a transformed dict of tensors.
+        Defaults to None.
+    block_outputs_name : str or None, optional
+        The name of the output dictionary of the parallel block.
+        Defaults to the name of the input module.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the superclass ParallelBlock.
+
+
+    """
+
     def __init__(
         self,
-        input: nn.Module,
-        shortcut_filter=None,
+        module: nn.Module,
+        *,
         aggregation=None,
         post=None,
-        block_outputs_name=None,
+        module_output_name="output",
+        shortcut_output_name="shortcut",
         **kwargs,
     ):
-        block_outputs_name = block_outputs_name or input.name
-        shortcut = shortcut_filter if shortcut_filter else NoOp()
-        inputs = {block_outputs_name: input, "shortcut": shortcut}
         super().__init__(
-            inputs,
+            {module_output_name: module, shortcut_output_name: NoOp()},
             post=post,
             aggregation=aggregation,
             **kwargs,
@@ -91,13 +134,14 @@ class WithShortcut(ParallelBlock):
 class ResidualBlock(WithShortcut):
     def __init__(
         self,
-        input: nn.Module,
+        module: nn.Module,
+        *,
         activation=None,
         post=None,
         **kwargs,
     ):
         super().__init__(
-            input,
+            module,
             post=post,
             aggregation=SumResidual(activation=activation),
             **kwargs,
@@ -111,13 +155,21 @@ class SequentialBlock(nn.Sequential):
         self.post = post
 
     def __call__(self, inputs, *args, **kwargs):
-        outputs = super().__call__(inputs)
+        if self.pre is not None:
+            inputs = apply_module(self.pre, inputs, *args, **kwargs)
+            outputs = super().__call__(inputs)
+        else:
+            outputs = super().__call__(inputs, *args, **kwargs)
+
+        if self.post is not None:
+            outputs = self.post(outputs)
+
         return outputs
 
     def add_with_shortcut(
         self,
-        input,
-        shortcut_filter=None,
+        module: nn.Module,
+        *,
         post=None,
         aggregation=None,
     ) -> "SequentialBlock":
@@ -125,14 +177,15 @@ class SequentialBlock(nn.Sequential):
 
     def add_with_residual(
         self,
-        input,
+        module: nn.Module,
+        *,
         activation=None,
     ) -> "SequentialBlock":
         raise NotImplementedError()
 
     def add_branch(
         self,
-        *branches,
+        *branches: nn.Module,
         add_rest=False,
         post=None,
         aggregation=None,

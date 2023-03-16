@@ -16,7 +16,7 @@ class SumResidual(nn.Module):
         shortcut = inputs.pop(self.shortcut_name)
         outputs = {}
         for key, val in inputs.items():
-            outputs[key] = torch.sum(torch.stack([inputs[key], shortcut]), dim=0)
+            outputs[key] = torch.sum(torch.stack([val, shortcut]), dim=0)
             if self.activation:
                 outputs[key] = self.activation(outputs[key])
 
