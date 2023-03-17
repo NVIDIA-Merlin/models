@@ -166,35 +166,35 @@ class SequentialBlock(nn.Sequential):
 
         return outputs
 
-    def add_with_shortcut(
+    def append_with_shortcut(
         self,
         module: nn.Module,
         *,
         post=None,
         aggregation=None,
     ) -> "SequentialBlock":
-        raise NotImplementedError()
+        return self.append(WithShortcut(module, post=post, aggregation=aggregation))
 
-    def add_with_residual(
-        self,
-        module: nn.Module,
-        *,
-        activation=None,
+    def append_with_residual(
+        self, module: nn.Module, *, activation=None, **kwargs
     ) -> "SequentialBlock":
-        raise NotImplementedError()
+        return self.append(ResidualBlock(module, activation=activation, **kwargs))
 
-    def add_branch(
+    def append_branch(
         self,
         *branches: nn.Module,
-        add_rest=False,
         post=None,
         aggregation=None,
         **kwargs,
     ) -> "SequentialBlock":
-        raise NotImplementedError()
+        return self.append(ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs))
 
     def repeat(self, num: int = 1) -> "SequentialBlock":
-        raise NotImplementedError()
+        repeated = [self]
+        for _ in range(num):
+            repeated.append(self.copy())
+
+        return SequentialBlock(*repeated)
 
     def repeat_in_parallel(
         self,
@@ -204,7 +204,17 @@ class SequentialBlock(nn.Sequential):
         post=None,
         aggregation=None,
         copies=True,
-        residual=False,
+        shortcut=False,
         **kwargs,
     ) -> "ParallelBlock":
-        raise NotImplementedError()
+        repeated = {}
+        iterator = names if names else range(num)
+        if not names and prefix:
+            iterator = [f"{prefix}{num}" for num in iterator]
+        for name in iterator:
+            repeated[str(name)] = self.copy() if copies else self
+
+        if shortcut:
+            repeated["shortcut"] = NoOp()
+
+        return ParallelBlock(repeated, post=post, aggregation=aggregation, **kwargs)
