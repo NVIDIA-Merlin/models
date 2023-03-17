@@ -1,12 +1,14 @@
 import warnings
 from typing import List, Optional, Union
 
+import tensorflow as tf
+
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.interaction import FMBlock
 from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures
-from merlin.models.tf.core.base import Block
+from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
@@ -285,6 +287,7 @@ def WideAndDeepModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock, ModelOutputType]
     ] = None,
+    pre: Optional[BlockType] = None,
     **wide_body_kwargs,
 ) -> Model:
     """
@@ -371,8 +374,7 @@ def WideAndDeepModel(
         # Multi-hot features
         multi_hot_encoding = mm.SequentialBlock(
                 mm.Filter(multi_hot_schema),
-                # Assuming max size of multi-hot features is 5
-                ml.AsDenseFeatures(max_seq_length=5),
+                ml.ToDense(multi_hot_schema),
                 mm.CategoryEncoding(multi_hot_schema, sparse=True, output_mode="multi_hot")
         )
         ```
@@ -396,8 +398,7 @@ def WideAndDeepModel(
         # 2nd-level features interaction
         features_crossing = mm.SequentialBlock(
                     mm.Filter(wide_schema),
-                    # Assuming max size of multi-hot features is 5
-                    ml.AsDenseFeatures(max_seq_length=5),
+                    ml.ToDense(wide_schema),
                     mm.HashedCrossAll(
                         wide_schema,
                         # The crossed features will be hashed to this number of bins
@@ -509,7 +510,14 @@ def WideAndDeepModel(
 
     if not deep_input_block:
         if deep_schema is not None and len(deep_schema) > 0:
-            deep_input_block = InputBlockV2(deep_schema)
+            deep_input_block = InputBlockV2(
+                deep_schema,
+                categorical=Embeddings(
+                    deep_schema.select_by_tag(Tags.CATEGORICAL),
+                    sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
+                ),
+            )
+
     if deep_input_block:
         deep_body = deep_input_block.connect(deep_block).connect(
             MLPBlock(
@@ -553,7 +561,7 @@ def WideAndDeepModel(
             " or wide part (wide_schema/wide_input_block) must be provided."
         )
 
-    wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
+    wide_and_deep_body = ParallelBlock(branches, pre=pre, aggregation="element-wise-sum")
     model = Model(wide_and_deep_body, prediction_blocks)
 
     return model

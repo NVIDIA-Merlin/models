@@ -10,7 +10,6 @@
       },
       "annotation": {
         "tag": [
-          "categorical",
           "session_id"
         ]
       }
@@ -63,8 +62,7 @@
     {
       "name": "item_genres",
       "valueCount": {
-        "min": "1",
-        "max": "20"
+        "min": "1"
       },
       "type": "INT",
       "intDomain": {
@@ -127,8 +125,7 @@
     {
       "name": "user_genres",
       "valueCount": {
-        "min": "1",
-        "max": "20"
+        "min": "1"
       },
       "type": "INT",
       "intDomain": {

@@ -36,18 +36,12 @@ from merlin.models.tf.core.tabular import (
     TabularAggregationType,
     TabularBlock,
 )
-from merlin.models.tf.transforms.tensor import ListToDense, ListToSparse
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import (
-    call_layer,
-    df_to_tensor,
-    list_col_to_ragged,
-    tensor_to_df,
-)
+from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, tensor_to_df
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
@@ -157,6 +151,9 @@ CombinerType = Union[str, tf.keras.layers.Layer]
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingTable(EmbeddingTableBase):
     """Embedding table that is backed by a standard Keras Embedding Layer.
+    It accepts as input features for lookup tf.Tensor, tf.RaggedTensor,
+    and tf.SparseTensor which might be 2D (batch_size, 1) for scalars
+    or 3d (batch_size, seq_length, 1) for sequential features
 
      Parameters
      ----------
@@ -388,24 +385,17 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def _call_table(self, inputs, **kwargs):
-        if isinstance(inputs, tuple) and len(inputs) == 2:
-            inputs = list_col_to_ragged(inputs)
-
-        # Eliminating the last dim==1 of dense tensors before embedding lookup
-        if isinstance(inputs, tf.Tensor) or (
-            isinstance(inputs, tf.RaggedTensor) and inputs.shape[-1] == 1
-        ):
-            inputs = tf.squeeze(inputs, axis=-1)
-
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
                 if isinstance(inputs, tf.RaggedTensor):
                     inputs = inputs.to_sparse()
-                if len(inputs.dense_shape) == 3 and inputs.dense_shape[-1] == 1:
-                    inputs = tf.sparse.reshape(inputs, inputs.dense_shape[:-1])
+
+                inputs = tf.sparse.reshape(inputs, tf.shape(inputs)[:-1])
+
                 out = tf.nn.safe_embedding_lookup_sparse(
                     self.table.embeddings, inputs, None, combiner=self.sequence_combiner
                 )
+
             else:
                 if isinstance(inputs, tf.SparseTensor):
                     raise ValueError(
@@ -413,11 +403,21 @@ class EmbeddingTable(EmbeddingTableBase):
                         "please convert the tensor to a ragged or dense.",
                     )
 
+                inputs = tf.squeeze(inputs, axis=-1)
+
                 out = call_layer(self.table, inputs, **kwargs)
-                if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
+                if len(out.get_shape()) > 2 and isinstance(
+                    self.sequence_combiner, tf.keras.layers.Layer
+                ):
                     out = call_layer(self.sequence_combiner, out, **kwargs)
         else:
+            if inputs.shape.as_list()[-1] == 1:
+                inputs = tf.squeeze(inputs, axis=-1)
             out = call_layer(self.table, inputs, **kwargs)
+            if len(out.get_shape()) > 2 and isinstance(
+                self.sequence_combiner, tf.keras.layers.Layer
+            ):
+                out = call_layer(self.sequence_combiner, out, **kwargs)
 
         if self.l2_batch_regularization_factor > 0:
             self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
@@ -447,9 +447,6 @@ class EmbeddingTable(EmbeddingTableBase):
     def _compute_output_shape_table(
         self, input_shape: Union[tf.TensorShape, tuple]
     ) -> tf.TensorShape:
-        if isinstance(input_shape, tuple) and isinstance(input_shape[1], tf.TensorShape):
-            input_shape = tf.TensorShape([input_shape[1][0], None])
-
         first_dims = input_shape
 
         if input_shape.rank > 1:
@@ -748,7 +745,7 @@ class EmbeddingFeatures(TabularBlock):
         **kwargs,
     ):
         if add_default_pre:
-            embedding_pre = [Filter(list(feature_config.keys())), ListToSparse()]
+            embedding_pre = [Filter(list(feature_config.keys()))]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
         self.l2_reg = l2_reg
@@ -768,13 +765,13 @@ class EmbeddingFeatures(TabularBlock):
                 embeddings_initializer=table.initializer,
             )
 
+        kwargs["is_input"] = kwargs.get("is_input", True)
         super().__init__(
             pre=pre,
             post=post,
             aggregation=aggregation,
             name=name,
             schema=schema,
-            is_input=True,
             **kwargs,
         )
 
@@ -907,21 +904,21 @@ class EmbeddingFeatures(TabularBlock):
 
         table: TableConfig = self.feature_config[name].table
         table_var = self.embedding_tables[table.name].embeddings
-        if isinstance(val, tf.SparseTensor):
-            if len(val.dense_shape) == 3 and val.dense_shape[-1] == 1:
-                val = tf.sparse.reshape(val, val.dense_shape[:-1])
+        if isinstance(val, (tf.RaggedTensor, tf.SparseTensor)):
+            if isinstance(val, tf.RaggedTensor):
+                val = val.to_sparse()
+
+            val = tf.sparse.reshape(val, tf.shape(val)[:-1])
 
             out = tf.nn.safe_embedding_lookup_sparse(table_var, val, None, combiner=table.combiner)
         else:
             if output_sequence:
                 out = tf.gather(table_var, tf.cast(val, tf.int32))
             else:
-                if len(val.shape) > 1:
-                    # TODO: Check if it is correct to retrieve only the 1st element
-                    # of second dim for non-sequential multi-hot categ features
-                    out = tf.gather(table_var, tf.cast(val, tf.int32)[:, 0])
-                else:
-                    out = tf.gather(table_var, tf.cast(val, tf.int32))
+                if len(val.shape) > 1 and val.shape.as_list()[-1] == 1:
+                    val = tf.squeeze(val, axis=-1)
+                out = tf.gather(table_var, tf.cast(val, tf.int32))
+
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
             # this is mathematically equivalent but is faster.
@@ -1094,7 +1091,6 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
     def __init__(
         self,
         feature_config: Dict[str, FeatureConfig],
-        max_seq_length: Optional[int] = None,
         mask_zero: bool = True,
         padding_idx: int = 0,
         pre: Optional[BlockType] = None,
@@ -1106,7 +1102,7 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         **kwargs,
     ):
         if add_default_pre:
-            embedding_pre = [Filter(list(feature_config.keys())), ListToDense(max_seq_length)]
+            embedding_pre = [Filter(list(feature_config.keys()))]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
 
         super().__init__(

@@ -57,14 +57,13 @@ class Candidate(NamedTuple):
             if key in other.metadata:
                 metadata[key] = _list_to_tensor([self.metadata[key], other.metadata[key]])
 
-        return Candidate(
-            id=_list_to_tensor([self.id, other.id]),
-            metadata=metadata,
-        )
+        return Candidate(id=_list_to_tensor([self.id, other.id]), metadata=metadata)
 
     @property
     def shape(self) -> "Candidate":
-        return Candidate(self.id.shape, {key: val.shape for key, val in self.metadata.items()})
+        return Candidate(
+            id=self.id.shape, metadata={key: val.shape for key, val in self.metadata.items()}
+        )
 
     def __repr__(self):
         metadata = {key: str(val) for key, val in self.metadata.items()}
@@ -84,14 +83,14 @@ class Candidate(NamedTuple):
 
     def get_config(self):
         return {
-            "ids": self.id.as_list() if self.id else None,
-            "metadata": {key: val.as_list() for key, val in self.metadata.items()},
+            "id": self.id,
+            "metadata": self.metadata,
         }
 
     @classmethod
     def from_config(cls, config):
-        ids = tf.TensorShape(config["config"]["id"])
-        metadata = {key: tf.TensorShape(val) for key, val in config["config"]["metadata"].items()}
+        ids = config["config"]["id"]
+        metadata = config["config"]["metadata"]
 
         return cls(ids, metadata)
 

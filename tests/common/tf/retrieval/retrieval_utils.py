@@ -404,7 +404,6 @@ def get_dual_encoder_model_v2(
 
 def get_youtube_dnn_model(
     schema,
-    max_seq_length,
     item_id_emb_size=32,
     emb_init_distr="truncated_normal",
     emb_init_range=0.05,
@@ -443,9 +442,9 @@ def get_youtube_dnn_model(
     # Appends the top MLP layer with the same size as the item id embedding
     layers_dims.append(item_id_emb_size)
 
+    # TODO: Update test to use YoutubeDNNRetrievalModelV2, as this one is deprecated
     model = mm.YoutubeDNNRetrievalModel(
         schema=schema_selected,
-        max_seq_length=max_seq_length,
         num_sampled=youtubednn_sampled_softmax_n_candidates,
         sampled_softmax=youtubednn_sampled_softmax,
         logits_temperature=logits_temperature,

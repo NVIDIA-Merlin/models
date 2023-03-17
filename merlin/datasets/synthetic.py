@@ -19,13 +19,13 @@ import os
 import pathlib
 from pathlib import Path
 from random import randint
-from typing import Dict, Optional, Sequence, Tuple, Union
+from typing import Dict, Sequence, Tuple, Union
 
 import numpy as np
 
 import merlin.io
 from merlin.models.utils import schema_utils
-from merlin.schema import ColumnSchema, Schema, Tags
+from merlin.schema import Schema, Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 LOG = logging.getLogger("merlin-models")
@@ -92,9 +92,13 @@ def generate_data(
         Example::
             train, valid = generate_data(input, 10000, (0.8, 0.2))
     min_session_length: int
-        The minimum number of events in a session.
+        The minimum number of events in a session. Overrides the
+        min sequence length information from the shape of list columns
+        schema (schema[col].shape.dims[1].min)
     max_session_length: int
-        The maximum number of events in a session.
+        The minimum number of events in a session. Overrides the
+        max sequence length information from the shape of list columns
+        schema (schema[col].shape.dims[1].max)
     device: str
         The device to use for the data generation.
         Supported values: {'cpu', 'gpu'}
@@ -119,23 +123,15 @@ def generate_data(
         raise ValueError(f"Unknown input type: {type(input)}")
 
     for col in schema.column_names:
-        if not schema[col].is_list:
-            continue
-        new_properties = schema[col].properties
-        new_properties["value_count"] = {"min": min_session_length}
-        if max_session_length:
-            new_properties["value_count"]["max"] = max_session_length
-        schema[col] = ColumnSchema(
-            name=schema[col].name,
-            tags=schema[col].tags,
-            properties=new_properties,
-            dtype=schema[col].dtype,
-            is_list=True,
-        )
+        if schema[col].shape.is_list:
+            min_session_length = min_session_length or schema[col].shape.dims[1].min
+            max_session_length = max_session_length or schema[col].shape.dims[1].max
+            # Overriding min and max session length from schema
+            schema[col] = schema[col].with_shape(
+                ((0, None), (min_session_length, max_session_length))
+            )
 
-    df = generate_user_item_interactions(
-        schema, num_rows, min_session_length, max_session_length, device=device
-    )
+    df = generate_user_item_interactions(schema, num_rows, device=device)
 
     if list(set_sizes) != [1.0]:
         num_rows = df.shape[0]
@@ -156,8 +152,6 @@ def generate_data(
 def generate_user_item_interactions(
     schema: Schema,
     num_interactions: int,
-    min_session_length: int = 5,
-    max_session_length: Optional[int] = None,
     device: str = "cpu",
 ):
     """
@@ -177,10 +171,6 @@ def generate_user_item_interactions(
         schema object describing the columns to generate.
     num_interactions: int
         number of interaction rows to generate.
-    max_session_length: Optional[int]
-        The maximum length of the multi-hot/sequence features
-    min_session_length: int
-        The minimum length of the multi-hot/sequence features
     device: str
         device to use for generating data.
 
@@ -215,8 +205,6 @@ def generate_user_item_interactions(
             data,
             features,
             session_id_col,
-            min_session_length=min_session_length,
-            max_session_length=max_session_length,
             device=device,
         )
         processed_cols += [f.name for f in features] + [session_id_col.name]
@@ -235,8 +223,6 @@ def generate_user_item_interactions(
             data,
             features,
             user_id_col,
-            min_session_length=min_session_length,
-            max_session_length=max_session_length,
             device=device,
         )
         processed_cols += [f.name for f in features] + [user_id_col.name]
@@ -247,11 +233,12 @@ def generate_user_item_interactions(
         raise ValueError("Item ID column is required")
     item_id_col = item_schema.first
 
-    is_list_feature = item_id_col.is_list
+    is_list_feature = item_id_col.shape.is_list
     if not is_list_feature:
         shape = num_interactions
     else:
-        shape = (num_interactions, max_session_length or min_session_length)  # type: ignore
+        seq_length = item_id_col.shape.dims[1].max or item_id_col.shape.dims[1].min
+        shape = (num_interactions, seq_length)  # type: ignore
     tmp = _array.clip(
         _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
         1,
@@ -262,14 +249,7 @@ def generate_user_item_interactions(
     else:
         data[item_id_col.name] = list(tmp)
     features = list(schema.select_by_tag(Tags.ITEM).remove_by_tag(Tags.ITEM_ID))
-    data = generate_conditional_features(
-        data,
-        features,
-        item_id_col,
-        min_session_length=min_session_length,
-        max_session_length=max_session_length,
-        device=device,
-    )
+    data = generate_conditional_features(data, features, item_id_col, device=device)
     processed_cols += [f.name for f in features] + [item_id_col.name]
 
     # Get remaining features
@@ -284,9 +264,7 @@ def generate_user_item_interactions(
         is_int_feature = feature.dtype and np.issubdtype(feature.dtype.to_numpy, np.integer)
         is_list_feature = feature.is_list
         if is_list_feature:
-            data[feature.name] = generate_random_list_feature(
-                feature, num_interactions, min_session_length, max_session_length, device
-            )
+            data[feature.name] = generate_random_list_feature(feature, num_interactions, device)
 
         elif is_int_feature:
             domain = feature.int_domain
@@ -311,8 +289,6 @@ def generate_conditional_features(
     data,
     features,
     parent_feature,
-    min_session_length: int = 5,
-    max_session_length: Optional[int] = None,
     device="cpu",
 ):
     """
@@ -331,9 +307,7 @@ def generate_conditional_features(
         is_list_feature = feature.is_list
 
         if is_list_feature:
-            data[feature.name] = generate_random_list_feature(
-                feature, num_interactions, min_session_length, max_session_length, device
-            )
+            data[feature.name] = generate_random_list_feature(feature, num_interactions, device)
 
         elif is_int_feature:
             if not feature.int_domain:
@@ -364,14 +338,15 @@ def generate_conditional_features(
 def generate_random_list_feature(
     feature,
     num_interactions,
-    min_session_length: int = 5,
-    max_session_length: Optional[int] = None,
     device="cpu",
 ):
     if device == "cpu":
         import numpy as _array
     else:
         import cupy as _array
+
+    seq_length_dim = feature.shape.dims[1]
+    min_session_length, max_session_length = seq_length_dim.min, seq_length_dim.max
 
     is_int_feature = np.issubdtype(feature.dtype.to_numpy, np.integer)
     if is_int_feature:

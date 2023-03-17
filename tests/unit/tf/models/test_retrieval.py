@@ -16,6 +16,7 @@ from merlin.models.tf.metrics.topk import (
     TopKMetricsAggregator,
 )
 from merlin.models.tf.outputs.base import DotProduct
+from merlin.models.tf.transforms.features import expected_input_cols_from_schema
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Tags
@@ -210,12 +211,12 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
-    query_features = testing_utils.get_model_inputs(
-        music_streaming_data.schema.select_by_tag(Tags.USER), ["user_genres"]
+    query_features = expected_input_cols_from_schema(
+        music_streaming_data.schema.select_by_tag(Tags.USER),
     )
     testing_utils.test_model_signature(model.first.query_block(), query_features, ["output_1"])
 
-    item_features = testing_utils.get_model_inputs(
+    item_features = expected_input_cols_from_schema(
         music_streaming_data.schema.select_by_tag(Tags.ITEM),
     )
     testing_utils.test_model_signature(model.first.item_block(), item_features, ["output_1"])
@@ -274,12 +275,12 @@ def test_two_tower_model_v2(music_streaming_data: Dataset, run_eagerly, num_epoc
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
-    query_features = testing_utils.get_model_inputs(
-        music_streaming_data.schema.select_by_tag(Tags.USER), ["user_genres"]
+    query_features = expected_input_cols_from_schema(
+        music_streaming_data.schema.select_by_tag(Tags.USER)
     )
     testing_utils.test_model_signature(model.query_encoder, query_features, ["output_1"])
 
-    item_features = testing_utils.get_model_inputs(
+    item_features = expected_input_cols_from_schema(
         music_streaming_data.schema.select_by_tag(Tags.ITEM),
     )
     testing_utils.test_model_signature(model.candidate_encoder, item_features, ["output_1"])
@@ -800,13 +801,18 @@ def test_mf_advanced_options(ecommerce_data):
 #         )
 
 
+@pytest.mark.skip(
+    reason="The YoutubeDNNRetrievalModel is outdated, "
+    "was never officially released and is going to be deprecated in favor "
+    "of YoutubeDNNRetrievalModelV2"
+)
 def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     """This test works both for eager mode and graph mode when
     ran individually. But when both tests are run by pytest
     the last one fails. So somehow pytest is sharing some
     graph state between tests. I keep now only the graph mode test"""
 
-    to_remove = (
+    to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
         .column_names
@@ -825,14 +831,14 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     )
     model.compile(optimizer="adam", run_eagerly=False)
 
-    as_ragged = mm.ListToRagged()
+    prepare_features = mm.PrepareFeatures(sequence_testing_data.schema)
 
     class LastInteractionAsTarget(tf.keras.layers.Layer):
         def call(self, inputs, **kwargs):
-            inputs = as_ragged(inputs)
+            inputs = prepare_features(inputs)
             items = inputs["item_id_seq"]
             _items = items[:, :-1]
-            targets = items[:, -1:].flat_values
+            targets = tf.reshape(items[:, -1:].to_tensor(), (1, -1))
 
             inputs["item_id_seq"] = _items
 

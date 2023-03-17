@@ -48,6 +48,7 @@ class TabularAggregation(
 
     def _check_concat_shapes(self, inputs: TabularData):
         input_sizes = {k: v.shape for k, v in inputs.items()}
+
         if len(set([tuple(v[:-1]) for v in input_sizes.values()])) > 1:
             raise Exception(
                 "All features dimensions except the last one must match: {}".format(input_sizes)
@@ -322,6 +323,7 @@ class TabularBlock(Block):
         config = tf_utils.maybe_serialize_keras_objects(
             self, config, ["pre", "post", "aggregation"]
         )
+        config["is_input"] = self._is_input
 
         if self.has_schema:
             config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)

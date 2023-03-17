@@ -65,7 +65,7 @@ def test_inputv2_without_categorical_features(music_streaming_data: Dataset, run
     inputs = ml.InputBlockV2(schema)
 
     batch = ml.sample_batch(
-        music_streaming_data, batch_size=100, include_targets=False, to_ragged=True
+        music_streaming_data, batch_size=100, include_targets=False, prepare_features=True
     )
 
     assert inputs(batch).shape == (100, 3)

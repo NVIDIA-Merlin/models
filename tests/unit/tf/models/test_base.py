@@ -52,7 +52,7 @@ class TestGetOutputSchema:
         model.save(tmpdir)
         output_schema = get_output_schema(tmpdir)
         output_col = output_schema["my_output"]
-        assert output_col.value_count.min == output_col.value_count.max == 4
+        assert output_col.shape.dims[1].min == output_col.shape.dims[1].max == 4
         assert output_col.is_list is True
         assert output_col.is_ragged is False
 
@@ -84,6 +84,7 @@ def test_fit_compile_twice():
         tf.keras.layers.Lambda(lambda x: x["feature"]),
         tf.keras.layers.Dense(1),
         mm.BinaryClassificationTask("target"),
+        schema=dataset.schema,
     )
     model.compile()
     model.fit(loader, epochs=2)
@@ -160,7 +161,7 @@ def test_simple_seq_model_with_custom_emb_combiner(sequence_testing_data: Datase
 
     testing_utils.model_test(model, loader, run_eagerly=run_eagerly, reload_model=True)
 
-    batch = mm.sample_batch(loader, include_targets=False, to_ragged=True)
+    batch = mm.sample_batch(loader, include_targets=False, prepare_features=True)
     out = model(batch)
     assert out.shape == (100, 1)
 
@@ -224,7 +225,7 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
 @pytest.mark.parametrize(
     ["num_rows", "batch_size", "train_metrics_steps", "expected_steps", "expected_metrics_steps"],
     [
-        (1, 1, 1, 1, 1),
+        (2, 2, 1, 1, 1),
         (60, 10, 2, 6, 3),
         (60, 10, 3, 6, 2),
         (120, 10, 4, 12, 3),

@@ -54,7 +54,7 @@ def test_tabular_seq_features_ragged_embeddings(sequence_testing_data: Dataset):
     )
 
     batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+        sequence_testing_data, batch_size=100, include_targets=False, prepare_features=True
     )
 
     outputs = tab_module(batch)
@@ -84,7 +84,7 @@ def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset
     )
 
     batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+        sequence_testing_data, batch_size=100, include_targets=False, prepare_features=True
     )
 
     outputs = input_block(batch)
@@ -102,7 +102,7 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
     assert "item_id_seq_weights" in schema.column_names
 
     batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+        sequence_testing_data, batch_size=100, include_targets=False, prepare_features=True
     )
     batch["item_id_seq_weights"] = tf.ragged.constant(
         [[1.0, 2.0, 3.0, 4.0] for _ in range(batch["item_id_seq"].shape[0])],
@@ -149,7 +149,7 @@ def test_tabular_seq_features_avg_embeddings_with_mapvalues(sequence_testing_dat
     cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+        sequence_testing_data, batch_size=100, include_targets=False, prepare_features=True
     )
 
     input_block = ml.InputBlockV2(
@@ -185,7 +185,7 @@ def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset,
     input_block = ml.InputBlockV2(cat_schema, categorical=embeddings_block, aggregation=aggregation)
 
     batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+        sequence_testing_data, batch_size=100, include_targets=False, prepare_features=True
     )
 
     outputs = input_block(batch)

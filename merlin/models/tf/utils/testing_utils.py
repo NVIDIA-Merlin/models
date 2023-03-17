@@ -16,7 +16,7 @@
 import pathlib
 import platform
 import tempfile
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, Tuple, Union
 
 import numpy as np
 import pytest
@@ -27,7 +27,8 @@ from tensorflow.python.framework.test_util import disable_cudnn_autotune
 import merlin.io
 from merlin.models.tf.loader import Loader, sample_batch
 from merlin.models.tf.models.base import Model
-from merlin.schema import Schema
+from merlin.models.tf.transforms.features import PrepareFeatures, expected_input_cols_from_schema
+from merlin.schema import Tags
 
 
 def mark_run_eagerly_modes(*args, **kwargs):
@@ -103,7 +104,7 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
-        x, y = sample_batch(dataloader, batch_size=50, to_ragged=False, prepare_features=False)
+        x, y = sample_batch(dataloader, batch_size=50, prepare_features=False)
         batch = [(x, y)]
 
         model_preds = model.predict(iter(batch))
@@ -124,15 +125,7 @@ def model_test(
             signature = loaded_model.signatures["serving_default"]
             signature_input_names = set(signature.structured_input_signature[1].keys())
 
-            model_input_names = []
-            for col in model.input_schema:
-                if col.is_list:
-                    # list columns are currently always passed
-                    # in as a tuple of (values, row_lengths)
-                    for i in ["1", "2"]:
-                        model_input_names.append(f"{col.name}_{i}")
-                else:
-                    model_input_names.append(col.name)
+            model_input_names = expected_input_cols_from_schema(model.input_schema)
 
             assert signature_input_names == set(model_input_names)
 
@@ -143,19 +136,6 @@ def model_test(
     assert isinstance(model.from_config(model.get_config()), type(model))
 
     return model, losses
-
-
-def get_model_inputs(schema: Schema, list_cols: Optional[Sequence[str]] = None):
-    list_cols = list_cols or []
-    features = schema.column_names
-
-    # Right now the model expects a tuple for each list-column
-    for list_col in list_cols:
-        features.pop(features.index(list_col))
-        for i in ["1", "2"]:
-            features.append(f"{list_col}_{i}")
-
-    return features
 
 
 def test_model_signature(model, input_names, output_names):
@@ -481,3 +461,38 @@ def assert_output_shape(output, expected_output_shape):
     else:
         output_shape = _get_shape(output)
         assert list(output_shape) == list(expected_output_shape)
+
+
+def loader_for_last_item_prediction(sequence_testing_data: merlin.io.Dataset, to_one_hot=True):
+    schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+    prepare_features = PrepareFeatures(schema)
+
+    class LastInteractionAsTarget:
+        def compute_output_schema(self, input_schema):
+            return input_schema
+
+        def __call__(self, inputs, targets=None):
+            inputs = prepare_features(inputs)
+
+            seq_item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+            targets = tf.squeeze(inputs[seq_item_id_col][:, -1:].flat_values, -1)
+            if to_one_hot:
+                targets = tf.one_hot(targets, schema[seq_item_id_col].int_domain.max + 1)
+
+            for name in schema.select_by_tag(Tags.SEQUENCE).column_names:
+                inputs[name] = inputs[name][:, :-1]
+
+            col_names = list(inputs.keys())
+            for k in col_names:
+                if isinstance(inputs[k], tf.RaggedTensor):
+                    inputs[f"{k}__values"] = inputs[k].values
+                    inputs[f"{k}__offsets"] = inputs[k].row_splits
+                    del inputs[k]
+
+            return inputs, targets
+
+    sequence_testing_data.schema = schema
+    dataloader = Loader(sequence_testing_data, batch_size=50)
+    _last_interaction_as_target = LastInteractionAsTarget()
+    dataloader = dataloader.map(_last_interaction_as_target)
+    return dataloader, schema

@@ -615,7 +615,11 @@ class ParallelBlock(TabularBlock):
     def _maybe_filter_layer_inputs_using_schema(self, name, layer, inputs):
         maybe_schema = getattr(layer, "_schema", None)
         if maybe_schema and isinstance(inputs, dict):
-            layer_inputs = {k: v for k, v in inputs.items() if k in maybe_schema.column_names}
+            layer_inputs = {
+                k: v
+                for k, v in inputs.items()
+                if k.replace("__values", "").replace("__offsets", "") in maybe_schema.column_names
+            }
         else:
             layer_inputs = inputs
 

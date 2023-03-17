@@ -145,9 +145,8 @@ Transformation Block Constructors
 
    CategoryEncoding
    MapValues
-   ListToDense
-   ListToRagged
-   ListToSparse
+   PrepareListFeatures
+   PrepareFeatures
    ToSparse
    ToDense
    ToTarget
