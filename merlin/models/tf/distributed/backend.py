@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 from merlin.core.dispatch import HAS_GPU
 
 hvd = None
@@ -23,7 +25,7 @@ if HAS_GPU:
         from sparse_operation_kit import experiment as sok  # noqa: F401
 
         sok_installed = True
-    except ImportError:
+    except (ImportError, tf.errors.NotFoundError):
         pass
 
 
