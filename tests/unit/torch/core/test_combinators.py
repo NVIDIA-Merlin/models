@@ -6,6 +6,7 @@ from merlin.models.torch.core.combinators import (
     NoOp,
     ParallelBlock,
     ResidualBlock,
+    SequentialBlock,
     SumResidual,
     WithShortcut,
 )
@@ -172,3 +173,106 @@ class TestResidualBlock:
         input_tensor = torch.rand(5, 5)
         with pytest.raises(RuntimeError, match="must have the same shape"):
             block(input_tensor)
+
+
+class TestSequentialBlock:
+    def test_init(self):
+        linear = nn.Linear(5, 5)
+        relu = nn.ReLU()
+        block = SequentialBlock(linear, relu)
+
+        assert isinstance(block, nn.Sequential)
+        assert block[0] == linear
+        assert block[1] == relu
+
+    def test_forward(self):
+        linear = nn.Linear(5, 5)
+        relu = nn.ReLU()
+        block = SequentialBlock(linear, relu)
+
+        input_tensor = torch.rand(5, 5)
+        output = block(input_tensor)
+
+        assert isinstance(output, torch.Tensor)
+        assert output.shape == (5, 5)
+
+        expected_output = relu(linear(input_tensor))
+        assert torch.allclose(output, expected_output)
+
+    def test_append_with_shortcut(self):
+        linear = nn.Linear(5, 5)
+        relu = nn.ReLU()
+        block = SequentialBlock(linear, relu).append_with_shortcut(linear)
+
+        assert isinstance(block[2], WithShortcut)
+        assert block[2]._modules["output"] == linear
+
+    def test_append_with_residual(self):
+        linear = nn.Linear(5, 5)
+        relu = nn.ReLU()
+        block = SequentialBlock(linear, relu).append_with_residual(linear, activation=nn.ReLU())
+
+        assert isinstance(block[2], ResidualBlock)
+        assert block[2]._modules["output"] == linear
+        assert isinstance(block[2].aggregation.activation, nn.ReLU)
+
+    def test_append_branch(self):
+        linear = nn.Linear(5, 5)
+        relu = nn.ReLU()
+        block = SequentialBlock(linear, relu).append_branch(linear, relu)
+
+        assert isinstance(block[2], ParallelBlock)
+        assert block[2]._modules["0"] == linear
+        assert block[2]._modules["1"] == relu
+
+    def test_repeat(self):
+        linear = nn.Linear(5, 5)
+        relu = nn.ReLU()
+        block = SequentialBlock(linear, relu).repeat(2)
+
+        assert len(block) == 6
+        assert isinstance(block, SequentialBlock)
+
+        assert isinstance(block[2], nn.Linear)
+        assert isinstance(block[3], nn.ReLU)
+        assert isinstance(block[4], nn.Linear)
+        assert isinstance(block[5], nn.ReLU)
+
+        # Check that the weights and biases of the linear layers are not shared
+        assert not torch.allclose(block[0].weight, block[2].weight)
+        assert not torch.allclose(block[0].bias, block[2].bias)
+        assert not torch.allclose(block[0].weight, block[4].weight)
+        assert not torch.allclose(block[0].bias, block[4].bias)
+        assert not torch.allclose(block[2].weight, block[4].weight)
+        assert not torch.allclose(block[2].bias, block[4].bias)
+
+        # Modify the original module weights and biases to ensure the copied
+        # modules' weights and biases are not affected
+        block[0].weight.data.fill_(1.0)
+        block[0].bias.data.fill_(1.0)
+        assert not torch.allclose(block[0].weight, block[2].weight)
+        assert not torch.allclose(block[0].bias, block[2].bias)
+        assert not torch.allclose(block[0].weight, block[4].weight)
+        assert not torch.allclose(block[0].bias, block[4].bias)
+
+    def test_repeat_in_parallel(self):
+        linear = nn.Linear(5, 5)
+        relu = nn.ReLU()
+        block = SequentialBlock(linear, relu).repeat_in_parallel(2, shortcut=True)
+
+        assert isinstance(block, ParallelBlock)
+        assert len(block) == 3
+        assert isinstance(block["0"], SequentialBlock)
+        assert isinstance(block["1"], SequentialBlock)
+        assert isinstance(block["shortcut"], NoOp)
+
+        # Check that the weights and biases of the linear layers are not shared
+        assert not torch.allclose(block["0"][0].weight, block["1"][0].weight)
+        assert not torch.allclose(block["0"][0].bias, block["1"][0].bias)
+
+        # Modify the original module weights and biases to ensure the copied
+        # modules' weights and biases are not affected
+        block["0"][0].weight.data.fill_(1.0)
+        block["0"][0].bias.data.fill_(1.0)
+        assert not torch.allclose(block["0"][0].weight, block["1"][0].weight)
+        assert not torch.allclose(block["0"][0].bias, block["1"][0].bias)
