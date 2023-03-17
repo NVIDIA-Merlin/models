@@ -917,7 +917,7 @@ class BaseModel(tf.keras.Model):
         # predictions and targets to have the same shape.
         if getattr(prediction, "_keras_mask", None) is not None:
             rank_check = tf.logical_and(
-                tf.equal(tf.rank(target), 1),
+                tf.logical_and(tf.rank(target) > 0, tf.shape(target)[-1] == 1),
                 tf.equal(tf.rank(prediction), 3),
             )
             prediction = tf.cond(
@@ -925,8 +925,12 @@ class BaseModel(tf.keras.Model):
             )
 
         # Ensuring targets are one-hot encoded if they are not
+        condition = tf.logical_and(
+            tf.logical_and(tf.rank(target) > 0, tf.shape(target)[-1] == 1),
+            tf.shape(prediction)[-1] > 1,
+        )
         target = tf.cond(
-            tf.rank(target) == tf.rank(prediction) - 1,
+            condition,
             lambda: tf.one_hot(
                 tf.cast(target, tf.int32),
                 tf.shape(prediction)[-1],
@@ -1007,25 +1011,22 @@ class BaseModel(tf.keras.Model):
             sample_weight = sample_weight.flat_values
 
         # Ensuring targets are one-hot encoded if they are not
-        def _reshape_ragged():
-            # Makes target shape equal to the predictions tensor,
-            # as shape information is lost in graph mode execution of tf.cond()
-            target_reshape = tf.reshape(target, tf.shape(prediction))
-            if isinstance(prediction, tf.RaggedTensor):
-                return tf.RaggedTensor.from_row_splits(
-                    target_reshape.values, tf.cast(target_reshape.row_splits, tf.int64)
-                )
-            return target_reshape
-
+        condition = tf.logical_and(
+            tf.logical_and(tf.rank(target) > 0, tf.shape(target)[-1] == 1),
+            tf.shape(prediction)[-1] > 1,
+        )
         target = tf.cond(
-            tf.rank(target) == tf.rank(prediction) - 1,
+            condition,
             lambda: tf.one_hot(
                 tf.cast(target, tf.int32),
                 tf.shape(prediction)[-1],
                 dtype=prediction.dtype,
             ),
-            _reshape_ragged,
+            lambda: target,
         )
+
+        # Makes target shape equal to the predictions tensor, as shape is lost after tf.cond
+        target = tf.reshape(target, tf.shape(prediction))
 
         return prediction, target, sample_weight
 

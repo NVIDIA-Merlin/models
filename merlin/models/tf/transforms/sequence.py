@@ -272,10 +272,12 @@ class SequencePredictNext(SequenceTransform):
 
     def compute_mask(self, inputs, mask=None):
         new_item_id_seq = inputs[self.target_name][:, :-1]
-        self.target_mask = tf.RaggedTensor.from_row_lengths(
+        target_mask = tf.RaggedTensor.from_row_lengths(
             values=tf.ones_like(new_item_id_seq.flat_values, dtype=tf.bool),
             row_lengths=new_item_id_seq.row_lengths(),
         )
+        self.target_mask = tf.squeeze(target_mask, axis=-1)
+
         targets_mask = dict({self.target_name: self.target_mask})
         inputs_mask = dict()
         for k, v in inputs.items():
@@ -357,8 +359,7 @@ class SequencePredictLast(SequenceTransform):
         self._check_seq_inputs_targets(inputs)
 
         # Shifts the target column to be the next item of corresponding input column
-        new_target = tf.squeeze(inputs[self.target_name][:, -1:].to_tensor(), axis=1)
-
+        new_target = tf.squeeze(inputs[self.target_name][:, -1:], axis=1)
         if targets is None:
             targets = dict({self.target_name: new_target})
         elif isinstance(targets, dict):
