@@ -115,7 +115,6 @@
     <span class="n">Embeddings</span><span class="p">,</span>
     <span class="n">SequenceEmbeddingFeatures</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">ListToDense</span><span class="p">,</span> <span class="n">ProcessList</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span><span class="p">,</span> <span class="n">TagsType</span>
 
 <span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;merlin-models&quot;</span><span class="p">)</span>
@@ -124,6 +123,7 @@
 <div class="viewcode-block" id="InputBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.InputBlock.html#merlin.models.tf.InputBlock">[docs]</a><span class="k">def</span> <span class="nf">InputBlock</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">branches</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Block</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -227,7 +227,6 @@
             <span class="n">post</span><span class="p">,</span>
             <span class="n">aggregation</span><span class="o">=</span><span class="n">agg</span><span class="p">,</span>
             <span class="n">seq</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">max_seq_length</span><span class="o">=</span><span class="n">max_seq_length</span><span class="p">,</span>
             <span class="n">add_continuous_branch</span><span class="o">=</span><span class="n">add_continuous_branch</span><span class="p">,</span>
             <span class="n">continuous_tags</span><span class="o">=</span><span class="n">continuous_tags</span><span class="p">,</span>
             <span class="n">continuous_projection</span><span class="o">=</span><span class="n">continuous_projection</span><span class="p">,</span>
@@ -263,25 +262,17 @@
         <span class="n">add_continuous_branch</span>
         <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">continuous_tags</span><span class="p">)</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_schemas</span>
     <span class="p">):</span>
-        <span class="n">pre</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">max_seq_length</span> <span class="ow">and</span> <span class="n">seq</span><span class="p">:</span>
-            <span class="n">pre</span> <span class="o">=</span> <span class="n">ListToDense</span><span class="p">(</span><span class="n">max_seq_length</span><span class="p">)</span>
         <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;continuous&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ContinuousFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
-            <span class="n">schema</span><span class="p">,</span>
-            <span class="n">tags</span><span class="o">=</span><span class="n">continuous_tags</span><span class="p">,</span>
-            <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
+            <span class="n">schema</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">continuous_tags</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span>
         <span class="n">add_embedding_branch</span>
         <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">categorical_tags</span><span class="p">)</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_schemas</span>
     <span class="p">):</span>
         <span class="n">emb_cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">EmbeddingFeatures</span><span class="p">]</span> <span class="o">=</span> <span class="n">SequenceEmbeddingFeatures</span> <span class="k">if</span> <span class="n">seq</span> <span class="k">else</span> <span class="n">EmbeddingFeatures</span>
-        <span class="n">emb_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="n">max_seq_length</span> <span class="ow">and</span> <span class="n">seq</span><span class="p">:</span>
-            <span class="n">emb_kwargs</span><span class="p">[</span><span class="s2">&quot;max_seq_length&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_seq_length</span>
 
         <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;categorical&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emb_cls</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
-            <span class="n">schema</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">categorical_tags</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span><span class="p">,</span> <span class="o">**</span><span class="n">emb_kwargs</span>
+            <span class="n">schema</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">categorical_tags</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">continuous_projection</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">ContinuousEmbedding</span><span class="p">(</span>
@@ -292,7 +283,8 @@
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;continuous_projection&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;is_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;is_input&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <span class="n">INPUT_TAG_TO_BLOCK</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Schema</span><span class="p">],</span> <span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
@@ -409,13 +401,9 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">parsed</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No columns selected for the input block&quot;</span><span class="p">)</span>
 
-    <span class="n">_pre</span> <span class="o">=</span> <span class="n">ProcessList</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">pre</span><span class="p">:</span>
-        <span class="n">_pre</span> <span class="o">=</span> <span class="n">_pre</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">pre</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
         <span class="n">parsed</span><span class="p">,</span>
-        <span class="n">pre</span><span class="o">=</span><span class="n">_pre</span><span class="p">,</span>
+        <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
         <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
         <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
         <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>

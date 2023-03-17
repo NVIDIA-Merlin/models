@@ -119,7 +119,7 @@
 
 <span class="kn">import</span> <span class="nn">merlin.io</span>
 <span class="kn">from</span> <span class="nn">merlin.models.io</span> <span class="kn">import</span> <span class="n">save_merlin_metadata</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">ModelContext</span><span class="p">,</span> <span class="n">PredictionOutput</span><span class="p">,</span> <span class="n">is_input_block</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">ModelContext</span><span class="p">,</span> <span class="n">NoOp</span><span class="p">,</span> <span class="n">PredictionOutput</span><span class="p">,</span> <span class="n">is_input_block</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">SequentialBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.prediction</span> <span class="kn">import</span> <span class="n">Prediction</span><span class="p">,</span> <span class="n">PredictionContext</span><span class="p">,</span> <span class="n">TensorLike</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.tabular</span> <span class="kn">import</span> <span class="n">TabularBlock</span>
@@ -134,7 +134,7 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.base</span> <span class="kn">import</span> <span class="n">ModelOutput</span><span class="p">,</span> <span class="n">ModelOutputType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.contrastive</span> <span class="kn">import</span> <span class="n">ContrastiveOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.tensor</span> <span class="kn">import</span> <span class="n">ProcessList</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.features</span> <span class="kn">import</span> <span class="n">PrepareFeatures</span><span class="p">,</span> <span class="n">expected_input_cols_from_schema</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.search_utils</span> <span class="kn">import</span> <span class="n">find_all_instances_in_layers</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="p">(</span>
@@ -226,18 +226,13 @@
     <span class="k">for</span> <span class="n">output_name</span><span class="p">,</span> <span class="n">output_spec</span> <span class="ow">in</span> <span class="n">signature</span><span class="o">.</span><span class="n">structured_outputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">col_schema</span> <span class="o">=</span> <span class="n">ColumnSchema</span><span class="p">(</span><span class="n">output_name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">output_spec</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">as_numpy_dtype</span><span class="p">)</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="n">output_spec</span><span class="o">.</span><span class="n">shape</span>
-        <span class="k">if</span> <span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="n">is_ragged</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_ragged</span><span class="p">:</span>
-                <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;value_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]}</span>
+        <span class="k">if</span> <span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">col_schema</span> <span class="o">=</span> <span class="n">ColumnSchema</span><span class="p">(</span>
                 <span class="n">output_name</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">output_spec</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">as_numpy_dtype</span><span class="p">,</span>
-                <span class="n">is_list</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">is_ragged</span><span class="o">=</span><span class="n">is_ragged</span><span class="p">,</span>
-                <span class="n">properties</span><span class="o">=</span><span class="n">properties</span><span class="p">,</span>
+                <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
             <span class="p">)</span>
+
         <span class="n">output_schema</span><span class="o">.</span><span class="n">column_schemas</span><span class="p">[</span><span class="n">output_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_schema</span>
 
     <span class="k">return</span> <span class="n">output_schema</span>
@@ -247,20 +242,27 @@
 <span class="k">class</span> <span class="nc">ModelBlock</span><span class="p">(</span><span class="n">Block</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Block that extends `tf.keras.Model` to make it saveable.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">Block</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">Block</span><span class="p">,</span> <span class="n">prep_features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">block</span> <span class="o">=</span> <span class="n">block</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;set_schema&quot;</span><span class="p">):</span>
             <span class="n">block_schema</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="s2">&quot;schema&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_schema</span><span class="p">(</span><span class="n">block_schema</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">prep_features</span> <span class="o">=</span> <span class="n">prep_features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_features</span> <span class="k">else</span> <span class="n">NoOp</span><span class="p">()</span>
+
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;features&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">outputs</span>
 
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
+        <span class="n">input_shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">,</span> <span class="s2">&quot;_is_default&quot;</span><span class="p">):</span>
@@ -337,6 +339,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
     <span class="nd">@property</span>
@@ -480,7 +483,7 @@
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;should_compute_train_metrics_for_batch&quot;</span><span class="p">,</span>
             <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
-            <span class="n">initial_value</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">num_v1_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prediction_tasks</span><span class="p">)</span>
@@ -939,8 +942,12 @@
             <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
             <span class="c1"># Ensuring targets are one-hot encoded if they are not</span>
+            <span class="n">condition</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">condition</span><span class="p">,</span>
                 <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
                     <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
                     <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
@@ -1062,7 +1069,6 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
     <span class="k">def</span> <span class="nf">train_compute_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">PredictionOutput</span><span class="p">,</span> <span class="n">compiled_metrics</span><span class="p">:</span> <span class="n">MetricsContainer</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns metrics for the outputs of this step.</span>
 
@@ -1071,9 +1077,11 @@
         <span class="c1"># Compiled_metrics as an argument here because it is re-defined by `model.compile()`</span>
         <span class="c1"># And checking `self.compiled_metrics` inside this function results in a reference to</span>
         <span class="c1"># a deleted version of `compiled_metrics` if the model is re-compiled.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_compute_train_metrics_for_batch</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_metrics</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">compiled_metrics</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_results</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_should_compute_train_metrics_for_batch</span><span class="p">,</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_metrics</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">compiled_metrics</span><span class="p">),</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_results</span><span class="p">(),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">compute_metrics</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1418,6 +1426,25 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Merlin Model class</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    context : Optional[ModelContext], optional</span>
+<span class="sd">        ModelContext is used to store/retrieve public variables across blocks,</span>
+<span class="sd">        by default None.</span>
+<span class="sd">    pre : Optional[BlockType], optional</span>
+<span class="sd">        Optional `Block` instance to apply before the `call` method of the Two-Tower block</span>
+<span class="sd">    post : Optional[BlockType], optional</span>
+<span class="sd">        Optional `Block` instance to apply on both outputs of Two-tower model</span>
+<span class="sd">        to output a single Tensor.</span>
+<span class="sd">    schema : Optional[Schema], optional</span>
+<span class="sd">        The `Schema` object with the input features.</span>
+<span class="sd">    prep_features: Optional[bool]</span>
+<span class="sd">        Whether this block should prepare list and scalar features</span>
+<span class="sd">        from the dataloader format. By default True.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="n">blocks</span><span class="p">:</span> <span class="n">Block</span><span class="p">,</span>
@@ -1425,6 +1452,7 @@
         <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">prep_features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -1450,7 +1478,9 @@
             <span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">input_block_schemas</span><span class="p">,</span> <span class="n">Schema</span><span class="p">())</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span> <span class="o">=</span> <span class="n">ProcessList</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prep_features</span> <span class="o">=</span> <span class="n">prep_features</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_frozen_blocks</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">save</span><span class="p">(</span>
@@ -1483,7 +1513,7 @@
         <span class="p">)</span>
         <span class="n">input_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
         <span class="n">output_schema</span> <span class="o">=</span> <span class="n">get_output_schema</span><span class="p">(</span><span class="n">export_path</span><span class="p">)</span>
-        <span class="n">save_merlin_metadata</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">input_schema</span><span class="p">,</span> <span class="n">output_schema</span><span class="p">)</span>
+        <span class="n">save_merlin_metadata</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="n">input_schema</span><span class="p">,</span> <span class="n">output_schema</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">export_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Model&quot;</span><span class="p">:</span>
@@ -1496,28 +1526,33 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">export_path</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_maybe_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="o">.</span><span class="n">column_names</span>
-            <span class="p">):</span>
-                <span class="n">model_input_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
-                <span class="n">call_input_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">_check_schema_and_inputs_matching</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">):</span>
+            <span class="n">model_expected_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">expected_input_cols_from_schema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">call_input_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">model_expected_features</span> <span class="o">!=</span> <span class="n">call_input_features</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;Model called with a different set of features &quot;</span>
                     <span class="s2">&quot;compared with the input schema it was configured with. &quot;</span>
                     <span class="s2">&quot;Please check that the inputs passed to the model are only  &quot;</span>
                     <span class="s2">&quot;those required by the model. If you&#39;re using a Merlin Dataset, &quot;</span>
                     <span class="s2">&quot;the `schema` property can be changed to control the features being returned. &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Model input features:</span><span class="se">\n\t</span><span class="si">{</span><span class="n">model_input_features</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Model expected features:</span><span class="se">\n\t</span><span class="si">{</span><span class="n">model_expected_features</span><span class="si">}</span><span class="s2">&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Call input features:</span><span class="se">\n\t</span><span class="si">{</span><span class="n">call_input_features</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Features in model only:&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">model_input_features</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">call_input_features</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Features in call only:&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">call_input_features</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">model_input_features</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Features expected by model input schema only:&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">model_expected_features</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">call_input_features</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Features provided in inputs only:&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">call_input_features</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">model_expected_features</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
-            <span class="n">_ragged_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_maybe_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_schema_and_inputs_matching</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">_ragged_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_features</span><span class="p">:</span>
+                <span class="n">_ragged_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">feature_shapes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_ragged_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
             <span class="n">feature_dtypes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_ragged_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
@@ -1539,7 +1574,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">last_layer</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_features</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
+            <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
@@ -1565,14 +1602,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">built</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">features</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">features</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_features</span><span class="p">:</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">features</span>
         <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">process_list</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
+            <span class="n">features</span><span class="p">,</span>
             <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span>
             <span class="n">training</span><span class="o">=</span><span class="n">training</span><span class="p">,</span>
             <span class="n">testing</span><span class="o">=</span><span class="n">testing</span><span class="p">,</span>
         <span class="p">)</span>
-
-        <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">:</span>
             <span class="n">outputs</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_child</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
 
@@ -1871,6 +1912,10 @@
 <span class="k">class</span> <span class="nc">RetrievalModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Embedding-based retrieval model.&quot;&quot;&quot;</span>
 
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prep_features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -2106,7 +2151,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">encoder</span> <span class="o">=</span> <span class="n">query</span>
 
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">encoder</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">encoder</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">prep_features</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_query_name</span> <span class="o">=</span> <span class="n">query_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_name</span> <span class="o">=</span> <span class="n">candidate_name</span>
