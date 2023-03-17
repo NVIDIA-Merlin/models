@@ -98,7 +98,10 @@
 <dt id="merlin.models.tf.EmbeddingTable">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">EmbeddingTable</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">merlin.models.tf.inputs.embedding.EmbeddingTableBase</span></code></p>
-<p>Embedding table that is backed by a standard Keras Embedding Layer.</p>
+<p>Embedding table that is backed by a standard Keras Embedding Layer.
+It accepts as input features for lookup tf.Tensor, tf.RaggedTensor,
+and tf.SparseTensor which might be 2D (batch_size, 1) for scalars
+or 3d (batch_size, seq_length, 1) for sequential features</p>
 <blockquote>
 <div><p>dim: Dimension of the dense embedding.
 col_schema: ColumnSchema</p>

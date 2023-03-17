@@ -107,9 +107,8 @@ the sequential input features are truncated in the last position.</p>
 <li><p><strong>schema</strong> (<em>Schema</em>) – The schema with the sequential columns to be truncated</p></li>
 <li><p><strong>target</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>Tags</em><em>, </em><em>ColumnSchema</em><em>]</em>) – The sequential input column that will be used to extract the target</p></li>
 <li><p><strong>pre</strong> (<em>Optional</em><em>[</em><em>BlockType</em><em>]</em><em>, </em><em>optional</em>) – A block that is called before this method call().
-If not set, the ListToRagged() block is applied to convert
-the tuple representation of sequential features to RaggedTensors,
-so that the tensors sequences can be shifted/truncated</p></li>
+P.s. The PrepareFeatures() is called automatically before the pre
+to convert the list features representation</p></li>
 </ul>
 </dd>
 </dl>

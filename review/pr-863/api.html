@@ -185,7 +185,7 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.InputBlockV2.html#merlin.models.tf.InputBlockV2" title="merlin.models.tf.InputBlockV2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputBlockV2</span></code></a>([schema, categorical, …])</p></td>
 <td><p>The entry block of the model to process input features from a schema.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.InputBlock.html#merlin.models.tf.InputBlock" title="merlin.models.tf.InputBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputBlock</span></code></a>(schema[, branches, post, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.InputBlock.html#merlin.models.tf.InputBlock" title="merlin.models.tf.InputBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputBlock</span></code></a>(schema[, branches, pre, post, …])</p></td>
 <td><p>The entry block of the model to process input features from a schema.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.Continuous.html#merlin.models.tf.Continuous" title="merlin.models.tf.Continuous"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Continuous</span></code></a>(*args, **kwargs)</p></td>
@@ -395,14 +395,8 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MapValues.html#merlin.models.tf.MapValues" title="merlin.models.tf.MapValues"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MapValues</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Layer to map values of a dictionary of tensors.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ListToDense.html#merlin.models.tf.ListToDense" title="merlin.models.tf.ListToDense"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ListToDense</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Convert all list-inputs to dense-tensors.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ListToRagged.html#merlin.models.tf.ListToRagged" title="merlin.models.tf.ListToRagged"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ListToRagged</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Convert all list (multi-hot/sequential) features to tf.RaggedTensor</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ListToSparse.html#merlin.models.tf.ListToSparse" title="merlin.models.tf.ListToSparse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ListToSparse</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Convert all list-inputs to sparse-tensors.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.PrepareFeatures.html#merlin.models.tf.PrepareFeatures" title="merlin.models.tf.PrepareFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PrepareFeatures</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Prepares scalar and list (multi-hot/sequential) features to be used with a Merlin model.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ToSparse.html#merlin.models.tf.ToSparse" title="merlin.models.tf.ToSparse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ToSparse</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Convert the features provided in the schema to sparse tensors.</p></td>
