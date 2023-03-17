@@ -160,10 +160,8 @@ def build_arg_parser():
     parser.add_argument("--mmoe_num_dlrm_experts", default=0, type=int, help="")
 
     # CGC and PLE
-    parser.add_argument("--cgc_num_task_mlp_experts", default=1, type=int, help="")
-    parser.add_argument("--cgc_num_shared_mlp_experts", default=2, type=int, help="")
-    parser.add_argument("--cgc_num_task_dcn_experts", default=0, type=int, help="")
-    parser.add_argument("--cgc_num_shared_dcn_experts", default=0, type=int, help="")
+    parser.add_argument("--cgc_num_task_experts", default=1, type=int, help="")
+    parser.add_argument("--cgc_num_shared_experts", default=2, type=int, help="")
     parser.add_argument("--ple_num_layers", default=1, type=int, help="")
 
     # hyperparams for multi-task (MMOE, CGC, PLE)

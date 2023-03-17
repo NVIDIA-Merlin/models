@@ -22,7 +22,6 @@ def get_datasets(args):
 
 
 class RankingTrainEvalRunner:
-
     logger = None
     train_ds = None
     eval_ds = None
@@ -86,7 +85,10 @@ class RankingTrainEvalRunner:
                 schema, args.in_batch_negatives_train
             )
         self.train_loader = mm.Loader(
-            self.train_ds, batch_size=args.train_batch_size, schema=schema, **train_loader_kwargs,
+            self.train_ds,
+            batch_size=args.train_batch_size,
+            schema=schema,
+            **train_loader_kwargs,
         )
 
         eval_loader_kwargs = {}
@@ -94,7 +96,10 @@ class RankingTrainEvalRunner:
             eval_loader_kwargs["transform"] = InBatchNegatives(schema, args.in_batch_negatives_eval)
 
         self.eval_loader = mm.Loader(
-            self.eval_ds, batch_size=args.eval_batch_size, schema=schema, **eval_loader_kwargs,
+            self.eval_ds,
+            batch_size=args.eval_batch_size,
+            schema=schema,
+            **eval_loader_kwargs,
         )
 
     def get_metrics(self):
@@ -130,9 +135,13 @@ class RankingTrainEvalRunner:
             )
 
         if self.args.optimizer == "adam":
-            opt = tf.keras.optimizers.Adam(learning_rate=lerning_rate,)
+            opt = tf.keras.optimizers.Adam(
+                learning_rate=lerning_rate,
+            )
         elif self.args.optimizer == "adagrad":
-            opt = tf.keras.optimizers.Adagrad(learning_rate=lerning_rate,)
+            opt = tf.keras.optimizers.Adagrad(
+                learning_rate=lerning_rate,
+            )
         else:
             raise ValueError("Invalid optimizer")
 
@@ -150,7 +159,9 @@ class RankingTrainEvalRunner:
 
         metrics = self.get_metrics()
         model.compile(
-            self.get_optimizer(), run_eagerly=False, metrics=metrics,
+            self.get_optimizer(),
+            run_eagerly=False,
+            metrics=metrics,
         )
 
         callbacks = get_callbacks(self.args)
@@ -195,7 +206,10 @@ class RankingTrainEvalRunner:
 
         metrics = self.get_metrics()
         model.compile(
-            self.get_optimizer(), run_eagerly=False, metrics=metrics, loss_weights=loss_weights,
+            self.get_optimizer(),
+            run_eagerly=False,
+            metrics=metrics,
+            loss_weights=loss_weights,
         )
         callbacks = get_callbacks(self.args)
 
@@ -225,9 +239,7 @@ class RankingTrainEvalRunner:
         )
 
         auc_metric_results = {
-            k.split("/")[0]: v
-            for k, v in eval_metrics.items()
-            if "binary_classification_task_auc" in k
+            k.split("/")[0]: v for k, v in eval_metrics.items() if "binary_output/auc" in k
         }
 
         auc_metric_results = {f"{k}-auc": v for k, v in auc_metric_results.items()}

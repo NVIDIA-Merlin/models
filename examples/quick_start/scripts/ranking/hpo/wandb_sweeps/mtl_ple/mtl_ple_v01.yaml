@@ -1,13 +1,53 @@
 program: ranking_train_eval.py
 method: bayes
 metric:
-  name: auc_improv_avg-final
+  name: auc_avg
   goal: maximize
 parameters:
+  tasks:
+    distribution: categorical
+    values:
+      - "click,like,share,follow"
+  tasks_sample_space:
+    distribution: categorical
+    values:
+      - ",click,click,click"
+  mtl_pos_class_weight_click:
+    distribution: int_uniform
+    min: 1
+    max: 10
+  mtl_pos_class_weight_like:
+    distribution: int_uniform
+    min: 1
+    max: 100
+  mtl_pos_class_weight_share:
+    distribution: int_uniform
+    min: 1
+    max: 100
+  mtl_pos_class_weight_follow:
+    distribution: int_uniform
+    min: 1
+    max: 100
+  mtl_loss_weight_click:
+    distribution: categorical
+    values:
+      - 5
+  mtl_loss_weight_like:
+    distribution: int_uniform
+    min: 1
+    max: 10
+  mtl_loss_weight_share:
+    distribution: int_uniform
+    min: 1
+    max: 10
+  mtl_loss_weight_follow:
+    distribution: int_uniform
+    min: 1
+    max: 10
   activation:
     distribution: categorical
     values:
-      - relu  
+      - relu
   model:
     distribution: categorical
     values:
@@ -49,6 +89,19 @@ parameters:
       - "128,64"
       - "256,128,64"
       - "256,128"
+
+  ple_num_layers:
+    distribution: int_uniform
+    max: 3
+    min: 1
+  cgc_num_task_experts:
+    distribution: int_uniform
+    max: 2
+    min: 1
+  cgc_num_shared_experts:
+    distribution: int_uniform
+    max: 4
+    min: 1
   gate_dim:
     distribution: categorical
     values:
@@ -59,31 +112,12 @@ parameters:
     distribution: categorical
     values:
       - "True"
-      - "False"
   tower_layers:
     distribution: categorical
     values:
-      - "64"  
-  ple_num_task_mlp_experts:
-    distribution: int_uniform
-    max: 2
-    min: 1
-  ple_num_task_dcn_experts:
-    distribution: categorical
-    values:
-      - 0
-  ple_num_shared_mlp_experts:
-    distribution: int_uniform
-    max: 4
-    min: 1
-  ple_num_shared_dcn_experts:
-    distribution: categorical
-    values:
-      - 0
-  tasks:
-    distribution: categorical
-    values:
-      - all
+      - "64"
+      - "64,32"
+      - "128,64"
   train_batch_size:
     distribution: categorical
     values:
@@ -93,46 +127,8 @@ parameters:
   eval_batch_size:
     distribution: categorical
     values:
-      - 65536  
+      - 65536
   epochs:
     distribution: categorical
     values:
       - 1
-      
-  mtl_loss_weight_click:
-    distribution: categorical
-    values:
-      - 1
-  mtl_loss_weight_like:
-    distribution: categorical
-    values:
-      - 1
-  mtl_loss_weight_share:
-    distribution: categorical
-    values:
-      - 1
-  mtl_loss_weight_follow:
-    distribution: categorical
-    values:
-      - 1  
-  mtl_loss_weight_watching_times:
-    distribution: categorical
-    values:
-      - 1  
-
-  mtl_pos_class_weight_click:
-    distribution: categorical
-    values:
-      - 1  
-  mtl_pos_class_weight_like:
-    distribution: categorical
-    values:
-      - 1  
-  mtl_pos_class_weight_share:
-    distribution: categorical
-    values:
-      - 1  
-  mtl_pos_class_weight_follow:
-    distribution: categorical
-    values:
-      - 1  

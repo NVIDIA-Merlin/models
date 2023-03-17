@@ -29,6 +29,8 @@ def get_mtl_loss_weights(args, targets):
     flattened_targets = [y for x in targets.values() for y in x]
     loss_weights = {
         target: float(args[f"{MtlArgsPrefix.LOSS_WEIGHT_ARG_PREFIX.value}{target}"])
+        if f"{MtlArgsPrefix.LOSS_WEIGHT_ARG_PREFIX.value}{target}" in args
+        else 1.0
         for target in flattened_targets
     }
 
@@ -44,6 +46,8 @@ def get_mtl_loss_weights(args, targets):
         mtl_loss_weights.update(
             {
                 f"{target}/regression_output": loss_weights[target]
+                if target in loss_weights
+                else 1.0
                 for target in targets[Task.REGRESSION]
             }
         )
