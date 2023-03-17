@@ -43,14 +43,12 @@ jobs:
           fi
           pip install "pandas>=1.2.0,<1.4.0dev0"
           pip install "NVTabular@git+https://github.com/NVIDIA-Merlin/NVTabular.git@$branch"
-          #pip install "merlin-dataloader@git+https://github.com/NVIDIA-Merlin/dataloader.git@$branch"
-          pip install merlin-dataloader@git+https://github.com/bschifferer/dataloader.git@change_output
+          pip install "merlin-dataloader@git+https://github.com/NVIDIA-Merlin/dataloader.git@$branch"          
           pip install "merlin-core@git+https://github.com/NVIDIA-Merlin/core.git@$branch"
       - name: Install dependencies
         run: |
           python -m pip install "tensorflow${{ matrix.tensorflow-version }}"
-          python -m pip install .[tensorflow-dev]
-          pip install merlin-dataloader@git+https://github.com/bschifferer/dataloader.git@change_output
+          python -m pip install .[tensorflow-dev]          
       - name: Build
         run: |
           python setup.py develop
@@ -100,14 +98,12 @@ jobs:
           fi
           pip install "pandas>=1.2.0,<1.4.0dev0"
           pip install "NVTabular@git+https://github.com/NVIDIA-Merlin/NVTabular.git@$branch"
-          #pip install "merlin-dataloader@git+https://github.com/NVIDIA-Merlin/dataloader.git@$branch"
-          pip install merlin-dataloader@git+https://github.com/bschifferer/dataloader.git@change_output
+          pip install "merlin-dataloader@git+https://github.com/NVIDIA-Merlin/dataloader.git@$branch"          
           pip install "merlin-core@git+https://github.com/NVIDIA-Merlin/core.git@$branch"
       - name: Install dependencies
         run: |
           python -m pip install "tensorflow${{ matrix.tensorflow-version }}"
-          python -m pip install .[tensorflow-dev]
-          pip install merlin-dataloader@git+https://github.com/bschifferer/dataloader.git@change_output
+          python -m pip install .[tensorflow-dev]          
       - name: Build
         run: |
           python setup.py develop
