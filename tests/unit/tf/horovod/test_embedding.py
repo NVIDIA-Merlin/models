@@ -27,15 +27,17 @@ class TestSOKEmbedding:
         weights = {}
         indices = np.array([0, 1, 2])
         values = np.arange(3 * 16).reshape(3, 16)
-        weights["indice"]=indices
-        weights["values"]=values
-        embedding = SOKEmbedding.from_pretrained(16, vocab_sizes=[10], data=[weights], name='item_id')
+        weights["indice"] = indices
+        weights["values"] = values
+        embedding = SOKEmbedding.from_pretrained(
+            16, vocab_sizes=[10], data=[weights], name="item_id"
+        )
         inputs = [tf.ragged.constant([[0, 1, 0], [1, 0]])]
         combiners = ["sum"]
         outputs = embedding(inputs, combiners)
         assert outputs[0].shape == (2, 16)
 
     def test_sok_embedding_config(self):
-        embedding = SOKEmbedding(16, self.sample_column_schema, vocab_sizes=[10], name= 'item_id')
+        embedding = SOKEmbedding(16, self.sample_column_schema, vocab_sizes=[10], name="item_id")
         config = embedding.get_config()
         _ = SOKEmbedding.from_config(config)

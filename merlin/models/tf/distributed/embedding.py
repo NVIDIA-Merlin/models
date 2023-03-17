@@ -91,7 +91,7 @@ class SOKEmbedding(EmbeddingTableBase):
                         )
                     else:
                         v = sok.DynamicVariable(
-                            dimension=self._embedding_vec_size, initializer='random'
+                            dimension=self._embedding_vec_size, initializer="random"
                         )
                         indices = tf.convert_to_tensor(initializer[i][0], dtype=tf.int64)
                         values = tf.convert_to_tensor(initializer[i][1], dtype=tf.float32)
@@ -175,7 +175,7 @@ class SOKEmbedding(EmbeddingTableBase):
         if not col_schema:
             if not name:
                 raise ValueError("`name` is required when not using a ColumnSchema")
-            col_schema = create_categorical_column(name, sum(vocab_sizes)-1)
+            col_schema = create_categorical_column(name, sum(vocab_sizes) - 1)
 
         weights = []
         for i, item in enumerate(data):
@@ -226,7 +226,7 @@ class SOKEmbedding(EmbeddingTableBase):
             *schema,
             vocab_sizes=vocab_size,
             initializer=initializer,
-            use_dynamic_variable=use_dynamic_variable, 
+            use_dynamic_variable=use_dynamic_variable,
             localized=localized,
             **config,
         )
