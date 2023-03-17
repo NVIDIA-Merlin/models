@@ -1,7 +1,41 @@
 import pytest
 import torch
 
-from merlin.models.torch.core.aggregation import SumResidual
+from merlin.models.torch.core.aggregation import ConcatFeatures, SumResidual
+
+
+class TestConcatFeatures:
+    def test_concat_features_valid_input(self):
+        concat = ConcatFeatures(dim=1)
+        input_tensors = {
+            "a": torch.randn(2, 3),
+            "b": torch.randn(2, 4),
+        }
+        output = concat(input_tensors)
+        assert output.shape == (2, 7)
+
+    def test_concat_features_same_order(self):
+        concat = ConcatFeatures(dim=2)
+        a = torch.randn(2, 3, 4)
+        b = torch.randn(2, 3, 5)
+        output_a = concat({"a": a, "b": b})
+        output_b = concat(
+            {
+                "b": b,
+                "a": a,
+            }
+        )
+
+        assert torch.all(torch.eq(output_a, output_b))
+
+    def test_concat_features_invalid_input(self):
+        concat = ConcatFeatures(dim=1)
+        input_tensors = {
+            "a": torch.randn(2, 3),
+            "b": torch.randn(3, 3),
+        }
+        with pytest.raises(RuntimeError, match="Input tensor shapes don't match"):
+            concat(input_tensors)
 
 
 class TestSumResidual:

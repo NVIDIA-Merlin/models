@@ -4,6 +4,58 @@ import torch
 from torch import nn
 
 
+class ConcatFeatures(nn.Module):
+    """Concatenate tensors along a specified dimension.
+
+    Attributes
+    ----------
+    dim : int
+        The dimension along which the tensors will be concatenated.
+
+    """
+
+    def __init__(self, dim: int = -1):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        """
+        Concatenates input tensors along the specified dimension.
+
+        Parameters
+        ----------
+        inputs : Dict[str, torch.Tensor]
+            A dictionary where keys are the names of the tensors
+            and values are the tensors to be concatenated.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor that is the result of concatenating
+            the input tensors along the specified dimension.
+
+        Raises
+        ------
+        RuntimeError
+            If the input tensor shapes don't match for concatenation
+            along the specified dimension.
+        """
+        sorted_tensors = [inputs[name] for name in sorted(inputs.keys())]
+        if not all(
+            (
+                t.shape[: self.dim] == sorted_tensors[0].shape[: self.dim]
+                and t.shape[self.dim + 1 :] == sorted_tensors[0].shape[self.dim + 1 :]
+            )
+            for t in sorted_tensors
+        ):
+            raise RuntimeError(
+                "Input tensor shapes don't match for concatenation",
+                "along the specified dimension.",
+            )
+
+        return torch.cat(sorted_tensors, dim=self.dim)
+
+
 class SumResidual(nn.Module):
     """
     SumResidual module applies a residual connection to input tensors, where the skip-connection is
