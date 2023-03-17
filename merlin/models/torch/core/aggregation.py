@@ -31,7 +31,7 @@ class SumResidual(nn.Module):
         super().__init__()
 
         # Check if activation is a string or a callable object
-        if not isinstance(activation, str) and not callable(activation):
+        if activation and not isinstance(activation, str) and not callable(activation):
             raise ValueError("activation should be a string or a callable object")
 
         if isinstance(activation, str):
@@ -69,13 +69,22 @@ class SumResidual(nn.Module):
             `shortcut_name` key.
         """
         if self.shortcut_name not in inputs:
-            raise ValueError(f"Shortcut '{self.shortcut_name}' not found in the inputs dictionary")
+            raise RuntimeError(
+                f"Shortcut '{self.shortcut_name}' not found in the inputs dictionary"
+            )
 
         shortcut = inputs[self.shortcut_name]
         outputs = {}
         for key, val in inputs.items():
             if key == self.shortcut_name:
                 continue
+
+            if val.shape != shortcut.shape:
+                raise RuntimeError(
+                    f"Shape mismatch: {key} tensor ({val.shape}) and shortcut ",
+                    f"tensor ({shortcut.shape}) must have the same shape",
+                )
+
             residual = val + shortcut
             if self.activation:
                 residual = self.activation(residual)

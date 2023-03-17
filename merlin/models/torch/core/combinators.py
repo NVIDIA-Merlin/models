@@ -1,6 +1,7 @@
 from functools import reduce
-from typing import Dict, Union
+from typing import Callable, Dict, Union
 
+import torch
 from torch import nn
 
 from merlin.models.torch.core.aggregation import SumResidual
@@ -70,36 +71,20 @@ class ParallelBlock(TabularBlock):
 class WithShortcut(ParallelBlock):
     """Parallel block for a shortcut connection.
 
-    This class broadcasts the inputs to 2 branches, one acting as the shortcut connection.
-    The structure of the connections can be visualized as follows:
-
-                          +--------+
-                          | inputs |
-                          +--------+
-                             |
-                             |
-                          +---------+
-                          |         |
-                          |    +----v---+
-                          |    |        |
-                          |    |shortcut|
-                          |    |        |
-                          |    +----+---+
-                          |         |
-                          |         |
-                          |    +----v---+
-                          |    |        |
-                          +--->| output |
-                               |        |
-                               +--------+
+    This block will apply `module` to it's inputs  outputs the following:
+    ```python
+    {
+        module_output_name: module(inputs),
+        shortcut_output_name: inputs
+    }
+    ```
 
     Parameters:
     -----------
-    input : nn.Module
+    module : nn.Module
         The input module.
     aggregation : nn.Module or None, optional
-        Optional module that aggregates the dictionary output of the
-        parallel block into a single tensor.
+        Optional module that aggregates the dictionary into a single tensor.
         Defaults to None.
     post : nn.Module or None, optional
         Optional module that takes in a dict of tensors and outputs a transformed dict of tensors.
@@ -132,11 +117,35 @@ class WithShortcut(ParallelBlock):
 
 
 class ResidualBlock(WithShortcut):
+    """
+    Residual block for a shortcut connection with a sum operation and optional activation.
+
+    Parameters
+    ----------
+    module : nn.Module
+        The input module.
+    activation : Union[Callable[[torch.Tensor], torch.Tensor], str], optional
+        Activation function to be applied after the sum operation.
+        It can be a callable or a string representing a standard activation function.
+        Defaults to None.
+    post : nn.Module or None, optional
+        Optional module that takes in a dict of tensors and outputs a transformed dict of tensors.
+        Defaults to None.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the superclass WithShortcut.
+
+    Examples
+    --------
+    >>> linear = nn.Linear(5, 3)
+    >>> residual_block = ResidualBlock(linear, activation=nn.ReLU())
+
+    """
+
     def __init__(
         self,
         module: nn.Module,
         *,
-        activation=None,
+        activation: Union[Callable[[torch.Tensor], torch.Tensor], str] = None,
         post=None,
         **kwargs,
     ):

@@ -43,7 +43,7 @@ class TestSumResidual:
         }
 
         with pytest.raises(
-            ValueError, match="Shortcut 'shortcut' not found in the inputs dictionary"
+            RuntimeError, match="Shortcut 'shortcut' not found in the inputs dictionary"
         ):
             sum_residual(inputs)
 
