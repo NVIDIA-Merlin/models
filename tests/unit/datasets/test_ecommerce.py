@@ -61,10 +61,14 @@ def test_synthetic_aliccp_raw_data(tmp_path):
     output_files = sorted(tmp_path.glob("*/*"))
     assert output_files == [
         Path(f"{tmp_path}/train/.merlin"),
+        Path(f"{tmp_path}/train/_file_list.txt"),
         Path(f"{tmp_path}/train/_metadata"),
+        Path(f"{tmp_path}/train/_metadata.json"),
         Path(f"{tmp_path}/train/part_0.parquet"),
         Path(f"{tmp_path}/valid/.merlin"),
+        Path(f"{tmp_path}/valid/_file_list.txt"),
         Path(f"{tmp_path}/valid/_metadata"),
+        Path(f"{tmp_path}/valid/_metadata.json"),
         Path(f"{tmp_path}/valid/part_0.parquet"),
         Path(f"{tmp_path}/workflow/categories"),
         Path(f"{tmp_path}/workflow/metadata.json"),
@@ -73,11 +77,7 @@ def test_synthetic_aliccp_raw_data(tmp_path):
 
     metadata_files = tmp_path.glob("*/*.merlin/*")
     assert sorted(metadata_files) == [
-        Path(f"{tmp_path}/train/.merlin/_file_list.txt"),
-        Path(f"{tmp_path}/train/.merlin/_metadata.json"),
         Path(f"{tmp_path}/train/.merlin/schema.json"),
-        Path(f"{tmp_path}/valid/.merlin/_file_list.txt"),
-        Path(f"{tmp_path}/valid/.merlin/_metadata.json"),
         Path(f"{tmp_path}/valid/.merlin/schema.json"),
     ]
 
