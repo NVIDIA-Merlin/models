@@ -38,14 +38,13 @@ class ParallelBlock(TabularBlock):
         if all(isinstance(x, dict) for x in inputs):
             _parallel_dict = reduce(lambda a, b: dict(a, **b), inputs)
         elif all(isinstance(x, nn.Module) for x in inputs):
-            _parallel_dict = {str(i): m for i, m in enumerate(inputs)}
+            _parallel_dict = {i: m for i, m in enumerate(inputs)}
         else:
             raise ValueError(f"Invalid input. Got: {inputs}")
 
+        self.parallel_dict = _parallel_dict
         for key, val in _parallel_dict.items():
-            self.add_module(key, val)
-
-        self.parallel_dict = self._modules
+            self.add_module(str(key), val)
 
     def forward(self, inputs, **kwargs):
         """
@@ -65,7 +64,7 @@ class ParallelBlock(TabularBlock):
         """
         outputs = {}
 
-        for name, module in self._modules.items():
+        for name, module in self.parallel_dict.items():
             module_inputs = inputs  # TODO: Add filtering when adding schema
             out = apply_module(module, module_inputs, **kwargs)
             if not isinstance(out, dict):

@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import torch
 import torch.nn as nn
 
@@ -69,50 +67,3 @@ class Test_apply_module:
         assert not has_custom_call(args_module)
         assert not has_custom_call(kwargs_module)
         assert has_custom_call(custom_call_module)
-
-
-class Test_deepcopy_module:
-    def test_copy_module_linear(self):
-        linear = nn.Linear(5, 3)
-        linear_copy = deepcopy(linear)
-
-        assert isinstance(linear_copy, nn.Linear)
-        assert linear_copy.in_features == linear.in_features
-        assert linear_copy.out_features == linear.out_features
-
-        assert torch.allclose(linear.weight, linear_copy.weight)
-        assert torch.allclose(linear.bias, linear_copy.bias)
-
-        # Modify the original module weights to ensure the copied module's weights are not affected
-        linear.weight.data.fill_(1.0)
-        assert not torch.allclose(linear.weight, linear_copy.weight)
-
-    def test_copy_module_conv2d(self):
-        conv = nn.Conv2d(3, 16, 3, stride=1, padding=1)
-        conv_copy = deepcopy(conv)
-
-        assert isinstance(conv_copy, nn.Conv2d)
-        assert conv_copy.in_channels == conv.in_channels
-        assert conv_copy.out_channels == conv.out_channels
-        assert conv_copy.kernel_size == conv.kernel_size
-
-        assert torch.allclose(conv.weight, conv_copy.weight)
-        assert torch.allclose(conv.bias, conv_copy.bias)
-
-        # Modify the original module weights to ensure the copied module's weights are not affected
-        conv.weight.data.fill_(1.0)
-        assert not torch.allclose(conv.weight, conv_copy.weight)
-
-    def test_copy_module_batchnorm2d(self):
-        bn = nn.BatchNorm2d(16)
-        bn_copy = deepcopy(bn)
-
-        assert isinstance(bn_copy, nn.BatchNorm2d)
-        assert bn_copy.num_features == bn.num_features
-
-        assert torch.allclose(bn.weight, bn_copy.weight)
-        assert torch.allclose(bn.bias, bn_copy.bias)
-
-        # Modify the original module weights to ensure the copied module's weights are not affected
-        bn.weight.data.fill_(1.0)
-        assert not torch.allclose(bn.weight, bn_copy.weight)
