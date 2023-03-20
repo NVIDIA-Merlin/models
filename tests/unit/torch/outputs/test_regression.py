@@ -3,6 +3,8 @@ import torch
 from torch import nn
 from torchmetrics import MeanSquaredError
 
+from merlin.models.torch.blocks.mlp import MLPBlock
+from merlin.models.torch.core.combinators import SequentialBlock
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.schema import ColumnSchema
@@ -45,5 +47,13 @@ class TestRegressionOutput:
 
         ro = RegressionOutput()
         output = ro(batch)
+
+        assert output.shape == (2, 1)
+
+    def test_forward_with_mlp(self):
+        batch = torch.randn(2, 3)
+
+        block = SequentialBlock(MLPBlock([5, 3]), RegressionOutput())
+        output = block(batch)
 
         assert output.shape == (2, 1)
