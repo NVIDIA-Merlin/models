@@ -16,6 +16,7 @@
 import tensorflow as tf
 
 import merlin.models.tf as mm
+from merlin.schema import ColumnSchema, Schema
 
 
 def test_expand_dims_same_axis():
@@ -73,14 +74,23 @@ def test_list_to_dense():
             tf.random.uniform((NUM_ROWS, 4, 32), minval=1, maxval=100, dtype=tf.int32)
         ),
     }
-    list_to_dense_op = mm.ListToDense(max_seq_length=MAX_LEN)
+
+    schema = Schema(
+        [
+            ColumnSchema("cont_feat", dtype="float32").with_shape((NUM_ROWS,)),
+            ColumnSchema("multi_hot_categ_feat", dtype="int32").with_shape((NUM_ROWS, MAX_LEN)),
+            ColumnSchema("multi_hot_embedding_feat", dtype="int32").with_shape(
+                (NUM_ROWS, MAX_LEN, 32)
+            ),
+        ]
+    )
+
+    list_to_dense_op = mm.ToDense(schema)
     dense_inputs = list_to_dense_op(inputs)
-    dense_tensor = list_to_dense_op(inputs["multi_hot_embedding_feat"])
-    output_shape = list_to_dense_op.compute_output_shape(inputs["multi_hot_embedding_feat"].shape)
+    output_shapes = list_to_dense_op.compute_output_shape({k: v.shape for k, v in inputs.items()})
 
     assert inputs.keys() == dense_inputs.keys()
     assert list(dense_inputs["cont_feat"].shape) == [NUM_ROWS]
     assert list(dense_inputs["multi_hot_categ_feat"].shape) == [NUM_ROWS, MAX_LEN]
     assert list(dense_inputs["multi_hot_embedding_feat"].shape) == [NUM_ROWS, MAX_LEN, 32]
-    assert list(dense_tensor.shape) == [NUM_ROWS, MAX_LEN, 32]
-    assert list(output_shape) == [NUM_ROWS, MAX_LEN, 32]
+    assert list(output_shapes["multi_hot_embedding_feat"]) == [NUM_ROWS, MAX_LEN, 32]

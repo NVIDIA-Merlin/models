@@ -48,9 +48,9 @@ def test_tf_tensors_generation_cpu():
 
     tensors, _ = sample_batch(data, batch_size=100)
     assert tensors["user_id"].shape == (100, 1)
-    assert tensors["user_age"].dtype == tf.float64
-    for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():
-        assert len(val) == 2
+    assert tensors["user_age"].dtype == tf.float32
+    for val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).values():
+        len(val.shape) == 3
 
 
 @pytest.mark.parametrize(
@@ -71,7 +71,7 @@ def test_sequence_data_length(generate_data_kwargs, expected_sequence_length):
     tensors, y = sample_batch(data, batch_size=1)
 
     for col in ["item_id_seq", "categories"]:
-        assert all(tensors[col][1] == expected_sequence_length)
+        assert tensors[col].row_lengths().numpy()[0] == expected_sequence_length
 
 
 def test_generate_user_item_interactions_dtypes():

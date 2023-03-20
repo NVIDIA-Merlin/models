@@ -16,7 +16,10 @@
 from functools import partial
 from typing import Optional
 
+import tensorflow as tf
+
 from merlin.models.tf.blocks.interaction import DotProductInteraction
+from merlin.models.tf.blocks.mlp import _Dense
 from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block, Debug
 from merlin.models.tf.core.combinators import Filter, ParallelBlock, SequentialBlock
@@ -136,15 +139,15 @@ def _get_embeddings(embedding_dim, embedding_options, bottom_block, cat_schema):
     else:
         embedding_options = EmbeddingOptions(embedding_dim_default=embedding_dim)
 
-    if (
-        embedding_dim is not None
-        and bottom_block is not None
-        and embedding_dim != bottom_block.layers[-1].units
-    ):
-        raise ValueError(
-            f"The embedding_dim ({embedding_dim}) needs to match the "
-            "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
-        )
+    if embedding_dim is not None and bottom_block is not None:
+        last_bottom_mlp_layer = list(
+            [k for k in bottom_block.layers if isinstance(k, (_Dense, tf.keras.layers.Dense))]
+        )[-1]
+        if embedding_dim != last_bottom_mlp_layer.units:
+            raise ValueError(
+                f"The embedding_dim ({embedding_dim}) needs to match the "
+                "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
+            )
 
     embeddings_kwargs = dict(
         sequence_combiner=embedding_options.combiner,
