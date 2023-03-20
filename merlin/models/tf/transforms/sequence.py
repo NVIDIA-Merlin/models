@@ -21,15 +21,11 @@ from tensorflow.keras.backend import random_bernoulli
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.base import Block, BlockType, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock
-from merlin.models.tf.transformers.block import TransformerBlock
-from merlin.models.tf.transformers.transforms import (
-    TransformerInferenceHiddenState,
-    TransformerOutputToRagged,
-)
 from merlin.models.tf.transforms.features import PrepareFeatures
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
+from merlin.models.utils.dependencies import is_transformers_available
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -104,7 +100,7 @@ class SequenceTransform(TabularBlock):
         schema: Schema,
         target: Union[str, Tags, ColumnSchema],
         pre: Optional[BlockType] = None,
-        transformer: Optional[TransformerBlock] = None,
+        transformer=None,
         **kwargs,
     ):
         _pre = PrepareFeatures(schema)
@@ -293,6 +289,13 @@ class SequencePredictNext(SequenceTransform):
         to align with the SequencePredictNext outputs.
         """
         if self.transformer is not None:
+            if not is_transformers_available():
+                raise ImportError("HuggingFace library `transformers` is required")
+            from merlin.models.tf.transformers.transforms import (
+                TransformerInferenceHiddenState,
+                TransformerOutputToRagged,
+            )
+
             # set the tansformer block with the correct masking block
             self.transformer.masking_post = combinators.SequentialBlock(
                 [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
@@ -737,6 +740,13 @@ class SequenceMaskRandom(SequenceTargetAsInput):
         to align with the SequencePredictNext outputs.
         """
         if self.transformer is not None:
+            if not is_transformers_available():
+                raise ImportError("HuggingFace library `transformers` is required")
+            from merlin.models.tf.transformers.transforms import (
+                TransformerInferenceHiddenState,
+                TransformerOutputToRagged,
+            )
+
             # set the tansformer block with the correct masking blocks
             self.transformer.masking_post = combinators.SequentialBlock(
                 [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
@@ -858,6 +868,13 @@ class SequenceMaskLast(SequenceTargetAsInput):
         to align with the SequencePredictNext outputs.
         """
         if self.transformer is not None:
+            if not is_transformers_available():
+                raise ImportError("HuggingFace library `transformers` is required")
+            from merlin.models.tf.transformers.transforms import (
+                TransformerInferenceHiddenState,
+                TransformerOutputToRagged,
+            )
+
             # set the tansformer block with the correct masking blocks
             self.transformer.masking_post = combinators.SequentialBlock(
                 [TransformerOutputToRagged(), TransformerInferenceHiddenState()]
