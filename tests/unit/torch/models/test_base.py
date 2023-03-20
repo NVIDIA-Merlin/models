@@ -1,5 +1,4 @@
 import pytorch_lightning as pl
-import torch
 
 from merlin.dataloader.torch import Loader
 from merlin.models.torch.blocks.mlp import MLPBlock
@@ -9,8 +8,11 @@ from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.schema import Schema
 
 
-def test_simple_regression_mlp(testing_data):
-    schema: Schema = testing_data.schema.without("categories")
+def test_simple_regression_mlp(music_streaming_data):
+    # Multi-hot is not supported yet, TODO: add support for multi-hot
+    schema: Schema = music_streaming_data.schema.without(["user_genres", "click", "like"])
+    music_streaming_data.schema = schema
+
     model = Model(
         TabularInputBlock(schema),
         MLPBlock([10, 10]),
@@ -18,11 +20,11 @@ def test_simple_regression_mlp(testing_data):
     )
 
     trainer = pl.Trainer(max_epochs=1, fast_dev_run=True)
-    loader = Loader(testing_data, batch_size=2, shuffle=False)
+    loader = Loader(music_streaming_data, batch_size=2, shuffle=False)
 
     # Initialize the model parameters
     model.initialize(loader)
 
     trainer.fit(model, loader)
 
-    a = 5
+    assert trainer.state.status.value == "finished"

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 import pytorch_lightning as pl
 import torch
@@ -6,6 +6,7 @@ from torch import nn
 
 from merlin.dataloader.torch import Loader
 from merlin.models.torch.loader import sample_batch
+from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils.torch_utils import apply_module
 from merlin.schema import Schema
 
@@ -27,16 +28,6 @@ class Model(pl.LightningModule):
         self.optimizer_cls = optimizer_cls
 
     def forward(self, inputs, training=False, testing=False, **kwargs):
-        #     if self.pre is not None:
-        #         inputs = apply_module(self.pre, inputs, training=training, testing=testing, **kwargs)
-
-        #     outputs = inputs
-        #     for block in self.blocks:
-        #         outputs = apply_module(block, outputs, training=training, testing=testing, **kwargs)
-
-        #     if self.post is not None:
-        #         outputs = apply_module(self.post, outputs, training=training, testing=testing, **kwargs)
-
         if self.pre is not None:
             inputs = apply_module(self.pre, inputs)
 
@@ -53,13 +44,16 @@ class Model(pl.LightningModule):
         del batch_idx
         inputs, targets = batch
         outputs = self(inputs, training=True)
-        loss = self.loss(outputs, targets)
+
+        output = self.model_outputs[0]
+        loss = output.default_loss(outputs, targets)
         self.log("train_loss", loss)
+
         return loss
 
     def initialize(self, data: Loader):
         if isinstance(data, Loader):
-            self.double()
+            self.double()  # TODO: Put in data-loader PR to standardize on float-32
             batch = sample_batch(data, batch_size=1, shuffle=False, include_targets=False)
         else:
             batch = data
@@ -81,6 +75,11 @@ class Model(pl.LightningModule):
 
     def configure_optimizers(self):
         return self.optimizer_cls(self.parameters())
+
+    @property
+    def model_outputs(self) -> List[ModelOutput]:
+        # TODO: Fix this
+        return [self.last]
 
     @property
     def first(self) -> nn.Module:

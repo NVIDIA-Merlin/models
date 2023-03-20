@@ -36,7 +36,7 @@ class RegressionOutput(ModelOutput):
         self,
         target: Optional[Union[str, ColumnSchema]] = None,
         to_call=nn.LazyLinear(1),
-        default_loss="mse",
+        default_loss=nn.MSELoss(),
         default_metrics: Sequence[Metric] = (MeanSquaredError(),),
         pre=None,
         post=None,
