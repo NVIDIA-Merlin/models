@@ -21,7 +21,6 @@ from tensorflow.keras.backend import random_bernoulli
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.base import Block, BlockType, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock
-from merlin.models.tf.transformers.block import TransformerBlock
 from merlin.models.tf.transformers.transforms import (
     TransformerInferenceHiddenState,
     TransformerOutputToRagged,
@@ -104,7 +103,7 @@ class SequenceTransform(TabularBlock):
         schema: Schema,
         target: Union[str, Tags, ColumnSchema],
         pre: Optional[BlockType] = None,
-        transformer: Optional[TransformerBlock] = None,
+        transformer=None,
         **kwargs,
     ):
         _pre = PrepareFeatures(schema)
