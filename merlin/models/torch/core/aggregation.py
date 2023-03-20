@@ -3,7 +3,10 @@ from typing import Dict, Union
 import torch
 from torch import nn
 
+from merlin.models.torch.core.base import registry
 
+
+@registry.register("concat")
 class ConcatFeatures(nn.Module):
     """Concatenate tensors along a specified dimension.
 
@@ -41,21 +44,24 @@ class ConcatFeatures(nn.Module):
             along the specified dimension.
         """
         sorted_tensors = [inputs[name] for name in sorted(inputs.keys())]
-        if not all(
-            (
-                t.shape[: self.dim] == sorted_tensors[0].shape[: self.dim]
-                and t.shape[self.dim + 1 :] == sorted_tensors[0].shape[self.dim + 1 :]
-            )
-            for t in sorted_tensors
-        ):
-            raise RuntimeError(
-                "Input tensor shapes don't match for concatenation",
-                "along the specified dimension.",
-            )
+        # TODO: Fix this for dim=-1
+        if self.dim > 0:
+            if not all(
+                (
+                    t.shape[: self.dim] == sorted_tensors[0].shape[: self.dim]
+                    and t.shape[self.dim + 1 :] == sorted_tensors[0].shape[self.dim + 1 :]
+                )
+                for t in sorted_tensors
+            ):
+                raise RuntimeError(
+                    "Input tensor shapes don't match for concatenation",
+                    "along the specified dimension.",
+                )
 
         return torch.cat(sorted_tensors, dim=self.dim)
 
 
+@registry.register("sum-residual")
 class SumResidual(nn.Module):
     """
     SumResidual module applies a residual connection to input tensors, where the skip-connection is

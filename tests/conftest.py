@@ -20,11 +20,13 @@ from __future__ import absolute_import
 from pathlib import Path
 
 import distributed
+import numpy as np
 import pytest
 
 from merlin.core.utils import Distributed
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
+from merlin.schema import ColumnSchema, Tags
 
 REPO_ROOT = Path(__file__).parent.parent
 
@@ -60,6 +62,26 @@ def testing_data() -> Dataset:
     data.schema = data.schema.without(["session_id", "session_start", "day_idx"])
 
     return data
+
+
+@pytest.fixture
+def item_id_col_schema() -> ColumnSchema:
+    return ColumnSchema(
+        "item_id",
+        dtype=np.int32,
+        properties={"domain": {"min": 0, "max": 10, "name": "item_id"}},
+        tags=[Tags.CATEGORICAL],
+    )
+
+
+@pytest.fixture
+def user_id_col_schema() -> ColumnSchema:
+    return ColumnSchema(
+        "user_id",
+        dtype=np.int32,
+        properties={"domain": {"min": 0, "max": 20, "name": "user_id"}},
+        tags=[Tags.CATEGORICAL],
+    )
 
 
 @pytest.fixture(scope="module")

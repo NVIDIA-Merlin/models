@@ -3,17 +3,17 @@ from typing import Callable, Dict, Optional, Union
 from torch import nn
 
 from merlin.models.torch.core.combinators import ParallelBlock
+from merlin.models.torch.inputs.continuous import Continuous
 from merlin.models.torch.inputs.embedding import Embeddings
-from merlin.models.torch.transforms.features import Filter
 from merlin.schema import Schema, Tags
-
-INPUT_TAG_TO_BLOCK: Dict[Tags, Callable[[Schema], nn.Module]] = {
-    Tags.CONTINUOUS: Filter,
-    Tags.CATEGORICAL: Embeddings,
-}
 
 
 class TabularInputBlock(ParallelBlock):
+    INPUT_TAG_TO_BLOCK: Dict[Tags, Callable[[Schema], nn.Module]] = {
+        Tags.CONTINUOUS: Continuous,
+        Tags.CATEGORICAL: Embeddings,
+    }
+
     def __init__(
         self,
         schema: Optional[Schema] = None,

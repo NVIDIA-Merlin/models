@@ -2,10 +2,11 @@ import pytest
 import torch
 
 from merlin.models.torch.core.aggregation import ConcatFeatures, SumResidual
+from merlin.models.torch.core.base import TabularBlock
 
 
 class TestConcatFeatures:
-    def test_concat_features_valid_input(self):
+    def test_valid_input(self):
         concat = ConcatFeatures(dim=1)
         input_tensors = {
             "a": torch.randn(2, 3),
@@ -14,7 +15,7 @@ class TestConcatFeatures:
         output = concat(input_tensors)
         assert output.shape == (2, 7)
 
-    def test_concat_features_same_order(self):
+    def test_same_order(self):
         concat = ConcatFeatures(dim=2)
         a = torch.randn(2, 3, 4)
         b = torch.randn(2, 3, 5)
@@ -28,7 +29,7 @@ class TestConcatFeatures:
 
         assert torch.all(torch.eq(output_a, output_b))
 
-    def test_concat_features_invalid_input(self):
+    def test_invalid_input(self):
         concat = ConcatFeatures(dim=1)
         input_tensors = {
             "a": torch.randn(2, 3),
@@ -36,6 +37,16 @@ class TestConcatFeatures:
         }
         with pytest.raises(RuntimeError, match="Input tensor shapes don't match"):
             concat(input_tensors)
+
+    def test_as_aggregation_string(self):
+        block = TabularBlock(aggregation="concat")
+
+        input_tensors = {
+            "a": torch.randn(2, 3),
+            "b": torch.randn(2, 4),
+        }
+        output = block(input_tensors)
+        assert output.shape == (2, 7)
 
 
 class TestSumResidual:
@@ -87,3 +98,16 @@ class TestSumResidual:
             match="torch does not have the specified activation function: invalid_activation",
         ):
             SumResidual(activation="invalid_activation")
+
+    def test_as_aggregation_string(self):
+        sum_residual = TabularBlock(aggregation="sum-residual")
+
+        inputs = {
+            "shortcut": torch.tensor([1.0, 2.0, 3.0]),
+            "input_1": torch.tensor([4.0, 5.0, 6.0]),
+        }
+
+        output = sum_residual(inputs)
+        expected_output = torch.tensor([5.0, 7.0, 9.0])
+
+        assert torch.allclose(output, expected_output)

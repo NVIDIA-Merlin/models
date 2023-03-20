@@ -22,7 +22,7 @@ class EmbeddingTableBase(nn.Module):
             self.add_feature(col_schema)
 
     @property
-    def _schema(self):
+    def schema(self):
         return Schema([col_schema for col_schema in self.features.values()])
 
     # @classmethod
@@ -156,6 +156,7 @@ class Embeddings(ParallelBlock):
                 )
 
         super().__init__(tables, pre=pre, post=post, aggregation=aggregation)
+        self.schema = schema
 
 
 def _forward_kwargs_to_table(col, table_cls, kwargs):
