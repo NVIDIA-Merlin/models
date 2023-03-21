@@ -1,7 +1,7 @@
 program: ranking_train_eval.py
 method: bayes
 metric:
-  name: auc_avg
+  name: auc_avg-final
   goal: maximize
 parameters:
   tasks:
