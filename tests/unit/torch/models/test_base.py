@@ -19,7 +19,7 @@ def test_simple_regression_mlp(music_streaming_data):
         RegressionOutput(),
     )
 
-    trainer = pl.Trainer(max_epochs=1, fast_dev_run=True)
+    trainer = pl.Trainer(max_epochs=1, devices=[0])
     loader = Loader(music_streaming_data, batch_size=2, shuffle=False)
 
     # Initialize the model parameters
