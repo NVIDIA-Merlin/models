@@ -195,6 +195,12 @@ is useful for training, by default 0.2</p></li>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
 <td><p>Compute the output tensor signature of the layer based on the inputs.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequenceMaskRandom.configure_for_test" title="merlin.models.tf.SequenceMaskRandom.configure_for_test"><code class="xref py py-obj docutils literal notranslate"><span class="pre">configure_for_test</span></code></a>()</p></td>
+<td><p>Method called by the model.evaluate() to check that the <cite>masking_pre</cite> set in the TransformerBlock is aligned with the evaluation strategy of SequenceMaskRandom</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequenceMaskRandom.configure_for_train" title="merlin.models.tf.SequenceMaskRandom.configure_for_train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">configure_for_train</span></code></a>()</p></td>
+<td><p>Method called by the model.fit() to set the specialized <cite>masking_post</cite> and <cite>masking_pre</cite> needed by the TransformerBlock to align with the SequencePredictNext outputs.</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect</span></code>(*block[, block_name, context])</p></td>
 <td><p>Connect the block to other blocks sequentially.</p></td>
 </tr>
@@ -475,6 +481,22 @@ by tensor._keras_mask</p>
 <dt id="merlin.models.tf.SequenceMaskRandom.from_config">
 <em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">from_config</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#SequenceMaskRandom.from_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceMaskRandom.from_config" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.SequenceMaskRandom.configure_for_train">
+<code class="sig-name descname"><span class="pre">configure_for_train</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#SequenceMaskRandom.configure_for_train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceMaskRandom.configure_for_train" title="Permalink to this definition"></a></dt>
+<dd><p>Method called by the model.fit() to set the specialized
+<cite>masking_post</cite> and <cite>masking_pre</cite> needed by the TransformerBlock
+to align with the SequencePredictNext outputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.SequenceMaskRandom.configure_for_test">
+<code class="sig-name descname"><span class="pre">configure_for_test</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#SequenceMaskRandom.configure_for_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequenceMaskRandom.configure_for_test" title="Permalink to this definition"></a></dt>
+<dd><p>Method called by the model.evaluate() to check that the
+<cite>masking_pre</cite> set in the TransformerBlock is aligned with
+the evaluation strategy of SequenceMaskRandom</p>
+</dd></dl>
 
 </dd></dl>
 
