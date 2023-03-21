@@ -328,9 +328,14 @@ class EmbeddingTablePrediction(Layer):
         return super().build(input_shape)
 
     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
+        is_ragged = isinstance(inputs, tf.RaggedTensor)
+        if is_ragged:
+            original_inputs = inputs
+            inputs = inputs.flat_values
         logits = tf.matmul(inputs, self.table.table.embeddings, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
-
+        if is_ragged:
+            logits = original_inputs.with_flat_values(logits)
         return logits
 
     @property
