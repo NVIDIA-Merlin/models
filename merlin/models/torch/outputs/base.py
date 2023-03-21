@@ -4,7 +4,7 @@ from torch import nn
 from torchmetrics import Metric
 
 from merlin.models.torch.core.base import Block
-from merlin.models.torch.utils.torch_utils import apply_module
+from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import ColumnSchema
 
 
@@ -57,4 +57,4 @@ class ModelOutput(Block):
         """
         Apply `self.to_call` module to the inputs and return the output.
         """
-        return apply_module(self.to_call, inputs, training=training, testing=testing, **kwargs)
+        return apply(self.to_call, inputs, training=training, testing=testing, **kwargs)

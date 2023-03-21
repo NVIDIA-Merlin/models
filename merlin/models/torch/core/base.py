@@ -1,6 +1,6 @@
 from torch import nn
 
-from merlin.models.torch.utils.torch_utils import apply_module
+from merlin.models.torch.utils.module_utils import apply
 from merlin.models.utils.registry import Registry
 
 registry: Registry = Registry.class_registry("torch.modules")
@@ -52,7 +52,7 @@ class Block(nn.Module):
         """
 
         if self.pre is not None:
-            inputs = apply_module(self.pre, inputs, *args, **kwargs)
+            inputs = apply(self.pre, inputs, *args, **kwargs)
             outputs = super().__call__(inputs)
         else:
             outputs = super().__call__(inputs, *args, **kwargs)

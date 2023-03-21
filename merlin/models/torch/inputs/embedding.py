@@ -5,7 +5,6 @@ import torch
 from torch import nn
 
 from merlin.models.torch.core.combinators import ParallelBlock
-from merlin.models.torch.utils.torch_utils import apply_module
 from merlin.models.utils.schema_utils import infer_embedding_dim
 from merlin.schema import ColumnSchema, Schema
 

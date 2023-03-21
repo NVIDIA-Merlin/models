@@ -17,7 +17,7 @@ class TestRegressionOutput:
 
     def test_initialization(self):
         ro = RegressionOutput()
-        assert isinstance(ro.to_call, nn.LazyLinear)
+        assert isinstance(ro.to_call, (nn.LazyLinear, nn.Linear))
         assert isinstance(ro.default_loss, nn.MSELoss)
         assert isinstance(ro.default_metrics[0], MeanSquaredError)
         assert ro.target is None

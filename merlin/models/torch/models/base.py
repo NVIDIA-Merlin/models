@@ -7,7 +7,7 @@ from torch import nn
 from merlin.dataloader.torch import Loader
 from merlin.models.torch.loader import sample_batch
 from merlin.models.torch.outputs.base import ModelOutput
-from merlin.models.torch.utils.torch_utils import apply_module
+from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import Schema
 
 
@@ -29,14 +29,14 @@ class Model(pl.LightningModule):
 
     def forward(self, inputs, training=False, testing=False, **kwargs):
         if self.pre is not None:
-            inputs = apply_module(self.pre, inputs)
+            inputs = apply(self.pre, inputs)
 
         outputs = inputs
         for block in self.blocks:
-            outputs = apply_module(block, outputs)
+            outputs = apply(block, outputs)
 
         if self.post is not None:
-            outputs = apply_module(self.post, outputs)
+            outputs = apply(self.post, outputs)
 
         return outputs
 

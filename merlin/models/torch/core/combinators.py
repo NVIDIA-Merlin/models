@@ -8,7 +8,7 @@ from torch._jit_internal import _copy_to_script_wrapper
 
 from merlin.models.torch.core.aggregation import SumResidual
 from merlin.models.torch.core.base import NoOp, TabularBlock
-from merlin.models.torch.utils.torch_utils import apply_module
+from merlin.models.torch.utils.module_utils import apply
 
 
 class ParallelBlock(TabularBlock):
@@ -66,7 +66,7 @@ class ParallelBlock(TabularBlock):
 
         for name, module in self.parallel_dict.items():
             module_inputs = inputs  # TODO: Add filtering when adding schema
-            out = apply_module(module, module_inputs, **kwargs)
+            out = apply(module, module_inputs, **kwargs)
             if not isinstance(out, dict):
                 out = {name: out}
             outputs.update(out)
@@ -210,7 +210,7 @@ class SequentialBlock(nn.Sequential):
 
     def __call__(self, inputs, *args, **kwargs):
         if self.pre is not None:
-            inputs = apply_module(self.pre, inputs, *args, **kwargs)
+            inputs = apply(self.pre, inputs, *args, **kwargs)
             outputs = super().__call__(inputs)
         else:
             outputs = super().__call__(inputs, *args, **kwargs)
