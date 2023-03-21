@@ -25,6 +25,9 @@ def test_simple_regression_mlp(music_streaming_data):
     # Initialize the model parameters
     model.initialize(loader)
 
+    # if hasattr(torch, "compile"):
+    #     model = torch.compile(model)
+
     trainer.fit(model, loader)
 
     assert trainer.state.status.value == "finished"

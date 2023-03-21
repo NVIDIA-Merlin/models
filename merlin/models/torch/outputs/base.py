@@ -1,5 +1,6 @@
 from typing import Optional, Sequence, Union
 
+import torch
 from torch import nn
 from torchmetrics import Metric
 
@@ -58,3 +59,15 @@ class ModelOutput(Block):
         Apply `self.to_call` module to the inputs and return the output.
         """
         return apply(self.to_call, inputs, training=training, testing=testing, **kwargs)
+
+    @property
+    def output(self) -> torch.Tensor:
+        if self.target is not None:
+            attr_name = f"__buffer_target_{self.target}"
+        else:
+            attr_name = "__buffer_target"
+
+        if not hasattr(self, attr_name):
+            return None
+
+        return getattr(self, attr_name)

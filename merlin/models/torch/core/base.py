@@ -81,6 +81,8 @@ class TabularBlock(Block):
         The function to apply on the output tensor.
     """
 
+    check_forward = True
+
     def __init__(self, pre=None, post=None, aggregation=None):
         super().__init__(pre=pre, post=post)
         self.aggregation = (

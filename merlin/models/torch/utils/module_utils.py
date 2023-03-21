@@ -16,7 +16,9 @@ def has_custom_call(module: nn.Module) -> bool:
     return module_call.__func__ != base_call
 
 
-def apply(module: Union[nn.Module, Sequence[nn.Module]], inputs, *args, **kwargs):
+def apply(
+    module: Union[nn.Module, Sequence[nn.Module]], inputs, *args, model_context=None, **kwargs
+):
     """
     Calls a module with the given inputs and filters kwargs. Returns the output.
 
@@ -39,15 +41,19 @@ def apply(module: Union[nn.Module, Sequence[nn.Module]], inputs, *args, **kwargs
 
     _k = dict(cascade_kwargs_if_possible=True, argspec_fn=getfullargspec)
 
-    if isinstance(module, (list, tuple)):
+    if isinstance(module, (list, tuple, nn.ModuleList)):
         output = inputs
-        for mod in module:
-            output = apply(mod, output, *args, **kwargs)
+        for i, mod in enumerate(module):
+            if i == 0:
+                output = apply(mod, output, *args, model_context=model_context, **kwargs)
+            else:
+                output = apply(mod, output, model_context=model_context)
+
         return output
 
     filtered_kwargs = filter_kwargs(kwargs, module, **_k)
 
-    if not has_custom_call(module):
+    if not has_custom_call(module) or getattr(module, "check_forward", False):
         # We need to check the forward method on the type since when the model gets saved
         # we can't infer the kwargs from using `module.forward` directly
         forward_fn = type(module).forward

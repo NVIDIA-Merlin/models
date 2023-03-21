@@ -5,9 +5,10 @@ import torch
 from torch import nn
 
 from merlin.dataloader.torch import Loader
+from merlin.models.torch.core.data import propagate_data_to_children
 from merlin.models.torch.loader import sample_batch
 from merlin.models.torch.outputs.base import ModelOutput
-from merlin.models.torch.utils.module_utils import apply
+from merlin.models.torch.utils import module_utils
 from merlin.schema import Schema
 
 
@@ -27,26 +28,18 @@ class Model(pl.LightningModule):
         self.post = post
         self.optimizer_cls = optimizer_cls
 
-    def forward(self, inputs, training=False, testing=False, **kwargs):
-        if self.pre is not None:
-            inputs = apply(self.pre, inputs)
-
-        outputs = inputs
-        for block in self.blocks:
-            outputs = apply(block, outputs)
-
-        if self.post is not None:
-            outputs = apply(self.post, outputs)
-
-        return outputs
+    @propagate_data_to_children
+    def forward(self, inputs):
+        return module_utils.apply(list(self.to_apply), inputs, targets=None)
 
     def training_step(self, batch, batch_idx):
         del batch_idx
         inputs, targets = batch
-        outputs = self(inputs, training=True)
 
-        output = self.model_outputs[0]
-        loss = output.default_loss(outputs, targets)
+        outputs = self(inputs, targets=targets)
+
+        model_output = self.model_outputs[0]
+        loss = model_output.default_loss(outputs, model_output.output)
         self.log("train_loss", loss)
 
         return loss
@@ -78,8 +71,18 @@ class Model(pl.LightningModule):
 
     @property
     def model_outputs(self) -> List[ModelOutput]:
-        # TODO: Fix this
-        return [self.last]
+        return module_utils.find_all_instances(self, ModelOutput)
+
+    @property
+    def to_apply(self):
+        if self.pre is not None:
+            yield self.pre
+
+        for block in self.blocks:
+            yield block
+
+        if self.post is not None:
+            yield self.post
 
     @property
     def first(self) -> nn.Module:
