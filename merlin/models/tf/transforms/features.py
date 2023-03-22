@@ -175,6 +175,8 @@ class PrepareListFeatures(TabularBlock):
                             val = inputs[name]
                         elif isinstance(val, tf.SparseTensor):
                             val = tf.RaggedTensor.from_sparse(val)
+                        else:
+                            val = tf.RaggedTensor.from_tensor(val)
                     else:
                         # TODO: Change this condition to check is_ragged after this PR
                         # from Oliver is merged https://github.com/NVIDIA-Merlin/dataloader/pull/103
