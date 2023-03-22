@@ -2,7 +2,7 @@
 
 This is a template for building a pipeline for preprocessing, training and exporting ranking models for serving. It is composed by generic scripts that can be used with your own dataset. We also share some best practices for preprocessing and training ranking models.
 
-In this example, we use the TenRec dataset from Tencent, which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).
+In this example, we use the [TenRec dataset](https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html), which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).
 
 ## Setup
 You can run these scripts either using the latest Merlin TensorFlow image or installing the necessary Merlin libraries according to their documentation (core, NVTabular, dataloader, models).
@@ -14,7 +14,11 @@ In this step you [download](https://static.qblv.qq.com/qblv/h5/algo-frontend/ten
 You will learn later how to preprocess and train your own dataset. 
 
 ## Preparing the data
-The TenRec dataset contains a number of CSV files. We will be using the `QK-video.csv`, which logs user interactions with different videos. As the dataset has a reasonable size (~15 GB), feel free to reduce that file for less rows you want to test the pipeline more quickly or don't have a powerful GPU available (V100 with 32 GB or better). For example, the following command you can truncate the file, keeping the first 10 million rows (header line included).
+The TenRec dataset contains a number of CSV files. We will be using the `QK-video.csv`, which logs user interactions with different videos. Here is an example on how the data looks like.
+
+![TenRec dataset structure](../images/tenrec_dataset.png)
+
+As the dataset has a reasonable size (~15 GB), feel free to reduce that file for less rows you want to test the pipeline more quickly or don't have a powerful GPU available (V100 with 32 GB or better). For example, the following command you can truncate the file, keeping the first 10 million rows (header line included).
 
 ```bash
 head -n 10000001 QK-video.csv > QK-video-10M.csv
@@ -35,7 +39,7 @@ INPUT_DATA_PATH=/path/to/input/dataset/
 OUTPUT_PATH=/path/to/output/path/
 ```
 
-3. Start a Merlin TensorFlow container in iterative mode
+3. Start a Merlin TensorFlow container in interactive mode
 ```bash
 docker run --gpus all --rm -it --ipc=host -v $INPUT_DATA_PATH:/data -v $OUTPUT_PATH:/outputs \
   nvcr.io/nvidia/merlin/merlin-tensorflow:latest /bin/bash
@@ -119,4 +123,3 @@ CUDA_VISIBLE_DEVICES=0 TF_MEMORY_ALLOCATION=0.8 python  ranking_train_eval.py --
 - Create another document providing best practices on setting hyperparameters for ranking models based on the empirical results from our research experimentation (e.g. hparam optimization search space, best hparams found, comparison of the accuracy of STL and MTL models for each task)
 - Refine scripts to accept both CLI args or YAML args
 - Refine `preprocessing.py` to provide additional dataset split strategies (e.g. `random_by_user`, `temporal`).
-- Test `preprocessing.py` with larger/full dataset
