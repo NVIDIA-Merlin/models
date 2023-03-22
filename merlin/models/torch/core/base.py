@@ -1,9 +1,23 @@
 from torch import nn
 
-from merlin.models.torch.utils.module_utils import apply
 from merlin.models.utils.registry import Registry
 
 registry: Registry = Registry.class_registry("torch.modules")
+
+
+class _ModuleHook(nn.Module):
+    def __init__(self, module: nn.Module):
+        super().__init__()
+        self.module = module
+
+    def forward(self, parent, inputs, outputs=None):
+        del parent
+
+        x = inputs if outputs is None else outputs
+        if isinstance(x, tuple):
+            return self.module(*x)
+
+        return self.module(x)
 
 
 class Block(nn.Module):
@@ -23,6 +37,14 @@ class Block(nn.Module):
         self.pre = self.from_registry(pre) if isinstance(pre, str) else pre
         self.post = self.from_registry(post) if isinstance(post, str) else post
 
+        if self.pre:
+            # TODO: How to know whether or not to forward kwargs?
+            self.register_forward_pre_hook(_ModuleHook(self.pre))
+        if post:
+            self.register_forward_hook(_ModuleHook(self.post))
+        # self.pre = self.from_registry(pre) if isinstance(pre, str) else pre
+        # self.post = self.from_registry(post) if isinstance(post, str) else post
+
     @classmethod
     def from_registry(cls, name):
         if isinstance(name, str):
@@ -32,38 +54,38 @@ class Block(nn.Module):
 
         raise ValueError(f"Block {name} is not a string")
 
-    def __call__(self, inputs, *args, **kwargs):
-        """
-        Apply the pre and post processing modules if available, then call the forward method.
+    # def __call__(self, inputs, *args, **kwargs):
+    #     """
+    #     Apply the pre and post processing modules if available, then call the forward method.
 
-        Parameters
-        ----------
-        inputs : torch.Tensor
-            The input tensor.
-        *args : Any
-            Additional positional arguments.
-        **kwargs : Any
-            Additional keyword arguments.
+    #     Parameters
+    #     ----------
+    #     inputs : torch.Tensor
+    #         The input tensor.
+    #     *args : Any
+    #         Additional positional arguments.
+    #     **kwargs : Any
+    #         Additional keyword arguments.
 
-        Returns
-        -------
-        torch.Tensor
-            The output tensor.
-        """
+    #     Returns
+    #     -------
+    #     torch.Tensor
+    #         The output tensor.
+    #     """
 
-        if self.pre is not None:
-            inputs = apply(self.pre, inputs, *args, **kwargs)
-            outputs = super().__call__(inputs)
-        else:
-            outputs = super().__call__(inputs, *args, **kwargs)
+    #     if self.pre is not None:
+    #         inputs = apply(self.pre, inputs, *args, **kwargs)
+    #         outputs = super().__call__(inputs)
+    #     else:
+    #         outputs = super().__call__(inputs, *args, **kwargs)
 
-        if self.post is not None:
-            outputs = self.post(outputs)
+    #     if self.post is not None:
+    #         outputs = self.post(outputs)
 
-        return outputs
+    #     return outputs
 
-    def forward(self, x):
-        return x
+    def forward(self, inputs):
+        return inputs
 
 
 class TabularBlock(Block):
@@ -81,44 +103,50 @@ class TabularBlock(Block):
         The function to apply on the output tensor.
     """
 
-    check_forward = True
+    # check_forward = True
 
     def __init__(self, pre=None, post=None, aggregation=None):
         super().__init__(pre=pre, post=post)
         self.aggregation = (
             self.from_registry(aggregation) if isinstance(aggregation, str) else aggregation
         )
+        if aggregation:
+            self.register_forward_hook(_ModuleHook(self.aggregation))
 
-    def __call__(self, inputs, *args, **kwargs):
-        """
-        Apply the pre and post processing modules if available,
-        call the forward method, and apply the aggregation function
-        if available.
+        # self.aggregation = (
+        #     self.from_registry(aggregation) if isinstance(aggregation, str) else aggregation
+        # )
 
-        Parameters
-        ----------
-        inputs : torch.Tensor
-            The input tensor.
-        *args : Any
-            Additional positional arguments.
-        **kwargs : Any
-            Additional keyword arguments.
+    # def __call__(self, inputs, *args, **kwargs):
+    #     """
+    #     Apply the pre and post processing modules if available,
+    #     call the forward method, and apply the aggregation function
+    #     if available.
 
-        Returns
-        -------
-        torch.Tensor
-            The output tensor.
-        """
+    #     Parameters
+    #     ----------
+    #     inputs : torch.Tensor
+    #         The input tensor.
+    #     *args : Any
+    #         Additional positional arguments.
+    #     **kwargs : Any
+    #         Additional keyword arguments.
 
-        outputs = super().__call__(inputs, *args, **kwargs)
+    #     Returns
+    #     -------
+    #     torch.Tensor
+    #         The output tensor.
+    #     """
 
-        if self.aggregation is not None:
-            outputs = self.aggregation(outputs)
+    #     outputs = super().__call__(inputs, *args, **kwargs)
 
-        return outputs
+    #     if self.aggregation is not None:
+    #         outputs = self.aggregation(outputs)
 
-    def forward(self, x):
-        return x
+    #     return outputs
+
+    def forward(self, inputs):
+        return inputs
 
 
 class NoOp(nn.Module):

@@ -1,5 +1,4 @@
-from functools import wraps
-from typing import Callable, Dict, Union
+from typing import Dict, Union
 
 import torch
 from torch import nn
@@ -7,37 +6,63 @@ from torch import nn
 from merlin.models.torch.utils import module_utils
 
 
-def _propagate(child: nn.Module, data: Union[Dict[str, torch.Tensor], torch.Tensor], prefix: str):
-    if isinstance(data, dict):
-        for key, val in data.items():
-            prefix = f"{prefix}_{key}"
-            _propagate(child, val, prefix)
-    else:
-        name = f"__buffer_{prefix}"
-        if hasattr(child, name):
-            setattr(child, name, data)
+class DataPropagationHook(nn.Module):
+    def __init__(self, propagate_features: bool = True, propagate_targets: bool = True):
+        super().__init__()
+        self.propagate_features = propagate_features
+        self.propagate_targets = propagate_targets
+
+    def forward(self, model, inputs, kwargs):
+        targets = kwargs.get("targets", None)
+        for child in module_utils.get_all_children(model)[:-1]:
+            if self.propagate_features:
+                self._upsert_buffers(child, inputs[0], "feature")
+            if targets not in (None, {}) and self.propagate_targets:
+                self._upsert_buffers(child, targets, "target")
+
+        return inputs, {}
+
+    def _upsert_buffers(
+        self, child: nn.Module, data: Union[Dict[str, torch.Tensor], torch.Tensor], prefix: str
+    ):
+        if isinstance(child, nn.ModuleList):
+            for c in child:
+                self._upsert_buffers(c, data, prefix)
+        elif isinstance(data, dict):
+            for key, val in data.items():
+                key_prefix = f"{prefix}_{key}"
+                self._upsert_buffers(child, val, key_prefix)
         else:
-            child.register_buffer(name, data, persistent=False)
+            name = f"__buffer_{prefix}"
+            if hasattr(child, name):
+                setattr(child, name, data)
+            else:
+                child.register_buffer(name, data, persistent=False)
 
 
-def _propagate_data(module: nn.Module, features, targets=None):
-    for child in module_utils.get_all_children(module):
-        _propagate(child, features, "feature")
-        _propagate(child, targets, "target")
+def get_features(module: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
+    prefix = "__buffer_feature"
+    features = {}
+
+    for name, buffer in module.named_buffers():
+        if name.startswith(prefix):
+            features[name] = buffer
+
+    if len(features) == 1:
+        return list(features.values)[0]
+
+    return {k[len(prefix) + 1 :]: v for k, v in features.items()}
 
 
-def propagate_data_to_children(func: Callable):
-    @wraps(func)
-    def wrapper(module: nn.Module, features, targets=None, *args, **kwargs):
-        _propagate_data(module, features, targets)
-        return func(module, features, *args, **kwargs)
+def get_targets(module: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
+    prefix = "__buffer_target"
+    targets = {}
 
-    return wrapper
+    for name, buffer in module.named_buffers():
+        if name.startswith(prefix):
+            targets[name] = buffer
 
+    if len(targets) == 1:
+        return list(targets.values)[0]
 
-def get_features(module: nn.Module):
-    raise NotImplementedError
-
-
-def get_targets(module: nn.Module):
-    raise NotImplementedError
+    return {k[len(prefix) + 1 :]: v for k, v in targets.items()}

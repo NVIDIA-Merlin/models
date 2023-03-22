@@ -15,7 +15,7 @@
 #
 import math
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import numpy as np
 
@@ -205,3 +205,23 @@ def infer_embedding_dim(
     return get_embedding_size_from_cardinality(
         cardinality, multiplier=multiplier, ensure_multiple_of_8=ensure_multiple_of_8
     )
+
+
+def select(schema, *to_select: Union[ColumnSchema, Schema, str, Tags]) -> Schema:
+    output = {}
+    for t in to_select:
+        if isinstance(t, str):
+            output[t] = schema.select_by_name(t).first
+        elif isinstance(t, ColumnSchema):
+            output[t.name] = t
+        elif isinstance(t, Tags):
+            selected_schema = schema.select_by_tag(t)
+            for col_name, col_schema in selected_schema.column_schemas.items():
+                output[col_name] = col_schema
+        elif isinstance(t, Schema):
+            for col_name, col_schema in t.column_schemas.items():
+                output[col_name] = col_schema
+        else:
+            raise ValueError(f"Unsupported select type {type(t)}")
+
+    return output

@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from merlin.dataloader.torch import Loader
-from merlin.models.torch.core.data import propagate_data_to_children
+from merlin.models.torch.core.data import DataPropagationHook
 from merlin.models.torch.loader import sample_batch
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils import module_utils
@@ -20,6 +20,8 @@ class Model(pl.LightningModule):
         post=None,
         schema: Optional[Schema] = None,
         optimizer_cls=torch.optim.Adam,
+        propagate_features: bool = False,
+        propagate_targets: bool = False,
     ):
         super().__init__()
         self.schema = schema
@@ -28,18 +30,34 @@ class Model(pl.LightningModule):
         self.post = post
         self.optimizer_cls = optimizer_cls
 
-    @propagate_data_to_children
+        self.propagate_features = propagate_features
+        self.propagate_targets = propagate_targets
+        if propagate_features or propagate_targets:
+            self.data_propagation_hook = DataPropagationHook(propagate_features, propagate_targets)
+            self.register_forward_pre_hook(
+                self.data_propagation_hook, prepend=True, with_kwargs=True
+            )
+
+    # @propagate_data_to_children
     def forward(self, inputs):
-        return module_utils.apply(list(self.to_apply), inputs, targets=None)
+        return module_utils.apply(list(self.to_apply), inputs)
 
     def training_step(self, batch, batch_idx):
         del batch_idx
         inputs, targets = batch
 
-        outputs = self(inputs, targets=targets)
+        if self.propagate_targets:
+            outputs = self(inputs, targets=targets)
+        else:
+            outputs = self(inputs)
 
         model_output = self.model_outputs[0]
-        loss = model_output.default_loss(outputs, model_output.output)
+        if self.propagate_targets:
+            target = model_output.output
+            if target is None:
+                raise ValueError("Model output must have an output attribute")
+
+        loss = model_output.default_loss(outputs, target)
         self.log("train_loss", loss)
 
         return loss
