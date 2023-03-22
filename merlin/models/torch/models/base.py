@@ -5,7 +5,8 @@ import torch
 from torch import nn
 
 from merlin.dataloader.torch import Loader
-from merlin.models.torch.core.data import DataPropagationHook
+from merlin.models.torch.core.base import register_post_hook, register_pre_hook
+from merlin.models.torch.core.data import register_data_propagation_hook
 from merlin.models.torch.loader import sample_batch
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils import module_utils
@@ -26,21 +27,19 @@ class Model(pl.LightningModule):
         super().__init__()
         self.schema = schema
         self.blocks = nn.ModuleList(blocks)
-        self.pre = pre
-        self.post = post
         self.optimizer_cls = optimizer_cls
 
         self.propagate_features = propagate_features
         self.propagate_targets = propagate_targets
+        self.pre = register_pre_hook(self, pre) if pre else None
+        self.post = register_post_hook(self, post) if post else None
         if propagate_features or propagate_targets:
-            self.data_propagation_hook = DataPropagationHook(propagate_features, propagate_targets)
-            self.register_forward_pre_hook(
-                self.data_propagation_hook, prepend=True, with_kwargs=True
+            self.data_propagation_hook = register_data_propagation_hook(
+                self, propagate_features=propagate_features, propagate_targets=propagate_targets
             )
 
-    # @propagate_data_to_children
     def forward(self, inputs):
-        return module_utils.apply(list(self.to_apply), inputs)
+        return module_utils.apply(self.blocks, inputs)
 
     def training_step(self, batch, batch_idx):
         del batch_idx
@@ -90,17 +89,6 @@ class Model(pl.LightningModule):
     @property
     def model_outputs(self) -> List[ModelOutput]:
         return module_utils.find_all_instances(self, ModelOutput)
-
-    @property
-    def to_apply(self):
-        if self.pre is not None:
-            yield self.pre
-
-        for block in self.blocks:
-            yield block
-
-        if self.post is not None:
-            yield self.post
 
     @property
     def first(self) -> nn.Module:

@@ -1,3 +1,5 @@
+from typing import Union
+
 from torch import nn
 
 from merlin.models.utils.registry import Registry
@@ -6,11 +8,27 @@ registry: Registry = Registry.class_registry("torch.modules")
 
 
 class _ModuleHook(nn.Module):
+    """A helper module to be able to execute Module as a (pre) forward-hook."""
+
     def __init__(self, module: nn.Module):
         super().__init__()
         self.module = module
 
     def forward(self, parent, inputs, outputs=None):
+        """
+        Forward pass for the _ModuleHook.
+
+        This function is called when the hook is executed during the
+        forward pass of the parent module.
+
+        Args:
+            parent (nn.Module): The parent module for which the hook is registered.
+            inputs: The inputs to the parent module.
+            outputs (optional): The outputs of the parent module (only provided for post-hooks).
+
+        Returns:
+            The result of executing the hook module with the given inputs or outputs.
+        """
         del parent
 
         x = inputs if outputs is None else outputs
@@ -34,16 +52,9 @@ class Block(nn.Module):
 
     def __init__(self, pre=None, post=None):
         super().__init__()
-        self.pre = self.from_registry(pre) if isinstance(pre, str) else pre
-        self.post = self.from_registry(post) if isinstance(post, str) else post
-
-        if self.pre:
-            # TODO: How to know whether or not to forward kwargs?
-            self.register_forward_pre_hook(_ModuleHook(self.pre))
-        if post:
-            self.register_forward_hook(_ModuleHook(self.post))
-        # self.pre = self.from_registry(pre) if isinstance(pre, str) else pre
-        # self.post = self.from_registry(post) if isinstance(post, str) else post
+        # TODO: How to know whether or not to forward kwargs?
+        self.pre = register_pre_hook(self, pre) if pre else None
+        self.post = register_post_hook(self, post) if post else None
 
     @classmethod
     def from_registry(cls, name):
@@ -53,36 +64,6 @@ class Block(nn.Module):
             return registry.parse(name)
 
         raise ValueError(f"Block {name} is not a string")
-
-    # def __call__(self, inputs, *args, **kwargs):
-    #     """
-    #     Apply the pre and post processing modules if available, then call the forward method.
-
-    #     Parameters
-    #     ----------
-    #     inputs : torch.Tensor
-    #         The input tensor.
-    #     *args : Any
-    #         Additional positional arguments.
-    #     **kwargs : Any
-    #         Additional keyword arguments.
-
-    #     Returns
-    #     -------
-    #     torch.Tensor
-    #         The output tensor.
-    #     """
-
-    #     if self.pre is not None:
-    #         inputs = apply(self.pre, inputs, *args, **kwargs)
-    #         outputs = super().__call__(inputs)
-    #     else:
-    #         outputs = super().__call__(inputs, *args, **kwargs)
-
-    #     if self.post is not None:
-    #         outputs = self.post(outputs)
-
-    #     return outputs
 
     def forward(self, inputs):
         return inputs
@@ -103,52 +84,82 @@ class TabularBlock(Block):
         The function to apply on the output tensor.
     """
 
-    # check_forward = True
-
     def __init__(self, pre=None, post=None, aggregation=None):
         super().__init__(pre=pre, post=post)
-        self.aggregation = (
-            self.from_registry(aggregation) if isinstance(aggregation, str) else aggregation
-        )
-        if aggregation:
-            self.register_forward_hook(_ModuleHook(self.aggregation))
-
-        # self.aggregation = (
-        #     self.from_registry(aggregation) if isinstance(aggregation, str) else aggregation
-        # )
-
-    # def __call__(self, inputs, *args, **kwargs):
-    #     """
-    #     Apply the pre and post processing modules if available,
-    #     call the forward method, and apply the aggregation function
-    #     if available.
-
-    #     Parameters
-    #     ----------
-    #     inputs : torch.Tensor
-    #         The input tensor.
-    #     *args : Any
-    #         Additional positional arguments.
-    #     **kwargs : Any
-    #         Additional keyword arguments.
-
-    #     Returns
-    #     -------
-    #     torch.Tensor
-    #         The output tensor.
-    #     """
-
-    #     outputs = super().__call__(inputs, *args, **kwargs)
-
-    #     if self.aggregation is not None:
-    #         outputs = self.aggregation(outputs)
-
-    #     return outputs
+        self.aggregation = register_post_hook(self, aggregation) if aggregation else None
 
     def forward(self, inputs):
         return inputs
 
 
 class NoOp(nn.Module):
+    """A module that simply passes the input through unchanged.
+
+    This is useful as a placeholder module or when you need a module that
+    does not modify the input in any way, for instance a short-cut connection.
+    """
+
     def forward(self, inputs):
+        """
+        Forward pass for the NoOp module.
+
+        Args:
+            inputs: Input tensor.
+
+        Returns:
+            The input tensor unchanged.
+        """
         return inputs
+
+
+def register_pre_hook(
+    module: nn.Module,
+    to_register: Union[str, nn.Module],
+    prepend: bool = False,
+    with_kwargs: bool = False,
+) -> nn.Module:
+    """Register a pre-hook for a PyTorch module.
+
+    Args:
+        module (nn.Module): The module to register the pre-hook for.
+        to_register (Union[str, nn.Module]): The pre-hook to register.
+            It can be a string (name of the block) or an instance of nn.Module.
+        prepend (bool, optional): If True, prepend the pre-hook to the existing pre-hooks.
+            Defaults to False.
+        with_kwargs (bool, optional): If True, the pre-hook will receive kwargs. Defaults to False.
+
+    Returns:
+        nn.Module: The registered pre-hook.
+    """
+    pre = Block.from_registry(to_register) if isinstance(to_register, str) else to_register
+
+    module.register_forward_pre_hook(_ModuleHook(pre), prepend=prepend, with_kwargs=with_kwargs)
+
+    return pre
+
+
+def register_post_hook(
+    module: nn.Module,
+    to_register: Union[str, nn.Module],
+    prepend: bool = False,
+    with_kwargs: bool = False,
+) -> nn.Module:
+    """Register a post-hook for a PyTorch module.
+
+    Args:
+        module (nn.Module): The module to register the post-hook for.
+        to_register (Union[str, nn.Module]): The post-hook to register.
+            It can be a string (name of the block) or an instance of nn.Module.
+        prepend (bool, optional): If True, prepend the post-hook to the existing post-hooks.
+            Defaults to False.
+        with_kwargs (bool, optional): If True, the post-hook will receive kwargs.
+            Defaults to False.
+
+    Returns:
+        nn.Module: The registered post-hook.
+    """
+    post = Block.from_registry(to_register) if isinstance(to_register, str) else to_register
+
+    module.register_forward_hook(_ModuleHook(post), prepend=prepend, with_kwargs=with_kwargs)
+
+    return post
