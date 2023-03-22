@@ -414,10 +414,11 @@ class EmbeddingTable(EmbeddingTableBase):
             if inputs.shape.as_list()[-1] == 1:
                 inputs = tf.squeeze(inputs, axis=-1)
             out = call_layer(self.table, inputs, **kwargs)
-            if len(out.get_shape()) > 2 and isinstance(
-                self.sequence_combiner, tf.keras.layers.Layer
-            ):
-                out = call_layer(self.sequence_combiner, out, **kwargs)
+            if len(out.get_shape()) > 2 and self.sequence_combiner is not None:
+                if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
+                    out = call_layer(self.sequence_combiner, out, **kwargs)
+                elif isinstance(self.sequence_combiner, str):
+                    out = process_str_sequence_combiner(out, self.sequence_combiner, **kwargs)
 
         if self.l2_batch_regularization_factor > 0:
             self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
@@ -919,6 +920,9 @@ class EmbeddingFeatures(TabularBlock):
                     val = tf.squeeze(val, axis=-1)
                 out = tf.gather(table_var, tf.cast(val, tf.int32))
 
+            if len(out.get_shape()) > 2 and table.combiner is not None:
+                out = process_str_sequence_combiner(out, table.combiner)
+
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
             # this is mathematically equivalent but is faster.
@@ -1200,3 +1204,35 @@ def serialize_feature_config(feature_config: FeatureConfig) -> Dict[str, Any]:
         outputs[key] = feature_config_dict
 
     return outputs
+
+
+def process_str_sequence_combiner(
+    inputs: Union[tf.Tensor, tf.RaggedTensor], combiner: str, **kwargs
+) -> tf.Tensor:
+    """Process inputs with str sequence combiners ("mean" or "sum")
+
+    Parameters
+    ----------
+    inputs : Union[tf.Tensor, tf.RaggedTensor]
+        Input 3D tensor (batch size, seq length, embedding dim)
+    combiner : str
+        The combiner: "mean" or "sum"
+
+    Returns
+    -------
+    tf.Tensor
+        A 2D tensor with values combined on axis=1
+    """
+    if not combiner or len(inputs.get_shape()) <= 2:
+        return inputs
+    if combiner == "mean":
+        combiner = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1))
+    elif combiner == "sum":
+        combiner = tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=1))
+    else:
+        raise ValueError(
+            "Only 'mean' and 'sum' str combiners is implemented for dense"
+            " list/multi-hot embedded features. You can also"
+            " provide a tf.keras.layers.Layer instance as a sequence combiner."
+        )
+    return call_layer(combiner, inputs, **kwargs)
