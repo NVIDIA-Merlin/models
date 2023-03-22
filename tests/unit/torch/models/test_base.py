@@ -17,8 +17,6 @@ def test_simple_regression_mlp(music_streaming_data):
         TabularInputBlock(schema),
         MLPBlock([10, 10]),
         RegressionOutput(),
-        propagate_features=True,
-        propagate_targets=True,
     )
 
     trainer = pl.Trainer(max_epochs=1, devices=[0])

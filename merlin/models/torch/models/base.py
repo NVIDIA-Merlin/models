@@ -6,7 +6,10 @@ from torch import nn
 
 from merlin.dataloader.torch import Loader
 from merlin.models.torch.core.base import register_post_hook, register_pre_hook
-from merlin.models.torch.core.data import register_data_propagation_hook
+from merlin.models.torch.core.data import (
+    needs_data_propagation_hook,
+    register_data_propagation_hook,
+)
 from merlin.models.torch.loader import sample_batch
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils import module_utils
@@ -21,22 +24,16 @@ class Model(pl.LightningModule):
         post=None,
         schema: Optional[Schema] = None,
         optimizer_cls=torch.optim.Adam,
-        propagate_features: bool = False,
-        propagate_targets: bool = False,
     ):
         super().__init__()
         self.schema = schema
         self.blocks = nn.ModuleList(blocks)
         self.optimizer_cls = optimizer_cls
 
-        self.propagate_features = propagate_features
-        self.propagate_targets = propagate_targets
         self.pre = register_pre_hook(self, pre) if pre else None
         self.post = register_post_hook(self, post) if post else None
-        if propagate_features or propagate_targets:
-            self.data_propagation_hook = register_data_propagation_hook(
-                self, propagate_features=propagate_features, propagate_targets=propagate_targets
-            )
+        if needs_data_propagation_hook:
+            self.data_propagation_hook = register_data_propagation_hook(self)
 
     def forward(self, inputs):
         return module_utils.apply(self.blocks, inputs)
@@ -45,16 +42,13 @@ class Model(pl.LightningModule):
         del batch_idx
         inputs, targets = batch
 
-        if self.propagate_targets:
+        if hasattr(self, "data_propagation_hook"):
             outputs = self(inputs, targets=targets)
         else:
             outputs = self(inputs)
 
         model_output = self.model_outputs[0]
-        if self.propagate_targets:
-            target = model_output.output
-            if target is None:
-                raise ValueError("Model output must have an output attribute")
+        target = getattr(model_output, "output", targets)
 
         loss = model_output.default_loss(outputs, target)
         self.log("train_loss", loss)

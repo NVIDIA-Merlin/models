@@ -19,10 +19,8 @@ class DataPropagationHook(nn.Module):
             Defaults to True.
     """
 
-    def __init__(self, propagate_features: bool = True, propagate_targets: bool = True):
+    def __init__(self):
         super().__init__()
-        self.propagate_features = propagate_features
-        self.propagate_targets = propagate_targets
 
     def forward(self, model, inputs, kwargs):
         """Forward pass for the DataPropagationHook.
@@ -41,10 +39,11 @@ class DataPropagationHook(nn.Module):
         """
         targets = kwargs.get("targets", None)
         for child in module_utils.get_all_children(model)[:-1]:
-            if self.propagate_features:
+            if isinstance(child, FeatureMixin):
                 self._upsert_buffers(child, inputs[0], "feature")
-            if targets not in (None, {}) and self.propagate_targets:
-                self._upsert_buffers(child, targets, "target")
+            if isinstance(child, TargetMixin):
+                if targets not in (None, {}):
+                    self._upsert_buffers(child, targets, "target")
 
         return inputs, {}
 
@@ -73,87 +72,93 @@ class DataPropagationHook(nn.Module):
                 child.register_buffer(name, data, persistent=False)
 
 
+def needs_data_propagation_hook(model: nn.Module) -> bool:
+    for child in module_utils.get_all_children(model):
+        if isinstance(child, (FeatureMixin, TargetMixin)):
+            return True
+
+    return False
+
+
 def register_data_propagation_hook(
     model: nn.Module,
-    propagate_features: bool = False,
-    propagate_targets: bool = False,
 ) -> DataPropagationHook:
     """Register a data propagation hook for a PyTorch module.
 
     Args:
         model (nn.Module): The model to register the data propagation hook for.
-        propagate_features (bool, optional): Whether to propagate features. Defaults to False.
-        propagate_targets (bool, optional): Whether to propagate targets. Defaults to False.
 
     Returns:
         DataPropagationHook: The registered data propagation hook.
     """
-    hook = DataPropagationHook(propagate_features, propagate_targets)
+    hook = DataPropagationHook()
 
     model.register_forward_pre_hook(hook, prepend=True, with_kwargs=True)
 
     return hook
 
 
-def get_features(module: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
-    """Retrieve the features from the buffers of a PyTorch module.
+class FeatureMixin:
+    def get_features(self: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
+        """Retrieve the features from the buffers of a PyTorch module.
 
-    Args:
-        module (nn.Module): The module containing the features.
+        Args:
+            module (nn.Module): The module containing the features.
 
-    Returns:
-        Union[Dict[str, torch.Tensor], torch.Tensor]:
-            The features from the module, either as a dictionary of
-            named tensors or a single tensor.
-    """
+        Returns:
+            Union[Dict[str, torch.Tensor], torch.Tensor]:
+                The features from the module, either as a dictionary of
+                named tensors or a single tensor.
+        """
 
-    prefix = "__buffer_feature"
-    features = {}
+        prefix = "__buffer_feature"
+        features = {}
 
-    for name, buffer in module.named_buffers():
-        if name.startswith(prefix):
-            features[name] = buffer
+        for name, buffer in self.named_buffers():
+            if name.startswith(prefix):
+                features[name] = buffer
 
-    if not features:
-        raise RuntimeError(
-            "No feature buffers found. Ensure that `register_data_propagation_hook` has been "
-            "called on the parent module with `propagate_features=True`. For example:\n\n"
-            "    register_data_propagation_hook(model, propagate_features=True)"
-        )
+        if not features:
+            raise RuntimeError(
+                "No feature buffers found. Ensure that `register_data_propagation_hook` has been "
+                "called on the parent module with `propagate_features=True`. For example:\n\n"
+                "    register_data_propagation_hook(model, propagate_features=True)"
+            )
 
-    if len(features) == 1:
-        return list(features.values())[0]
+        if len(features) == 1:
+            return list(features.values())[0]
 
-    return {k[len(prefix) + 1 :]: v for k, v in features.items()}
+        return {k[len(prefix) + 1 :]: v for k, v in features.items()}
 
 
-def get_targets(module: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
-    """Retrieve the targets from the buffers of a PyTorch module.
+class TargetMixin:
+    def get_targets(self: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
+        """Retrieve the targets from the buffers of a PyTorch module.
 
-    Args:
-        module (nn.Module): The module containing the targets.
+        Args:
+            module (nn.Module): The module containing the targets.
 
-    Returns:
-        Union[Dict[str, torch.Tensor], torch.Tensor]:
-            The targets from the module, either as a dictionary of
-            named tensors or a single tensor.
-    """
+        Returns:
+            Union[Dict[str, torch.Tensor], torch.Tensor]:
+                The targets from the module, either as a dictionary of
+                named tensors or a single tensor.
+        """
 
-    prefix = "__buffer_target"
-    targets = {}
+        prefix = "__buffer_target"
+        targets = {}
 
-    for name, buffer in module.named_buffers():
-        if name.startswith(prefix):
-            targets[name] = buffer
+        for name, buffer in self.named_buffers():
+            if name.startswith(prefix):
+                targets[name] = buffer
 
-    if not targets:
-        raise RuntimeError(
-            "No targets buffers found. Ensure that `register_data_propagation_hook` has been "
-            "called on the parent module with `propagate_targets=True`. For example:\n\n"
-            "    register_data_propagation_hook(model, propagate_targets=True)"
-        )
+        if not targets:
+            raise RuntimeError(
+                "No targets buffers found. Ensure that `register_data_propagation_hook` has been "
+                "called on the parent module with `propagate_targets=True`. For example:\n\n"
+                "    register_data_propagation_hook(model, propagate_targets=True)"
+            )
 
-    if len(targets) == 1:
-        return list(targets.values)[0]
+        if len(targets) == 1:
+            return list(targets.values)[0]
 
-    return {k[len(prefix) + 1 :]: v for k, v in targets.items()}
+        return {k[len(prefix) + 1 :]: v for k, v in targets.items()}

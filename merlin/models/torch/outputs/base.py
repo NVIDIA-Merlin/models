@@ -5,11 +5,12 @@ from torch import nn
 from torchmetrics import Metric
 
 from merlin.models.torch.core.base import Block
+from merlin.models.torch.core.data import TargetMixin
 from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import ColumnSchema
 
 
-class ModelOutput(Block):
+class ModelOutput(Block, TargetMixin):
     """A ModelOutput block represents the output of a model.
     It handles the target, loss, and metrics computation.
 
