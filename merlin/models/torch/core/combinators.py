@@ -47,6 +47,11 @@ class ParallelBlock(TabularBlock):
         for key, val in _parallel_dict.items():
             self.add_module(str(key), val)
 
+        if all(hasattr(m, "schema") for m in _parallel_dict.values()):
+            self.schema = reduce(
+                lambda a, b: a + b, [m.schema for m in _parallel_dict.values()]
+            )  # type: ignore
+
     def forward(self, inputs, **kwargs):
         """
         Process inputs through the parallel layers.
@@ -75,27 +80,35 @@ class ParallelBlock(TabularBlock):
         return outputs
 
     def select_by_name(self, names) -> "ParallelBlock":
-        """Select a branches by name and return a new ParallelBlock.
+        if self.schema is not None and self.schema == self.schema.select_by_name(names):
+            return self
 
-        Returns
-        -------
-        ParallelBlock
-            The block with the selected branches.
-        """
-        if isinstance(names, str):
-            names = [names]
+        selected_branches = {}
+        selected_schemas = Schema()
 
-        branches = {}
-        for n in names:
-            if not isinstance(n, str):
-                raise ValueError(f"Invalid name. Got: {n}")
-            if n not in self.parallel_dict:
-                raise ValueError(
-                    f"Name not found. Got: {n}, available: {self.parallel_dict.keys()}"
+        for name, branch in self.parallel_dict.items():
+            branch_has_schema = hasattr(branch, "schema")
+            if not branch_has_schema:
+                continue
+            if not hasattr(branch, "select_by_name"):
+                raise AttributeError(
+                    f"This ParallelBlock does not support select_by_tag because "
+                    f"{branch.__class__} does not support select_by_tag. Consider "
+                    "implementing a select_by_name in an extension of "
+                    f"{branch.__class__}."
                 )
-            branches[n] = self.parallel_dict[n]
+            selected_branch = branch.select_by_name(names)
+            if not selected_branch:
+                continue
+            selected_branches[name] = selected_branch
+            selected_schemas += selected_branch.schema
 
-        return ParallelBlock(branches, pre=self.pre, post=self.post, aggregation=self.aggregation)
+        return ParallelBlock(
+            selected_branches,
+            post=self.post,
+            pre=self.pre,
+            aggregation=self.aggregation,
+        )
 
     def select_by_tag(self, tags: Union[str, Tags, List[Union[str, Tags]]]) -> "ParallelBlock":
         """Select branches by tags and return a new ParallelBlock.
@@ -134,7 +147,7 @@ class ParallelBlock(TabularBlock):
         selected_schemas = Schema()
 
         for name, branch in self.parallel_dict.items():
-            branch_has_schema = getattr(branch, "has_schema", False)
+            branch_has_schema = hasattr(branch, "schema")
             if not branch_has_schema:
                 continue
             if not hasattr(branch, "select_by_tag"):

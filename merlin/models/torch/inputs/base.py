@@ -49,4 +49,3 @@ class TabularInputBlock(ParallelBlock):
             raise ValueError("No columns selected for the input block")
 
         super().__init__(parsed, pre=pre, post=post, aggregation=aggregation)
-        self.schema = schema

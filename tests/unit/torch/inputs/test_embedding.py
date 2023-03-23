@@ -17,6 +17,14 @@ class TestEmbeddingTableModule:
         assert len(etb.domains) == 1
         assert etb.feature_to_domain["item_id"].name == item_id_col_schema.int_domain.name
 
+    def test_selectable(self, item_id_col_schema, user_id_col_schema):
+        etb = EmbeddingTableModule(8, Schema([item_id_col_schema, user_id_col_schema]))
+
+        assert etb.select_by_tag(Tags.ITEM_ID).schema == Schema([item_id_col_schema])
+        assert etb.select_by_name("item_id").schema == Schema([item_id_col_schema])
+        assert etb.select_by_tag(Tags.USER_ID).schema == Schema([user_id_col_schema])
+        assert etb.select_by_name("user_id").schema == Schema([user_id_col_schema])
+
     def test_add_feature(self, item_id_col_schema, user_id_col_schema):
         sample_column_schema2 = ColumnSchema(
             "item_id2",

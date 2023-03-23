@@ -34,7 +34,7 @@ class EmbeddingTableModule(nn.Module):
         if len(self.schema) == 1:
             name = self.schema.first.name
 
-            return {"name": self.forward(inputs[name])}
+            return {name: self.forward(inputs[name])}
 
         tensors, names, shapes = [], [], []
         for feature_name in sorted(self.schema.column_names):
@@ -56,7 +56,7 @@ class EmbeddingTableModule(nn.Module):
 
         return out
 
-    def add_feature(self, col_schema: ColumnSchema) -> None:
+    def add_feature(self, col_schema: ColumnSchema) -> Self:
         """Add a feature to the table.
 
         Adding more than one feature enables the table to lookup and return embeddings
@@ -83,8 +83,13 @@ class EmbeddingTableModule(nn.Module):
         self.feature_to_domain[col_schema.name] = self.domains[domain.name]
         self.schema += Schema([col_schema])
 
+        return self
+
     def select_by_name(self, names) -> Self:
         return EmbeddingTable(self.dim, self.schema.select_by_name(names))
+
+    def select_by_tag(self, tags) -> Self:
+        return EmbeddingTable(self.dim, self.schema.select_by_tag(tags))
 
     @property
     def contains_multiple_domains(self) -> bool:
@@ -170,7 +175,6 @@ class Embeddings(ParallelBlock):
                 )
 
         super().__init__(tables, pre=pre, post=post, aggregation=aggregation)
-        self.schema = schema
 
 
 def _forward_kwargs_to_table(col, table_cls, kwargs):
