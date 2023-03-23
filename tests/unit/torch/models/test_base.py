@@ -1,4 +1,5 @@
 import pytorch_lightning as pl
+import torch
 
 from merlin.dataloader.torch import Loader
 from merlin.models.torch.blocks.mlp import MLPBlock
@@ -25,8 +26,8 @@ def test_simple_regression_mlp(music_streaming_data):
     # Initialize the model parameters
     model.initialize(loader)
 
-    # if hasattr(torch, "compile"):
-    #     model = torch.compile(model)
+    if hasattr(torch, "compile"):
+        model = torch.compile(model)
 
     trainer.fit(model, loader)
 

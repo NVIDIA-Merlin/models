@@ -32,7 +32,8 @@ class Model(pl.LightningModule):
 
         self.pre = register_pre_hook(self, pre) if pre else None
         self.post = register_post_hook(self, post) if post else None
-        if needs_data_propagation_hook:
+        self.data_propagation_hook = None
+        if needs_data_propagation_hook(self):
             self.data_propagation_hook = register_data_propagation_hook(self)
 
     def forward(self, inputs):
@@ -42,7 +43,7 @@ class Model(pl.LightningModule):
         del batch_idx
         inputs, targets = batch
 
-        if hasattr(self, "data_propagation_hook"):
+        if self.data_propagation_hook:
             outputs = self(inputs, targets=targets)
         else:
             outputs = self(inputs)
