@@ -1,6 +1,7 @@
-from typing import Union
+from typing import Protocol, Union, runtime_checkable
 
 from torch import nn
+from typing_extensions import Self
 
 from merlin.models.utils.registry import Registry
 
@@ -69,6 +70,15 @@ class Block(nn.Module):
         return inputs
 
 
+@runtime_checkable
+class Selectable(Protocol):
+    def select_by_name(self, names) -> Self:
+        ...
+
+    def select_by_tag(self, tags) -> Self:
+        ...
+
+
 class TabularBlock(Block):
     """
     A custom PyTorch module that applies pre and post
@@ -90,6 +100,10 @@ class TabularBlock(Block):
 
     def forward(self, inputs):
         return inputs
+
+    @property
+    def is_selectable(self) -> bool:
+        return isinstance(self, Selectable)
 
 
 class NoOp(nn.Module):

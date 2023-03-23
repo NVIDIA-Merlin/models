@@ -70,7 +70,7 @@ def item_id_col_schema() -> ColumnSchema:
         "item_id",
         dtype=np.int32,
         properties={"domain": {"min": 0, "max": 10, "name": "item_id"}},
-        tags=[Tags.CATEGORICAL],
+        tags=[Tags.CATEGORICAL, Tags.ITEM_ID],
     )
 
 
@@ -80,7 +80,7 @@ def user_id_col_schema() -> ColumnSchema:
         "user_id",
         dtype=np.int32,
         properties={"domain": {"min": 0, "max": 20, "name": "user_id"}},
-        tags=[Tags.CATEGORICAL],
+        tags=[Tags.CATEGORICAL, Tags.USER_ID],
     )
 
 

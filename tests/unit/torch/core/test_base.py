@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 
-from merlin.models.torch.core.base import Block, TabularBlock
+from merlin.models.torch.core.base import Block, Selectable, TabularBlock
+from merlin.schema import Schema
 
 
 class TestBlock:
@@ -44,6 +45,18 @@ class TestBlock:
         expected_outputs = post(expected_outputs)
 
         assert torch.equal(outputs, expected_outputs)
+
+
+class TestSelectable:
+    def test_schema_selectable(self):
+        schema = Schema(["a", "b", "c"])
+
+        assert isinstance(schema, Selectable)
+
+    def test_tabular_default_selectable(self):
+        block = TabularBlock()
+
+        assert not isinstance(block, Selectable)
 
 
 class TestTabularBlock:

@@ -1,7 +1,7 @@
 import pytest
 
 from merlin.models.torch.transforms.features import Filter
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 
 class TestFilter:
@@ -23,6 +23,18 @@ class TestFilter:
         new_schema = Schema(["col4", "col5", "col6"])
         f.schema = new_schema
         assert f.schema == new_schema
+
+    def test_select_by_name(self):
+        schema = Schema(["col1", "col2", "col3"])
+        f = Filter(schema)
+
+        assert f.select_by_name("col1")._feature_names == {"col1"}
+
+    def test_select_by_tag(self, user_id_col_schema, item_id_col_schema):
+        schema = Schema([user_id_col_schema, item_id_col_schema])
+        f = Filter(schema)
+
+        assert f.select_by_tag(Tags.USER_ID)._feature_names == {"user_id"}
 
     def test_forward(self):
         schema = Schema(["col1", "col2"])

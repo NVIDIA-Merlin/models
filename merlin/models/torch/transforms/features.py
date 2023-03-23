@@ -1,6 +1,7 @@
-from typing import Union
+from typing import List, Union
 
 import torch
+from typing_extensions import Self
 
 from merlin.models.torch.core.base import TabularBlock
 from merlin.models.torch.typing import TabularData
@@ -48,6 +49,26 @@ class Filter(TabularBlock):
             raise ValueError(f"Expected a Schema object, got {type(value)}")
         self._schema = value
         self._feature_names = set(value.column_names)
+
+    def select_by_name(self, names: Union[str, List[str]]) -> Self:
+        return Filter(
+            self.schema.select_by_name(names),
+            exclude=self.exclude,
+            pre=self.pre,
+            post=self.post,
+            aggregation=self.aggregation,
+            pop=self.pop,
+        )
+
+    def select_by_tag(self, tags: Union[Tags, List[Tags]]) -> Self:
+        return Filter(
+            self.schema.select_by_tag(tags),
+            exclude=self.exclude,
+            pre=self.pre,
+            post=self.post,
+            aggregation=self.aggregation,
+            pop=self.pop,
+        )
 
     def check_feature(self, feature_name) -> bool:
         if self.exclude:
