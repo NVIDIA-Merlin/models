@@ -80,6 +80,9 @@ class Filter(TabularBlock):
         del input_schema
         return self.schema
 
+    def __bool__(self) -> bool:
+        return bool(self.schema)
+
 
 class ToTarget(TabularBlock):
     """Transform columns to targets"""

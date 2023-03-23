@@ -170,17 +170,33 @@ class ParallelBlock(TabularBlock):
             aggregation=self.aggregation,
         )
 
+    def items(self):
+        return self.parallel_dict.items()
+
+    def keys(self):
+        return self.parallel_dict.keys()
+
+    def values(self):
+        return self.parallel_dict.values()
+
+    @property
+    def first(self) -> nn.Module:
+        return next(iter(self.parallel_dict.values()))
+
     @_copy_to_script_wrapper
     def __len__(self) -> int:
-        return len(self._modules)
+        return len(self.parallel_dict)
 
     @_copy_to_script_wrapper
     def __iter__(self) -> Iterator[nn.Module]:
-        return iter(self._modules.values())
+        return iter(self.parallel_dict.values())
 
     @_copy_to_script_wrapper
     def __getitem__(self, key) -> nn.Module:
-        return self._modules[key]
+        return self.parallel_dict[key]
+
+    def __bool__(self) -> bool:
+        return bool(self.parallel_dict)
 
 
 class WithShortcut(ParallelBlock):

@@ -99,6 +99,9 @@ class EmbeddingTableModule(nn.Module):
     def table_name(self) -> str:
         return "_".join([domain.name for domain in self.domains.values()])
 
+    def __bool__(self) -> bool:
+        return bool(self.schema)
+
     # @classmethod
     # def from_pretrained(
     #     cls,

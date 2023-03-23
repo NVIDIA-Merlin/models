@@ -23,6 +23,7 @@ class TabularInputBlock(ParallelBlock):
         post: Optional[nn.Module] = None,
         aggregation: Optional[nn.Module] = "concat",
         tag_to_block=INPUT_TAG_TO_BLOCK,
+        flatten=True,
         **branches,
     ):
         # If targets are passed, exclude these from the input block schema
@@ -47,5 +48,15 @@ class TabularInputBlock(ParallelBlock):
 
         if not parsed:
             raise ValueError("No columns selected for the input block")
+
+        if flatten:
+            flattened = {}
+            for key, val in parsed.items():
+                if isinstance(val, ParallelBlock):
+                    for name, branch in val.items():
+                        flattened[f"{key}_{name}"] = branch
+                else:
+                    flattened[key] = val
+            parsed = flattened
 
         super().__init__(parsed, pre=pre, post=post, aggregation=aggregation)
