@@ -47,10 +47,13 @@ class MLPBlock(SequentialBlock):
     ):
         modules: List[nn.Module] = []
 
+        if not isinstance(units, list):
+            units = list(units)
+
         for dim in units:
             modules.append(nn.LazyLinear(dim))
             if activation is not None:
-                modules.append(activation(inplace=True))
+                modules.append(activation())
 
             if normalization:
                 if normalization == "batch_norm":

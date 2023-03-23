@@ -13,6 +13,7 @@ class TabularInputBlock(ParallelBlock):
         Tags.CONTINUOUS: Continuous,
         Tags.CATEGORICAL: Embeddings,
     }
+    TAGS_TO_EXCLUDE = [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
 
     def __init__(
         self,
@@ -27,7 +28,7 @@ class TabularInputBlock(ParallelBlock):
         **branches,
     ):
         # If targets are passed, exclude these from the input block schema
-        schema = schema.excluding_by_tag([Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION])
+        schema = schema.excluding_by_tag(self.TAGS_TO_EXCLUDE)
 
         unparsed = {"categorical": categorical, "continuous": continuous, **branches}
         parsed = {}
