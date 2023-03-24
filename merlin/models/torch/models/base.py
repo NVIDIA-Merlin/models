@@ -5,12 +5,12 @@ import torch
 from torch import nn
 
 from merlin.dataloader.torch import Loader
-from merlin.models.torch.core.base import register_post_hook, register_pre_hook
-from merlin.models.torch.core.data import (
+from merlin.models.torch.base import register_post_hook, register_pre_hook
+from merlin.models.torch.data import (
     needs_data_propagation_hook,
     register_data_propagation_hook,
+    sample_batch,
 )
-from merlin.models.torch.loader import sample_batch
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Schema

@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from typing_extensions import Self
 
-from merlin.models.torch.core.combinators import ParallelBlock
+from merlin.models.torch.combinators import ParallelBlock
 from merlin.models.utils.schema_utils import infer_embedding_dim
 from merlin.schema import ColumnSchema, Schema
 from merlin.schema.schema import Domain

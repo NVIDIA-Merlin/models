@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from merlin.models.torch.core.combinators import (
+from merlin.models.torch.combinators import (
     NoOp,
     ParallelBlock,
     ResidualBlock,

@@ -2,7 +2,7 @@ import pytest
 from torch import nn
 
 from merlin.models.torch.blocks.mlp import MLPBlock
-from merlin.models.torch.core.combinators import SequentialBlock
+from merlin.models.torch.combinators import SequentialBlock
 
 
 class TestMLPBlock:

@@ -3,7 +3,7 @@ from typing import Dict, Union
 import torch
 from torch import nn
 
-from merlin.models.torch.core.base import registry
+from merlin.models.torch.base import registry
 
 
 @registry.register("concat")

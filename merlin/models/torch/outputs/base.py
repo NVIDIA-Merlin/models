@@ -4,8 +4,8 @@ import torch
 from torch import nn
 from torchmetrics import Metric
 
-from merlin.models.torch.core.base import Block
-from merlin.models.torch.core.data import TargetMixin
+from merlin.models.torch.base import Block
+from merlin.models.torch.data import TargetMixin
 from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import ColumnSchema
 

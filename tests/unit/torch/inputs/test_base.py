@@ -1,6 +1,6 @@
+from merlin.models.torch.data import sample_batch
 from merlin.models.torch.inputs.base import TabularInputBlock
 from merlin.models.torch.inputs.embedding import EmbeddingTable
-from merlin.models.torch.loader import sample_batch
 from merlin.schema import Tags
 
 

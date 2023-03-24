@@ -2,7 +2,7 @@ from typing import Callable, Dict, Optional, Union
 
 from torch import nn
 
-from merlin.models.torch.core.combinators import ParallelBlock
+from merlin.models.torch.combinators import ParallelBlock
 from merlin.models.torch.inputs.continuous import Continuous
 from merlin.models.torch.inputs.embedding import Embeddings
 from merlin.schema import Schema, Tags

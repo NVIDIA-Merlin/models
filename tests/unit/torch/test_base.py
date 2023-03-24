@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from merlin.models.torch.core.base import Block, Selectable, TabularBlock
+from merlin.models.torch.base import Block, Selectable, TabularBlock
 from merlin.schema import Schema
 
 

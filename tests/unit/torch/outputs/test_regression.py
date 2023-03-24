@@ -4,7 +4,7 @@ from torch import nn
 from torchmetrics import MeanSquaredError
 
 from merlin.models.torch.blocks.mlp import MLPBlock
-from merlin.models.torch.core.combinators import SequentialBlock
+from merlin.models.torch.combinators import SequentialBlock
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.schema import ColumnSchema

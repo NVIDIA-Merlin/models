@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from merlin.models.torch.core.combinators import ParallelBlock
+from merlin.models.torch.combinators import ParallelBlock
 from merlin.models.torch.inputs.embedding import Embeddings, EmbeddingTable, EmbeddingTableModule
 from merlin.schema import ColumnSchema, Schema, Tags
 

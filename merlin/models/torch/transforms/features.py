@@ -3,7 +3,7 @@ from typing import List, Union
 import torch
 from typing_extensions import Self
 
-from merlin.models.torch.core.base import TabularBlock
+from merlin.models.torch.base import TabularBlock
 from merlin.models.torch.typing import TabularData
 from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags

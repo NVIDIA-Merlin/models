@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
 
-from merlin.models.torch.core.base import NoOp, TabularBlock
+from merlin.models.torch.base import NoOp, TabularBlock
 from merlin.models.torch.transforms.aggregation import SumResidual
 from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import Schema, Tags

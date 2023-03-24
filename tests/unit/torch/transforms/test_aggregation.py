@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from merlin.models.torch.core.base import TabularBlock
+from merlin.models.torch.base import TabularBlock
 from merlin.models.torch.transforms.aggregation import ConcatFeatures, SumResidual
 
 
