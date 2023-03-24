@@ -1,3 +1,5 @@
+import inspect
+from functools import lru_cache
 from typing import Dict, Optional, Union
 
 import torch
@@ -51,18 +53,75 @@ def sample_batch(
     return inputs, targets
 
 
-class DataPropagationHook(nn.Module):
+class _FeatureReceiverHook(nn.Module):
+    KEY_NAME = "features"
+    PROPERTY_NAME = "__feature_receiver"
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, module, inputs, kwargs):
+        if self.KEY_NAME in kwargs:
+            return inputs, kwargs
+
+        args_count, kwargs_count, has_args, has_kwargs = _count_function_params(module.forward)
+        if not (has_args and has_kwargs) and len(inputs) == args_count + kwargs_count:
+            return inputs, kwargs
+
+        kwargs[self.KEY_NAME] = _get_features(module)
+
+        return inputs, kwargs
+
+    @classmethod
+    def propagate(cls, module, features):
+        _upsert_buffers(module, features, "feature")
+        _upsert_buffer(module, cls.PROPERTY_NAME, torch.tensor(True))
+
+    @classmethod
+    def needs_propagation(cls, module: nn.Module) -> bool:
+        return not hasattr(module, cls.PROPERTY_NAME)
+
+
+class _TargetReceiverHook(nn.Module):
+    KEY_NAME = "targets"
+    PROPERTY_NAME = "__target_receiver"
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, module, inputs, kwargs):
+        if self.KEY_NAME in kwargs:
+            return inputs, kwargs
+
+        args_count, kwargs_count, has_args, has_kwargs = _count_function_params(module.forward)
+        if not (has_args and has_kwargs) and len(inputs) == args_count + kwargs_count:
+            return inputs, kwargs
+
+        maybe_targets = _get_targets(module)
+        if maybe_targets is not None:
+            return inputs, {self.KEY_NAME: maybe_targets}
+
+        return inputs, kwargs
+
+    @classmethod
+    def propagate(cls, module, features):
+        _upsert_buffers(module, features, "target")
+        _upsert_buffer(module, cls.PROPERTY_NAME, torch.tensor(True))
+
+    @classmethod
+    def needs_propagation(cls, module: nn.Module) -> bool:
+        return not hasattr(module, cls.PROPERTY_NAME)
+
+
+class _DataPropagationHook(nn.Module):
     """A data propagation hook for PyTorch modules.
 
     This hook allows you to propagate features and/or targets through
     the children of a model during the forward pass.
-
-    Args:
-        propagate_features (bool, optional): Whether to propagate features.
-            Defaults to True.
-        propagate_targets (bool, optional): Whether to propagate targets.
-            Defaults to True.
     """
+
+    _FEATURE_HOOK = _FeatureReceiverHook
+    _TARGET_HOOK = _TargetReceiverHook
 
     def __init__(self):
         super().__init__()
@@ -84,36 +143,125 @@ class DataPropagationHook(nn.Module):
         """
         targets = kwargs.get("targets", None)
         for child in module_utils.get_all_children(model)[:-1]:
-            if isinstance(child, FeatureMixin):
-                self._upsert_buffers(child, inputs[0], "feature")
-                _upsert_buffer(child, "_features_propagated", torch.tensor(True))
-            if isinstance(child, TargetMixin):
-                if targets not in (None, {}):
-                    self._upsert_buffers(child, targets, "target")
-                    _upsert_buffer(child, "_targets_propagated", torch.tensor(True))
+            if self._FEATURE_HOOK.needs_propagation(child):
+                self._FEATURE_HOOK.propagate(child, inputs[0])
+
+            if targets not in (None, {}):
+                if self._TARGET_HOOK.needs_propagation(child):
+                    self._TARGET_HOOK.propagate(child, targets)
 
         return inputs, {}
 
-    def _upsert_buffers(
-        self, child: nn.Module, data: Union[Dict[str, torch.Tensor], torch.Tensor], prefix: str
-    ):
-        """Update or insert buffers for the given child module.
 
-        Args:
-            child (nn.Module): The child module to update or insert buffers for.
-            data (Union[Dict[str, torch.Tensor], torch.Tensor]): The data to be added as buffers.
-            prefix (str): The prefix to be used for naming the buffers.
-        """
-        if isinstance(child, nn.ModuleList):
-            for c in child:
-                self._upsert_buffers(c, data, prefix)
-        elif isinstance(data, dict):
-            for key, val in data.items():
-                key_prefix = f"{prefix}_{key}"
-                self._upsert_buffers(child, val, key_prefix)
-        else:
-            name = f"__buffer_{prefix}"
-            _upsert_buffer(child, name, data, persistent=True)
+def needs_data_propagation_hook(model: nn.Module) -> bool:
+    for child in module_utils.get_all_children(model):
+        if hasattr(child, _FeatureReceiverHook.PROPERTY_NAME):
+            return True
+        if hasattr(child, _TargetReceiverHook.PROPERTY_NAME):
+            return True
+
+    return False
+
+
+def register_data_propagation_hook(model: nn.Module) -> _DataPropagationHook:
+    """Register a data propagation hook for a PyTorch module.
+
+    Args:
+        model (nn.Module): The model to register the data propagation hook for.
+
+    Returns:
+        DataPropagationHook: The registered data propagation hook.
+    """
+    hook = _DataPropagationHook()
+
+    model.register_forward_pre_hook(hook, prepend=True, with_kwargs=True)
+
+    return hook
+
+
+def register_feature_hook(module: nn.Module):
+    hook = _FeatureReceiverHook()
+
+    module.register_forward_pre_hook(hook, with_kwargs=True)
+    module.register_buffer(hook.PROPERTY_NAME, torch.tensor(True), persistent=False)
+
+    return hook
+
+
+def register_target_hook(module: nn.Module):
+    hook = _TargetReceiverHook()
+
+    module.register_forward_pre_hook(hook, with_kwargs=True)
+    module.register_buffer(hook.PROPERTY_NAME, torch.tensor(True), persistent=False)
+
+    return hook
+
+
+def _get_features(self: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
+    """Retrieve the features from the buffers of a PyTorch module.
+
+    Args:
+        module (nn.Module): The module containing the features.
+
+    Returns:
+        Union[Dict[str, torch.Tensor], torch.Tensor]:
+            The features from the module, either as a dictionary of
+            named tensors or a single tensor.
+    """
+
+    prefix = "__buffer_feature"
+    features = {}
+
+    for name, buffer in self.named_buffers():
+        if name.startswith(prefix):
+            features[name] = buffer
+
+    if not features:
+        raise RuntimeError(
+            "No feature buffers found. Ensure that `register_data_propagation_hook` has been "
+            "called on the parent module with `propagate_features=True`. For example:\n\n"
+            "    register_data_propagation_hook(model, propagate_features=True)"
+        )
+
+    if len(features) == 1:
+        return list(features.values())[0]
+
+    return {k[len(prefix) + 1 :]: v for k, v in features.items()}
+
+
+def _get_targets(self: nn.Module, strict=False) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
+    """Retrieve the targets from the buffers of a PyTorch module.
+
+    Args:
+        module (nn.Module): The module containing the targets.
+
+    Returns:
+        Union[Dict[str, torch.Tensor], torch.Tensor]:
+            The targets from the module, either as a dictionary of
+            named tensors or a single tensor.
+    """
+
+    prefix = "__buffer_target"
+    targets = {}
+
+    for name, buffer in self.named_buffers():
+        if name.startswith(prefix):
+            targets[name] = buffer
+
+    if not targets and not strict:
+        return None
+
+    if not targets and strict:
+        raise RuntimeError(
+            "No targets buffers found. Ensure that `register_data_propagation_hook` has been "
+            "called on the parent module with `propagate_targets=True`. For example:\n\n"
+            "    register_data_propagation_hook(model, propagate_targets=True)"
+        )
+
+    if len(targets) == 1:
+        return list(targets.values())[0]
+
+    return {k[len(prefix) + 1 :]: v for k, v in targets.items()}
 
 
 def _upsert_buffer(module, name, data, persistent=False):
@@ -123,106 +271,50 @@ def _upsert_buffer(module, name, data, persistent=False):
         module.register_buffer(name, data, persistent=persistent)
 
 
-def needs_data_propagation_hook(model: nn.Module) -> bool:
-    for child in module_utils.get_all_children(model):
-        if isinstance(child, (FeatureMixin, TargetMixin)):
-            return True
-
-    return False
-
-
-def register_data_propagation_hook(
-    model: nn.Module,
-) -> DataPropagationHook:
-    """Register a data propagation hook for a PyTorch module.
+def _upsert_buffers(
+    child: nn.Module, data: Union[Dict[str, torch.Tensor], torch.Tensor], prefix: str
+):
+    """Update or insert buffers for the given child module.
 
     Args:
-        model (nn.Module): The model to register the data propagation hook for.
-
-    Returns:
-        DataPropagationHook: The registered data propagation hook.
+        child (nn.Module): The child module to update or insert buffers for.
+        data (Union[Dict[str, torch.Tensor], torch.Tensor]): The data to be added as buffers.
+        prefix (str): The prefix to be used for naming the buffers.
     """
-    hook = DataPropagationHook()
-
-    model.register_forward_pre_hook(hook, prepend=True, with_kwargs=True)
-
-    return hook
-
-
-class FeatureMixin:
-    def get_features(self: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
-        """Retrieve the features from the buffers of a PyTorch module.
-
-        Args:
-            module (nn.Module): The module containing the features.
-
-        Returns:
-            Union[Dict[str, torch.Tensor], torch.Tensor]:
-                The features from the module, either as a dictionary of
-                named tensors or a single tensor.
-        """
-
-        prefix = "__buffer_feature"
-        features = {}
-
-        for name, buffer in self.named_buffers():
-            if name.startswith(prefix):
-                features[name] = buffer
-
-        if not features:
-            raise RuntimeError(
-                "No feature buffers found. Ensure that `register_data_propagation_hook` has been "
-                "called on the parent module with `propagate_features=True`. For example:\n\n"
-                "    register_data_propagation_hook(model, propagate_features=True)"
-            )
-
-        if len(features) == 1:
-            return list(features.values())[0]
-
-        return {k[len(prefix) + 1 :]: v for k, v in features.items()}
-
-    def get_feature(self, name: str) -> torch.Tensor:
-        if not getattr(self, "_features_propagated", False):
-            raise RuntimeError(
-                "Features have not been propagated. Ensure that `register_data_propagation_hook` "
-                "has been called on the parent module with `propagate_features=True`. "
-                "For example:\n\n    register_data_propagation_hook(model, propagate_features=True)"
-            )
-
-        if not hasattr(self, f"__buffer_feature_{name}"):
-            raise RuntimeError(f"Feature '{name}' not found")
-
-        return getattr(self, f"__buffer_feature_{name}")
+    if isinstance(child, nn.ModuleList):
+        for c in child:
+            _upsert_buffers(c, data, prefix)
+    elif isinstance(data, dict):
+        for key, val in data.items():
+            key_prefix = f"{prefix}_{key}"
+            _upsert_buffers(child, val, key_prefix)
+    else:
+        name = f"__buffer_{prefix}"
+        _upsert_buffer(child, name, data, persistent=True)
 
 
-class TargetMixin:
-    def get_targets(self: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
-        """Retrieve the targets from the buffers of a PyTorch module.
+# Cached
+@lru_cache(maxsize=1000)
+def _count_function_params(func):
+    # Get the signature of the function
+    func_signature = inspect.signature(func)
 
-        Args:
-            module (nn.Module): The module containing the targets.
+    # Initialize counters for args and kwargs
+    args_count = 0
+    kwargs_count = 0
+    has_args = False
+    has_kwargs = False
 
-        Returns:
-            Union[Dict[str, torch.Tensor], torch.Tensor]:
-                The targets from the module, either as a dictionary of
-                named tensors or a single tensor.
-        """
+    # Iterate through the parameters of the function
+    for param in func_signature.parameters.values():
+        if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
+            if param.default == inspect.Parameter.empty:
+                args_count += 1
+            else:
+                kwargs_count += 1
+        elif param.kind == inspect.Parameter.VAR_POSITIONAL:
+            has_args = True
+        elif param.kind == inspect.Parameter.VAR_KEYWORD:
+            has_kwargs = True
 
-        prefix = "__buffer_target"
-        targets = {}
-
-        for name, buffer in self.named_buffers():
-            if name.startswith(prefix):
-                targets[name] = buffer
-
-        if not targets:
-            raise RuntimeError(
-                "No targets buffers found. Ensure that `register_data_propagation_hook` has been "
-                "called on the parent module with `propagate_targets=True`. For example:\n\n"
-                "    register_data_propagation_hook(model, propagate_targets=True)"
-            )
-
-        if len(targets) == 1:
-            return list(targets.values)[0]
-
-        return {k[len(prefix) + 1 :]: v for k, v in targets.items()}
+    return args_count, kwargs_count, has_args, has_kwargs

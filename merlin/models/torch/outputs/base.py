@@ -5,12 +5,12 @@ from torch import nn
 from torchmetrics import Metric
 
 from merlin.models.torch.base import Block
-from merlin.models.torch.data import TargetMixin
+from merlin.models.torch.data import register_target_hook
 from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import ColumnSchema
 
 
-class ModelOutput(Block, TargetMixin):
+class ModelOutput(Block):
     """A ModelOutput block represents the output of a model.
     It handles the target, loss, and metrics computation.
 
@@ -44,6 +44,7 @@ class ModelOutput(Block, TargetMixin):
         logits_temperature: float = 1.0,
     ):
         super().__init__(pre=pre, post=post)
+        register_target_hook(self)
         self.to_call = to_call
         self.default_loss = default_loss
         self.default_metrics = default_metrics

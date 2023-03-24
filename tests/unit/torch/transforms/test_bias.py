@@ -28,7 +28,7 @@ class TestSamplingProbabilityCorrection:
         )
         assert torch.allclose(output, expected_output)
 
-        with pytest.raises(RuntimeError, match="Features have not been propagated."):
+        with pytest.raises(RuntimeError, match="No feature buffers found."):
             corr(logits)
 
     def test_forward_feature_propagated(self):

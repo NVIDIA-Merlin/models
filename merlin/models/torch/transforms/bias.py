@@ -1,12 +1,10 @@
-from typing import Optional
-
 import torch
 import torch.nn as nn
 
-from merlin.models.torch.data import FeatureMixin
+from merlin.models.torch.data import register_feature_hook
 
 
-class SamplingProbabilityCorrection(nn.Module, FeatureMixin):
+class SamplingProbabilityCorrection(nn.Module):
     """Sampling probability correction module.
     Corrects logits based on the candidate sampling probability.
 
@@ -23,16 +21,21 @@ class SamplingProbabilityCorrection(nn.Module, FeatureMixin):
 
     def __init__(self, feature_name: str = "candidate_sampling_probability"):
         super().__init__()
+        register_feature_hook(self)
         self.feature_name = feature_name
 
     def forward(
-        self, logits: torch.Tensor, candidate_sampling_probability: Optional[torch.Tensor] = None
+        self,
+        logits: torch.Tensor,
+        features=None,
     ) -> torch.Tensor:
         """Corrects the input logits to account for candidate sampling probability."""
 
-        if candidate_sampling_probability is None:
-            probability = self.get_feature(self.feature_name)
+        if isinstance(features, dict):
+            probability = features[self.feature_name]
+        elif isinstance(features, torch.Tensor):
+            probability = features
         else:
-            probability = candidate_sampling_probability
+            raise RuntimeError("Please provide `candidate_sampling_probability`.")
 
         return logits - torch.log(torch.clamp(probability, min=1e-6, max=1.0))
