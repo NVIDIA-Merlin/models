@@ -86,9 +86,11 @@ class DataPropagationHook(nn.Module):
         for child in module_utils.get_all_children(model)[:-1]:
             if isinstance(child, FeatureMixin):
                 self._upsert_buffers(child, inputs[0], "feature")
+                _upsert_buffer(child, "_features_propagated", torch.tensor(True))
             if isinstance(child, TargetMixin):
                 if targets not in (None, {}):
                     self._upsert_buffers(child, targets, "target")
+                    _upsert_buffer(child, "_targets_propagated", torch.tensor(True))
 
         return inputs, {}
 
@@ -111,10 +113,14 @@ class DataPropagationHook(nn.Module):
                 self._upsert_buffers(child, val, key_prefix)
         else:
             name = f"__buffer_{prefix}"
-            if hasattr(child, name):
-                setattr(child, name, data)
-            else:
-                child.register_buffer(name, data, persistent=False)
+            _upsert_buffer(child, name, data, persistent=True)
+
+
+def _upsert_buffer(module, name, data, persistent=False):
+    if hasattr(module, name):
+        setattr(module, name, data)
+    else:
+        module.register_buffer(name, data, persistent=persistent)
 
 
 def needs_data_propagation_hook(model: nn.Module) -> bool:
@@ -174,6 +180,19 @@ class FeatureMixin:
             return list(features.values())[0]
 
         return {k[len(prefix) + 1 :]: v for k, v in features.items()}
+
+    def get_feature(self, name: str) -> torch.Tensor:
+        if not getattr(self, "_features_propagated", False):
+            raise RuntimeError(
+                "Features have not been propagated. Ensure that `register_data_propagation_hook` "
+                "has been called on the parent module with `propagate_features=True`. "
+                "For example:\n\n    register_data_propagation_hook(model, propagate_features=True)"
+            )
+
+        if not hasattr(self, f"__buffer_feature_{name}"):
+            raise RuntimeError(f"Feature '{name}' not found")
+
+        return getattr(self, f"__buffer_feature_{name}")
 
 
 class TargetMixin:
