@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torchmetrics import AUROC, Accuracy, Precision, Recall
 
+from merlin.models.torch.inputs.embedding import Embeddings
 from merlin.models.torch.outputs.classification import (
     BinaryOutput,
     CategoricalOutput,
@@ -91,3 +92,16 @@ class TestCategoricalOutput:
         output = model(inputs)
 
         assert output.shape == (5, multiclass_column.int_domain.max + 1)
+
+    def test_embedding_table(self, music_streaming_data):
+        schema: Schema = music_streaming_data.schema.without(["user_genres", "item_genres"])
+        music_streaming_data.schema = schema
+
+        input_block = Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=8)
+        output_block = CategoricalOutput(input_block.select_by_tag(Tags.ITEM_ID).first)
+
+        inputs = torch.randn(5, 8)
+        output = output_block(inputs)
+
+        dim = schema.select_by_tag(Tags.ITEM_ID).first.int_domain.max + 1
+        assert output.shape == (5, dim)

@@ -13,6 +13,24 @@ from merlin.schema.schema import Domain
 
 
 class EmbeddingTableModule(nn.Module):
+    """A module representing an embedding table.
+
+    Extend this class to implement a custom embedding table.
+
+    Args:
+        dim (int): The embedding dimension.
+        schema (Union[ColumnSchema, Schema]): The schema of the input data.
+
+    Attributes:
+        dim (int): The embedding dimension.
+        schema (Schema): The schema of the input data.
+        num_embeddings (int): The total number of embeddings.
+        domains (OrderedDict[str, Domain]): The domains of the
+            input features.
+        feature_to_domain (Dict[str, Domain]): A mapping from feature
+            names to their corresponding domains.
+    """
+
     def __init__(self, dim: int, schema: Union[ColumnSchema, Schema]):
         super(EmbeddingTableModule, self).__init__()
         self.dim = dim
@@ -31,6 +49,18 @@ class EmbeddingTableModule(nn.Module):
             raise ValueError("`schema` must be a ColumnSchema or Schema")
 
     def forward_dict(self, inputs: Dict[str, torch.Tensor]):
+        """Forward pass with input as a dictionary.
+
+        When multiple features are passed in, we stack them together
+        and do a single pass through the embedding table for efficiency.
+
+        Args:
+            inputs (Dict[str, torch.Tensor]): A dictionary of input tensors.
+
+        Returns:
+            Dict[str, torch.Tensor]: A dictionary of output tensors.
+        """
+
         if len(self.schema) == 1:
             name = self.schema.first.name
 
@@ -59,14 +89,11 @@ class EmbeddingTableModule(nn.Module):
     def add_feature(self, col_schema: ColumnSchema) -> Self:
         """Add a feature to the table.
 
-        Adding more than one feature enables the table to lookup and return embeddings
-        for more than one feature when called with tabular data (Dict[str, TensorLike]).
+        Args:
+            col_schema (ColumnSchema): The column schema of the feature to add.
 
-        Additional column schemas must have an int domain that matches the existing ones.
-
-        Parameters
-        ----------
-        col_schema : ColumnSchema
+        Returns:
+            EmbeddingTableModule: The updated module with the added feature.
         """
         if not col_schema.int_domain:
             raise ValueError("`col_schema` needs to have an int-domain")
@@ -86,20 +113,55 @@ class EmbeddingTableModule(nn.Module):
         return self
 
     def select_by_name(self, names) -> Self:
+        """Select features by name.
+
+        Args:
+            names (List[str]): A list of feature names to select.
+
+        Returns:
+            EmbeddingTable: A new embedding table with the selected features.
+        """
+
         return EmbeddingTable(self.dim, self.schema.select_by_name(names))
 
     def select_by_tag(self, tags) -> Self:
+        """
+        Select features by tag.
+
+        Args:
+            tags (List[str]): A list of tags to select features by.
+
+        Returns:
+            EmbeddingTable: A new embedding table with the selected features.
+        """
+
         return EmbeddingTable(self.dim, self.schema.select_by_tag(tags))
 
     @property
     def contains_multiple_domains(self) -> bool:
+        """
+        Check if the module contains multiple domains.
+
+        Returns:
+            bool: True if the module contains multiple domains, False otherwise.
+        """
         return len(self.domains) > 1
 
     @property
     def table_name(self) -> str:
+        """Get the table name.
+
+        Returns:
+            str: The name of the table.
+        """
         return "_".join([domain.name for domain in self.domains.values()])
 
     def __bool__(self) -> bool:
+        """Check if the module is valid.
+
+        Returns:
+            bool: True if the table contains features, False otherwise.
+        """
         return bool(self.schema)
 
     # @classmethod
@@ -114,6 +176,18 @@ class EmbeddingTableModule(nn.Module):
 
 
 class EmbeddingTable(EmbeddingTableModule):
+    """An embedding table that is backed by a PyTorch embedding table.
+
+    Args:
+        dim (int): The embedding dimension.
+        schema (Union[ColumnSchema, Schema]): The schema of the input data.
+        sequence_combiner (Optional[str]): The sequence combiner
+            method (e.g., "mean", "sum", or "sqrtn").
+        table (Optional[nn.Modules]): An optional embedding
+            table to use.
+
+    """
+
     def __init__(
         self,
         dim: int,
@@ -149,6 +223,10 @@ class EmbeddingTable(EmbeddingTableModule):
             out = torch.sum(out, dim=1) / torch.sqrt(torch.sum(torch.square(out), dim=1) + 1e-6)
 
         return out
+
+    @property
+    def weight(self):
+        return self.table.weight
 
 
 class Embeddings(ParallelBlock):
