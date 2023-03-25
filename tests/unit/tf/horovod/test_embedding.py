@@ -1,3 +1,5 @@
+import importlib
+
 import numpy as np
 import pytest
 import tensorflow as tf
@@ -8,6 +10,7 @@ from merlin.schema import ColumnSchema, Tags
 
 
 @pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
+@pytest.mark.skipif(importlib.util.find_spec("sparse_operation_kit") is None, reason="needs sok")
 class TestSOKEmbedding:
     sample_column_schema = ColumnSchema(
         "item_id",
