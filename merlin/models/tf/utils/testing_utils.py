@@ -471,6 +471,7 @@ def loader_for_last_item_prediction(sequence_testing_data: merlin.io.Dataset, to
         def compute_output_schema(self, input_schema):
             return input_schema
 
+        @tf.function
         def __call__(self, inputs, targets=None):
             inputs = prepare_features(inputs)
 

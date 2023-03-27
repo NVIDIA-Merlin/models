@@ -81,19 +81,26 @@ class TransformerInferenceHiddenState(Layer):
             If inference, returns a 2-D tensor with the hidden states of
             the target position
         """
-        batch_size = tf.shape(inputs)[0]
+        if isinstance(inputs, tf.RaggedTensor):
+            batch_size = tf.shape(inputs.row_lengths())[0]
+        else:
+            batch_size = tf.shape(inputs)[0]
         if not training and not testing:
-            if getattr(inputs, "_keras_mask", None) is not None:
+            if isinstance(inputs, tf.RaggedTensor):
+                inputs = inputs[:, -1:, :]
+                inputs = tf.squeeze(tf.sparse.to_dense(inputs.to_sparse()), axis=1)
+
+            elif getattr(inputs, "_keras_mask", None) is not None:
                 inputs = tf.reshape(
                     tf.boolean_mask(inputs, inputs._keras_mask), (-1, inputs.shape[-1])
                 )
-        tf.debugging.assert_equal(
-            tf.shape(inputs)[0],
-            batch_size,
-            f"The resulting tensor has {tf.shape(inputs)[0]} rows, which does not match"
-            f" the inputs batch-size {batch_size}. During inference only one position "
-            "candidate (the last one) should be masked per example",
-        )
+            tf.debugging.assert_equal(
+                tf.shape(inputs)[0],
+                batch_size,
+                f"The resulting tensor has {tf.shape(inputs)[0]} rows, which does not match"
+                f" the inputs batch-size {batch_size}. During inference only one position "
+                "candidate (the last one) should be masked per example",
+            )
         return inputs
 
 
@@ -232,3 +239,30 @@ class SequenceMean(SequenceSummary):
 class SequenceClsIndex(SequenceSummary):
     def __init__(self, initializer_range: float = 0.02, **kwargs):
         super().__init__("cls_index", initializer_range=initializer_range, **kwargs)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class TransformerOutputToRagged(Block):
+    """Converts the dense outputs returned by the transformer layer to
+    a ragged tensor using masking information.
+
+    This layer takes dense inputs from the transformer layer and
+    applies the masking information (in the `_keras_mask` attribute)
+    to produce a ragged tensor output. The resulting tensor contains predictions
+    only at masked positions (targets).
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.supports_masking = True
+
+    def call(self, inputs: tf.Tensor) -> Dict[str, tf.Tensor]:
+        if isinstance(inputs, tf.RaggedTensor):
+            return input
+
+        if getattr(inputs, "_keras_mask", None) is not None:
+            mask = inputs._keras_mask
+            if isinstance(mask, tf.RaggedTensor):
+                mask = mask.to_tensor()
+            inputs = tf.ragged.boolean_mask(inputs, mask)
+        return inputs
