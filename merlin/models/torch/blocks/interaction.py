@@ -62,7 +62,7 @@ class DLRMInputProcessing(nn.Module):
 @registry.register("dlrm-interaction")
 class DLRMInteraction(Block):
     def __init__(self, pre=DLRMInputProcessing(), post=None):
-        super().__init__(pre, post)
+        super().__init__(pre=pre, post=post)
 
     def forward(self, inputs):
         # TODO: Cache triu_indices

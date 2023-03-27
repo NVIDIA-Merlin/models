@@ -65,10 +65,10 @@ class BinaryOutput(ModelOutput):
             logits_temperature=logits_temperature,
         )
 
-    def output_schema(self, target: ColumnSchema) -> ColumnSchema:
+    def create_output_schema(self, target: ColumnSchema) -> Schema:
         """Return the output schema given the target column schema."""
         # TODO: Set the correct properties
-        return target
+        return Schema([target])
 
 
 class CategoricalOutput(ModelOutput):
@@ -187,4 +187,6 @@ class EmbeddingTablePrediction(nn.Module):
         return self.table.table.weight
 
     def embedding_lookup(self, inputs):
+        # TODO: Make sure that we check if the table holds multiple features
+        # If so, we need to add domain.min to the inputs
         return self.table.table(inputs)

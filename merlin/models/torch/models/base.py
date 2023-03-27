@@ -96,6 +96,9 @@ class Model(pl.LightningModule):
 
     @property
     def input_schema(self) -> Schema:
+        if self.schema:
+            return self.schema
+
         input_schemas = []
         for child in module_utils.get_all_children(self):
             if hasattr(child, "input_schema"):

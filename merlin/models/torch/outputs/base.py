@@ -58,11 +58,11 @@ class ModelOutput(Block):
         if logits_temperature != 1.0:
             raise NotImplementedError("Logits temperature is not implemented yet.")
 
-    def forward(self, inputs, training=False, testing=False, **kwargs):
+    def forward(self, inputs, targets=None):
         """
         Apply `self.to_call` module to the inputs and return the output.
         """
-        return apply(self.to_call, inputs, training=training, testing=testing, **kwargs)
+        return apply(self.to_call, inputs, targets=targets)
 
     def create_output_schema(self, target: ColumnSchema) -> Schema:
         """Return the output schema given the target column schema."""

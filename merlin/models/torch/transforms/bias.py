@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from merlin.models.torch.data import register_feature_hook
+from merlin.schema import Schema
 
 
 class SamplingProbabilityCorrection(nn.Module):
@@ -21,7 +22,7 @@ class SamplingProbabilityCorrection(nn.Module):
 
     def __init__(self, feature_name: str = "candidate_sampling_probability"):
         super().__init__()
-        register_feature_hook(self)
+        register_feature_hook(self, Schema([feature_name]))
         self.feature_name = feature_name
 
     def forward(

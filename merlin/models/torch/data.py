@@ -9,6 +9,7 @@ from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.torch.typing import TabularData
 from merlin.models.torch.utils import module_utils
+from merlin.schema import Schema
 
 
 def sample_batch(
@@ -57,8 +58,9 @@ class _FeatureReceiverHook(nn.Module):
     KEY_NAME = "features"
     PROPERTY_NAME = "__feature_receiver"
 
-    def __init__(self):
+    def __init__(self, schema: Schema):
         super().__init__()
+        self.schema = schema
 
     def forward(self, module, inputs, kwargs):
         if self.KEY_NAME in kwargs:
@@ -85,10 +87,6 @@ class _FeatureReceiverHook(nn.Module):
 class _TargetReceiverHook(nn.Module):
     KEY_NAME = "targets"
     PROPERTY_NAME = "__target_receiver"
-
-    def __init__(self, **extra_targets):
-        super().__init__()
-        self.extra_targets = extra_targets
 
     def forward(self, module, inputs, kwargs):
         if self.KEY_NAME in kwargs:
@@ -186,17 +184,19 @@ def register_data_propagation_hook(model: nn.Module) -> _DataPropagationHook:
     return hook
 
 
-def register_feature_hook(module: nn.Module):
-    hook = _FeatureReceiverHook()
+def register_feature_hook(module: nn.Module, schema: Schema):
+    hook = _FeatureReceiverHook(schema)
 
     module.register_forward_pre_hook(hook, with_kwargs=True)
     module.register_buffer(hook.PROPERTY_NAME, torch.tensor(True), persistent=False)
+    _input_schema = getattr(module, "input_schema", None)
+    module.input_schema = _input_schema + schema if _input_schema else schema
 
     return hook
 
 
-def register_target_hook(module: nn.Module, **extra_targets):
-    hook = _TargetReceiverHook(**extra_targets)
+def register_target_hook(module: nn.Module):
+    hook = _TargetReceiverHook()
 
     module.register_forward_pre_hook(hook, with_kwargs=True)
     module.register_buffer(hook.PROPERTY_NAME, torch.tensor(True), persistent=False)
