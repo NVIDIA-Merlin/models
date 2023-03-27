@@ -22,7 +22,7 @@ class TabularInputBlock(ParallelBlock):
         continuous: Union[Tags, nn.Module] = Tags.CONTINUOUS,
         pre: Optional[nn.Module] = None,
         post: Optional[nn.Module] = None,
-        aggregation: Optional[nn.Module] = "concat",
+        aggregation: Optional[Union[nn.Module, str]] = None,
         tag_to_block=INPUT_TAG_TO_BLOCK,
         flatten=True,
         **branches,

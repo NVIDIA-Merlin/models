@@ -111,4 +111,5 @@ class DotProduct(nn.Module):
                 f"'{self.query_name}' and '{self.item_name}' or a tuple/list of size 2."
             )
 
+        # Alternative is: torch.einsum('...i,...i->...', query, item)
         return torch.sum(query * item, dim=-1, keepdim=True)

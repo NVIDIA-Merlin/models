@@ -3,6 +3,7 @@ from typing import List, Optional, Sequence
 from torch import nn
 
 from merlin.models.torch.combinators import SequentialBlock
+from merlin.models.torch.transforms.aggregation import ConcatFeatures
 
 
 class MLPBlock(SequentialBlock):
@@ -70,3 +71,9 @@ class MLPBlock(SequentialBlock):
                     modules.append(nn.Dropout(dropout))
 
         super().__init__(*modules, pre=pre, post=post)
+
+    def forward(self, inputs):
+        if isinstance(inputs, dict):
+            inputs = ConcatFeatures()(inputs)
+
+        return super().forward(inputs)

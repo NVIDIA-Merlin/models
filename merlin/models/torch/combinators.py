@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
 
-from merlin.models.torch.base import TabularBlock
+from merlin.models.torch.base import TabularBlock, register_post_hook, register_pre_hook
 from merlin.models.torch.transforms.aggregation import SumResidual
 from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import Schema, Tags
@@ -318,28 +318,8 @@ class SequentialBlock(nn.Sequential):
 
     def __init__(self, *args, pre=None, post=None):
         super().__init__(*args)
-        self.pre = pre
-        self.post = post
-
-    def __call__(self, inputs, *args, model_context=None, **kwargs):
-        if self.pre is not None:
-            inputs = apply(self.pre, inputs, *args, model_context=model_context, **kwargs)
-            outputs = super().__call__(inputs, model_context=model_context)
-        else:
-            outputs = super().__call__(inputs, *args, model_context=model_context, **kwargs)
-
-        if self.post is not None:
-            outputs = self.post(outputs)
-
-        return outputs
-
-    def forward(self, input, *args, model_context=None, **kwargs):
-        for i, module in enumerate(self):
-            if i == 0:
-                input = apply(module, input, *args, model_context=model_context, **kwargs)
-            else:
-                input = apply(module, input, model_context=model_context)
-        return input
+        self.pre = register_pre_hook(self, pre) if pre else None
+        self.post = register_post_hook(self, post) if post else None
 
     def append_with_shortcut(
         self,
