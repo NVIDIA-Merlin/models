@@ -24,6 +24,7 @@ from merlin.schema import Tags
 
 
 def test_alternating_least_squares(music_streaming_data: Dataset):
+    np.random.seed(42)
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
     model = AlternatingLeastSquares(factors=128, iterations=15, regularization=0.01)
@@ -36,6 +37,7 @@ def test_alternating_least_squares(music_streaming_data: Dataset):
 
 
 def test_bayesian_personalized_ranking(music_streaming_data: Dataset):
+    np.random.seed(42)
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
     model = BayesianPersonalizedRanking(factors=128, iterations=15, regularization=0.01)
@@ -48,6 +50,7 @@ def test_bayesian_personalized_ranking(music_streaming_data: Dataset):
 
 
 def test_reload_alternating_least_squares(music_streaming_data: Dataset, tmpdir):
+    np.random.seed(42)
     train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
     train.schema = train.schema.excluding_by_name(["play_percentage", "like"])
     valid.schema = valid.schema.excluding_by_name(["play_percentage", "like"])
@@ -66,6 +69,7 @@ def test_reload_alternating_least_squares(music_streaming_data: Dataset, tmpdir)
 
 
 def test_reload_bayesian_personalized_ranking(music_streaming_data: Dataset, tmpdir):
+    np.random.seed(42)
     train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
     train.schema = train.schema.excluding_by_name(["play_percentage", "like"])
     valid.schema = valid.schema.excluding_by_name(["play_percentage", "like"])
