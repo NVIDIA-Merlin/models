@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from merlin.models.torch.base import TabularBlock
-from merlin.models.torch.transforms.aggregation import ConcatFeatures, SumResidual
+from merlin.models.torch.transforms.aggregation import ConcatFeatures, StackFeatures, SumResidual
 
 
 class TestConcatFeatures:
@@ -47,6 +47,50 @@ class TestConcatFeatures:
         }
         output = block(input_tensors)
         assert output.shape == (2, 7)
+
+
+class TestStackFeatures:
+    def test_valid_input(self):
+        stack = StackFeatures(dim=0)
+        input_tensors = {
+            "a": torch.randn(2, 3),
+            "b": torch.randn(2, 3),
+        }
+        output = stack(input_tensors)
+        assert output.shape == (2, 2, 3)
+
+    def test_same_order(self):
+        stack = StackFeatures(dim=0)
+        a = torch.randn(2, 3)
+        b = torch.randn(2, 3)
+        output_a = stack({"a": a, "b": b})
+        output_b = stack(
+            {
+                "b": b,
+                "a": a,
+            }
+        )
+
+        assert torch.all(torch.eq(output_a, output_b))
+
+    def test_invalid_input(self):
+        stack = StackFeatures(dim=0)
+        input_tensors = {
+            "a": torch.randn(2, 3),
+            "b": torch.randn(3, 3),
+        }
+        with pytest.raises(RuntimeError, match="Input tensor shapes don't match"):
+            stack(input_tensors)
+
+    def test_as_aggregation_string(self):
+        block = TabularBlock(aggregation="stack")
+
+        input_tensors = {
+            "a": torch.randn(2, 3),
+            "b": torch.randn(2, 3),
+        }
+        output = block(input_tensors)
+        assert output.shape == (2, 2, 3)
 
 
 class TestSumResidual:

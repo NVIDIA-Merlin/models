@@ -61,6 +61,49 @@ class ConcatFeatures(nn.Module):
         return torch.cat(sorted_tensors, dim=self.dim)
 
 
+@registry.register("stack")
+class StackFeatures(nn.Module):
+    """Stack tensors along a specified dimension.
+
+    Attributes
+    ----------
+    dim : int
+        The dimension along which the tensors will be stacked.
+
+    """
+
+    def __init__(self, dim: int = 0):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        """
+        Stacks input tensors along the specified dimension.
+
+        Parameters
+        ----------
+        inputs : Dict[str, torch.Tensor]
+            A dictionary where keys are the names of the tensors
+            and values are the tensors to be stacked.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor that is the result of stacking
+            the input tensors along the specified dimension.
+
+        Raises
+        ------
+        RuntimeError
+            If the input tensor shapes don't match for stacking.
+        """
+        sorted_tensors = [inputs[name] for name in sorted(inputs.keys())]
+        if not all(t.shape == sorted_tensors[0].shape for t in sorted_tensors):
+            raise RuntimeError("Input tensor shapes don't match for stacking.")
+
+        return torch.stack(sorted_tensors, dim=self.dim)
+
+
 @registry.register("sum-residual")
 class SumResidual(nn.Module):
     """

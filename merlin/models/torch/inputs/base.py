@@ -61,3 +61,7 @@ class TabularInputBlock(ParallelBlock):
             parsed = flattened
 
         super().__init__(parsed, pre=pre, post=post, aggregation=aggregation)
+
+    @classmethod
+    def block_to_tag(cls) -> Dict[nn.Module, Tags]:
+        return {value: key for key, value in cls.INPUT_TAG_TO_BLOCK.items()}
