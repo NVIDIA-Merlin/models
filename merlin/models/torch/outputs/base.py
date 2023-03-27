@@ -73,3 +73,42 @@ class ModelOutput(Block):
             return None
 
         return getattr(self, attr_name)
+
+
+class DotProduct(nn.Module):
+    """Dot-product between queries & items.
+    Parameters:
+    -----------
+    query_name : str, optional
+        Identify query tower for query/user embeddings, by default 'query'
+    item_name : str, optional
+        Identify item tower for item embeddings, by default 'item'
+    """
+
+    def __init__(self, query_name: str = "query", item_name: str = "candidate"):
+        super().__init__()
+        self.query_name = query_name
+        self.item_name = item_name
+
+    def forward(self, inputs):
+        if isinstance(inputs, dict):
+            try:
+                query = inputs[self.query_name]
+                item = inputs[self.item_name]
+            except KeyError as e:
+                raise RuntimeError(
+                    f"Key {e} not found in input dictionary. "
+                    "Please provide a dictionary with keys "
+                    f"'{self.query_name}' and '{self.item_name}'."
+                ) from e
+        elif isinstance(inputs, (tuple, list)) and len(inputs) == 2:
+            query = inputs[0]
+            item = inputs[1]
+        else:
+            raise RuntimeError(
+                "Invalid input type. "
+                "Expected inputs to be either a dictionary with keys "
+                f"'{self.query_name}' and '{self.item_name}' or a tuple/list of size 2."
+            )
+
+        return torch.sum(query * item, dim=-1, keepdim=True)
