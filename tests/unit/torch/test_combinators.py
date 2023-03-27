@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 
 from merlin.models.torch.combinators import (
-    NoOp,
     ParallelBlock,
     ResidualBlock,
     SequentialBlock,
@@ -84,7 +83,7 @@ class TestWithShortcut:
 
         assert isinstance(block, ParallelBlock)
         assert block.parallel_dict["output"] == linear
-        assert isinstance(block.parallel_dict["shortcut"], NoOp)
+        assert isinstance(block.parallel_dict["shortcut"], nn.Identity)
         assert block.post is None
         assert block.aggregation is None
 
@@ -264,7 +263,7 @@ class TestSequentialBlock:
         assert len(block) == 3
         assert isinstance(block["0"], SequentialBlock)
         assert isinstance(block["1"], SequentialBlock)
-        assert isinstance(block["shortcut"], NoOp)
+        assert isinstance(block["shortcut"], nn.Identity)
 
         # Check that the weights and biases of the linear layers are not shared
         assert not torch.allclose(block["0"][0].weight, block["1"][0].weight)

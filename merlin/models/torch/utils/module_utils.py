@@ -65,7 +65,8 @@ def apply(
 def get_all_children(module: nn.Module) -> List[nn.Module]:
     children = []
     for child in module.children():
-        children.append(child)
+        if not isinstance(child, nn.ModuleList):
+            children.append(child)
         children.extend(get_all_children(child))
 
     return children

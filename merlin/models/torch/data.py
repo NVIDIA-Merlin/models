@@ -79,38 +79,44 @@ class _FeatureReceiverHook(nn.Module):
 
     @classmethod
     def needs_propagation(cls, module: nn.Module) -> bool:
-        return not hasattr(module, cls.PROPERTY_NAME)
+        return hasattr(module, cls.PROPERTY_NAME)
 
 
 class _TargetReceiverHook(nn.Module):
     KEY_NAME = "targets"
     PROPERTY_NAME = "__target_receiver"
 
-    def __init__(self):
+    def __init__(self, **extra_targets):
         super().__init__()
+        self.extra_targets = extra_targets
 
     def forward(self, module, inputs, kwargs):
         if self.KEY_NAME in kwargs:
             return inputs, kwargs
 
         args_count, kwargs_count, has_args, has_kwargs = _count_function_params(module.forward)
-        if not (has_args and has_kwargs) and len(inputs) == args_count + kwargs_count:
-            return inputs, kwargs
+
+        if not (has_args and has_kwargs):
+            if len(inputs) == 1 and isinstance(inputs[0], tuple):
+                if len(inputs[0]) == args_count + kwargs_count:
+                    return inputs[0], kwargs
+            if len(inputs) == args_count + kwargs_count:
+                return inputs, kwargs
 
         maybe_targets = _get_targets(module)
         if maybe_targets is not None:
-            return inputs, {self.KEY_NAME: maybe_targets}
+            kwargs[self.KEY_NAME] = maybe_targets
 
         return inputs, kwargs
 
     @classmethod
-    def propagate(cls, module, features):
-        _upsert_buffers(module, features, "target")
+    def propagate(cls, module, targets):
+        _upsert_buffers(module, targets, "target")
         _upsert_buffer(module, cls.PROPERTY_NAME, torch.tensor(True))
 
     @classmethod
     def needs_propagation(cls, module: nn.Module) -> bool:
-        return not hasattr(module, cls.PROPERTY_NAME)
+        return hasattr(module, cls.PROPERTY_NAME)
 
 
 class _DataPropagationHook(nn.Module):
@@ -142,6 +148,7 @@ class _DataPropagationHook(nn.Module):
             Tuple: The original inputs and empty dict for kwargs.
         """
         targets = kwargs.get("targets", None)
+
         for child in module_utils.get_all_children(model)[:-1]:
             if self._FEATURE_HOOK.needs_propagation(child):
                 self._FEATURE_HOOK.propagate(child, inputs[0])
@@ -188,8 +195,8 @@ def register_feature_hook(module: nn.Module):
     return hook
 
 
-def register_target_hook(module: nn.Module):
-    hook = _TargetReceiverHook()
+def register_target_hook(module: nn.Module, **extra_targets):
+    hook = _TargetReceiverHook(**extra_targets)
 
     module.register_forward_pre_hook(hook, with_kwargs=True)
     module.register_buffer(hook.PROPERTY_NAME, torch.tensor(True), persistent=False)
@@ -258,7 +265,7 @@ def _get_targets(self: nn.Module, strict=False) -> Union[Dict[str, torch.Tensor]
             "    register_data_propagation_hook(model, propagate_targets=True)"
         )
 
-    if len(targets) == 1:
+    if len(targets) == 1 and hasattr(self, prefix):
         return list(targets.values())[0]
 
     return {k[len(prefix) + 1 :]: v for k, v in targets.items()}

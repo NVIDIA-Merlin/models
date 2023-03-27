@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
 
-from merlin.models.torch.base import NoOp, TabularBlock
+from merlin.models.torch.base import TabularBlock
 from merlin.models.torch.transforms.aggregation import SumResidual
 from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import Schema, Tags
@@ -240,7 +240,7 @@ class WithShortcut(ParallelBlock):
         **kwargs,
     ):
         super().__init__(
-            {module_output_name: module, shortcut_output_name: NoOp()},
+            {module_output_name: module, shortcut_output_name: nn.Identity()},
             post=post,
             aggregation=aggregation,
             **kwargs,
@@ -500,6 +500,6 @@ class SequentialBlock(nn.Sequential):
             repeated[str(name)] = branch
 
         if shortcut:
-            repeated["shortcut"] = NoOp()
+            repeated["shortcut"] = nn.Identity()
 
         return ParallelBlock(repeated, post=post, aggregation=aggregation, **kwargs)

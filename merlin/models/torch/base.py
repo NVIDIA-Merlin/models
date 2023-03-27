@@ -106,26 +106,6 @@ class TabularBlock(Block):
         return isinstance(self, Selectable)
 
 
-class NoOp(nn.Module):
-    """A module that simply passes the input through unchanged.
-
-    This is useful as a placeholder module or when you need a module that
-    does not modify the input in any way, for instance a short-cut connection.
-    """
-
-    def forward(self, inputs):
-        """
-        Forward pass for the NoOp module.
-
-        Args:
-            inputs: Input tensor.
-
-        Returns:
-            The input tensor unchanged.
-        """
-        return inputs
-
-
 def register_pre_hook(
     module: nn.Module,
     to_register: Union[str, nn.Module],
