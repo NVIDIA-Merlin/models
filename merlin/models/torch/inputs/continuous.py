@@ -1,5 +1,6 @@
 from merlin.models.torch.transforms.features import Filter
 from merlin.models.torch.typing import TabularData
+from merlin.schema import Schema
 
 
 class Continuous(Filter):
@@ -13,3 +14,7 @@ class Continuous(Filter):
                 outputs[key] = val
 
         return outputs
+
+    @property
+    def input_schema(self) -> Schema:
+        return self.schema

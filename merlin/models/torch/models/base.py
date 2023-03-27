@@ -1,3 +1,4 @@
+from functools import reduce
 from typing import List, Optional
 
 import pytorch_lightning as pl
@@ -92,3 +93,27 @@ class Model(pl.LightningModule):
     @property
     def last(self) -> nn.Module:
         return self.blocks[-1]
+
+    @property
+    def input_schema(self) -> Schema:
+        input_schemas = []
+        for child in module_utils.get_all_children(self):
+            if hasattr(child, "input_schema"):
+                input_schemas.append(child.input_schema)
+
+        if not input_schemas:
+            raise ValueError("No input schema found")
+
+        return reduce(lambda a, b: a + b, input_schemas)  # type: ignore
+
+    @property
+    def output_schema(self) -> Schema:
+        output_schemas = []
+        for child in module_utils.get_all_children(self):
+            if hasattr(child, "output_schema"):
+                output_schemas.append(child.output_schema)
+
+        if not output_schemas:
+            raise ValueError("No output schema found")
+
+        return reduce(lambda a, b: a + b, output_schemas)  # type: ignore

@@ -7,7 +7,7 @@ from torchmetrics import Metric
 from merlin.models.torch.base import Block
 from merlin.models.torch.data import register_target_hook
 from merlin.models.torch.utils.module_utils import apply
-from merlin.schema import ColumnSchema
+from merlin.schema import ColumnSchema, Schema
 
 
 class ModelOutput(Block):
@@ -49,9 +49,11 @@ class ModelOutput(Block):
         self.default_loss = default_loss
         self.default_metrics = default_metrics
 
-        if isinstance(target, ColumnSchema):
-            target = target.name
-        self.target = target
+        if not isinstance(target, ColumnSchema):
+            target = ColumnSchema(target)
+
+        self.target = target.name
+        self.output_schema = self.create_output_schema(target)
 
         if logits_temperature != 1.0:
             raise NotImplementedError("Logits temperature is not implemented yet.")
@@ -61,6 +63,10 @@ class ModelOutput(Block):
         Apply `self.to_call` module to the inputs and return the output.
         """
         return apply(self.to_call, inputs, training=training, testing=testing, **kwargs)
+
+    def create_output_schema(self, target: ColumnSchema) -> Schema:
+        """Return the output schema given the target column schema."""
+        return Schema([target])
 
     @property
     def output(self) -> torch.Tensor:

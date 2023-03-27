@@ -228,6 +228,10 @@ class EmbeddingTable(EmbeddingTableModule):
     def weight(self):
         return self.table.weight
 
+    @property
+    def input_schema(self) -> Schema:
+        return self.schema
+
 
 class Embeddings(ParallelBlock):
     def __init__(
@@ -256,6 +260,10 @@ class Embeddings(ParallelBlock):
                 )
 
         super().__init__(tables, pre=pre, post=post, aggregation=aggregation)
+
+    @property
+    def input_schema(self) -> Schema:
+        return self.schema
 
 
 def _forward_kwargs_to_table(col, table_cls, kwargs):

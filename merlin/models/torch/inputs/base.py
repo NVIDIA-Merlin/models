@@ -65,3 +65,7 @@ class TabularInputBlock(ParallelBlock):
     @classmethod
     def block_to_tag(cls) -> Dict[nn.Module, Tags]:
         return {value: key for key, value in cls.INPUT_TAG_TO_BLOCK.items()}
+
+    @property
+    def input_schema(self) -> Schema:
+        return self.schema

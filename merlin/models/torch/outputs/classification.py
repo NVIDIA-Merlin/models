@@ -65,6 +65,11 @@ class BinaryOutput(ModelOutput):
             logits_temperature=logits_temperature,
         )
 
+    def output_schema(self, target: ColumnSchema) -> ColumnSchema:
+        """Return the output schema given the target column schema."""
+        # TODO: Set the correct properties
+        return target
+
 
 class CategoricalOutput(ModelOutput):
     def __init__(

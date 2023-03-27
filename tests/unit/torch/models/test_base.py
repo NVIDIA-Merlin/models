@@ -5,7 +5,7 @@ from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.inputs.base import TabularInputBlock
 from merlin.models.torch.models.base import Model
 from merlin.models.torch.outputs.regression import RegressionOutput
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 
 def test_simple_regression_mlp(music_streaming_data):
@@ -18,8 +18,11 @@ def test_simple_regression_mlp(music_streaming_data):
     model = Model(
         TabularInputBlock(schema),
         MLPBlock([10, 10]),
-        RegressionOutput(),
+        RegressionOutput(schema.select_by_name("play_percentage").first),
     )
+
+    assert model.input_schema == schema.excluding_by_tag(TabularInputBlock.TAGS_TO_EXCLUDE)
+    assert model.output_schema == schema.select_by_tag(Tags.TARGET)
 
     trainer = pl.Trainer(max_epochs=1, devices=[0])
     loader = Loader(music_streaming_data, batch_size=2, shuffle=False)
