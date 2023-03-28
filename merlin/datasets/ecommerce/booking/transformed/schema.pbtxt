@@ -65,7 +65,7 @@ feature {
 feature {
   name: "booker_country"
   value_count {
-    min: 1
+    min: 4
     max: 48
   }
   type: INT
@@ -86,7 +86,7 @@ feature {
 feature {
   name: "hotel_country"
   value_count {
-    min: 1
+    min: 4
     max: 48
   }
   type: INT
@@ -107,7 +107,7 @@ feature {
 feature {
   name: "month"
   value_count {
-    min: 1
+    min: 4
     max: 48
   }
   type: INT
@@ -128,7 +128,7 @@ feature {
 feature {
   name: "is_weekend"
   value_count {
-    min: 1
+    min: 4
     max: 48
   }
   type: INT
@@ -149,7 +149,7 @@ feature {
 feature {
   name: "weekday_checkin"
   value_count {
-    min: 1
+    min: 4
     max: 48
   }
   type: INT
@@ -170,7 +170,7 @@ feature {
 feature {
   name: "weekday_checkout"
   value_count {
-    min: 1
+    min: 4
     max: 48
   }
   type: INT
@@ -191,7 +191,7 @@ feature {
 feature {
   name: "city_id"
   value_count {
-    min: 1
+    min: 4
     max: 48
   }
   type: INT

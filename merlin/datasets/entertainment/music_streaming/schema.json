@@ -62,7 +62,7 @@
     {
       "name": "item_genres",
       "valueCount": {
-        "min": "1"
+        "min": "4"
       },
       "type": "INT",
       "intDomain": {
@@ -125,7 +125,7 @@
     {
       "name": "user_genres",
       "valueCount": {
-        "min": "1"
+        "min": "4"
       },
       "type": "INT",
       "intDomain": {
