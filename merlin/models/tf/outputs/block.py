@@ -264,7 +264,7 @@ class ColumnBasedSampleWeight(Block):
         if self.binary_class_weights is not None:
             (neg_weight, pos_weight) = self.binary_class_weights
 
-            if self.weight_column_name is None and targets is not None and target_name is not None:
+            if self.weight_column_name is None and targets is not None:
                 # If weight column is not provided, assumes the target column should
                 # be used
                 sample_weight = targets[target_name]
