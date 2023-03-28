@@ -228,13 +228,13 @@
                         <span class="s2">&quot;Optimizers must be a str or an instance of &quot;</span>
                         <span class="s2">&quot;tf.keras.optimizers.legacy.Optimizer with Tensorflow &gt;= 2.11.&quot;</span>
                     <span class="p">)</span>
-                <span class="n">use_legacy_optimizer</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span>
+                    <span class="n">use_legacy_optimizer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">use_legacy_optimizer</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
 
-            <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">use_legacy_optimizer</span><span class="o">=</span><span class="n">use_legacy_optimizer</span>
-            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_track_trackable</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Optimizer</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">pair</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="p">[</span><span class="n">pair</span><span class="o">.</span><span class="n">blocks</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">blocks</span><span class="p">,</span> <span class="n">Block</span><span class="p">)</span> <span class="k">else</span> <span class="n">pair</span><span class="o">.</span><span class="n">blocks</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
