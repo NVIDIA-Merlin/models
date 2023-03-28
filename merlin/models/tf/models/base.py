@@ -292,6 +292,18 @@ class ModelBlock(Block, tf.keras.Model):
 
 
 class BaseModel(tf.keras.Model):
+    def __init__(self, **kwargs):
+        super(BaseModel, self).__init__(**kwargs)
+
+        # Initializing model control flags controlled by MetricsComputeCallback()
+        self._should_compute_train_metrics_for_batch = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_train_metrics_for_batch",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: True,
+        )
+
     def compile(
         self,
         optimizer="rmsprop",
@@ -1576,14 +1588,7 @@ class Model(BaseModel):
     ):
         super(Model, self).__init__(**kwargs)
 
-        # Initializing model control flags controlled by MetricsComputeCallback()
-        self._should_compute_train_metrics_for_batch = tf.Variable(
-            dtype=tf.bool,
-            name="should_compute_train_metrics_for_batch",
-            trainable=False,
-            synchronization=tf.VariableSynchronization.NONE,
-            initial_value=lambda: True,
-        )
+        
 
         context = context or ModelContext()
         if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
