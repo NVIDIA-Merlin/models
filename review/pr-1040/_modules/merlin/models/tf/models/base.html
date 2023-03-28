@@ -113,13 +113,6 @@
 <span class="kn">from</span> <span class="nn">keras.engine.compile_utils</span> <span class="kn">import</span> <span class="n">MetricsContainer</span>
 <span class="kn">from</span> <span class="nn">keras.utils.losses_utils</span> <span class="kn">import</span> <span class="n">cast_losses_to_common_dtype</span>
 
-<span class="c1"># Required for tf/keras 2.11 Support which enabled saving_lib usage for model save/load</span>
-<span class="c1"># we&#39;re using this in the `Model.from_config` method</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">keras.saving.experimental</span> <span class="kn">import</span> <span class="n">saving_lib</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="n">saving_lib</span> <span class="o">=</span> <span class="kc">None</span>
-
 <span class="kn">from</span> <span class="nn">packaging</span> <span class="kn">import</span> <span class="n">version</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.losses</span> <span class="kn">import</span> <span class="n">Loss</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.metrics</span> <span class="kn">import</span> <span class="n">Metric</span>
@@ -376,6 +369,18 @@
 
 
 <span class="k">class</span> <span class="nc">BaseModel</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Initializing model control flags controlled by MetricsComputeCallback()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_should_compute_train_metrics_for_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;should_compute_train_metrics_for_batch&quot;</span><span class="p">,</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">compile</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;rmsprop&quot;</span><span class="p">,</span>
@@ -1358,7 +1363,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">schema</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;schema&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">)</span> <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">schema</span>
+            <span class="n">target_tags</span> <span class="o">=</span> <span class="p">[</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">REGRESSION</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">schema</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">target_tags</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_maybe_set_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maybe_loader</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Try to set the correct schema on the model or loader.</span>
@@ -1660,14 +1666,7 @@
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-        <span class="c1"># Initializing model control flags controlled by MetricsComputeCallback()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_should_compute_train_metrics_for_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;should_compute_train_metrics_for_batch&quot;</span><span class="p">,</span>
-            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
-            <span class="n">initial_value</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
+        
 
         <span class="n">context</span> <span class="o">=</span> <span class="n">context</span> <span class="ow">or</span> <span class="n">ModelContext</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">blocks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">SequentialBlock</span><span class="p">):</span>
@@ -1785,7 +1784,6 @@
 <span class="sd">        input_shape : tf.TensorShape, optional</span>
 <span class="sd">            The input shape, by default None</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
         <span class="n">last_layer</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_features</span><span class="p">:</span>
@@ -1952,20 +1950,48 @@
 
         <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
 
-        <span class="c1"># This is required for tf/keras 2.11 which enabled v3 saving</span>
-        <span class="c1"># and requires calling model build. The block below is a copy</span>
-        <span class="c1"># of part of the keras.Model.from_config method in 2.11</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">saving_lib</span>
-            <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">saving_lib</span><span class="p">,</span> <span class="s2">&quot;_SAVING_V3_ENABLED&quot;</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">saving_lib</span><span class="o">.</span><span class="n">_SAVING_V3_ENABLED</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-        <span class="p">):</span>
-            <span class="k">if</span> <span class="n">build_input_shape</span><span class="p">:</span>
-                <span class="n">model</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">build_input_shape</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">compile_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">model</span><span class="o">.</span><span class="n">_compile_from_config</span><span class="p">(</span><span class="n">compile_config</span><span class="p">,</span> <span class="n">base_class</span><span class="o">=</span><span class="n">Model</span><span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_sample_inputs</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">inputs</span><span class="p">:</span>
+            <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">model</span>
+
+    <span class="k">def</span> <span class="nf">get_sample_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span><span class="p">:</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;tensorflow&quot;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+
+                <span class="k">if</span> <span class="n">column</span><span class="o">.</span><span class="n">int_domain</span><span class="p">:</span>
+                    <span class="n">maxval</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span>
+                <span class="k">elif</span> <span class="n">column</span><span class="o">.</span><span class="n">float_domain</span><span class="p">:</span>
+                    <span class="n">maxval</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">float_domain</span><span class="o">.</span><span class="n">max</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">maxval</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">column</span><span class="o">.</span><span class="n">is_list</span> <span class="ow">and</span> <span class="n">column</span><span class="o">.</span><span class="n">is_ragged</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                        <span class="p">[</span><span class="mi">6</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+                        <span class="n">maxval</span><span class="o">=</span><span class="n">maxval</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">offsets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+                    <span class="n">inputs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">__values&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+                    <span class="n">inputs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">__offsets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">offsets</span>
+                <span class="k">elif</span> <span class="n">column</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
+                    <span class="n">inputs</span><span class="p">[</span><span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                        <span class="n">shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> 
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+                        <span class="n">maxval</span><span class="o">=</span><span class="n">maxval</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">inputs</span><span class="p">[</span><span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                        <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+                        <span class="n">maxval</span><span class="o">=</span><span class="n">maxval</span>
+                    <span class="p">)</span>
+            <span class="k">return</span> <span class="n">inputs</span>
 
     <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">super_config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>

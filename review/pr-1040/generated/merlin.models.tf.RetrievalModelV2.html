@@ -218,109 +218,112 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_shape_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the output shape(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weight_paths</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_sample_inputs</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weight_paths</span></code>()</p></td>
 <td><p>Retrieve all the variables and their paths for the model.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
 <td><p>Retrieves the weights of the model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code>(export_path)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code>(export_path)</p></td>
 <td><p>Loads a model that was saved with <cite>model.save()</cite>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_weights</span></code>(filepath[, by_name, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_weights</span></code>(filepath[, by_name, …])</p></td>
 <td><p>Loads all layer weights, either from a TensorFlow or an HDF5 weight file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_predict_function</span></code>([force])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_predict_function</span></code>([force])</p></td>
 <td><p>Creates a function that executes one step of inference.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_test_function</span></code>([force])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_test_function</span></code>([force])</p></td>
 <td><p>Creates a function that executes one step of evaluation.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_train_function</span></code>([force])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_train_function</span></code>([force])</p></td>
 <td><p>Creates a function that executes one step of training.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">metrics_results</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">metrics_results</span></code>()</p></td>
 <td><p>Logic to consolidate metrics results extracted from standard Keras Model.compute_metrics()</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs_by_name</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs_by_name</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs_by_target</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs_by_target</span></code>()</p></td>
 <td><p>Method to index the model’s prediction blocks by target names.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code>(x[, batch_size, verbose, steps, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code>(x[, batch_size, verbose, steps, …])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_generator</span></code>(generator[, steps, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_generator</span></code>(generator[, steps, …])</p></td>
 <td><p>Generates predictions for the input samples from a data generator.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_on_batch</span></code>(x)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_on_batch</span></code>(x)</p></td>
 <td><p>Returns predictions for a single batch of samples.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_step</span></code>(data)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_step</span></code>(data)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prediction_tasks_by_name</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prediction_tasks_by_name</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prediction_tasks_by_target</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prediction_tasks_by_target</span></code>()</p></td>
 <td><p>Method to index the model’s prediction tasks by target names.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.query_embeddings" title="merlin.models.tf.RetrievalModelV2.query_embeddings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">query_embeddings</span></code></a>([dataset, index])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.query_embeddings" title="merlin.models.tf.RetrievalModelV2.query_embeddings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">query_embeddings</span></code></a>([dataset, index])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_metrics</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_metrics</span></code>()</p></td>
 <td><p>Resets the state of all the metrics in the model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_states</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_states</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code>(export_path[, include_optimizer, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code>(export_path[, include_optimizer, …])</p></td>
 <td><p>Saves the model to export_path as a Tensorflow Saved Model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_spec</span></code>([dynamic_batch])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_spec</span></code>([dynamic_batch])</p></td>
 <td><p>Returns the <cite>tf.TensorSpec</cite> of call inputs as a tuple <cite>(args, kwargs)</cite>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_weights</span></code>(filepath[, overwrite, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_weights</span></code>(filepath[, overwrite, …])</p></td>
 <td><p>Saves all layer weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
 <td><p>Sets the weights of the layer, from NumPy arrays.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary</span></code>([line_length, positions, print_fn, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary</span></code>([line_length, positions, print_fn, …])</p></td>
 <td><p>Prints a string summary of the network.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_on_batch</span></code>(x[, y, sample_weight, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_on_batch</span></code>(x[, y, sample_weight, …])</p></td>
 <td><p>Test the model on a single batch of samples.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_step</span></code>(data)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_step</span></code>(data)</p></td>
 <td><p>Custom test step using the <cite>compute_loss</cite> method.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_json</span></code>(**kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_json</span></code>(**kwargs)</p></td>
 <td><p>Returns a JSON string containing the network configuration.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.to_top_k_encoder" title="merlin.models.tf.RetrievalModelV2.to_top_k_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_top_k_encoder</span></code></a>([candidates, candidate_id, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.to_top_k_encoder" title="merlin.models.tf.RetrievalModelV2.to_top_k_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_top_k_encoder</span></code></a>([candidates, candidate_id, …])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_yaml</span></code>(**kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_yaml</span></code>(**kwargs)</p></td>
 <td><p>Returns a yaml string containing the network configuration.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_compute_metrics</span></code>(outputs, compiled_metrics)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_compute_metrics</span></code>(outputs, compiled_metrics)</p></td>
 <td><p>Returns metrics for the outputs of this step.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_on_batch</span></code>(x[, y, sample_weight, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_on_batch</span></code>(x[, y, sample_weight, …])</p></td>
 <td><p>Runs a single gradient update on a single batch of data.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_step</span></code>(data)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_step</span></code>(data)</p></td>
 <td><p>Custom train step using the <cite>compute_loss</cite> method.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unfreeze_all_frozen_blocks</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unfreeze_all_frozen_blocks</span></code>()</p></td>
 <td><p>Unfreeze all blocks (including blocks and sub-blocks) of this model recursively</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unfreeze_blocks</span></code>(blocks)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unfreeze_blocks</span></code>(blocks)</p></td>
 <td><p>Unfreeze all sub-blocks of given blocks recursively</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
 <td><p>Decorator to automatically enter the module name scope.</p></td>
 </tr>
 </tbody>
