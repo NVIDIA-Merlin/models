@@ -1,8 +1,8 @@
-import importlib
 import os
 
 import pytest
 import tensorflow as tf
+from packaging import version
 from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
@@ -70,12 +70,10 @@ def test_horovod_multigpu_dlrm(
         prediction_tasks=mm.BinaryClassificationTask(target_column),
     )
 
-    # TF 2.11
-    # Optimizer has to be an instance of tf.keras.optimizers.legacy.Optimizer
-    if importlib.util.find_spec("tensorflow.keras.optimizers.legacy") is not None:
-        keras_optimizers = tf.keras.optimizers.legacy
-    else:
+    if version.parse(tf.__version__) < version.parse("2.11.0"):
         keras_optimizers = tf.keras.optimizers
+    else:
+        keras_optimizers = tf.keras.optimizers.legacy
 
     if custom_distributed_optimizer:
         # Test for a case when the user uses a custom DistributedOptimizer.
