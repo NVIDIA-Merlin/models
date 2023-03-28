@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import pytorch_lightning as pl
 import torch
@@ -49,13 +49,35 @@ class Model(pl.LightningModule):
         else:
             outputs = self(inputs)
 
-        model_output = self.model_outputs[0]
-        target = getattr(model_output, "output", targets)
-
-        loss = model_output.default_loss(outputs, target)
+        loss = self.calculate_loss(outputs, targets)
         self.log("train_loss", loss)
 
         return loss
+
+    def calculate_loss(self, outputs, targets) -> torch.Tensor:
+        model_output_dict = self.model_outputs_by_name
+
+        if isinstance(outputs, torch.Tensor) and isinstance(targets, torch.Tensor):
+            assert len(model_output_dict) == 1, "Multiple outputs but only one target"
+
+            model_output = list(model_output_dict.values())[0]
+
+            return model_output.default_loss(outputs, targets)
+
+        loss = torch.tensor(0.0)
+        for name, task_output in outputs.items():
+            if isinstance(task_output, tuple) and len(task_output) == 2:
+                output, target = task_output
+            else:
+                output = task_output
+                target = targets[model_output_dict[name].target]
+
+            # TODO: How to handle task weights?
+            # TODO: Should custom loss functions be passed to the model (like in Keras)
+            #   Or to the model output (like in T4Rec)?
+            loss = loss + model_output_dict[name].default_loss(output, target)
+
+        return loss / len(model_output_dict)
 
     def initialize(self, data: Loader):
         if isinstance(data, Loader):
@@ -85,6 +107,10 @@ class Model(pl.LightningModule):
     @property
     def model_outputs(self) -> List[ModelOutput]:
         return module_utils.find_all_instances(self, ModelOutput)
+
+    @property
+    def model_outputs_by_name(self) -> Dict[str, ModelOutput]:
+        return {out.name: out for out in self.model_outputs}
 
     @property
     def first(self) -> nn.Module:

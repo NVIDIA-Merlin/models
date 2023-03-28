@@ -66,6 +66,13 @@ class TabularInputBlock(ParallelBlock):
     def block_to_tag(cls) -> Dict[nn.Module, Tags]:
         return {value: key for key, value in cls.INPUT_TAG_TO_BLOCK.items()}
 
+    @classmethod
+    def filter_schema_for_branch(cls, schema: Schema, branch: nn.Module) -> Schema:
+        if branch in cls.block_to_tag():
+            return schema.select_by_tag(cls.block_to_tag()[branch])
+        else:
+            raise ValueError(f"Branch {branch} not found in block_to_tag mapping")
+
     @property
     def input_schema(self) -> Schema:
         return self.schema

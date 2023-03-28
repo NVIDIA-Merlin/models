@@ -32,11 +32,13 @@ class DLRMBlock(SequentialBlock):
         if not bottom_block:
             bottom_block = MLPBlock([embedding_dim])
         if not embeddings:
-            cat_tags = TabularInputBlock.block_to_tag()[Embeddings]
-            embeddings = Embeddings(schema.select_by_tag(cat_tags), dim=embedding_dim)
+            embeddings = Embeddings(
+                TabularInputBlock.filter_schema_for_branch(schema, Embeddings), dim=embedding_dim
+            )
 
-        con_tags = TabularInputBlock.block_to_tag()[Continuous]
-        continuous = Continuous(schema.select_by_tag(con_tags), post=bottom_block)
+        continuous = Continuous(
+            TabularInputBlock.filter_schema_for_branch(schema, Continuous), post=bottom_block
+        )
         if continuous.schema:
             inputs = TabularInputBlock(
                 schema,

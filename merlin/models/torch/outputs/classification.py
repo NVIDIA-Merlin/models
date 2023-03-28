@@ -44,7 +44,7 @@ class BinaryOutput(ModelOutput):
         self,
         target: Optional[Union[str, ColumnSchema]] = None,
         to_call=MLPBlock([1], activation=nn.Sigmoid),
-        default_loss=nn.BCELoss(),
+        default_loss=nn.BCEWithLogitsLoss(),
         default_metrics: Sequence[Metric] = (
             Accuracy("binary"),
             AUROC("binary"),
@@ -69,6 +69,14 @@ class BinaryOutput(ModelOutput):
         """Return the output schema given the target column schema."""
         # TODO: Set the correct properties
         return Schema([target])
+
+    def forward(self, inputs, targets=None):
+        outputs = super().forward(inputs, targets)
+
+        if isinstance(outputs, tuple):
+            return _fix_shape_and_dtype(*outputs)
+
+        return outputs
 
 
 class CategoricalOutput(ModelOutput):
@@ -190,3 +198,10 @@ class EmbeddingTablePrediction(nn.Module):
         # TODO: Make sure that we check if the table holds multiple features
         # If so, we need to add domain.min to the inputs
         return self.table.table(inputs)
+
+
+def _fix_shape_and_dtype(output, target):
+    if len(output.shape) == len(target.shape) + 1 and output.shape[-1] == 1:
+        output = output.squeeze(-1)
+
+    return output, target.type_as(output)

@@ -1,9 +1,41 @@
+import re
 from inspect import getfullargspec
 from typing import List, Sequence, Type, TypeVar, Union
 
 import torch.nn as nn
 
 from merlin.models.utils.misc_utils import filter_kwargs
+
+
+class ModuleHook(nn.Module):
+    """A helper module to be able to execute Module as a (pre) forward-hook."""
+
+    def __init__(self, module: nn.Module):
+        super().__init__()
+        self.module = module
+
+    def forward(self, parent, inputs, outputs=None):
+        """
+        Forward pass for the ModuleHook.
+
+        This function is called when the hook is executed during the
+        forward pass of the parent module.
+
+        Args:
+            parent (nn.Module): The parent module for which the hook is registered.
+            inputs: The inputs to the parent module.
+            outputs (optional): The outputs of the parent module (only provided for post-hooks).
+
+        Returns:
+            The result of executing the hook module with the given inputs or outputs.
+        """
+        del parent
+
+        x = inputs if outputs is None else outputs
+        if isinstance(x, tuple):
+            return self.module(*x)
+
+        return self.module(x)
 
 
 def has_custom_call(module: nn.Module) -> bool:
@@ -93,3 +125,22 @@ def find_all_instances(module: nn.Module, to_search: ToSearch) -> List[ToSearch]
         return results
 
     return []
+
+
+def _to_snake_case(name):
+    intermediate = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    insecure = re.sub("([a-z])([A-Z])", r"\1_\2", intermediate).lower()
+    # If the class is private the name starts with "_" which is not secure
+    # for creating scopes. We prefix the name with "private" in this case.
+    if insecure[0] != "_":
+        return insecure
+    return "private" + insecure
+
+
+def module_name(module: nn.Module, snakecase=True) -> str:
+    cls_name = module.__class__.__name__
+
+    if snakecase:
+        return _to_snake_case(cls_name)
+
+    return cls_name

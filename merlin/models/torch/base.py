@@ -3,40 +3,10 @@ from typing import Protocol, Union, runtime_checkable
 from torch import nn
 from typing_extensions import Self
 
+from merlin.models.torch.utils.module_utils import ModuleHook
 from merlin.models.utils.registry import Registry
 
 registry: Registry = Registry.class_registry("torch.modules")
-
-
-class _ModuleHook(nn.Module):
-    """A helper module to be able to execute Module as a (pre) forward-hook."""
-
-    def __init__(self, module: nn.Module):
-        super().__init__()
-        self.module = module
-
-    def forward(self, parent, inputs, outputs=None):
-        """
-        Forward pass for the _ModuleHook.
-
-        This function is called when the hook is executed during the
-        forward pass of the parent module.
-
-        Args:
-            parent (nn.Module): The parent module for which the hook is registered.
-            inputs: The inputs to the parent module.
-            outputs (optional): The outputs of the parent module (only provided for post-hooks).
-
-        Returns:
-            The result of executing the hook module with the given inputs or outputs.
-        """
-        del parent
-
-        x = inputs if outputs is None else outputs
-        if isinstance(x, tuple):
-            return self.module(*x)
-
-        return self.module(x)
 
 
 class Block(nn.Module):
@@ -127,7 +97,7 @@ def register_pre_hook(
     """
     pre = Block.from_registry(to_register) if isinstance(to_register, str) else to_register
 
-    module.register_forward_pre_hook(_ModuleHook(pre), prepend=prepend, with_kwargs=with_kwargs)
+    module.register_forward_pre_hook(ModuleHook(pre), prepend=prepend, with_kwargs=with_kwargs)
 
     return pre
 
@@ -154,6 +124,6 @@ def register_post_hook(
     """
     post = Block.from_registry(to_register) if isinstance(to_register, str) else to_register
 
-    module.register_forward_hook(_ModuleHook(post), prepend=prepend, with_kwargs=with_kwargs)
+    module.register_forward_hook(ModuleHook(post), prepend=prepend, with_kwargs=with_kwargs)
 
     return post

@@ -10,7 +10,7 @@ class TestTabularInputBlock:
 
         data = sample_batch(testing_data, batch_size=10, shuffle=False, include_targets=False)
         device = list(data.values())[0].device
-        input_block = TabularInputBlock(schema).to(device)
+        input_block = TabularInputBlock(schema, aggregation="concat").to(device)
 
         assert input_block.schema.column_names == [
             "user_id",

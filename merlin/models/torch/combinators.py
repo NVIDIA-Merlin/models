@@ -39,7 +39,10 @@ class ParallelBlock(TabularBlock):
         if all(isinstance(x, dict) for x in inputs):
             _parallel_dict = reduce(lambda a, b: dict(a, **b), inputs)
         elif all(isinstance(x, nn.Module) for x in inputs):
-            _parallel_dict = {i: m for i, m in enumerate(inputs)}
+            if all(hasattr(m, "name") for m in inputs):
+                _parallel_dict = {m.name: m for m in inputs}
+            else:
+                _parallel_dict = {i: m for i, m in enumerate(inputs)}
         else:
             raise ValueError(f"Invalid input. Got: {inputs}")
 

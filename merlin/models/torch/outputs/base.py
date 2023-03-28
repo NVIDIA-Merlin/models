@@ -1,12 +1,11 @@
 from typing import Optional, Sequence, Union
 
-import torch
 from torch import nn
 from torchmetrics import Metric
 
 from merlin.models.torch.base import Block
 from merlin.models.torch.data import register_target_hook
-from merlin.models.torch.utils.module_utils import apply
+from merlin.models.torch.utils.module_utils import apply, module_name
 from merlin.schema import ColumnSchema, Schema
 
 
@@ -62,20 +61,27 @@ class ModelOutput(Block):
         """
         Apply `self.to_call` module to the inputs and return the output.
         """
-        return apply(self.to_call, inputs, targets=targets)
+        outputs = apply(self.to_call, inputs, targets=targets)
+
+        if targets is not None and not isinstance(outputs, tuple):
+            if isinstance(targets, dict):
+                _target = targets[self.target]
+            else:
+                _target = targets
+
+            return outputs, _target
+
+        return outputs
 
     def create_output_schema(self, target: ColumnSchema) -> Schema:
         """Return the output schema given the target column schema."""
         return Schema([target])
 
     @property
-    def output(self) -> torch.Tensor:
-        if self.target is not None:
-            attr_name = f"__buffer_target_{self.target}"
-        else:
-            attr_name = "__buffer_target"
+    def name(self) -> str:
+        base_name = module_name(self)
 
-        if not hasattr(self, attr_name):
-            return None
+        if self.target:
+            return "/".join([self.target, base_name])
 
-        return getattr(self, attr_name)
+        return base_name

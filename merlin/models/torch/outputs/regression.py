@@ -51,6 +51,3 @@ class RegressionOutput(ModelOutput):
             post=post,
             logits_temperature=logits_temperature,
         )
-
-    def forward(self, inputs, **kwargs):
-        return super().forward(inputs)
