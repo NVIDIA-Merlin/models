@@ -396,15 +396,6 @@ class BaseModel(tf.keras.Model):
             **kwargs: Arguments supported for backwards compatibility only.
         """
 
-        # Initializing model control flags controlled by MetricsComputeCallback()
-        self._should_compute_train_metrics_for_batch = tf.Variable(
-            dtype=tf.bool,
-            name="should_compute_train_metrics_for_batch",
-            trainable=False,
-            synchronization=tf.VariableSynchronization.NONE,
-            initial_value=lambda: True,
-        )
-
         num_v1_blocks = len(self.prediction_tasks)
         num_v2_blocks = len(self.model_outputs)
 
@@ -1578,6 +1569,16 @@ class Model(BaseModel):
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
+
+        # Initializing model control flags controlled by MetricsComputeCallback()
+        self._should_compute_train_metrics_for_batch = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_train_metrics_for_batch",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: True,
+        )
+
         context = context or ModelContext()
         if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
             blocks = blocks[0].layers
