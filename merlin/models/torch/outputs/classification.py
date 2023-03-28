@@ -89,7 +89,7 @@ class CategoricalOutput(ModelOutput):
         pre=None,
         post=None,
         logits_temperature: float = 1.0,
-        default_loss=nn.BCELoss(),
+        default_loss=nn.CrossEntropyLoss(),
         default_metrics: Sequence[Metric] = (),
     ):
         if to_call is not None:

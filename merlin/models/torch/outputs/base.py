@@ -85,3 +85,11 @@ class ModelOutput(Block):
             return "/".join([self.target, base_name])
 
         return base_name
+
+    @property
+    def is_in_training(self) -> bool:
+        return getattr(self, "training", False)
+
+    @property
+    def is_in_testing(self) -> bool:
+        return getattr(self, "testing", False)
