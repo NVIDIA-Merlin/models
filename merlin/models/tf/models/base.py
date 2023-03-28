@@ -29,7 +29,13 @@ import tensorflow as tf
 from keras.engine.compile_utils import MetricsContainer
 from keras.utils.losses_utils import cast_losses_to_common_dtype
 
-from keras.saving.experimental import saving_lib
+# Required for tf/keras 2.11 Support which enabled saving_lib usage for model save/load
+# we're using this in the `Model.from_config` method
+try:
+    from keras.saving.experimental import saving_lib
+except ImportError:
+    saving_lib = None
+
 from packaging import version
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.metrics import Metric
@@ -1862,14 +1868,20 @@ class Model(BaseModel):
 
         model = cls(*layers, pre=pre, post=post, schema=schema)
 
-        if getattr(saving_lib._SAVING_V3_ENABLED, "value", False):
+        # This is required for tf/keras 2.11 which enabled v3 saving
+        # and requires calling model build. The block below is a copy
+        # of part of the keras.Model.from_config method in 2.11
+        if (
+            saving_lib
+            and hasattr(saving_lib, "_SAVING_V3_ENABLED")
+            and getattr(saving_lib._SAVING_V3_ENABLED, "value", False)
+        ):
             if build_input_shape:
                 model.build(build_input_shape)
             if compile_config is not None:
                 model._compile_from_config(compile_config, base_class=Model)
 
         return model
-
 
     def get_config(self):
         super_config = super().get_config()
