@@ -53,7 +53,9 @@ def get_tf_main_layer(hf_model):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TransformerBlock(Block):
     """
-    Class to support HF Transformers for session-based and sequential-based recommendation models.
+    Base class to support HuggingFace Transformers for session-based and
+    sequential-based recommendation models.
+
     Parameters
     ----------
     transformer: TransformerBody
@@ -71,6 +73,12 @@ class TransformerBlock(Block):
         A block to use before the main transformer block, by default None
     post: Optional[Union[str, tf.keras.layers.Layer]]
         A block to use after the main transformer block, by default None
+    masking_post:
+        A block to use to postprocess the output of the transformer block based on
+        keras mask information, by default None
+    masking_pre:
+        A block to use to prepare the inputs to the transformer block based on
+        keras mask information, by default None
     """
 
     def __init__(
@@ -80,6 +88,8 @@ class TransformerBlock(Block):
         post: Optional[Union[str, tf.keras.layers.Layer]] = None,
         transformer_pre=PrepareTransformerInputs(),
         transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
+        masking_post: Optional[tf.keras.layers.Layer] = None,
+        masking_pre: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -107,6 +117,24 @@ class TransformerBlock(Block):
 
         self.post = post
         self.pre = pre
+        self._masking_post = masking_post
+        self._masking_pre = masking_pre
+
+    @property
+    def masking_post(self):
+        return self._masking_post
+
+    @masking_post.setter
+    def masking_post(self, block):
+        self._masking_post = block
+
+    @property
+    def masking_pre(self):
+        return self._masking_pre
+
+    @masking_pre.setter
+    def masking_pre(self, block):
+        self._masking_pre = block
 
     def build(self, input_shape=None):
         """Builds the sequential block
@@ -135,6 +163,9 @@ class TransformerBlock(Block):
 
     @property
     def to_call_pre(self):
+        if self.masking_pre:
+            yield self.masking_pre
+
         if self.pre:
             yield self.pre
 
@@ -144,6 +175,9 @@ class TransformerBlock(Block):
     def to_call_post(self):
         yield self.transformer_post
 
+        if self.masking_post:
+            yield self.masking_post
+
         if self.post:
             yield self.post
 
@@ -152,7 +186,15 @@ class TransformerBlock(Block):
         config = maybe_serialize_keras_objects(
             self,
             config,
-            ["transformer", "pre", "post", "transformer_pre", "transformer_post"],
+            [
+                "transformer",
+                "pre",
+                "post",
+                "transformer_pre",
+                "transformer_post",
+                "masking_pre",
+                "masking_post",
+            ],
         )
         return config
 
@@ -160,7 +202,15 @@ class TransformerBlock(Block):
     def from_config(cls, config, custom_objects=None):
         config = maybe_deserialize_keras_objects(
             config,
-            ["transformer", "pre", "post", "transformer_pre", "transformer_post"],
+            [
+                "transformer",
+                "pre",
+                "post",
+                "transformer_pre",
+                "transformer_post",
+                "masking_post",
+                "masking_pre",
+            ],
         )
 
         output = TransformerBlock(**config)
