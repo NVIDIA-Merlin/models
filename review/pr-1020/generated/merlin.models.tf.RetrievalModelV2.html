@@ -129,7 +129,7 @@
 <td><p>Adds a new variable to the layer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">adjust_predictions_and_targets</span></code>(predictions, …)</p></td>
-<td><p>Adjusts the predctions and targets, doing the following transformations if the target is provided: - Converts ragged targets (and their masks) to dense, so that they are compatible with most losses and metrics - Copies the targets mask to predictions mask, if defined - One-hot encode targets if their tf.rank(targets) == tf.rank(predictions)-1 - Ensures targets has the same shape and dtype as predicitnos</p></td>
+<td><p>Adjusts the predictions and targets to ensure compatibility with most Keras losses and metrics.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_predict</span></code>(dataset, batch_size, **kwargs)</p></td>
 <td><p>Batched prediction using the Dask.</p></td>
