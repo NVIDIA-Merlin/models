@@ -1706,7 +1706,6 @@ class Model(BaseModel):
         input_shape : tf.TensorShape, optional
             The input shape, by default None
         """
-        super().build(input_shape)
         last_layer = None
 
         if self.prep_features:
