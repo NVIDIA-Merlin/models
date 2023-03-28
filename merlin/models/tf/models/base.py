@@ -1865,11 +1865,11 @@ class Model(BaseModel):
 
         return model
 
-    def get_sample_inputs(self):
+    def get_sample_inputs(self, batch_size=2):
         if self.input_schema is not None:
             inputs = {}
             for column in self.input_schema:
-                shape = [2]
+                shape = [batch_size]
                 try:
                     dtype = column.dtype.to("tensorflow")
                 except ValueError:
@@ -1882,16 +1882,20 @@ class Model(BaseModel):
                 else:
                     maxval = 1
                 if column.is_list and column.is_ragged:
+                    row_length = 3
                     values = tf.random.uniform(
-                        [6],
+                        [batch_size * row_length],
                         dtype=dtype,
                         maxval=maxval,
                     )
-                    offsets = tf.constant([0, 3, 6], dtype=tf.int32)
+                    offsets = tf.cumsum([0] + [row_length] * batch_size)
                     inputs[f"{column.name}__values"] = values
                     inputs[f"{column.name}__offsets"] = offsets
                 elif column.is_list:
-                    inputs[column.name] = tf.random.uniform(shape + [3], dtype=dtype, maxval=maxval)
+                    row_length = 3
+                    inputs[column.name] = tf.random.uniform(
+                        shape + [row_length], dtype=dtype, maxval=maxval
+                    )
                 else:
                     inputs[column.name] = tf.random.uniform(shape, dtype=dtype, maxval=maxval)
             return inputs
