@@ -1842,10 +1842,6 @@ class Model(BaseModel):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        super_config = config.pop("super_config", {})
-        compile_config = super_config.pop("compile_config", None)
-        build_input_shape = super_config.pop("build_input_shape", None)
-
         pre = config.pop("pre", None)
         post = config.pop("post", None)
         schema = config.pop("schema", None)
@@ -1910,14 +1906,10 @@ class Model(BaseModel):
             return inputs
 
     def get_config(self):
-        super_config = super().get_config()
-
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         for i, layer in enumerate(self.blocks):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
-
-        config["super_config"] = super_config
 
         return config
 
