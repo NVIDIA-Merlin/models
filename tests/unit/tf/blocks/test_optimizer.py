@@ -28,6 +28,11 @@ from merlin.models.utils import schema_utils
 from merlin.models.utils.schema_utils import create_categorical_column
 from merlin.schema import Schema, Tags
 
+if version.parse(tf.__version__) < version.parse("2.11.0"):
+    keras_optimizers = tf.keras.optimizers
+else:
+    keras_optimizers = tf.keras.optimizers.legacy
+
 
 def generate_two_layers():
     initializer_first_layer = tf.constant_initializer(np.ones((3, 4)))
@@ -44,6 +49,29 @@ def generate_two_layers():
     return first_layer, second_layer
 
 
+@pytest.mark.skipif
+@pytest.mark.parametrize(
+    "optimizers",
+    [
+        ("sgd", keras_optimizers.Adagrad()),
+        (keras_optimizers.SGD(), "adam"),
+    ],
+)
+def test_new_optimizers_raise_error(optimizers):
+    layers = generate_two_layers()
+    with pytest.raises(ValueError) as excinfo:
+        ml.MultiOptimizer(
+            default_optimizer=optimizers[0],
+            optimizers_and_blocks=[
+                ml.OptimizerBlocks(optimizers[0], layers[0]),
+                ml.OptimizerBlocks(optimizers[1], layers[1]),
+            ],
+        )
+        assert "Optimizers must be an instance of tf.keras.optimizers.legacy.Optimizer" in str(
+            excinfo.value
+        )
+
+
 @pytest.mark.parametrize(
     "optimizers",
     [
@@ -51,7 +79,7 @@ def generate_two_layers():
         ("rmsprop", "sgd"),
         ("adam", "adagrad"),
         ("adagrad", "rmsprop"),
-        (tf.keras.optimizers.legacy.SGD(), tf.keras.optimizers.legacy.Adagrad()),
+        (keras_optimizers.SGD(), keras_optimizers.Adagrad()),
     ],
 )
 def test_optimizers(optimizers):
@@ -120,8 +148,8 @@ def test_model_with_multi_optimizers(ecommerce_data, run_eagerly):
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
-            ml.OptimizerBlocks(tf.keras.optimizers.SGD(), user_tower),
-            ml.OptimizerBlocks(tf.keras.optimizers.Adam(), item_tower),
+            ml.OptimizerBlocks(keras_optimizers.SGD(), user_tower),
+            ml.OptimizerBlocks(keras_optimizers.Adam(), item_tower),
         ],
     )
     testing_utils.model_test(
@@ -141,8 +169,8 @@ def test_multi_optimizer_list_input(ecommerce_data, run_eagerly):
     model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
     multi_optimizers = ml.MultiOptimizer(
         optimizers_and_blocks=[
-            ml.OptimizerBlocks(tf.keras.optimizers.SGD(), user_tower),
-            ml.OptimizerBlocks(tf.keras.optimizers.Adam(), [item_tower, third_tower]),
+            ml.OptimizerBlocks(keras_optimizers.SGD(), user_tower),
+            ml.OptimizerBlocks(keras_optimizers.Adam(), [item_tower, third_tower]),
         ],
     )
     testing_utils.model_test(
@@ -163,8 +191,8 @@ def test_multi_optimizer_add(ecommerce_data, run_eagerly):
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
-            ml.OptimizerBlocks(tf.keras.optimizers.SGD(), user_tower),
-            ml.OptimizerBlocks(tf.keras.optimizers.Adam(), item_tower),
+            ml.OptimizerBlocks(keras_optimizers.SGD(), user_tower),
+            ml.OptimizerBlocks(keras_optimizers.Adam(), item_tower),
         ],
     )
     multi_optimizers.add(ml.OptimizerBlocks("adagrad", third_tower))
@@ -180,7 +208,7 @@ def test_multi_optimizer_add(ecommerce_data, run_eagerly):
         ("rmsprop", "sgd"),
         ("adam", "adagrad"),
         ("adagrad", "rmsprop"),
-        (tf.keras.optimizers.SGD(), tf.keras.optimizers.Adagrad()),
+        (keras_optimizers.SGD(), keras_optimizers.Adagrad()),
     ],
 )
 def test_multi_optimizers_from_config(ecommerce_data, optimizers):
@@ -210,7 +238,7 @@ def test_multi_optimizers_from_config(ecommerce_data, optimizers):
     "optimizers",
     [
         ("sgd", "adam"),
-        (tf.keras.optimizers.SGD(), tf.keras.optimizers.Adagrad()),
+        (keras_optimizers.SGD(), keras_optimizers.Adagrad()),
     ],
 )
 def test_multi_optimizers_from_config_list_input(ecommerce_data, optimizers):
@@ -254,8 +282,8 @@ def test_examples_in_code_comments(ecommerce_data, use_default):
         optimizer = ml.MultiOptimizer(
             default_optimizer="adagrad",
             optimizers_and_blocks=[
-                ml.OptimizerBlocks(tf.keras.optimizers.SGD(), user_tower),
-                ml.OptimizerBlocks(tf.keras.optimizers.Adam(), item_tower),
+                ml.OptimizerBlocks(keras_optimizers.SGD(), user_tower),
+                ml.OptimizerBlocks(keras_optimizers.Adam(), item_tower),
             ],
         )
     else:
@@ -283,8 +311,8 @@ def test_update_optimizer(ecommerce_data, run_eagerly):
     user_tower_1 = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
     two_tower = ml.ParallelBlock({"user": user_tower_0, "item": user_tower_1}, aggregation="concat")
     model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
-    sgd = tf.keras.optimizers.SGD()
-    adam = tf.keras.optimizers.Adam()
+    sgd = keras_optimizers.SGD()
+    adam = keras_optimizers.Adam()
     multi_optimizers = ml.MultiOptimizer(
         optimizers_and_blocks=[
             ml.OptimizerBlocks(adam, user_tower_0),
@@ -560,7 +588,7 @@ def test_lazy_adam_in_model_with_multi_optimizers(ecommerce_data, run_eagerly):
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
-            ml.OptimizerBlocks(tf.keras.optimizers.SGD(), user_tower),
+            ml.OptimizerBlocks(keras_optimizers.SGD(), user_tower),
             ml.OptimizerBlocks(ml.LazyAdam(), item_tower),
         ],
     )

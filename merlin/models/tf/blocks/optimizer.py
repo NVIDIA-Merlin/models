@@ -15,13 +15,13 @@
 #
 
 import collections
-import importlib
 import warnings
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
+from packaging import version
 
 import merlin.models.tf as ml
 from merlin.models.tf.core.base import Block
@@ -32,10 +32,10 @@ Tensor = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]
 
 
-if importlib.util.find_spec("tensorflow.keras.optimizers.legacy") is not None:
-    keras_optimizers = tf.keras.optimizers.legacy
-else:
+if version.parse(tf.__version__) < version.parse("2.11.0"):
     keras_optimizers = tf.keras.optimizers
+else:
+    keras_optimizers = tf.keras.optimizers.legacy
 
 
 @dataclass
@@ -51,8 +51,13 @@ class OptimizerBlocks:
 
     def get_config(self):
         """return a tuple of serialized keras objects"""
+        optimizer_config = tf.keras.utils.serialize_keras_object(self.optimizer)
+        if version.parse(tf.__version__) >= version.parse("2.11.0") and isinstance(
+            self.optimizer, tf.keras.optimizers.legacy.Optimizer
+        ):
+            optimizer_config["use_legacy_optimizer"] = True
         return (
-            tf.keras.utils.serialize_keras_object(self.optimizer),
+            optimizer_config,
             [tf.keras.utils.serialize_keras_object(block) for block in self.blocks],
         )
 
@@ -130,7 +135,22 @@ class MultiOptimizer(keras_optimizers.Optimizer):
         self.default_optimizer = tf.keras.optimizers.get(default_optimizer)
         self.optimizers_and_blocks = []
         for i, pair in enumerate(optimizers_and_blocks):
-            pair.optimizer = tf.keras.optimizers.get(pair.optimizer)
+            if version.parse(tf.__version__) < version.parse("2.11.0"):
+                pair.optimizer = tf.keras.optimizers.get(pair.optimizer)
+            else:
+                if not (
+                    isinstance(pair.optimizer, str)
+                    or isinstance(pair.optimizer, tf.keras.optimizers.legacy.Optimizer)
+                ):
+                    raise ValueError(
+                        "Optimizers must be a str or an instance of "
+                        "tf.keras.optimizers.legacy.Optimizer with Tensorflow >= 2.11."
+                    )
+                pair.optimizer = tf.keras.optimizers.get(
+                    pair.optimizer,
+                    use_legacy_optimizer=True,
+                )
+
             self._track_trackable(pair.optimizer, name=f"Optimizer{i}")
             pair.blocks = [pair.blocks] if isinstance(pair.blocks, Block) else pair.blocks
             self.optimizers_and_blocks.append(pair)

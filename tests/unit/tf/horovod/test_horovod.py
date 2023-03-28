@@ -1,3 +1,4 @@
+import importlib
 import os
 
 import pytest
@@ -69,13 +70,20 @@ def test_horovod_multigpu_dlrm(
         prediction_tasks=mm.BinaryClassificationTask(target_column),
     )
 
+    # TF 2.11
+    # Optimizer has to be an instance of tf.keras.optimizers.legacy.Optimizer
+    if importlib.util.find_spec("tensorflow.keras.optimizers.legacy") is not None:
+        keras_optimizers = tf.keras.optimizers.legacy
+    else:
+        keras_optimizers = tf.keras.optimizers
+
     if custom_distributed_optimizer:
         # Test for a case when the user uses a custom DistributedOptimizer.
         # With a custom hvd.DistributedOptimzer, users have to adjust the learning rate.
-        opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate * hvd.size())
+        opt = keras_optimizers.Adagrad(learning_rate=learning_rate * hvd.size())
         opt = hvd.DistributedOptimizer(opt, compression=hvd.Compression.fp16)
     else:
-        opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
+        opt = keras_optimizers.Adagrad(learning_rate=learning_rate)
 
     model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
 
