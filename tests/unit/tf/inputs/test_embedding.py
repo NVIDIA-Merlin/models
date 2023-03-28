@@ -84,6 +84,12 @@ class TestEmbeddingTable:
                 tf.sparse.from_dense(tf.constant([[[1], [2], [3]]])),
                 [1, 16],
             ),
+            (
+                16,
+                {"sequence_combiner": "mean"},
+                tf.constant([[[1], [2], [3]], [[4], [5], [6]]]),
+                [2, 16],
+            ),
             (12, {}, {"item_id": tf.constant([[1]])}, {"item_id": [1, 12]}),
         ],
     )
