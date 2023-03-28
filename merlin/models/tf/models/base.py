@@ -28,6 +28,8 @@ import six
 import tensorflow as tf
 from keras.engine.compile_utils import MetricsContainer
 from keras.utils.losses_utils import cast_losses_to_common_dtype
+
+from keras.saving.experimental import saving_lib
 from packaging import version
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.metrics import Metric
@@ -1692,6 +1694,7 @@ class Model(BaseModel):
         input_shape : tf.TensorShape, optional
             The input shape, by default None
         """
+        super().build(input_shape)
         last_layer = None
 
         if self.prep_features:
@@ -1834,6 +1837,10 @@ class Model(BaseModel):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
+        super_config = config.pop("super_config", {})
+        compile_config = super_config.pop("compile_config", None)
+        build_input_shape = super_config.pop("build_input_shape", None)
+
         pre = config.pop("pre", None)
         post = config.pop("post", None)
         schema = config.pop("schema", None)
@@ -1852,13 +1859,26 @@ class Model(BaseModel):
         if schema is not None:
             schema = schema_utils.tensorflow_metadata_json_to_schema(schema)
 
-        return cls(*layers, pre=pre, post=post, schema=schema)
+        model = cls(*layers, pre=pre, post=post, schema=schema)
+
+        if getattr(saving_lib._SAVING_V3_ENABLED, "value", False):
+            if build_input_shape:
+                model.build(build_input_shape)
+            if compile_config is not None:
+                model._compile_from_config(compile_config, base_class=Model)
+
+        return model
+
 
     def get_config(self):
+        super_config = super().get_config()
+
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         for i, layer in enumerate(self.blocks):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
+
+        config["super_config"] = super_config
 
         return config
 
