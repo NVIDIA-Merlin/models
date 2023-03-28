@@ -28,7 +28,6 @@ import six
 import tensorflow as tf
 from keras.engine.compile_utils import MetricsContainer
 from keras.utils.losses_utils import cast_losses_to_common_dtype
-
 from packaging import version
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.metrics import Metric
@@ -1582,8 +1581,6 @@ class Model(BaseModel):
     ):
         super(Model, self).__init__(**kwargs)
 
-        
-
         context = context or ModelContext()
         if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
             blocks = blocks[0].layers
@@ -1886,23 +1883,17 @@ class Model(BaseModel):
                     maxval = 1
                 if column.is_list and column.is_ragged:
                     values = tf.random.uniform(
-                        [6], dtype=dtype,
+                        [6],
+                        dtype=dtype,
                         maxval=maxval,
                     )
                     offsets = tf.constant([0, 3, 6], dtype=tf.int32)
                     inputs[f"{column.name}__values"] = values
                     inputs[f"{column.name}__offsets"] = offsets
                 elif column.is_list:
-                    inputs[column.name] = tf.random.uniform(
-                        shape + [3], 
-                        dtype=dtype,
-                        maxval=maxval
-                    )
+                    inputs[column.name] = tf.random.uniform(shape + [3], dtype=dtype, maxval=maxval)
                 else:
-                    inputs[column.name] = tf.random.uniform(
-                        shape, dtype=dtype,
-                        maxval=maxval
-                    )
+                    inputs[column.name] = tf.random.uniform(shape, dtype=dtype, maxval=maxval)
             return inputs
 
     def get_config(self):
