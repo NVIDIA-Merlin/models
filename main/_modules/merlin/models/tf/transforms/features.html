@@ -259,13 +259,8 @@
                             <span class="n">val</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
                         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
                             <span class="n">val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_sparse</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_tensor</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="c1"># TODO: Change this condition to check is_ragged after this PR</span>
-                        <span class="c1"># from Oliver is merged https://github.com/NVIDIA-Merlin/dataloader/pull/103</span>
-                        <span class="c1"># if col_schema_shape.is_ragged:</span>
-                        <span class="k">if</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">col_schema_shape</span><span class="o">.</span><span class="n">is_ragged</span><span class="p">:</span>
                             <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">__values&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inputs</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">__offsets&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
                                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                                     <span class="sa">f</span><span class="s2">&quot;The ragged list feature &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; is expected to be &quot;</span>
@@ -1409,10 +1404,11 @@
     <span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">remove_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
     <span class="n">expected_features</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-        <span class="c1"># TODO: Change this condition to check is_ragged after this PR</span>
-        <span class="c1"># from Oliver is merged https://github.com/NVIDIA-Merlin/dataloader/pull/103</span>
-        <span class="c1"># if schema[name].shape.is_list and schema[name].shape.is_ragged ...</span>
-        <span class="k">if</span> <span class="n">schema</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_list</span> <span class="ow">and</span> <span class="p">(</span><span class="n">inputs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">schema</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_list</span>
+            <span class="ow">and</span> <span class="n">schema</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_ragged</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">inputs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">)</span>
+        <span class="p">):</span>
             <span class="n">expected_features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">__values&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">__offsets&quot;</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">expected_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
