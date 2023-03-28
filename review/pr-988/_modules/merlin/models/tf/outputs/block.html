@@ -348,7 +348,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_class_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="p">(</span><span class="n">neg_weight</span><span class="p">,</span> <span class="n">pos_weight</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_class_weights</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_column_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">target_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_column_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># If weight column is not provided, assumes the target column should</span>
                 <span class="c1"># be used</span>
                 <span class="n">sample_weight</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">target_name</span><span class="p">]</span>

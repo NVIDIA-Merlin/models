@@ -83,7 +83,7 @@
   <div class="tex2jax_ignore mathjax_ignore section" id="quick-start-for-ranking-models-with-merlin">
 <h1>Quick-start for ranking models with Merlin<a class="headerlink" href="#quick-start-for-ranking-models-with-merlin" title="Permalink to this headline"></a></h1>
 <p>This is a template for building a pipeline for preprocessing, training and exporting ranking models for serving. It is composed by generic scripts that can be used with your own dataset. We also share some best practices for preprocessing and training ranking models.</p>
-<p>In this example, we use the TenRec dataset from Tencent, which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).</p>
+<p>In this example, we use the <a class="reference external" href="https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html">TenRec dataset</a>, which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).</p>
 <div class="section" id="setup">
 <h2>Setup<a class="headerlink" href="#setup" title="Permalink to this headline"></a></h2>
 <p>You can run these scripts either using the latest Merlin TensorFlow image or installing the necessary Merlin libraries according to their documentation (core, NVTabular, dataloader, models).
@@ -96,7 +96,9 @@ In this doc we provide the commands for setting up a Docker container for Merlin
 </div>
 <div class="section" id="preparing-the-data">
 <h2>Preparing the data<a class="headerlink" href="#preparing-the-data" title="Permalink to this headline"></a></h2>
-<p>The TenRec dataset contains a number of CSV files. We will be using the <code class="docutils literal notranslate"><span class="pre">QK-video.csv</span></code>, which logs user interactions with different videos. As the dataset has a reasonable size (~15 GB), feel free to reduce that file for less rows you want to test the pipeline more quickly or don’t have a powerful GPU available (V100 with 32 GB or better). For example, the following command you can truncate the file, keeping the first 10 million rows (header line included).</p>
+<p>The TenRec dataset contains a number of CSV files. We will be using the <code class="docutils literal notranslate"><span class="pre">QK-video.csv</span></code>, which logs user interactions with different videos. Here is an example on how the data looks like.</p>
+<p><img alt="TenRec dataset structure" src="../../../_images/tenrec_dataset.png" /></p>
+<p>As the dataset has a reasonable size (~15 GB), feel free to reduce that file for less rows you want to test the pipeline more quickly or don’t have a powerful GPU available (V100 with 32 GB or better). For example, the following command you can truncate the file, keeping the first 10 million rows (header line included).</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>head<span class="w"> </span>-n<span class="w"> </span><span class="m">10000001</span><span class="w"> </span>QK-video.csv<span class="w"> </span>&gt;<span class="w"> </span>QK-video-10M.csv
 </pre></div>
 </div>
@@ -116,7 +118,7 @@ In this doc we provide the commands for setting up a Docker container for Merlin
 </pre></div>
 </div>
 <ol class="simple">
-<li><p>Start a Merlin TensorFlow container in iterative mode</p></li>
+<li><p>Start a Merlin TensorFlow container in interactive mode</p></li>
 </ol>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span>--ipc<span class="o">=</span>host<span class="w"> </span>-v<span class="w"> </span><span class="nv">$INPUT_DATA_PATH</span>:/data<span class="w"> </span>-v<span class="w"> </span><span class="nv">$OUTPUT_PATH</span>:/outputs<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>nvcr.io/nvidia/merlin/merlin-tensorflow:latest<span class="w"> </span>/bin/bash
@@ -194,7 +196,6 @@ You can also balance the loss weights by setting <code class="docutils literal n
 <li><p>Create another document providing best practices on setting hyperparameters for ranking models based on the empirical results from our research experimentation (e.g. hparam optimization search space, best hparams found, comparison of the accuracy of STL and MTL models for each task)</p></li>
 <li><p>Refine scripts to accept both CLI args or YAML args</p></li>
 <li><p>Refine <code class="docutils literal notranslate"><span class="pre">preprocessing.py</span></code> to provide additional dataset split strategies (e.g. <code class="docutils literal notranslate"><span class="pre">random_by_user</span></code>, <code class="docutils literal notranslate"><span class="pre">temporal</span></code>).</p></li>
-<li><p>Test <code class="docutils literal notranslate"><span class="pre">preprocessing.py</span></code> with larger/full dataset</p></li>
 </ul>
 </div>
 </div>
