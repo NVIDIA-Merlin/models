@@ -1279,8 +1279,7 @@ class BaseModel(tf.keras.Model):
         """
         schema = getattr(self, "schema", None)
         if isinstance(schema, Schema) and schema.column_names:
-            target_tags = [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
-            return schema.excluding_by_tag(target_tags)
+            return schema
 
     def _maybe_set_schema(self, maybe_loader):
         """Try to set the correct schema on the model or loader.
