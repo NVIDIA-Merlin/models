@@ -138,38 +138,44 @@
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code>(input_shape[, features_shape])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_task</span></code>(input_shape, schema, body, **kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_from_config</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiClassClassificationTask.call" title="merlin.models.tf.MultiClassClassificationTask.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs[, training])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_task</span></code>(input_shape, schema, body, **kwargs)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">child_name</span></code>(name)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiClassClassificationTask.call" title="merlin.models.tf.MultiClassClassificationTask.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs[, training])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">child_name</span></code>(name)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
 <td><p>Computes an output mask tensor.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code>(input_shape)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code>(input_shape)</p></td>
 <td><p>Computes the output shape of the layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
 <td><p>Compute the output tensor signature of the layer based on the inputs.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_params</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_params</span></code>()</p></td>
 <td><p>Count the total number of scalars composing the weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_default_metrics</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_default_metrics</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
 <td><p>Finalizes the layers state after updating layer weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiClassClassificationTask.from_schema" title="merlin.models.tf.MultiClassClassificationTask.from_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code></a>(schema[, feature_name, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiClassClassificationTask.from_schema" title="merlin.models.tf.MultiClassClassificationTask.from_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code></a>(schema[, feature_name, …])</p></td>
 <td><p>Create from Schema.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_build_config</span></code>()</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
 <td><p></p></td>
@@ -330,7 +336,7 @@
 
 <dl class="py attribute">
 <dt id="merlin.models.tf.MultiClassClassificationTask.DEFAULT_METRICS">
-<code class="sig-name descname"><span class="pre">DEFAULT_METRICS</span></code><em class="property"><span class="pre">:</span> <span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">keras.metrics.base_metric.Metric</span><span class="p"><span class="pre">,</span> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">keras.metrics.base_metric.Metric</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">keras.metrics.base_metric.Metric</span><span class="p"><span class="pre">,</span> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">keras.metrics.base_metric.Metric</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">(&lt;class</span> <span class="pre">'keras.metrics.metrics.Accuracy'&gt;,)</span></em><a class="headerlink" href="#merlin.models.tf.MultiClassClassificationTask.DEFAULT_METRICS" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">DEFAULT_METRICS</span></code><em class="property"><span class="pre">:</span> <span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">keras.metrics.base_metric.Metric</span><span class="p"><span class="pre">,</span> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">keras.metrics.base_metric.Metric</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">keras.metrics.base_metric.Metric</span><span class="p"><span class="pre">,</span> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">keras.metrics.base_metric.Metric</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">(&lt;class</span> <span class="pre">'keras.metrics.accuracy_metrics.Accuracy'&gt;,)</span></em><a class="headerlink" href="#merlin.models.tf.MultiClassClassificationTask.DEFAULT_METRICS" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">

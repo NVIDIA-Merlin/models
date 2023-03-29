@@ -96,8 +96,8 @@
 <h1>merlin.models.tf.MultiOptimizer<a class="headerlink" href="#merlin-models-tf-multioptimizer" title="Permalink to this headline"></a></h1>
 <dl class="py class">
 <dt id="merlin.models.tf.MultiOptimizer">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">MultiOptimizer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizers_and_blocks</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.blocks.optimizer.OptimizerBlocks</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_optimizer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">keras.optimizers.optimizer_v2.optimizer_v2.OptimizerV2</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'rmsprop'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'MultiOptimizer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/optimizer.html#MultiOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MultiOptimizer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">keras.optimizers.optimizer_v2.optimizer_v2.OptimizerV2</span></code></p>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">MultiOptimizer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizers_and_blocks</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.blocks.optimizer.OptimizerBlocks</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_optimizer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">keras.optimizers.optimizer.Optimizer</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'rmsprop'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'MultiOptimizer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/optimizer.html#MultiOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MultiOptimizer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">keras.optimizers.optimizer.Optimizer</span></code></p>
 <p>An optimizer that composes multiple individual optimizers.</p>
 <p>It allows different optimizers to be applied to different subsets of the model’s variables. For
 example, it is possible to apply one optimizer to the blocks which contains the model’s
@@ -138,7 +138,7 @@ ml.OptimizerBlocks(“adam”, item_tower),</p>
 <p><a href="#id5"><span class="problematic" id="id6">``</span></a><a href="#id7"><span class="problematic" id="id8">`</span></a></p>
 <dl class="py method">
 <dt id="merlin.models.tf.MultiOptimizer.__init__">
-<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizers_and_blocks</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.blocks.optimizer.OptimizerBlocks</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_optimizer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">keras.optimizers.optimizer_v2.optimizer_v2.OptimizerV2</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'rmsprop'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'MultiOptimizer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/optimizer.html#MultiOptimizer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MultiOptimizer.__init__" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizers_and_blocks</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.blocks.optimizer.OptimizerBlocks</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_optimizer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">keras.optimizers.optimizer.Optimizer</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'rmsprop'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'MultiOptimizer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/optimizer.html#MultiOptimizer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MultiOptimizer.__init__" title="Permalink to this definition"></a></dt>
 <dd><p>Initializes an MultiOptimizer instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -167,37 +167,37 @@ default “rmsprop”.</p></li>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.add" title="merlin.models.tf.MultiOptimizer.add"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add</span></code></a>(optimizer_blocks)</p></td>
 <td><p>add another optimzier and specify which block to apply this optimizer to</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_slot</span></code>(var, slot_name[, initializer, shape])</p></td>
-<td><p>Add a new slot variable for <cite>var</cite>.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_variable</span></code>(shape[, dtype, initializer, name])</p></td>
+<td><p>Create an optimizer variable.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_weight</span></code>(name, shape[, dtype, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_variable_from_reference</span></code>(model_variable, …)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.apply_gradients" title="merlin.models.tf.MultiOptimizer.apply_gradients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_gradients</span></code></a>(grads_and_vars[, name, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">aggregate_gradients</span></code>(grads_and_vars)</p></td>
+<td><p>Aggregate gradients on all devices.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.apply_gradients" title="merlin.models.tf.MultiOptimizer.apply_gradients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_gradients</span></code></a>(grads_and_vars[, name, …])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.from_config" title="merlin.models.tf.MultiOptimizer.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code>(var_list)</p></td>
+<td><p>Initialize the optimizer’s variables, such as momemtum variables.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_gradients</span></code>(loss, var_list[, tape])</p></td>
+<td><p>Compute gradients of loss on trainable variables.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">exclude_from_weight_decay</span></code>([var_list, var_names])</p></td>
+<td><p>Exclude variables from weight decay.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_variable_values</span></code>(var_list)</p></td>
+<td><p>Set the final value of model’s trainable variables.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.from_config" title="merlin.models.tf.MultiOptimizer.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.get_config" title="merlin.models.tf.MultiOptimizer.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.get_config" title="merlin.models.tf.MultiOptimizer.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_gradients</span></code>(loss, params)</p></td>
-<td><p>Returns gradients of <cite>loss</cite> with respect to <cite>params</cite>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_slot</span></code>(var, slot_name)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_slot_names</span></code>()</p></td>
-<td><p>A list of names for this optimizer’s slots.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_updates</span></code>(loss, params)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
-<td><p>Returns the current weights of the optimizer.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">minimize</span></code>(loss, var_list[, grad_loss, name, tape])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">minimize</span></code>(loss, var_list[, tape])</p></td>
 <td><p>Minimize <cite>loss</cite> by updating <cite>var_list</cite>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
@@ -206,7 +206,10 @@ default “rmsprop”.</p></li>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.update" title="merlin.models.tf.MultiOptimizer.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>(optimizer_blocks)</p></td>
 <td><p>update the optimzier of a block, which would update the block’s optimizer no matter what optimizer it used to utilize.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.variables" title="merlin.models.tf.MultiOptimizer.variables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code></a>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_step</span></code>(gradient, variable)</p></td>
+<td><p>Function to update variable value based on given gradients.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.variables" title="merlin.models.tf.MultiOptimizer.variables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code></a>()</p></td>
 <td><p>Returns the optimizer’s variables.</p></td>
 </tr>
 </tbody>
@@ -218,22 +221,19 @@ default “rmsprop”.</p></li>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">clipnorm</span></code></p></td>
-<td><p><cite>float</cite> or <cite>None</cite>.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">clipvalue</span></code></p></td>
-<td><p><cite>float</cite> or <cite>None</cite>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">global_clipnorm</span></code></p></td>
-<td><p><cite>float</cite> or <cite>None</cite>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.iterations" title="merlin.models.tf.MultiOptimizer.iterations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iterations</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.iterations" title="merlin.models.tf.MultiOptimizer.iterations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iterations</span></code></a></p></td>
 <td><p>See base class.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.optimizers" title="merlin.models.tf.MultiOptimizer.optimizers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">optimizers</span></code></a></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">learning_rate</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">lr</span></code></p></td>
+<td><p>Alias of <cite>learning_rate()</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.optimizers" title="merlin.models.tf.MultiOptimizer.optimizers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">optimizers</span></code></a></p></td>
 <td><p>default_optimizer is included here</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.weights" title="merlin.models.tf.MultiOptimizer.weights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weights</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MultiOptimizer.weights" title="merlin.models.tf.MultiOptimizer.weights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weights</span></code></a></p></td>
 <td><p>Returns the optimizer’s variables.</p></td>
 </tr>
 </tbody>

@@ -115,10 +115,9 @@ systems. 2020.</p>
 <li><p><strong>reduction</strong> – <p>Type of <cite>tf.keras.losses.Reduction</cite> to apply to
 loss. Default value is <cite>AUTO</cite>. <cite>AUTO</cite> indicates that the reduction
 option will be determined by the usage context. For almost all cases
-this defaults to <cite>SUM_OVER_BATCH_SIZE</cite>. When used with
-<cite>tf.distribute.Strategy</cite>, outside of built-in training loops such as
-<cite>tf.keras</cite> <cite>compile</cite> and <cite>fit</cite>, using <cite>AUTO</cite> or
-<cite>SUM_OVER_BATCH_SIZE</cite>
+this defaults to <cite>SUM_OVER_BATCH_SIZE</cite>. When used under a
+<cite>tf.distribute.Strategy</cite>, except via <cite>Model.compile()</cite> and
+<cite>Model.fit()</cite>, using <cite>AUTO</cite> or <cite>SUM_OVER_BATCH_SIZE</cite>
 will raise an error. Please see this custom training [tutorial](</p>
 <blockquote>
 <div><p><a class="reference external" href="https://www.tensorflow.org/tutorials/distribute/custom_training">https://www.tensorflow.org/tutorials/distribute/custom_training</a>)
