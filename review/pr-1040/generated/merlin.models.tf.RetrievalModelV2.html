@@ -137,17 +137,23 @@
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code>([input_shape])</p></td>
 <td><p>Builds the model</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(inputs[, targets, training, testing, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_from_config</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_train_test</span></code>(x[, y, sample_weight, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(inputs[, targets, training, testing, …])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_train_test</span></code>(x[, y, sample_weight, …])</p></td>
 <td><p>Apply the model’s call method during Train or Test modes and prepare Prediction (v2) or PredictionOutput (v1 - depreciated) objects</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.candidate_embeddings" title="merlin.models.tf.RetrievalModelV2.candidate_embeddings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">candidate_embeddings</span></code></a>([dataset, index])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.candidate_embeddings" title="merlin.models.tf.RetrievalModelV2.candidate_embeddings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">candidate_embeddings</span></code></a>([dataset, index])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compile</span></code>([optimizer, loss, metrics, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compile</span></code>([optimizer, loss, metrics, …])</p></td>
 <td><p>Configures the model for training. Example: <code class="docutils literal notranslate"><span class="pre">`python</span> <span class="pre">model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">loss=tf.keras.losses.BinaryCrossentropy(),</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">metrics=[tf.keras.metrics.BinaryAccuracy(),</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">tf.keras.metrics.FalseNegatives()])</span> <span class="pre">`</span></code> :param optimizer: String (name of optimizer) or optimizer instance. See                   <cite>tf.keras.optimizers</cite>. :param loss: Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]] = None              losses : Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]], optional              {LOSS_PARAMETERS_DOCSTRINGS}              See <cite>tf.keras.losses</cite>. A loss              function is any callable with the signature <cite>loss = fn(y_true,              y_pred)</cite>, where <cite>y_true</cite> are the ground truth values, and              <cite>y_pred</cite> are the model’s predictions. <cite>y_true</cite> should have shape              <cite>(batch_size, d0, .. dN)</cite> (except in the case of              sparse loss functions such as              sparse categorical crossentropy which expects integer arrays of shape              <cite>(batch_size, d0, .. dN-1)</cite>). <cite>y_pred</cite> should have shape <cite>(batch_size, d0, .. dN)</cite>. The loss function should return a float tensor. If a custom <cite>Loss</cite> instance is              used and reduction is set to <cite>None</cite>, return value has shape              <cite>(batch_size, d0, .. dN-1)</cite> i.e. per-sample or per-timestep loss              values; otherwise, it is a scalar. If the model has multiple outputs,              you can use a different loss on each output by passing a dictionary              or a list of losses. The loss value that will be minimized by the              model will then be the sum of all individual losses, unless              <cite>loss_weights</cite> is specified. :param loss_weights: Optional list or dictionary specifying scalar coefficients                      (Python floats) to weight the loss contributions of different model                      outputs. The loss value that will be minimized by the model will then                      be the <em>weighted sum</em> of all individual losses, weighted by the                      <cite>loss_weights</cite> coefficients. If a list, it is expected to have a 1:1 mapping to the model’s                          outputs (Keras sorts tasks by name). If a dict, it is expected to map output names (strings)                          to scalar coefficients. :param metrics: Optional[ Union[ MetricType, Sequence[MetricType],                 Sequence[Sequence[MetricType]],                 Dict[str, MetricType], Dict[str, Sequence[MetricType]], ] ], optional                 {METRICS_PARAMETERS_DOCSTRING} :param weighted_metrics:                          Optional[ Union[ MetricType, Sequence[MetricType],                           Sequence[Sequence[MetricType]],                           Dict[str, MetricType], Dict[str, Sequence[MetricType]], ] ], optional                           List of metrics to be evaluated and weighted by                          <cite>sample_weight</cite> or <cite>class_weight</cite> during training and testing. {METRICS_PARAMETERS_DOCSTRING} :param run_eagerly: Bool. Defaults to <cite>False</cite>. If <cite>True</cite>, this <cite>Model</cite>’s                     logic will not be wrapped in a <cite>tf.function</cite>. Recommended to leave                     this as <cite>None</cite> unless your <cite>Model</cite> cannot be run inside a                     <cite>tf.function</cite>. <cite>run_eagerly=True</cite> is not supported when using                     <cite>tf.distribute.experimental.ParameterServerStrategy</cite>. :param steps_per_execution: Int. Defaults to 1. The number of batches to run                             during each <cite>tf.function</cite> call. Running multiple batches inside a                             single <cite>tf.function</cite> call can greatly improve performance on TPUs or                             small models with a large Python overhead. At most, one full epoch                             will be run each execution. If a number larger than the size of the                             epoch is passed, the execution will be truncated to the size of the                             epoch. Note that if <cite>steps_per_execution</cite> is set to <cite>N</cite>,                             <cite>Callback.on_batch_begin</cite> and <cite>Callback.on_batch_end</cite> methods will                             only be called every <cite>N</cite> batches (i.e. before/after each <cite>tf.function</cite>                             execution). :param jit_compile: If <cite>True</cite>, compile the model training step with XLA. [XLA](<a class="reference external" href="https://www.tensorflow.org/xla">https://www.tensorflow.org/xla</a>) is an optimizing compiler for                     machine learning. <cite>jit_compile</cite> is not enabled for by default. This option cannot be enabled with <cite>run_eagerly=True</cite>. Note that <cite>jit_compile=True</cite> is                     may not necessarily work for all models. For more information on supported operations please refer to the                     [XLA documentation](<a class="reference external" href="https://www.tensorflow.org/xla">https://www.tensorflow.org/xla</a>). Also refer to                     [known XLA issues](<a class="reference external" href="https://www.tensorflow.org/xla/known_issues">https://www.tensorflow.org/xla/known_issues</a>) for                     more details. :param **kwargs: Arguments supported for backwards compatibility only.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compile_from_config</span></code>(config)</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_loss</span></code>([x, y, y_pred, sample_weight])</p></td>
 <td><p>Compute the total loss, validate it, and return it.</p></td>
@@ -173,41 +179,53 @@
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_generator</span></code>(generator[, steps, …])</p></td>
 <td><p>Evaluates the model on a data generator.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">export</span></code>(filepath)</p></td>
+<td><p>Create a SavedModel artifact for inference (e.g.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
 <td><p>Finalizes the layers state after updating layer weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit</span></code>([x, y, batch_size, epochs, verbose, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit</span></code>([x, y, batch_size, epochs, verbose, …])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit_generator</span></code>(generator[, steps_per_epoch, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit_generator</span></code>(generator[, steps_per_epoch, …])</p></td>
 <td><p>Fits the model on data yielded batch-by-batch by a Python generator.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">freeze_blocks</span></code>(blocks)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">freeze_blocks</span></code>(blocks)</p></td>
 <td><p>Freeze all sub-blocks of given blocks recursively.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_block</span></code>(block, schema[, input_block, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_block</span></code>(block, schema[, input_block, …])</p></td>
 <td><p>Create a model from a <cite>block</cite></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.from_config" title="merlin.models.tf.RetrievalModelV2.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config[, custom_objects])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.from_config" title="merlin.models.tf.RetrievalModelV2.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config[, custom_objects])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_blocks_by_name</span></code>(block_names)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_blocks_by_name</span></code>(block_names)</p></td>
 <td><p>Get blocks by given block_names, return a list of blocks Traverse(Iterate) the model to check each block (sub_block) by BFS</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.get_config" title="merlin.models.tf.RetrievalModelV2.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_build_config</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_compile_config</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.get_config" title="merlin.models.tf.RetrievalModelV2.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input tensor(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_mask_at</span></code>(node_index)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_mask_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input mask tensor(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_shape_at</span></code>(node_index)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_shape_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input shape(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_layer</span></code>([name, index])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_layer</span></code>([name, index])</p></td>
 <td><p>Retrieves a layer based on either its name (unique) or index.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_metrics_result</span></code>()</p></td>
+<td><p>Returns the model’s metrics values as a dict.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the output tensor(s) of a layer at a given node.</p></td>
@@ -218,7 +236,7 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_shape_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the output shape(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_sample_inputs</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_sample_inputs</span></code>([batch_size])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weight_paths</span></code>()</p></td>
@@ -230,8 +248,8 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code>(export_path)</p></td>
 <td><p>Loads a model that was saved with <cite>model.save()</cite>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_weights</span></code>(filepath[, by_name, …])</p></td>
-<td><p>Loads all layer weights, either from a TensorFlow or an HDF5 weight file.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_weights</span></code>(filepath[, skip_mismatch, …])</p></td>
+<td><p>Loads all layer weights from a saved files.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_predict_function</span></code>([force])</p></td>
 <td><p>Creates a function that executes one step of inference.</p></td>
@@ -282,7 +300,7 @@
 <td><p>Saves the model to export_path as a Tensorflow Saved Model.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_spec</span></code>([dynamic_batch])</p></td>
-<td><p>Returns the <cite>tf.TensorSpec</cite> of call inputs as a tuple <cite>(args, kwargs)</cite>.</p></td>
+<td><p>Returns the <cite>tf.TensorSpec</cite> of call args as a tuple <cite>(args, kwargs)</cite>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_weights</span></code>(filepath[, overwrite, …])</p></td>
 <td><p>Saves all layer weights.</p></td>
@@ -344,47 +362,53 @@
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_dtype</span></code></p></td>
 <td><p>The dtype of the layer’s computations.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">distribute_strategy</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">distribute_reduction_method</span></code></p></td>
+<td><p>The method employed to reduce per-replica values during training.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">distribute_strategy</span></code></p></td>
 <td><p>The <cite>tf.distribute.Strategy</cite> this model was created under.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype</span></code></p></td>
 <td><p>The dtype of the layer weights.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype_policy</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype_policy</span></code></p></td>
 <td><p>The dtype policy associated with this layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dynamic</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dynamic</span></code></p></td>
 <td><p>Whether the layer is dynamic (eager-only); set in the constructor.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.encoder" title="merlin.models.tf.RetrievalModelV2.encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encoder</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.encoder" title="merlin.models.tf.RetrievalModelV2.encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encoder</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">first</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">first</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">frozen_blocks</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">frozen_blocks</span></code></p></td>
 <td><p>Get frozen blocks of model, only on which you called freeze_blocks before, the result dose not include those blocks frozen in other methods, for example, if you create the embedding and set the <cite>trainable</cite> as False, it would not be tracked by this property, but you can also call unfreeze_blocks on those blocks.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.has_candidate_encoder" title="merlin.models.tf.RetrievalModelV2.has_candidate_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_candidate_encoder</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.has_candidate_encoder" title="merlin.models.tf.RetrievalModelV2.has_candidate_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_candidate_encoder</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">inbound_nodes</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">inbound_nodes</span></code></p></td>
 <td><p>Return Functional API nodes upstream of this layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></p></td>
 <td><p>Retrieves the input tensor(s) of a layer.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_mask</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_mask</span></code></p></td>
 <td><p>Retrieves the input mask tensor(s) of a layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_schema</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_schema</span></code></p></td>
 <td><p>Get the input schema if it’s defined.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_shape</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_shape</span></code></p></td>
 <td><p>Retrieves the input shape(s) of a layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_spec</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_spec</span></code></p></td>
 <td><p><cite>InputSpec</cite> instance(s) describing the input format for this layer.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">jit_compile</span></code></p></td>
+<td><p>Specify whether to compile the model with XLA.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">last</span></code></p></td>
 <td><p></p></td>
@@ -396,7 +420,7 @@
 <td><p>List of losses added using the <cite>add_loss()</cite> API.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">metrics</span></code></p></td>
-<td><p>Returns the model’s metrics added using <cite>compile()</cite>, <cite>add_metric()</cite> APIs.</p></td>
+<td><p>Return metrics added using <cite>compile()</cite> or <cite>add_metric()</cite>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">metrics_names</span></code></p></td>
 <td><p>Returns the model’s display labels for all outputs.</p></td>
