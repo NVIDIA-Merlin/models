@@ -1892,7 +1892,11 @@ class Model(BaseModel):
                     maxval = 1
 
                 if column.is_list and column.is_ragged:
-                    row_length = int(column.value_count.max) if column.value_count and column.value_count.max else 3
+                    row_length = (
+                        int(column.value_count.max)
+                        if column.value_count and column.value_count.max
+                        else 3
+                    )
                     values = tf.random.uniform(
                         [batch_size * row_length],
                         dtype=dtype,
@@ -1902,7 +1906,11 @@ class Model(BaseModel):
                     inputs[f"{column.name}__values"] = values
                     inputs[f"{column.name}__offsets"] = offsets
                 elif column.is_list:
-                    row_length = int(column.value_count.max) if column.value_count and column.value_count.max else 3
+                    row_length = (
+                        int(column.value_count.max)
+                        if column.value_count and column.value_count.max
+                        else 3
+                    )
                     inputs[column.name] = tf.random.uniform(
                         shape + [row_length], dtype=dtype, maxval=maxval
                     )
