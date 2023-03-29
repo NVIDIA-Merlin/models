@@ -816,30 +816,27 @@ class TestModelInputFeatures:
         assert "Model called with a different set of features" in str(exc_info.value)
 
 
-# TODO: Add this test back in.
-# Temporarily disabled to test 22.03 release until we resolve:
-# https://github.com/NVIDIA-Merlin/models/pull/1040
-# def test_pickle():
-#    dataset = generate_data("e-commerce", num_rows=10)
-#    dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
-#    model = mm.Model(
-#        mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
-#        mm.MLPBlock([4]),
-#        mm.BinaryClassificationTask("click"),
-#    )
-#    model.compile()
-#    _ = model.fit(
-#        dataset,
-#        epochs=1,
-#        batch_size=10,
-#    )
-#    pickled = pickle.dumps(model)
-#    reloaded_model = pickle.loads(pickled)
-#
-#    test_case = TestCase()
-#    test_case.assertAllClose(
-#        model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
-#    )
+def test_pickle():
+   dataset = generate_data("e-commerce", num_rows=10)
+   dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
+   model = mm.Model(
+       mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
+       mm.MLPBlock([4]),
+       mm.BinaryClassificationTask("click"),
+   )
+   model.compile()
+   _ = model.fit(
+       dataset,
+       epochs=1,
+       batch_size=10,
+   )
+   pickled = pickle.dumps(model)
+   reloaded_model = pickle.loads(pickled)
+
+   test_case = TestCase()
+   test_case.assertAllClose(
+       model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
+   )
 
 
 def test_save_and_load(tmpdir):
