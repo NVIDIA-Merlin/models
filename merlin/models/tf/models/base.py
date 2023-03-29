@@ -1343,10 +1343,10 @@ class BaseModel(tf.keras.Model):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+        self._maybe_set_schema(x)
 
         if hasattr(x, "batch_size"):
             self._batch_size = x.batch_size
-        self._maybe_set_schema(x)
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
