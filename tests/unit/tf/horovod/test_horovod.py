@@ -2,6 +2,7 @@ import os
 
 import pytest
 import tensorflow as tf
+from packaging import version
 from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
@@ -69,13 +70,18 @@ def test_horovod_multigpu_dlrm(
         prediction_tasks=mm.BinaryClassificationTask(target_column),
     )
 
+    if version.parse(tf.__version__) < version.parse("2.11.0"):
+        keras_optimizers = tf.keras.optimizers
+    else:
+        keras_optimizers = tf.keras.optimizers.legacy
+
     if custom_distributed_optimizer:
         # Test for a case when the user uses a custom DistributedOptimizer.
         # With a custom hvd.DistributedOptimzer, users have to adjust the learning rate.
-        opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate * hvd.size())
+        opt = keras_optimizers.Adagrad(learning_rate=learning_rate * hvd.size())
         opt = hvd.DistributedOptimizer(opt, compression=hvd.Compression.fp16)
     else:
-        opt = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
+        opt = keras_optimizers.Adagrad(learning_rate=learning_rate)
 
     model.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])
 
