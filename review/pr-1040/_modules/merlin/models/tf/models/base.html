@@ -1366,7 +1366,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">schema</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;schema&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">)</span> <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">schema</span>
+            <span class="n">target_tags</span> <span class="o">=</span> <span class="p">[</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">REGRESSION</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">schema</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">target_tags</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_maybe_set_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maybe_loader</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Try to set the correct schema on the model or loader.</span>
