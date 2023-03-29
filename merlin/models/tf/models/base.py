@@ -457,7 +457,10 @@ class BaseModel(tf.keras.Model):
 
             return hvd.DistributedOptimizer(opt)
 
-        optimizer = tf.keras.optimizers.get(optimizer)
+        if version.parse(tf.__version__) < version.parse("2.11.0"):
+            optimizer = tf.keras.optimizers.get(optimizer)
+        else:
+            optimizer = tf.keras.optimizers.get(optimizer, use_legacy_optimizer=True)
 
         if hvd_installed and hvd.size() > 1:
             if optimizer.__module__.startswith("horovod"):

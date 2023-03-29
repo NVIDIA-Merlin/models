@@ -21,6 +21,7 @@ from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
+from packaging import version
 
 import merlin.models.tf as ml
 from merlin.models.tf.core.base import Block
@@ -31,6 +32,12 @@ Tensor = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]
 
 
+if version.parse(tf.__version__) < version.parse("2.11.0"):
+    keras_optimizers = tf.keras.optimizers
+else:
+    keras_optimizers = tf.keras.optimizers.legacy
+
+
 @dataclass
 class OptimizerBlocks:
     """dataclass for a pair of optimizer and blocks that the optimizer should apply to.
@@ -39,13 +46,18 @@ class OptimizerBlocks:
         ml.OptimizerBlocks("adam", item_tower)
     """
 
-    optimizer: Union[str, tf.keras.optimizers.Optimizer]
+    optimizer: Union[str, keras_optimizers.Optimizer]
     blocks: Sequence[Block]
 
     def get_config(self):
         """return a tuple of serialized keras objects"""
+        optimizer_config = tf.keras.utils.serialize_keras_object(self.optimizer)
+        if version.parse(tf.__version__) >= version.parse("2.11.0") and isinstance(
+            self.optimizer, tf.keras.optimizers.legacy.Optimizer
+        ):
+            optimizer_config["use_legacy_optimizer"] = True
         return (
-            tf.keras.utils.serialize_keras_object(self.optimizer),
+            optimizer_config,
             [tf.keras.utils.serialize_keras_object(block) for block in self.blocks],
         )
 
@@ -58,7 +70,7 @@ class OptimizerBlocks:
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class MultiOptimizer(tf.keras.optimizers.Optimizer):
+class MultiOptimizer(keras_optimizers.Optimizer):
     """An optimizer that composes multiple individual optimizers.
 
     It allows different optimizers to be applied to different subsets of the model's variables. For
@@ -80,8 +92,8 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
       # The third_tower would be assigned the default_optimizer ("adagrad" in this example)
       optimizer = ml.MultiOptimizer(default_optimizer="adagrad",
         optimizers_and_blocks=[
-          ml.OptimizerBlocks(tf.keras.optimizers.SGD(), user_tower),
-          ml.OptimizerBlocks(tf.keras.optimizers.Adam(), item_tower),
+          ml.OptimizerBlocks(tf.keras.optimizers.legacy.SGD(), user_tower),
+          ml.OptimizerBlocks(tf.keras.optimizers.legacy.Adam(), item_tower),
         ])
 
       # The string identification of optimizer is also acceptable, here "sgd" for the third_tower
@@ -98,7 +110,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
     def __init__(
         self,
         optimizers_and_blocks: Sequence[OptimizerBlocks],
-        default_optimizer: Union[str, tf.keras.optimizers.Optimizer] = "rmsprop",
+        default_optimizer: Union[str, keras_optimizers.Optimizer] = "rmsprop",
         name: str = "MultiOptimizer",
         **kwargs,
     ):
@@ -110,7 +122,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             List of OptimizerBlocks(dataclass), the OptimizerBlocks contains two items, one is
             optimizer, another one is a list of blocks or a block that the optimizer should apply
             to. See 'class OptimizerBlocks'
-        default_optimizer: Union[str, tf.keras.optimizers.Optimizer]
+        default_optimizer: Union[str, tf.keras.optimizers.legacy.Optimizer]
             Default optimizer for the rest variables not specified in optimizers_and_blocks, by
             default "rmsprop".
         name:str
@@ -123,7 +135,22 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         self.default_optimizer = tf.keras.optimizers.get(default_optimizer)
         self.optimizers_and_blocks = []
         for i, pair in enumerate(optimizers_and_blocks):
-            pair.optimizer = tf.keras.optimizers.get(pair.optimizer)
+            if version.parse(tf.__version__) < version.parse("2.11.0"):
+                pair.optimizer = tf.keras.optimizers.get(pair.optimizer)
+            else:
+                if not (
+                    isinstance(pair.optimizer, str)
+                    or isinstance(pair.optimizer, tf.keras.optimizers.legacy.Optimizer)
+                ):
+                    raise ValueError(
+                        "Optimizers must be a str or an instance of "
+                        "tf.keras.optimizers.legacy.Optimizer with Tensorflow >= 2.11."
+                    )
+                pair.optimizer = tf.keras.optimizers.get(
+                    pair.optimizer,
+                    use_legacy_optimizer=True,
+                )
+
             self._track_trackable(pair.optimizer, name=f"Optimizer{i}")
             pair.blocks = [pair.blocks] if isinstance(pair.blocks, Block) else pair.blocks
             self.optimizers_and_blocks.append(pair)
@@ -289,18 +316,26 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         """Returns the optimizer's variables."""
         weights = []
         for optimizer_blocks in self.optimizers_and_blocks:
-            weights += optimizer_blocks.optimizer.weights
+            optimizer = optimizer_blocks.optimizer
+            if hasattr(optimizer, "weights"):  # Tensorflow < 2.11
+                weights += optimizer_blocks.optimizer.weights
+            elif hasattr(optimizer, "variables") and callable(
+                optimizer.variables
+            ):  # Tensorflow >= 2.11
+                weights += optimizer_blocks.optimizer.variables()
+            else:
+                raise AttributeError(f"Unable to get weights from {optimizer.__class__.__name__}")
         return weights
 
     @property
-    def optimizers(self) -> List[tf.keras.optimizers.Optimizer]:
+    def optimizers(self) -> List[keras_optimizers.Optimizer]:
         """Returns the optimizers in MultiOptimizer (in the original order). Note: default_optimizer
         is included here"""
         return [pair.optimizer for pair in self.optimizers_and_blocks] + [self.default_optimizer]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class LazyAdam(tf.keras.optimizers.Adam):
+class LazyAdam(keras_optimizers.Adam):
     """Variant of the Adam optimizer that handles sparse updates more efficiently.
 
     The original Adam algorithm maintains two moving-average accumulators for each trainable
@@ -335,7 +370,7 @@ class LazyAdam(tf.keras.optimizers.Adam):
         ----------
         learning_rate: Union[FloatTensorLike, Callable]
             A `Tensor` or a floating point value. or a schedule that is a
-            `tf.keras.optimizers.schedules.LearningRateSchedule` The learning rate.
+            `tf.keras.optimizers.legacy.schedules.LearningRateSchedule` The learning rate.
             FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]
         beta_1: FloatTensorLike
             A `float` value or a constant `float` tensor. The exponential decay rate for the 1st
@@ -396,6 +431,9 @@ class LazyAdam(tf.keras.optimizers.Adam):
         var_update_op = self._resource_scatter_sub(var, indices, var_slice)
 
         return tf.group(*[var_update_op, m_update_op, v_update_op])
+
+    def get_weights(self):
+        return self.variables()
 
     def _resource_scatter_update(self, resource, indices, update):
         return self._resource_scatter_operate(
