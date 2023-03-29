@@ -211,6 +211,7 @@ class ModelBlock(Block, tf.keras.Model):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
@@ -1342,6 +1343,9 @@ class BaseModel(tf.keras.Model):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+
+        if hasattr(x, "batch_size"):
+            self._batch_size = x.batch_size
         self._maybe_set_schema(x)
 
         validation_data = _maybe_convert_merlin_dataset(
@@ -1594,6 +1598,7 @@ class Model(BaseModel):
         self.post = post
         self.context = context
         self._is_fitting = False
+        self._batch_size = None
 
         if schema is not None:
             self.schema = schema
@@ -1842,6 +1847,7 @@ class Model(BaseModel):
         pre = config.pop("pre", None)
         post = config.pop("post", None)
         schema = config.pop("schema", None)
+        batch_size = config.pop("batch_size", None)
 
         layers = [
             tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
@@ -1859,13 +1865,14 @@ class Model(BaseModel):
 
         model = cls(*layers, pre=pre, post=post, schema=schema)
 
-        inputs = model.get_sample_inputs()
+        inputs = model.get_sample_inputs(batch_size=batch_size)
         if inputs:
             model(inputs)
 
         return model
 
-    def get_sample_inputs(self, batch_size=2):
+    def get_sample_inputs(self, batch_size=None):
+        batch_size = batch_size or 2
         if self.input_schema is not None:
             inputs = {}
             for column in self.input_schema:
@@ -1881,6 +1888,7 @@ class Model(BaseModel):
                     maxval = column.float_domain.max
                 else:
                     maxval = 1
+
                 if column.is_list and column.is_ragged:
                     row_length = 3
                     values = tf.random.uniform(
@@ -1905,6 +1913,7 @@ class Model(BaseModel):
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         for i, layer in enumerate(self.blocks):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
+        config["batch_size"] = self._batch_size
 
         return config
 
