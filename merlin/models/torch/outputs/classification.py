@@ -147,10 +147,9 @@ class CategoricalTarget(nn.Module):
 
         return output
 
-    def embedding_lookup(self, inputs: torch.Tensor) -> torch.Tensor:
-        return torch.index_select(self.embeddings, 1, inputs)
+    def embedding_lookup(self, ids: torch.Tensor) -> torch.Tensor:
+        return torch.index_select(self.embeddings(), 1, ids).t()
 
-    @property
     def embeddings(self) -> Parameter:
         return self.linear.weight.t()
 
@@ -188,9 +187,8 @@ class EmbeddingTablePrediction(nn.Module):
             raise ValueError(f"Unknown initializer {self.bias_initializer}")
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        return nn.functional.linear(inputs, self.embeddings, self.bias)
+        return nn.functional.linear(inputs, self.embeddings(), self.bias)
 
-    @property
     def embeddings(self):
         return self.table.table.weight
 

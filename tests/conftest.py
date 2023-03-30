@@ -101,7 +101,7 @@ try:
     import torchmetrics  # noqa
 
     from tests.unit.torch._conftest import *  # noqa
-except ModuleNotFoundError:
+except ImportError:
     pass
 
 

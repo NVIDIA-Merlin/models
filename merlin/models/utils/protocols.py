@@ -5,7 +5,6 @@ from typing import Protocol, runtime_checkable
 class LookUpProtocol(Protocol):
     """Protocol for embedding lookup layers"""
 
-    @property
     def embeddings(self):
         ...
 

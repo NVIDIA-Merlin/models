@@ -55,6 +55,7 @@ class TabularInputBlock(ParallelBlock):
             for key, val in parsed.items():
                 if isinstance(val, ParallelBlock):
                     for name, branch in val.items():
+                        # TODO: Check for name collisions
                         flattened[f"{key}_{name}"] = branch
                 else:
                     flattened[key] = val

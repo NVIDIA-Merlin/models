@@ -1,7 +1,12 @@
 import pytest
 import torch
 
+from merlin.models.torch.blocks.interaction import DotProduct
+from merlin.models.torch.blocks.mlp import MLPBlock
+from merlin.models.torch.inputs.embedding import Embeddings
+from merlin.models.torch.models.base import Model
 from merlin.models.torch.outputs.contrastive import ContrastiveOutput, rescore_false_negatives
+from merlin.schema import Schema, Tags
 
 
 class TestContrastiveOutput:
@@ -64,6 +69,66 @@ class TestContrastiveOutput:
 
         with pytest.raises(RuntimeError):
             contrastive.contrastive_outputs(query, positive, negative, negative_id=negative_id)
+
+    def test_call_categorical_target(self, item_id_col_schema):
+        model = Model(
+            Embeddings(Schema([item_id_col_schema]), 10, aggregation="concat"),
+            ContrastiveOutput(item_id_col_schema),
+        )
+
+        item_id = torch.tensor([1, 2, 3])
+
+        outputs = model(item_id)
+        contrastive_outputs, targets = model(item_id, targets=item_id + 1)
+
+        self.assert_contrastive_outputs(contrastive_outputs, targets, outputs)
+
+    def test_call_dot_product(self, user_id_col_schema, item_id_col_schema):
+        schema = Schema([user_id_col_schema, item_id_col_schema])
+        model = Model(
+            Embeddings(schema),
+            ContrastiveOutput(item_id_col_schema, dot_product=DotProduct(*schema.column_names)),
+        )
+
+        user_id = torch.tensor([1, 2, 3])
+        item_id = torch.tensor([1, 2, 3])
+
+        data = {"user_id": user_id, "item_id": item_id}
+        contrastive_outputs, targets = model(data)
+
+        model.eval()
+        outputs = model(data)
+
+        self.assert_contrastive_outputs(contrastive_outputs, targets, outputs)
+
+    def test_call_dot_product_table(self, user_id_col_schema, item_id_col_schema):
+        schema = Schema([user_id_col_schema, item_id_col_schema])
+        embeddings = Embeddings(schema, 10, aggregation="concat")
+        model = Model(
+            embeddings,
+            MLPBlock([10]),
+            ContrastiveOutput(
+                embeddings.select_by_tag(Tags.ITEM_ID).first,
+            ),
+        )
+
+        user_id = torch.tensor([1, 2, 3])
+        item_id = torch.tensor([1, 2, 3])
+
+        data = {"user_id": user_id, "item_id": item_id}
+        contrastive_outputs, targets = model(data, targets=item_id + 1)
+
+        model.eval()
+        outputs = model(data)
+
+        self.assert_contrastive_outputs(contrastive_outputs, targets, outputs)
+
+    def assert_contrastive_outputs(self, contrastive_outputs, targets, outputs):
+        assert contrastive_outputs.shape == (3, 4)
+        assert targets.shape == (3, 4)
+        assert not torch.equal(outputs, contrastive_outputs)
+        assert targets[:, 0].all().item()
+        assert torch.equal(targets[:, 1:], torch.zeros_like(targets[:, 1:]))
 
 
 class Test_rescore_false_negatives:

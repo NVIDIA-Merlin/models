@@ -34,6 +34,7 @@ class Model(pl.LightningModule):
         self.pre = register_pre_hook(self, pre) if pre else None
         self.post = register_post_hook(self, post) if post else None
         self.data_propagation_hook = None
+        self.testing = False
         if needs_data_propagation_hook(self):
             self.data_propagation_hook = register_data_propagation_hook(self)
 
@@ -103,6 +104,15 @@ class Model(pl.LightningModule):
 
     def configure_optimizers(self):
         return self.optimizer_cls(self.parameters())
+
+    def test(self, mode: bool = True):
+        self.train(False)
+        self.testing = mode
+
+        for child in module_utils.get_all_children(self):
+            child.register_buffer("testing", torch.tensor(mode), persistent=False)
+
+        return self
 
     @property
     def model_outputs(self) -> List[ModelOutput]:

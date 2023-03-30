@@ -11,6 +11,9 @@ from merlin.models.torch.typing import TabularData
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Schema
 
+_FEATURE_PREFIX = "__buffer_feature"
+_TARGET_PREFIX = "__buffer_target"
+
 
 def sample_batch(
     dataset_or_loader: Union[Dataset, Loader],
@@ -130,7 +133,13 @@ class _DataPropagationHook(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, model, inputs, kwargs):
+    def forward(self, model, inputs, kwargs, outputs=None):
+        if outputs is None:
+            return self.pre_forward(model, inputs, kwargs)
+
+        return self.post_forward(model, outputs)
+
+    def pre_forward(self, model, inputs, kwargs):
         """Forward pass for the DataPropagationHook.
 
         This function is called when the hook is executed
@@ -157,6 +166,38 @@ class _DataPropagationHook(nn.Module):
 
         return inputs, {}
 
+    def post_forward(self, model, outputs):
+        """Forward pass for the DataPropagationHook.
+
+        This function is called when the hook is executed
+        during the forward pass of the parent module.
+
+        Args:
+            model (nn.Module): The parent module for which the hook is registered.
+            inputs: The inputs to the parent module.
+            kwargs: Additional keyword arguments to the parent module.
+                This is used to retrieve the targets.
+
+        Returns:
+            Tuple: The original inputs and empty dict for kwargs.
+        """
+        for child in module_utils.get_all_children(model)[:-1]:
+            if self._FEATURE_HOOK.needs_propagation(child):
+                for key in _get_features(child, rename=False).keys():
+                    delattr(child, key)
+
+            if self._TARGET_HOOK.needs_propagation(child):
+                targets = _get_targets(child, rename=False)
+                if isinstance(targets, dict):
+                    for key in _get_targets(child, rename=False).keys():
+                        if hasattr(child, key):
+                            delattr(child, key)
+                else:
+                    if hasattr(child, _TARGET_PREFIX):
+                        delattr(child, _TARGET_PREFIX)
+
+        return outputs
+
 
 def needs_data_propagation_hook(model: nn.Module) -> bool:
     for child in module_utils.get_all_children(model):
@@ -180,6 +221,7 @@ def register_data_propagation_hook(model: nn.Module) -> _DataPropagationHook:
     hook = _DataPropagationHook()
 
     model.register_forward_pre_hook(hook, prepend=True, with_kwargs=True)
+    model.register_forward_hook(hook, with_kwargs=True)
 
     return hook
 
@@ -204,7 +246,7 @@ def register_target_hook(module: nn.Module):
     return hook
 
 
-def _get_features(self: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
+def _get_features(self: nn.Module, rename=True) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
     """Retrieve the features from the buffers of a PyTorch module.
 
     Args:
@@ -216,7 +258,7 @@ def _get_features(self: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tenso
             named tensors or a single tensor.
     """
 
-    prefix = "__buffer_feature"
+    prefix = _FEATURE_PREFIX
     features = {}
 
     for name, buffer in self.named_buffers():
@@ -233,10 +275,15 @@ def _get_features(self: nn.Module) -> Union[Dict[str, torch.Tensor], torch.Tenso
     if len(features) == 1:
         return list(features.values())[0]
 
+    if not rename:
+        return features
+
     return {k[len(prefix) + 1 :]: v for k, v in features.items()}
 
 
-def _get_targets(self: nn.Module, strict=False) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
+def _get_targets(
+    self: nn.Module, strict=False, rename=True
+) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
     """Retrieve the targets from the buffers of a PyTorch module.
 
     Args:
@@ -248,7 +295,7 @@ def _get_targets(self: nn.Module, strict=False) -> Union[Dict[str, torch.Tensor]
             named tensors or a single tensor.
     """
 
-    prefix = "__buffer_target"
+    prefix = _TARGET_PREFIX
     targets = {}
 
     for name, buffer in self.named_buffers():
@@ -267,6 +314,9 @@ def _get_targets(self: nn.Module, strict=False) -> Union[Dict[str, torch.Tensor]
 
     if len(targets) == 1 and hasattr(self, prefix):
         return list(targets.values())[0]
+
+    if not rename:
+        return targets
 
     return {k[len(prefix) + 1 :]: v for k, v in targets.items()}
 

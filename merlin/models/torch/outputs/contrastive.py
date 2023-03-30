@@ -10,7 +10,9 @@ from merlin.models.torch.data import register_feature_hook
 from merlin.models.torch.inputs.embedding import EmbeddingTable
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import CategoricalTarget, EmbeddingTablePrediction
+from merlin.models.torch.outputs.sampling.in_batch import InBatchNegativeSampler  # noqa: F401
 from merlin.models.utils.constants import MIN_FLOAT
+from merlin.models.utils.protocols import LookUpProtocol
 from merlin.schema import ColumnSchema, Schema
 
 
@@ -24,7 +26,7 @@ class ContrastiveOutput(ModelOutput):
         default_loss=nn.CrossEntropyLoss(),
         default_metrics: Sequence[Metric] = (),
         target: Optional[Union[str, ColumnSchema]] = None,
-        negative_samplers=(),
+        negative_samplers="in-batch",
         downscore_false_negatives: bool = True,
         false_negative_score: float = MIN_FLOAT,
         pre=None,
@@ -43,9 +45,9 @@ class ContrastiveOutput(ModelOutput):
                 self.col_schema = to_call
             elif isinstance(to_call, EmbeddingTable):
                 _to_call = EmbeddingTablePrediction(to_call)
-                self.col_schema = _to_call.table.col_schema
+                self.col_schema = _to_call.table.schema.first
                 if len(to_call.schema) == 1:
-                    target_name = _to_call.table.schema.first.name
+                    target_name = self.col_schema.name
                 else:
                     raise ValueError("Can't infer the target automatically, please provide it.")
             else:
@@ -62,7 +64,7 @@ class ContrastiveOutput(ModelOutput):
         )
         register_feature_hook(self, Schema([self.col_schema]))
 
-        if not isinstance(negative_samplers, Sequence):
+        if isinstance(negative_samplers, str):
             negative_samplers = [negative_samplers]
 
         self.negative_samplers = [
@@ -71,7 +73,7 @@ class ContrastiveOutput(ModelOutput):
         self.downscore_false_negatives = downscore_false_negatives
         self.false_negative_score = false_negative_score
         self.dot_product = dot_product
-        self.keys = {self.dot_product.query_name, self.dot_product.candidate_name}
+        self.keys = [self.dot_product.query_name, self.dot_product.candidate_name]
 
     def forward(self, inputs, targets=None, features=None):
         if (
@@ -82,16 +84,19 @@ class ContrastiveOutput(ModelOutput):
             self.to_call = self.dot_product
 
         if self.is_in_training or self.is_in_testing:
-            if not (self.has_candidate_weights and targets is None):
-                return self.contrastive_forward(inputs, targets=targets, features=features)
+            if self.has_candidate_weights and targets in [None, {}]:
+                return super().forward(inputs, targets=targets)
+
+            return self.contrastive_forward(inputs, targets=targets, features=features)
 
         return super().forward(inputs, targets=targets)
 
     def contrastive_forward(
         self, inputs, targets=None, features=None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        if isinstance(inputs, dict) and self.query_name in inputs:
-            query = inputs[self.query_name]
+        query_name = self.keys[0]
+        if isinstance(inputs, dict) and query_name in inputs:
+            query = inputs[query_name]
         elif isinstance(inputs, torch.Tensor):
             query = inputs
         else:
@@ -106,7 +111,7 @@ class ContrastiveOutput(ModelOutput):
         else:
             if isinstance(features, dict):
                 positive_id = features.get(self.col_schema.name, None)
-            positive = inputs[self.candidate_name]
+            positive = inputs[self.keys[1]]
 
         negative, negative_id = self.sample_negatives(positive, positive_id=positive_id)
 
@@ -121,6 +126,18 @@ class ContrastiveOutput(ModelOutput):
     def sample_negatives(
         self, positive, positive_id=None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """
+        Samples negative examples for the given positive tensor.
+
+        Args:
+            positive (torch.Tensor): Tensor containing positive samples.
+            positive_id (torch.Tensor, optional): Tensor containing the IDs
+                of positive samples. Defaults to None.
+
+        Returns:
+            Tuple[torch.Tensor, Optional[torch.Tensor]]: A tuple containing the negative samples
+                tensor and the IDs of negative samples.
+        """
         outputs, ids = [], []
         for sampler in self.negative_samplers:
             negative = sampler(positive, positive_id=positive_id)
@@ -133,8 +150,9 @@ class ContrastiveOutput(ModelOutput):
             if len(outputs) != len(ids):
                 raise RuntimeError("The number of negative samples and ids must be the same")
 
-        negatives = torch.cat(outputs, dim=1)
-        ids = torch.cat(ids, dim=1) if ids else None
+        negatives = torch.cat(outputs, dim=1) if len(outputs) > 1 else outputs[0]
+        if ids:
+            ids = torch.cat(ids, dim=0) if len(ids) > 1 else ids[0]
 
         return negatives, ids
 
@@ -146,8 +164,26 @@ class ContrastiveOutput(ModelOutput):
         positive_id: Optional[torch.Tensor] = None,
         negative_id: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        negative_scores = torch.matmul(query, negative.T)
+        """Computes the contrastive outputs given
+            the query tensor, positive tensor, and negative tensor.
+
+        Args:
+            query (torch.Tensor): Tensor containing the query data.
+            positive (torch.Tensor): Tensor containing the positive data.
+            negative (torch.Tensor): Tensor containing the negative data.
+            positive_id (torch.Tensor, optional): Tensor containing the IDs of positive samples.
+                Defaults to None.
+            negative_id (torch.Tensor, optional): Tensor containing the IDs of negative samples.
+                Defaults to None.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing the output
+                tensor and the target tensor.
+        """
+
+        # Dot-product for the positive-scores
         positive_scores = torch.sum(query * positive, dim=-1, keepdim=True)
+        negative_scores = torch.matmul(query, negative.t())
 
         if self.downscore_false_negatives:
             if positive_id is None or negative_id is None:
@@ -177,6 +213,16 @@ class ContrastiveOutput(ModelOutput):
         )
 
         return output, target
+
+    def embedding_lookup(self, ids: torch.Tensor) -> torch.Tensor:
+        return self.to_call.embedding_lookup(torch.squeeze(ids))
+
+    @property
+    def has_candidate_weights(self) -> bool:
+        if isinstance(self.to_call, DotProduct):
+            return False
+
+        return isinstance(self.to_call, LookUpProtocol)
 
 
 def rescore_false_negatives(
