@@ -132,7 +132,12 @@ class MultiOptimizer(keras_optimizers.Optimizer):
         self.name = name
         if not optimizers_and_blocks:
             raise ValueError("`optimizers_and_blocks` can't be empty")
-        self.default_optimizer = tf.keras.optimizers.get(default_optimizer, use_legacy_optimizer=True)
+        if version.parse(tf.__version__) < version.parse("2.11.0"):
+            self.default_optimizer = tf.keras.optimizers.get(default_optimizer)
+        else:
+            self.default_optimizer = tf.keras.optimizers.get(
+                default_optimizer, use_legacy_optimizer=True
+            )
         self.optimizers_and_blocks = []
         for i, pair in enumerate(optimizers_and_blocks):
             if version.parse(tf.__version__) < version.parse("2.11.0"):
