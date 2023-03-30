@@ -218,6 +218,7 @@ class EmbeddingTable(EmbeddingTableBase):
         dynamic=False,
         table=None,
         l2_batch_regularization_factor=0.0,
+        weights=None,
         **kwargs,
     ):
         """Create an EmbeddingTable."""
@@ -241,6 +242,7 @@ class EmbeddingTable(EmbeddingTableBase):
                 mask_zero=mask_zero,
                 input_length=input_length,
                 trainable=trainable,
+                weights=weights,
             )
             self.table = tf.keras.layers.Embedding(
                 input_dim=self.input_dim,
@@ -310,14 +312,21 @@ class EmbeddingTable(EmbeddingTableBase):
                 raise ValueError("`name` is required when not using a ColumnSchema")
             col_schema = create_categorical_column(name, num_items - 1)
 
-        return cls(
+        embedding_table = cls(
             dim,
             col_schema,
             name=name,
-            embeddings_initializer=tf.keras.initializers.constant(embeddings),
+            weights=[embeddings],
+            embeddings_initializer=None,
             trainable=trainable,
             **kwargs,
         )
+        # trigger build of table to make sure that weights are configured
+        # without this line the weights are not initialized correctly with
+        # the provided values
+        embedding_table.table(0)
+
+        return embedding_table
 
     @classmethod
     def from_dataset(

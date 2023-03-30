@@ -132,25 +132,10 @@ class MultiOptimizer(keras_optimizers.Optimizer):
         self.name = name
         if not optimizers_and_blocks:
             raise ValueError("`optimizers_and_blocks` can't be empty")
-        self.default_optimizer = tf.keras.optimizers.get(default_optimizer)
+        self.default_optimizer = self._get_optimizer(default_optimizer)
         self.optimizers_and_blocks = []
         for i, pair in enumerate(optimizers_and_blocks):
-            if version.parse(tf.__version__) < version.parse("2.11.0"):
-                pair.optimizer = tf.keras.optimizers.get(pair.optimizer)
-            else:
-                if not (
-                    isinstance(pair.optimizer, str)
-                    or isinstance(pair.optimizer, tf.keras.optimizers.legacy.Optimizer)
-                ):
-                    raise ValueError(
-                        "Optimizers must be a str or an instance of "
-                        "tf.keras.optimizers.legacy.Optimizer with Tensorflow >= 2.11."
-                    )
-                pair.optimizer = tf.keras.optimizers.get(
-                    pair.optimizer,
-                    use_legacy_optimizer=True,
-                )
-
+            pair.optimizer = self._get_optimizer(pair.optimizer)
             self._track_trackable(pair.optimizer, name=f"Optimizer{i}")
             pair.blocks = [pair.blocks] if isinstance(pair.blocks, Block) else pair.blocks
             self.optimizers_and_blocks.append(pair)
@@ -159,6 +144,24 @@ class MultiOptimizer(keras_optimizers.Optimizer):
             self.update_optimizers_and_blocks = kwargs.get("update_optimizers_and_blocks")
         else:
             self.update_optimizers_and_blocks = []
+
+    def _get_optimizer(self, optimizer):
+        if version.parse(tf.__version__) < version.parse("2.11.0"):
+            optimizer = tf.keras.optimizers.get(optimizer)
+        else:
+            if not (
+                isinstance(optimizer, str)
+                or isinstance(optimizer, tf.keras.optimizers.legacy.Optimizer)
+            ):
+                raise ValueError(
+                    "Optimizers must be a str or an instance of "
+                    "tf.keras.optimizers.legacy.Optimizer with Tensorflow >= 2.11."
+                )
+            optimizer = tf.keras.optimizers.get(
+                optimizer,
+                use_legacy_optimizer=True,
+            )
+        return optimizer
 
     def _get_trainable_variables_optimizer_dict(self, optimizers_and_blocks, require_disjoint=True):
         attribute = "_trainable_weights"
@@ -232,7 +235,7 @@ class MultiOptimizer(keras_optimizers.Optimizer):
     ):
         """add another optimzier and specify which block to apply this optimizer to"""
         len_exist_optimizers = len(self.optimizers_and_blocks)
-        optimizer_blocks.optimizer = tf.keras.optimizers.get(optimizer_blocks.optimizer)
+        optimizer_blocks.optimizer = self._get_optimizer(optimizer_blocks.optimizer)
         optimizer = optimizer_blocks.optimizer
         # Check if already track the optimizer
         optimizer_not_exists = True
@@ -253,11 +256,11 @@ class MultiOptimizer(keras_optimizers.Optimizer):
         what optimizer it used to utilize. If the block is not specified with an optimizer before,
         this functions would have the same functionality as self.add()
 
-        Note: the optimizer_blocks would be kept in self.update_optimizers_and_blockss, instead of
+        Note: the optimizer_blocks would be kept in self.update_optimizers_and_blocks, instead of
         self.optimizers_and_blocks"""
         len_exist_optimizers = len(self.optimizers_and_blocks)
         optimizer = optimizer_blocks.optimizer
-        optimizer = tf.keras.optimizers.get(optimizer)
+        optimizer = self._get_optimizer(optimizer)
         # Check if already track the optimizer
         optimizer_not_exists = True
         for pair in self.optimizers_and_blocks:
@@ -273,6 +276,7 @@ class MultiOptimizer(keras_optimizers.Optimizer):
         config = tf_utils.maybe_serialize_keras_objects(self, config, ["default_optimizer"])
         config["name"] = self.name
         config["optimizers_and_blocks"] = []
+        config["update_optimizers_and_blocks"] = []
         for optimizer_blocks in self.optimizers_and_blocks:
             config["optimizers_and_blocks"].append(optimizer_blocks.get_config())
         for optimizer_blocks in self.update_optimizers_and_blocks:

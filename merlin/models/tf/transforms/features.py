@@ -66,6 +66,8 @@ class FeaturesTensorTypeConversion(TabularBlock):
                     if max_seq_length is not None:
                         max_seq_length = int(max_seq_length)
                     shape = val.as_list()
+                    if max_seq_length is not None:
+                        max_seq_length = int(max_seq_length)
                     shape[1] = max_seq_length
                     val = tf.TensorShape(shape)
 
