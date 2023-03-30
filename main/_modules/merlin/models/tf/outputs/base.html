@@ -214,6 +214,9 @@
         <span class="k">return</span> <span class="n">output_shape</span></div>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">training</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;training&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">testing</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;testing&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
         <span class="c1"># call pre</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">:</span>
             <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf_utils</span><span class="o">.</span><span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -229,7 +232,8 @@
                 <span class="n">targets</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;targets&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
                     <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">]</span>
-                <span class="n">outputs</span> <span class="o">=</span> <span class="n">Prediction</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">testing</span><span class="p">:</span>
+                    <span class="n">outputs</span> <span class="o">=</span> <span class="n">Prediction</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
             <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf_utils</span><span class="o">.</span><span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logits_scaler</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">outputs</span>
