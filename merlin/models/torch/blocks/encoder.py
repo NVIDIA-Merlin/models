@@ -4,10 +4,11 @@ import numpy as np
 import torch
 from torch import nn
 
-import merlin
+from merlin.io import Dataset
 from merlin.models.torch.combinators import SequentialBlock
 from merlin.models.torch.inputs.base import TabularInputBlock
 from merlin.models.torch.predict import batch_predict
+from merlin.models.torch.transforms.aggregation import ConcatFeatures
 from merlin.models.torch.utils.module_utils import module_name
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -37,9 +38,13 @@ class Encoder(SequentialBlock):
             output_name = module_name(self)
 
         self.output_name = output_name
+        self.concat = ConcatFeatures()
 
-    def forward(self, inputs):
+    def forward(self, inputs) -> torch.Tensor:
         output = super().forward(inputs)
+
+        if isinstance(output, dict):
+            output = self.concat(output)
 
         if not isinstance(output, torch.Tensor):
             raise ValueError("Encoder output must be a tensor.")
@@ -51,11 +56,11 @@ class Encoder(SequentialBlock):
 
     def encode(
         self,
-        dataset: merlin.io.Dataset,
+        dataset: Dataset,
         batch_size: int,
         index: Union[str, ColumnSchema, Schema, Tags],
         **kwargs,
-    ) -> merlin.io.Dataset:
+    ) -> Dataset:
         return self.batch_predict(
             dataset,
             batch_size=batch_size,
@@ -66,12 +71,12 @@ class Encoder(SequentialBlock):
 
     def batch_predict(
         self,
-        dataset: merlin.io.Dataset,
+        dataset: Dataset,
         batch_size: int,
         index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         add_inputs: bool = True,
         **kwargs,
-    ) -> merlin.io.Dataset:
+    ) -> Dataset:
         _index = self._parse_index(index).first.name if index else None
 
         return batch_predict(
@@ -96,19 +101,9 @@ class Encoder(SequentialBlock):
 
         return index
 
-    def _create_output_schema_from_index(self, index) -> Schema:
-        if isinstance(index, Schema):
-            output_schema = index
-        elif isinstance(index, ColumnSchema):
-            output_schema = Schema([index])
-        elif isinstance(index, str):
-            output_schema = Schema([self.schema[index]])
-        elif isinstance(index, Tags):
-            output_schema = self.schema.select_by_tag(index)
-        else:
-            raise ValueError(f"Invalid index: {index}")
-
-        return output_schema
+    @property
+    def input_schema(self) -> Schema:
+        return self[0].input_schema
 
     @property
     def encoder_output_schema(self) -> Schema:
@@ -119,7 +114,3 @@ class Encoder(SequentialBlock):
         col = ColumnSchema(self.output_name, dims=dims, dtype=np.float32)
 
         return Schema([col])
-
-    @property
-    def input_schema(self) -> Schema:
-        return self[0].input_schema
