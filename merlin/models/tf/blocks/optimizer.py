@@ -276,6 +276,7 @@ class MultiOptimizer(keras_optimizers.Optimizer):
         config = tf_utils.maybe_serialize_keras_objects(self, config, ["default_optimizer"])
         config["name"] = self.name
         config["optimizers_and_blocks"] = []
+        config["update_optimizers_and_blocks"] = []
         for optimizer_blocks in self.optimizers_and_blocks:
             config["optimizers_and_blocks"].append(optimizer_blocks.get_config())
         for optimizer_blocks in self.update_optimizers_and_blocks:
