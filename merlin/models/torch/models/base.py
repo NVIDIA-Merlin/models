@@ -8,13 +8,13 @@ from torch import nn
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.torch.base import register_post_hook, register_pre_hook
-from merlin.models.torch.blocks.encoder import Encoder
 from merlin.models.torch.combinators import ParallelBlock
 from merlin.models.torch.data import (
     initialize,
     needs_data_propagation_hook,
     register_data_propagation_hook,
 )
+from merlin.models.torch.inputs.encoder import Encoder
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.contrastive import ContrastiveOutput
 from merlin.models.torch.predict import batch_predict

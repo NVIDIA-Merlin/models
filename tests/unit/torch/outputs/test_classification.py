@@ -80,8 +80,8 @@ class TestCategoricalTarget:
         input_indices = torch.tensor([1, 5, 10])
         hidden_vectors = model.embedding_lookup(input_indices)
 
-        assert hidden_vectors.shape == (11, 3)
-        assert model.embeddings.shape == (11, 21)
+        assert hidden_vectors.shape == (3, 11)
+        assert model.embeddings().shape == (11, 21)
 
 
 class TestCategoricalOutput:

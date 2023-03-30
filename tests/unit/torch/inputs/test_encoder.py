@@ -2,10 +2,10 @@ import pytest
 import torch
 
 from merlin.io import Dataset
-from merlin.models.torch.blocks.encoder import Encoder
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.data import initialize
 from merlin.models.torch.inputs.base import TabularInputBlock
+from merlin.models.torch.inputs.encoder import Encoder
 from merlin.schema import Schema, Tags
 
 

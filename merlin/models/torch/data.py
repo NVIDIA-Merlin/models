@@ -183,8 +183,14 @@ class _DataPropagationHook(nn.Module):
         """
         for child in module_utils.get_all_children(model)[:-1]:
             if self._FEATURE_HOOK.needs_propagation(child):
-                for key in _get_features(child, rename=False).keys():
-                    delattr(child, key)
+                features = _get_features(child, rename=False)
+                if isinstance(features, dict):
+                    for key in features.keys():
+                        if hasattr(child, key):
+                            delattr(child, key)
+                else:
+                    if hasattr(child, _FEATURE_PREFIX):
+                        delattr(child, _FEATURE_PREFIX)
 
             if self._TARGET_HOOK.needs_propagation(child):
                 targets = _get_targets(child, rename=False)

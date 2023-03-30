@@ -78,7 +78,7 @@ class ContrastiveOutput(ModelOutput):
         self.false_negative_score = false_negative_score
         self.dot_product = dot_product
         self.keys = [self.dot_product.query_name, self.dot_product.candidate_name]
-        self.num_classes = self.to_call_num_classes
+        self.num_classes = self.to_call.num_classes
 
     def forward(self, inputs, targets=None, features=None):
         if (

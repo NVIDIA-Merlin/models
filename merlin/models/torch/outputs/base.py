@@ -54,7 +54,6 @@ class ModelOutput(Block):
 
         self.target = target.name
         self._name = name or self.target
-        self.output_schema = self.create_output_schema(target)
 
         if logits_temperature != 1.0:
             raise NotImplementedError("Logits temperature is not implemented yet.")
@@ -82,6 +81,10 @@ class ModelOutput(Block):
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def output_schema(self) -> Schema:
+        return self.create_output_schema(self.target)
 
     @property
     def is_in_training(self) -> bool:

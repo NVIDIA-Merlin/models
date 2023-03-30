@@ -38,13 +38,12 @@ class Encoder(SequentialBlock):
             output_name = module_name(self)
 
         self.output_name = output_name
-        self.concat = ConcatFeatures()
 
     def forward(self, inputs) -> torch.Tensor:
         output = super().forward(inputs)
 
         if isinstance(output, dict):
-            output = self.concat(output)
+            output = ConcatFeatures()(inputs)
 
         if not isinstance(output, torch.Tensor):
             raise ValueError("Encoder output must be a tensor.")
