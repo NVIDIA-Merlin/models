@@ -9,7 +9,11 @@ from merlin.models.torch.blocks.interaction import DotProduct
 from merlin.models.torch.data import register_feature_hook
 from merlin.models.torch.inputs.embedding import EmbeddingTable
 from merlin.models.torch.outputs.base import ModelOutput
-from merlin.models.torch.outputs.classification import CategoricalTarget, EmbeddingTablePrediction
+from merlin.models.torch.outputs.classification import (
+    CategoricalTarget,
+    EmbeddingTablePrediction,
+    categorical_output_schema,
+)
 from merlin.models.torch.outputs.sampling.in_batch import InBatchNegativeSampler  # noqa: F401
 from merlin.models.utils.constants import MIN_FLOAT
 from merlin.models.utils.protocols import LookUpProtocol
@@ -74,6 +78,7 @@ class ContrastiveOutput(ModelOutput):
         self.false_negative_score = false_negative_score
         self.dot_product = dot_product
         self.keys = [self.dot_product.query_name, self.dot_product.candidate_name]
+        self.num_classes = self.to_call_num_classes
 
     def forward(self, inputs, targets=None, features=None):
         if (
@@ -216,6 +221,9 @@ class ContrastiveOutput(ModelOutput):
 
     def embedding_lookup(self, ids: torch.Tensor) -> torch.Tensor:
         return self.to_call.embedding_lookup(torch.squeeze(ids))
+
+    def create_output_schema(self, target: ColumnSchema) -> Schema:
+        return categorical_output_schema(target, self.num_classes)
 
     @property
     def has_candidate_weights(self) -> bool:

@@ -3,8 +3,9 @@ from typing import Optional, Sequence, Union
 from torch import nn
 from torchmetrics import MeanSquaredError, Metric
 
+import merlin.dtypes as md
 from merlin.models.torch.outputs.base import ModelOutput
-from merlin.schema import ColumnSchema
+from merlin.schema import ColumnSchema, Schema
 
 
 class RegressionOutput(ModelOutput):
@@ -51,3 +52,9 @@ class RegressionOutput(ModelOutput):
             post=post,
             logits_temperature=logits_temperature,
         )
+
+    def create_output_schema(self, target: ColumnSchema) -> Schema:
+        """Return the output schema given the target column schema."""
+        _target = target.with_dtype(md.float32)
+
+        return Schema([_target])

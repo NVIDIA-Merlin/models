@@ -5,6 +5,7 @@ from torch import nn
 from torch.nn.parameter import Parameter
 from torchmetrics import AUROC, Accuracy, Metric, Precision, Recall
 
+import merlin.dtypes as md
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.inputs.embedding import EmbeddingTable
 from merlin.models.torch.outputs.base import ModelOutput
@@ -67,8 +68,13 @@ class BinaryOutput(ModelOutput):
 
     def create_output_schema(self, target: ColumnSchema) -> Schema:
         """Return the output schema given the target column schema."""
-        # TODO: Set the correct properties
-        return Schema([target])
+        _target = target.with_dtype(md.float32)
+        if "domain" not in target.properties:
+            _target = _target.with_properties(
+                {"domain": {"min": 0, "max": 1, "name": _target.name}},
+            )
+
+        return Schema([_target])
 
     def forward(self, inputs, targets=None):
         outputs = super().forward(inputs, targets)
@@ -116,6 +122,9 @@ class CategoricalOutput(ModelOutput):
             post=post,
             logits_temperature=logits_temperature,
         )
+
+    def create_output_schema(self, target: ColumnSchema) -> Schema:
+        return categorical_output_schema(target, self.to_call.num_classes)
 
 
 class CategoricalTarget(nn.Module):
@@ -203,3 +212,17 @@ def _fix_shape_and_dtype(output, target):
         output = output.squeeze(-1)
 
     return output, target.type_as(output)
+
+
+def categorical_output_schema(target: ColumnSchema, num_classes: int) -> Schema:
+    """Return the output schema given the target column schema."""
+    _target = target.with_dtype(md.float32)
+    if "domain" not in _target.properties:
+        _target = _target.with_properties(
+            {
+                "domain": {"min": 0, "max": 1.0, "name": _target.name},
+                "value_count": {"min": num_classes, "max": num_classes},
+            }
+        )
+
+    return Schema([_target])

@@ -1,6 +1,7 @@
 import pytorch_lightning as pl
 
 from merlin.dataloader.torch import Loader
+from merlin.io import Dataset
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.combinators import ParallelBlock
 from merlin.models.torch.inputs.base import TabularInputBlock
@@ -42,3 +43,10 @@ def test_simple_regression_mlp(music_streaming_data):
     trainer.fit(model, loader)
 
     assert trainer.state.status.value == "finished"
+
+    predictions = model.batch_predict(music_streaming_data, batch_size=10)
+    assert isinstance(predictions, Dataset)
+
+    ddf = predictions.compute(scheduler="synchronous")
+    assert len(ddf) == 100
+    assert len(ddf.columns) == 15

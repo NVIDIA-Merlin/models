@@ -246,6 +246,33 @@ def register_target_hook(module: nn.Module):
     return hook
 
 
+def get_device(data):
+    if isinstance(data, torch.Tensor):
+        device = data.device
+    elif isinstance(data, tuple):
+        device = data[0].device
+    elif isinstance(data, dict):
+        for d in data.values():
+            if isinstance(d, torch.Tensor):
+                device = d.device
+                break
+    else:
+        raise ValueError(f"Unsupported data type {type(data)}")
+
+    return device
+
+
+def initialize(module, data: Loader):
+    if isinstance(data, (Loader, Dataset)):
+        module.double()  # TODO: Put in data-loader PR to standardize on float-32
+        batch = sample_batch(data, batch_size=1, shuffle=False, include_targets=False)
+    else:
+        batch = data
+
+    module.to(get_device(batch))
+    return module(batch)
+
+
 def _get_features(self: nn.Module, rename=True) -> Union[Dict[str, torch.Tensor], torch.Tensor]:
     """Retrieve the features from the buffers of a PyTorch module.
 

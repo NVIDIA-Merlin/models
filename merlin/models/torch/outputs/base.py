@@ -5,7 +5,7 @@ from torchmetrics import Metric
 
 from merlin.models.torch.base import Block
 from merlin.models.torch.data import register_target_hook
-from merlin.models.torch.utils.module_utils import apply, module_name
+from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import ColumnSchema, Schema
 
 
@@ -41,6 +41,7 @@ class ModelOutput(Block):
         pre=None,
         post=None,
         logits_temperature: float = 1.0,
+        name=None,
     ):
         super().__init__(pre=pre, post=post)
         register_target_hook(self)
@@ -52,6 +53,7 @@ class ModelOutput(Block):
             target = ColumnSchema(target)
 
         self.target = target.name
+        self._name = name or self.target
         self.output_schema = self.create_output_schema(target)
 
         if logits_temperature != 1.0:
@@ -79,12 +81,7 @@ class ModelOutput(Block):
 
     @property
     def name(self) -> str:
-        base_name = module_name(self)
-
-        if self.target:
-            return "/".join([self.target, base_name])
-
-        return base_name
+        return self._name
 
     @property
     def is_in_training(self) -> bool:
