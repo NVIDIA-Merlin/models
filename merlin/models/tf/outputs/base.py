@@ -145,7 +145,7 @@ class ModelOutput(Layer):
                 targets = kwargs.pop("targets", None)
                 if isinstance(targets, dict) and self.target in targets:
                     targets = targets[self.target]
-                outputs = Prediction(outputs, targets)
+                    outputs = Prediction(outputs, targets)
             outputs = tf_utils.call_layer(self.logits_scaler, outputs, **kwargs)
 
         return outputs
