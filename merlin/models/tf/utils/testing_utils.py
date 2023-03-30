@@ -81,7 +81,7 @@ def model_test(
     run_eagerly: bool = True,
     optimizer="adam",
     epochs: int = 1,
-    reload_model: bool = False,
+    reload_model: bool = True,
     fit_kwargs=None,
     **kwargs,
 ) -> Tuple[Model, Any]:
