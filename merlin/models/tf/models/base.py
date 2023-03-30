@@ -33,6 +33,12 @@ from tensorflow.keras.losses import Loss
 from tensorflow.keras.metrics import Metric
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
+# This is to handle TensorFlow 2.11 Saving V3 triggering with model pickle
+try:
+    from keras.saving.experimental import saving_lib
+except ImportError:
+    saving_lib = None
+
 import merlin.io
 from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core.base import Block, ModelContext, NoOp, PredictionOutput, is_input_block
@@ -1868,9 +1874,17 @@ class Model(BaseModel):
 
         model = cls(*layers, pre=pre, post=post, schema=schema)
 
-        inputs = model.get_sample_inputs(batch_size=batch_size)
-        if inputs:
-            model(inputs)
+        # For TF/Keras 2.11 calling the model with sample inputs to trigger build
+        # so that variable restore works correctly.
+        # TODO: review if this needs changing for 2.12
+        if (
+            saving_lib
+            and hasattr(saving_lib, "_SAVING_V3_ENABLED")
+            and saving_lib._SAVING_V3_ENABLED.value
+        ):
+            inputs = model.get_sample_inputs(batch_size=batch_size)
+            if inputs:
+                model(inputs)
 
         return model
 
