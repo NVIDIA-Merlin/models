@@ -324,7 +324,7 @@ class EmbeddingTablePrediction(Layer):
             shape=(self.num_classes,),
             initializer=self.bias_initializer,
         )
-
+        self.table.build(input_shape)
         return super().build(input_shape)
 
     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:

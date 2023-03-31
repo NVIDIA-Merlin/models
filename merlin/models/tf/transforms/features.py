@@ -63,6 +63,8 @@ class FeaturesTensorTypeConversion(TabularBlock):
                 col_schema_shape = self.schema[name].shape
                 if col_schema_shape.is_list:
                     max_seq_length = col_schema_shape.dims[1].max
+                    if max_seq_length is not None:
+                        max_seq_length = int(max_seq_length)
                     shape = val.as_list()
                     if max_seq_length is not None:
                         max_seq_length = int(max_seq_length)

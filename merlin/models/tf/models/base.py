@@ -33,6 +33,15 @@ from tensorflow.keras.losses import Loss
 from tensorflow.keras.metrics import Metric
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
+# This is to handle TensorFlow 2.11/2.12 Saving V3 triggering with model pickle
+try:
+    from keras.saving.experimental import saving_lib  # 2.11
+except ImportError:
+    try:
+        from keras.saving import saving_lib  # 2.12
+    except ImportError:
+        saving_lib = None
+
 import merlin.io
 from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core.base import Block, ModelContext, NoOp, PredictionOutput, is_input_block
@@ -211,6 +220,7 @@ class ModelBlock(Block, tf.keras.Model):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
@@ -284,6 +294,18 @@ class ModelBlock(Block, tf.keras.Model):
 
 
 class BaseModel(tf.keras.Model):
+    def __init__(self, **kwargs):
+        super(BaseModel, self).__init__(**kwargs)
+
+        # Initializing model control flags controlled by MetricsComputeCallback()
+        self._should_compute_train_metrics_for_batch = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_train_metrics_for_batch",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: True,
+        )
+
     def compile(
         self,
         optimizer="rmsprop",
@@ -393,15 +415,6 @@ class BaseModel(tf.keras.Model):
               more details.
             **kwargs: Arguments supported for backwards compatibility only.
         """
-
-        # Initializing model control flags controlled by MetricsComputeCallback()
-        self._should_compute_train_metrics_for_batch = tf.Variable(
-            dtype=tf.bool,
-            name="should_compute_train_metrics_for_batch",
-            trainable=False,
-            synchronization=tf.VariableSynchronization.NONE,
-            initial_value=lambda: True,
-        )
 
         num_v1_blocks = len(self.prediction_tasks)
         num_v2_blocks = len(self.model_outputs)
@@ -1278,7 +1291,8 @@ class BaseModel(tf.keras.Model):
         """
         schema = getattr(self, "schema", None)
         if isinstance(schema, Schema) and schema.column_names:
-            return schema
+            target_tags = [Tags.TARGET, Tags.BINARY_CLASSIFICATION, Tags.REGRESSION]
+            return schema.excluding_by_tag(target_tags)
 
     def _maybe_set_schema(self, maybe_loader):
         """Try to set the correct schema on the model or loader.
@@ -1342,6 +1356,9 @@ class BaseModel(tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
         self._maybe_set_schema(x)
+
+        if hasattr(x, "batch_size"):
+            self._batch_size = x.batch_size
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
@@ -1579,6 +1596,7 @@ class Model(BaseModel):
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
+
         context = context or ModelContext()
         if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
             blocks = blocks[0].layers
@@ -1592,6 +1610,7 @@ class Model(BaseModel):
         self.post = post
         self.context = context
         self._is_fitting = False
+        self._batch_size = None
 
         if schema is not None:
             self.schema = schema
@@ -1840,6 +1859,7 @@ class Model(BaseModel):
         pre = config.pop("pre", None)
         post = config.pop("post", None)
         schema = config.pop("schema", None)
+        batch_size = config.pop("batch_size", None)
 
         layers = [
             tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
@@ -1855,13 +1875,73 @@ class Model(BaseModel):
         if schema is not None:
             schema = schema_utils.tensorflow_metadata_json_to_schema(schema)
 
-        return cls(*layers, pre=pre, post=post, schema=schema)
+        model = cls(*layers, pre=pre, post=post, schema=schema)
+
+        # For TF/Keras 2.11 calling the model with sample inputs to trigger build
+        # so that variable restore works correctly.
+        # TODO: review if this needs changing for 2.12
+        if (
+            saving_lib
+            and hasattr(saving_lib, "_SAVING_V3_ENABLED")
+            and saving_lib._SAVING_V3_ENABLED.value
+        ):
+            inputs = model.get_sample_inputs(batch_size=batch_size)
+            if inputs:
+                model(inputs)
+
+        return model
+
+    def get_sample_inputs(self, batch_size=None):
+        batch_size = batch_size or 2
+        if self.input_schema is not None:
+            inputs = {}
+            for column in self.input_schema:
+                shape = [batch_size]
+                try:
+                    dtype = column.dtype.to("tensorflow")
+                except ValueError:
+                    dtype = tf.float32
+
+                if column.int_domain:
+                    maxval = column.int_domain.max
+                elif column.float_domain:
+                    maxval = column.float_domain.max
+                else:
+                    maxval = 1
+
+                if column.is_list and column.is_ragged:
+                    row_length = (
+                        int(column.value_count.max)
+                        if column.value_count and column.value_count.max
+                        else 3
+                    )
+                    values = tf.random.uniform(
+                        [batch_size * row_length],
+                        dtype=dtype,
+                        maxval=maxval,
+                    )
+                    offsets = tf.cumsum([0] + [row_length] * batch_size)
+                    inputs[f"{column.name}__values"] = values
+                    inputs[f"{column.name}__offsets"] = offsets
+                elif column.is_list:
+                    row_length = (
+                        int(column.value_count.max)
+                        if column.value_count and column.value_count.max
+                        else 3
+                    )
+                    inputs[column.name] = tf.random.uniform(
+                        shape + [row_length], dtype=dtype, maxval=maxval
+                    )
+                else:
+                    inputs[column.name] = tf.random.uniform(shape, dtype=dtype, maxval=maxval)
+            return inputs
 
     def get_config(self):
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         for i, layer in enumerate(self.blocks):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
+        config["batch_size"] = self._batch_size
 
         return config
 

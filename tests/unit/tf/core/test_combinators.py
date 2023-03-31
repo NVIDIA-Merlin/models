@@ -251,7 +251,7 @@ class TestCond:
             layer,
             tf.keras.layers.Dense(1),
             mm.BinaryClassificationTask("click"),
-            schema=music_streaming_data.schema,
+            schema=music_streaming_data.schema.select_by_name("item_recency"),
         )
 
         testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
