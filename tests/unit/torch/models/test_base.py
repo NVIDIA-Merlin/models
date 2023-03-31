@@ -1,3 +1,4 @@
+import pandas as pd
 import pytorch_lightning as pl
 import torch
 
@@ -86,10 +87,38 @@ class TestRetrievalModel:
         assert len(candidate_embs_ddf.columns) == 10
 
     def test_two_tower(self, user_id_col_schema, item_id_col_schema):
+        user_schema = Schema([user_id_col_schema])
+        item_schema = Schema([item_id_col_schema])
         model = RetrievalModel(
-            query=Encoder(Schema([user_id_col_schema])),
-            candidate=Encoder(Schema([item_id_col_schema])),
+            query=Encoder(user_schema, MLPBlock([10])),
+            candidate=Encoder(item_schema, MLPBlock([10])),
             output=ContrastiveOutput(item_id_col_schema),
         )
 
         assert isinstance(model.query, Encoder)
+
+        user_id = torch.tensor([0, 1, 2])
+        item_id = torch.tensor([1, 2, 3])
+        data = {"user_id": user_id, "item_id": item_id}
+
+        outputs, targets = model(data)
+        assert outputs.shape == (3, 4)
+        assert targets.shape == (3, 4)
+        assert torch.equal(targets[:, 0], torch.ones(3))
+        assert torch.equal(targets[:, 1:], torch.zeros([3, 3]))
+
+        df = pd.DataFrame({"user_id": [0, 1, 2], "item_id": [1, 2, 3]})
+        dataset = Dataset(df)
+
+        user_embs = model.query_embeddings(dataset, batch_size=3)
+        user_embs_ddf = user_embs.compute(scheduler="synchronous")
+        assert isinstance(user_embs, Dataset)
+        assert len(user_embs_ddf) == 3
+        assert len(user_embs_ddf.columns) == 10
+
+        candidate_embs = model.candidate_embeddings(dataset, batch_size=3, index=item_id_col_schema)
+        embs_ddf = candidate_embs.compute(scheduler="synchronous")
+        assert isinstance(candidate_embs, Dataset)
+        assert len(embs_ddf) == 3
+        assert len(embs_ddf.columns) == 10
+        assert embs_ddf.index.name == "item_id"
