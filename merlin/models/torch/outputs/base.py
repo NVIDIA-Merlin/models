@@ -53,6 +53,7 @@ class ModelOutput(Block):
             target = ColumnSchema(target)
 
         self.target = target.name
+        self.target_col = target
         self._name = name or self.target
 
         if logits_temperature != 1.0:
@@ -84,7 +85,7 @@ class ModelOutput(Block):
 
     @property
     def output_schema(self) -> Schema:
-        return self.create_output_schema(self.target)
+        return self.create_output_schema(self.target_col)
 
     @property
     def is_in_training(self) -> bool:

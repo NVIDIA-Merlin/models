@@ -6,9 +6,12 @@ from torch.nn.parameter import Parameter
 from torchmetrics import AUROC, Accuracy, Metric, Precision, Recall
 
 import merlin.dtypes as md
+from merlin.core.dispatch import DataFrameType
+from merlin.io import Dataset
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.inputs.embedding import EmbeddingTable
 from merlin.models.torch.outputs.base import ModelOutput
+from merlin.models.torch.utils.tensor_utils import tensor_to_df
 from merlin.schema import ColumnSchema, Schema
 
 
@@ -126,6 +129,12 @@ class CategoricalOutput(ModelOutput):
     def create_output_schema(self, target: ColumnSchema) -> Schema:
         return categorical_output_schema(target, self.to_call.num_classes)
 
+    def to_dataset(self, gpu=None) -> Dataset:
+        return self.to_call.to_dataset(gpu=gpu)
+
+    def to_df(self, gpu=None) -> DataFrameType:
+        return self.to_call.to_df(gpu=gpu)
+
 
 class CategoricalTarget(nn.Module):
     def __init__(
@@ -161,6 +170,16 @@ class CategoricalTarget(nn.Module):
 
     def embeddings(self) -> Parameter:
         return self.linear.weight.t()
+
+    def to_dataset(self, gpu=None) -> Dataset:
+        return Dataset(self.to_df(gpu=gpu))
+
+    def to_df(self, gpu=None) -> DataFrameType:
+        return tensor_to_df(self.linear.weight, gpu=gpu)
+
+    @property
+    def is_initialized(self) -> bool:
+        return not isinstance(self.linear, nn.LazyLinear)
 
 
 class EmbeddingTablePrediction(nn.Module):
@@ -205,6 +224,12 @@ class EmbeddingTablePrediction(nn.Module):
         # TODO: Make sure that we check if the table holds multiple features
         # If so, we need to add domain.min to the inputs
         return self.table.table(inputs)
+
+    def to_dataset(self, gpu=None) -> Dataset:
+        return self.table.to_dataset(gpu=gpu)
+
+    def to_df(self, gpu=None) -> DataFrameType:
+        return self.table.to_df(gpu=gpu)
 
 
 def _fix_shape_and_dtype(output, target):

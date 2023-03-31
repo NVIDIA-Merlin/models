@@ -4,6 +4,8 @@ import torch
 from torch import nn
 from torchmetrics import Metric
 
+from merlin.core.dispatch import DataFrameType
+from merlin.io import Dataset
 from merlin.models.torch.base import Block
 from merlin.models.torch.blocks.interaction import DotProduct
 from merlin.models.torch.data import register_feature_hook
@@ -39,19 +41,18 @@ class ContrastiveOutput(ModelOutput):
         dot_product=DotProduct(),
     ):
         _to_call = None
-        self.col_schema = None
         if to_call is not None:
             if isinstance(to_call, (Schema, ColumnSchema)):
                 _to_call = CategoricalTarget(to_call)
                 if isinstance(to_call, Schema):
                     to_call = to_call.first
                 target_name = target_name or to_call.name
-                self.col_schema = to_call
+                target = to_call
             elif isinstance(to_call, EmbeddingTable):
                 _to_call = EmbeddingTablePrediction(to_call)
-                self.col_schema = _to_call.table.schema.first
+                target = _to_call.table.schema.first
                 if len(to_call.schema) == 1:
-                    target_name = self.col_schema.name
+                    target_name = target.name
                 else:
                     raise ValueError("Can't infer the target automatically, please provide it.")
             else:
@@ -66,7 +67,7 @@ class ContrastiveOutput(ModelOutput):
             post=post,
             logits_temperature=logits_temperature,
         )
-        register_feature_hook(self, Schema([self.col_schema]))
+        register_feature_hook(self, Schema([self.target_col]))
 
         if isinstance(negative_samplers, str):
             negative_samplers = [negative_samplers]
@@ -111,11 +112,16 @@ class ContrastiveOutput(ModelOutput):
         if self.has_candidate_weights:
             positive_id = targets
             if isinstance(targets, dict):
-                positive_id = targets[self.col_schema.name]
+                positive_id = targets[self.target_col.name]
+
+            # Check if we need to initialize the embedding table
+            if not getattr(self.to_call, "is_initialized", True):
+                self.to_call(inputs)
+
             positive = self.embedding_lookup(positive_id)
         else:
             if isinstance(features, dict):
-                positive_id = features.get(self.col_schema.name, None)
+                positive_id = features.get(self.target_col.name, None)
             positive = inputs[self.keys[1]]
 
         negative, negative_id = self.sample_negatives(positive, positive_id=positive_id)
@@ -224,6 +230,18 @@ class ContrastiveOutput(ModelOutput):
 
     def create_output_schema(self, target: ColumnSchema) -> Schema:
         return categorical_output_schema(target, self.num_classes)
+
+    def to_dataset(self, gpu=None) -> Dataset:
+        if not self.has_candidate_weights:
+            raise RuntimeError("This model does not have candidate weights")
+
+        return self.to_call.to_dataset(gpu=gpu)
+
+    def to_df(self, gpu=None) -> DataFrameType:
+        if not self.has_candidate_weights:
+            raise RuntimeError("This model does not have candidate weights")
+
+        return self.to_call.to_df(gpu=gpu)
 
     @property
     def has_candidate_weights(self) -> bool:

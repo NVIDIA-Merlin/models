@@ -6,7 +6,10 @@ import torch
 from torch import nn
 from typing_extensions import Self
 
+from merlin.core.dispatch import DataFrameType
+from merlin.io import Dataset
 from merlin.models.torch.combinators import ParallelBlock
+from merlin.models.torch.utils.tensor_utils import tensor_to_df
 from merlin.models.utils.schema_utils import infer_embedding_dim
 from merlin.schema import ColumnSchema, Schema
 from merlin.schema.schema import Domain
@@ -223,6 +226,12 @@ class EmbeddingTable(EmbeddingTableModule):
             out = torch.sum(out, dim=1) / torch.sqrt(torch.sum(torch.square(out), dim=1) + 1e-6)
 
         return out
+
+    def to_dataset(self, gpu=None) -> Dataset:
+        return Dataset(self.to_df(gpu=gpu))
+
+    def to_df(self, gpu=None) -> DataFrameType:
+        return tensor_to_df(self.weight, gpu=gpu)
 
     @property
     def weight(self):

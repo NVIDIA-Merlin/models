@@ -29,8 +29,8 @@ class Encoder(SequentialBlock):
         else:
             input_block = inputs
 
-        if not hasattr(input_block, "input_schema"):
-            raise ValueError("First block must have an input_schema")
+        if not hasattr(input_block, "input_schema") and not hasattr(input_block, "output_schema"):
+            raise ValueError("First block must have an `input_schema` or a `output_schema`.")
 
         super().__init__(input_block, *blocks, pre=pre, post=post)
 
@@ -99,6 +99,16 @@ class Encoder(SequentialBlock):
             raise ValueError(f"Invalid index: {index}")
 
         return index
+
+    def export_embeddings(self, gpu=None) -> Dataset:
+        if not self.has_embedding_export:
+            raise ValueError("Encoder does not support embedding export.")
+
+        return self[0].to_dataset(gpu=gpu)
+
+    @property
+    def has_embedding_export(self) -> bool:
+        return len(self) == 1 and hasattr(self[0], "to_dataset")
 
     @property
     def input_schema(self) -> Schema:

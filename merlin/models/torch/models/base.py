@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import pytorch_lightning as pl
 import torch
@@ -19,7 +19,7 @@ from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.contrastive import ContrastiveOutput
 from merlin.models.torch.predict import batch_predict
 from merlin.models.torch.utils import module_utils
-from merlin.schema import Schema
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 class Model(pl.LightningModule):
@@ -152,6 +152,9 @@ class Model(pl.LightningModule):
 
 
 class RetrievalModel(Model):
+    DEFAULT_QUERY_NAME = "query"
+    DEFAULT_CANDIDATE_NAME = "candidate"
+
     def __init__(
         self,
         *,
@@ -160,21 +163,51 @@ class RetrievalModel(Model):
         candidate: Optional[Union[Encoder, nn.Module]] = None,
         pre=None,
         post=None,
-        query_name="query",
-        candidate_name="candidate",
     ):
-        if isinstance(output, ContrastiveOutput):
-            query_name = output.query_name
-            candidate_name = output.candidate_name
-
+        _query: Encoder = query if isinstance(query, Encoder) else Encoder(query)
         if query and candidate:
-            encoder = ParallelBlock({query_name: query, candidate_name: candidate})
+            _candidate: Encoder = (
+                candidate if isinstance(candidate, Encoder) else Encoder(candidate)
+            )
+            query_name, candidate_name = self._query_branch_names(output)
+            encoder = ParallelBlock({query_name: _query, candidate_name: _candidate})
         else:
-            encoder = query
+            encoder = _query
+            _candidate = Encoder(output)
 
         super().__init__(encoder, output, pre=pre, post=post)
+        self.query = _query
+        self.candidate = _candidate
 
-        self._query_name = query_name
-        self._candidate_name = candidate_name
-        self._encoder = encoder
-        self._output = output
+    def _query_branch_names(self, output) -> Tuple[str, str]:
+        query_name = self.DEFAULT_QUERY_NAME
+        candidate_name = self.DEFAULT_CANDIDATE_NAME
+        if isinstance(output, ContrastiveOutput):
+            query_name = output.keys[0]
+            candidate_name = output.keys[1]
+
+        return query_name, candidate_name
+
+    def query_embeddings(
+        self,
+        dataset: Optional[Dataset] = None,
+        index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        batch_size=512,
+        **kwargs,
+    ) -> Dataset:
+        if self.query.has_embedding_export and dataset is None:
+            return self.query.export_embeddings(**kwargs)
+
+        return self.query.encode(dataset, batch_size=batch_size, index=index, **kwargs)
+
+    def candidate_embeddings(
+        self,
+        dataset: Optional[Dataset] = None,
+        index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        batch_size=512,
+        **kwargs,
+    ) -> Dataset:
+        if self.candidate.has_embedding_export and dataset is None:
+            return self.candidate.export_embeddings(**kwargs)
+
+        return self.candidate.encode(dataset, batch_size=batch_size, index=index, **kwargs)

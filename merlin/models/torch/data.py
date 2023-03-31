@@ -298,7 +298,7 @@ def _get_features(self: nn.Module, rename=True) -> Union[Dict[str, torch.Tensor]
         if name.startswith(prefix):
             features[name] = buffer
 
-    if not features:
+    if rename and not features:
         raise RuntimeError(
             "No feature buffers found. Ensure that `register_data_propagation_hook` has been "
             "called on the parent module with `propagate_features=True`. For example:\n\n"
