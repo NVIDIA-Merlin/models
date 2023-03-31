@@ -33,11 +33,14 @@ from tensorflow.keras.losses import Loss
 from tensorflow.keras.metrics import Metric
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
-# This is to handle TensorFlow 2.11 Saving V3 triggering with model pickle
+# This is to handle TensorFlow 2.11/2.12 Saving V3 triggering with model pickle
 try:
-    from keras.saving.experimental import saving_lib
+    from keras.saving.experimental import saving_lib  # 2.11
 except ImportError:
-    saving_lib = None
+    try:
+        from keras.saving import saving_lib  # 2.12
+    except ImportError:
+        saving_lib = None
 
 import merlin.io
 from merlin.models.io import save_merlin_metadata
