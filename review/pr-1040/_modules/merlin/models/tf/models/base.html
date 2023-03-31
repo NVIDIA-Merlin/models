@@ -117,11 +117,14 @@
 <span class="kn">from</span> <span class="nn">tensorflow.keras.metrics</span> <span class="kn">import</span> <span class="n">Metric</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.utils</span> <span class="kn">import</span> <span class="n">unpack_x_y_sample_weight</span>
 
-<span class="c1"># This is to handle TensorFlow 2.11 Saving V3 triggering with model pickle</span>
+<span class="c1"># This is to handle TensorFlow 2.11/2.12 Saving V3 triggering with model pickle</span>
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">keras.saving.experimental</span> <span class="kn">import</span> <span class="n">saving_lib</span>
+    <span class="kn">from</span> <span class="nn">keras.saving.experimental</span> <span class="kn">import</span> <span class="n">saving_lib</span>  <span class="c1"># 2.11</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="n">saving_lib</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">keras.saving</span> <span class="kn">import</span> <span class="n">saving_lib</span>  <span class="c1"># 2.12</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">saving_lib</span> <span class="o">=</span> <span class="kc">None</span>
 
 <span class="kn">import</span> <span class="nn">merlin.io</span>
 <span class="kn">from</span> <span class="nn">merlin.models.io</span> <span class="kn">import</span> <span class="n">save_merlin_metadata</span>
