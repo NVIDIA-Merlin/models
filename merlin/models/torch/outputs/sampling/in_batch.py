@@ -20,7 +20,7 @@ class InBatchNegativeSampler(Block):
                 samples tensor and the positive samples IDs tensor.
         """
         if positive_id is not None:
-            self.register_buffer("positive_id", positive_id, persistent=False)
-        self.register_buffer("positive", positive, persistent=False)
+            self.register_buffer("negative_id", positive_id, persistent=False)
+        self.register_buffer("negative", positive, persistent=False)
 
         return positive, positive_id

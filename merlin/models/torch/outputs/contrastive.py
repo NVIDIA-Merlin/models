@@ -80,6 +80,7 @@ class ContrastiveOutput(ModelOutput):
         self.dot_product = dot_product
         self.keys = [self.dot_product.query_name, self.dot_product.candidate_name]
         self.num_classes = self.to_call.num_classes
+        self.to_call = self.to_call  # Trigger the setter to propagate to negative-samplers
 
     def forward(self, inputs, targets=None, features=None):
         if (
@@ -242,6 +243,18 @@ class ContrastiveOutput(ModelOutput):
             raise RuntimeError("This model does not have candidate weights")
 
         return self.to_call.to_df(gpu=gpu)
+
+    @property
+    def to_call(self):
+        return self._to_call
+
+    @to_call.setter
+    def to_call(self, to_call):
+        self._to_call = to_call
+        if hasattr(self, "negative_samplers"):
+            for sampler in self.negative_samplers:
+                if hasattr(sampler, "to_call"):
+                    sampler.to_call = to_call
 
     @property
     def has_candidate_weights(self) -> bool:

@@ -80,6 +80,14 @@ class ModelOutput(Block):
         return Schema([target])
 
     @property
+    def to_call(self):
+        return self._to_call
+
+    @to_call.setter
+    def to_call(self, to_call):
+        self._to_call = to_call
+
+    @property
     def name(self) -> str:
         return self._name
 
