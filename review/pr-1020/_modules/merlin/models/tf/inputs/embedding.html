@@ -302,6 +302,7 @@
         <span class="n">dynamic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">table</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">l2_batch_regularization_factor</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an EmbeddingTable.&quot;&quot;&quot;</span>
@@ -325,6 +326,7 @@
                 <span class="n">mask_zero</span><span class="o">=</span><span class="n">mask_zero</span><span class="p">,</span>
                 <span class="n">input_length</span><span class="o">=</span><span class="n">input_length</span><span class="p">,</span>
                 <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
                 <span class="n">input_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
@@ -394,14 +396,21 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`name` is required when not using a ColumnSchema&quot;</span><span class="p">)</span>
             <span class="n">col_schema</span> <span class="o">=</span> <span class="n">create_categorical_column</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">num_items</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="n">embedding_table</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">dim</span><span class="p">,</span>
             <span class="n">col_schema</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">embeddings_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">embeddings</span><span class="p">),</span>
+            <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">embeddings</span><span class="p">],</span>
+            <span class="n">embeddings_initializer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+        <span class="c1"># trigger build of table to make sure that weights are configured</span>
+        <span class="c1"># without this line the weights are not initialized correctly with</span>
+        <span class="c1"># the provided values</span>
+        <span class="n">embedding_table</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">embedding_table</span></div>
 
 <div class="viewcode-block" id="EmbeddingTable.from_dataset"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingTable.html#merlin.models.tf.EmbeddingTable.from_dataset">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_dataset</span><span class="p">(</span>
@@ -498,10 +507,11 @@
             <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span>
-            <span class="p">):</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">process_str_sequence_combiner</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2_batch_regularization_factor</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l2_batch_regularization_factor</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">out</span><span class="p">)))</span>
@@ -1003,6 +1013,9 @@
                     <span class="n">val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
                 <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">table_var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
 
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">table</span><span class="o">.</span><span class="n">combiner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">process_str_sequence_combiner</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">table</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype_policy</span><span class="o">.</span><span class="n">compute_dtype</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype_policy</span><span class="o">.</span><span class="n">variable_dtype</span><span class="p">:</span>
             <span class="c1"># Instead of casting the variable as in most layers, cast the output, as</span>
             <span class="c1"># this is mathematically equivalent but is faster.</span>
@@ -1284,6 +1297,38 @@
         <span class="n">outputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">feature_config_dict</span>
 
     <span class="k">return</span> <span class="n">outputs</span>
+
+
+<span class="k">def</span> <span class="nf">process_str_sequence_combiner</span><span class="p">(</span>
+    <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">],</span> <span class="n">combiner</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Process inputs with str sequence combiners (&quot;mean&quot; or &quot;sum&quot;)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : Union[tf.Tensor, tf.RaggedTensor]</span>
+<span class="sd">        Input 3D tensor (batch size, seq length, embedding dim)</span>
+<span class="sd">    combiner : str</span>
+<span class="sd">        The combiner: &quot;mean&quot; or &quot;sum&quot;</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tf.Tensor</span>
+<span class="sd">        A 2D tensor with values combined on axis=1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">combiner</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+    <span class="k">if</span> <span class="n">combiner</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+        <span class="n">combiner</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Lambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">combiner</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+        <span class="n">combiner</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Lambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Only &#39;mean&#39; and &#39;sum&#39; str combiners is implemented for dense&quot;</span>
+            <span class="s2">&quot; list/multi-hot embedded features. You can also&quot;</span>
+            <span class="s2">&quot; provide a tf.keras.layers.Layer instance as a sequence combiner.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">call_layer</span><span class="p">(</span><span class="n">combiner</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 </pre></div>
 
            </div>
