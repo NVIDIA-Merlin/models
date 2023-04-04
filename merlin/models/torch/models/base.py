@@ -1,9 +1,9 @@
 from functools import reduce
 from typing import Dict, List, Optional, Tuple, Union
 
-import pytorch_lightning as pl
 import torch
 from torch import nn
+import pytorch_lightning as pl
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset

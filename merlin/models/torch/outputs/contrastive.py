@@ -16,7 +16,7 @@ from merlin.models.torch.outputs.classification import (
     EmbeddingTablePrediction,
     categorical_output_schema,
 )
-from merlin.models.torch.outputs.sampling.in_batch import InBatchNegativeSampler  # noqa: F401
+from merlin.models.torch.outputs import sampling  # noqa: F401
 from merlin.models.utils.constants import MIN_FLOAT
 from merlin.models.utils.protocols import LookUpProtocol
 from merlin.schema import ColumnSchema, Schema

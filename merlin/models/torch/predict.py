@@ -18,6 +18,21 @@ def batch_predict(
     add_inputs: bool = True,
     index=None,
 ) -> Dataset:
+    """
+    Perform batch prediction on the dataset using the given module and output schema.
+
+    Args:
+        module (nn.Module): PyTorch module used for batch prediction.
+        module_output_schema (Schema): Output schema of the module.
+        dataset (Dataset): Dataset for batch prediction.
+        batch_size (int): Batch size for prediction.
+        add_inputs (bool, optional): Whether to add inputs to the dataset. Defaults to True.
+        index: Index of the dataset. Defaults to None.
+
+    Returns:
+        Dataset: Dataset with batch predictions.
+    """
+    
     data_iterator_func = ModelEncode.create_data_iterator_func(Loader, batch_size=batch_size)
     encoder = ModelEncode(
         module,

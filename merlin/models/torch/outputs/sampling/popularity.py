@@ -12,7 +12,7 @@ class LogUniformSampler(object):
         Credits to:
         https://github.com/kimiyoung/transformer-xl/blob/master/pytorch/utils/log_uniform_sampler.py
 
-        Reference:
+        TensorFlow Reference:
         https://github.com/tensorflow/tensorflow/blob/r1.10/tensorflow/python/ops/candidate_sampling_ops.py
             `P(class) = (log(class + 2) - log(class + 1)) / log(range_max + 1)`
         expected count can be approximated by 1 - (1 - p)^n

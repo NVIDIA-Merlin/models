@@ -14,7 +14,15 @@ from merlin.schema import ColumnSchema, Schema, Tags
 
 
 class Encoder(SequentialBlock):
-    """An Encoder encodes features into a latent space."""
+    """An Encoder encodes features into a latent space.
+    
+    Args:
+        inputs (Union[Schema, nn.Module]): Input schema or a PyTorch Module.
+        *blocks (nn.Module): A variable number of PyTorch Modules.
+        pre: Preprocessing block, if any. Defaults to None.
+        post: Postprocessing block, if any. Defaults to None.
+        output_name (Optional[str]): The name for the output of the encoder. Defaults to None.
+    """
 
     def __init__(
         self,
@@ -40,6 +48,14 @@ class Encoder(SequentialBlock):
         self.output_name = output_name
 
     def forward(self, inputs) -> torch.Tensor:
+        """Forward pass of the Encoder.
+
+        Args:
+            inputs: Input features to the Encoder.
+
+        Returns:
+            torch.Tensor: The encoded output tensor.
+        """
         output = super().forward(inputs)
 
         if isinstance(output, dict):
@@ -87,6 +103,12 @@ class Encoder(SequentialBlock):
             add_inputs=add_inputs,
             **kwargs,
         )
+        
+    def export_embeddings(self, gpu=None) -> Dataset:
+        if not self.has_embedding_export:
+            raise ValueError("Encoder does not support embedding export.")
+
+        return self[0].to_dataset(gpu=gpu)
 
     def _parse_index(self, index) -> Schema:
         if isinstance(index, ColumnSchema):
@@ -100,22 +122,41 @@ class Encoder(SequentialBlock):
 
         return index
 
-    def export_embeddings(self, gpu=None) -> Dataset:
-        if not self.has_embedding_export:
-            raise ValueError("Encoder does not support embedding export.")
-
-        return self[0].to_dataset(gpu=gpu)
-
     @property
     def has_embedding_export(self) -> bool:
+        """Check if the Encoder has support for embedding export.
+        
+        If this is True, then the Encoder can be used to export embeddings without 
+        the need to provide a dataset.
+        
+        If this False, we can export embeddings using a dataset by calling `encode`.
+
+        Returns:
+            bool: True if the Encoder has embedding export support, False otherwise.
+        """
         return len(self) == 1 and hasattr(self[0], "to_dataset")
 
     @property
     def input_schema(self) -> Schema:
+        """
+        Get the input schema of the Encoder.
+
+        Returns:
+            Schema: Input schema of the Encoder.
+        """
         return self[0].input_schema
 
     @property
     def encoder_output_schema(self) -> Schema:
+        """
+        Get the output schema of the Encoder.
+
+        Returns:
+            Schema: Output schema of the Encoder.
+
+        Raises:
+            ValueError: If the Encoder has not been called yet.
+        """
         if not hasattr(self, "output_shape"):
             raise ValueError("Encoder has not been called yet.")
 
