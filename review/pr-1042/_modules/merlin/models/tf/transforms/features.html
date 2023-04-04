@@ -147,7 +147,11 @@
                 <span class="n">col_schema_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
                 <span class="k">if</span> <span class="n">col_schema_shape</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
                     <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">col_schema_shape</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">max</span>
+                    <span class="k">if</span> <span class="n">max_seq_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">max_seq_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_seq_length</span><span class="p">)</span>
                     <span class="n">shape</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">max_seq_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">max_seq_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_seq_length</span><span class="p">)</span>
                     <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_seq_length</span>
                     <span class="n">val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
 
@@ -205,6 +209,8 @@
                         <span class="c1"># max seq length from the col schema to</span>
                         <span class="c1"># have a dense tensor properly set</span>
                         <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">col_schema_shape</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">max</span>
+                        <span class="k">if</span> <span class="n">max_seq_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">max_seq_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_seq_length</span><span class="p">)</span>
                         <span class="n">val</span> <span class="o">=</span> <span class="n">to_dense</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="o">=</span><span class="n">max_seq_length</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">val</span> <span class="o">=</span> <span class="n">to_dense</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>

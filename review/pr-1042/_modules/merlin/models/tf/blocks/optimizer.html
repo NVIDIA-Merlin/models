@@ -216,25 +216,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">optimizers_and_blocks</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`optimizers_and_blocks` can&#39;t be empty&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">default_optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">default_optimizer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">default_optimizer</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pair</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">optimizers_and_blocks</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;2.11.0&quot;</span><span class="p">):</span>
-                <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
-                    <span class="nb">isinstance</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
-                    <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">legacy</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">)</span>
-                <span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">&quot;Optimizers must be a str or an instance of &quot;</span>
-                        <span class="s2">&quot;tf.keras.optimizers.legacy.Optimizer with Tensorflow &gt;= 2.11.&quot;</span>
-                    <span class="p">)</span>
-                <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                    <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span>
-                    <span class="n">use_legacy_optimizer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="p">)</span>
-
+            <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_track_trackable</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Optimizer</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">pair</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="p">[</span><span class="n">pair</span><span class="o">.</span><span class="n">blocks</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">blocks</span><span class="p">,</span> <span class="n">Block</span><span class="p">)</span> <span class="k">else</span> <span class="n">pair</span><span class="o">.</span><span class="n">blocks</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
@@ -243,6 +228,24 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">update_optimizers_and_blocks</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;update_optimizers_and_blocks&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_optimizers_and_blocks</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_optimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;2.11.0&quot;</span><span class="p">):</span>
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">legacy</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Optimizers must be a str or an instance of &quot;</span>
+                    <span class="s2">&quot;tf.keras.optimizers.legacy.Optimizer with Tensorflow &gt;= 2.11.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">optimizer</span><span class="p">,</span>
+                <span class="n">use_legacy_optimizer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">optimizer</span>
 
     <span class="k">def</span> <span class="nf">_get_trainable_variables_optimizer_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizers_and_blocks</span><span class="p">,</span> <span class="n">require_disjoint</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">attribute</span> <span class="o">=</span> <span class="s2">&quot;_trainable_weights&quot;</span>
@@ -316,7 +319,7 @@
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;add another optimzier and specify which block to apply this optimizer to&quot;&quot;&quot;</span>
         <span class="n">len_exist_optimizers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">)</span>
-        <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+        <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span>
         <span class="c1"># Check if already track the optimizer</span>
         <span class="n">optimizer_not_exists</span> <span class="o">=</span> <span class="kc">True</span>
@@ -337,11 +340,11 @@
 <span class="sd">        what optimizer it used to utilize. If the block is not specified with an optimizer before,</span>
 <span class="sd">        this functions would have the same functionality as self.add()</span>
 
-<span class="sd">        Note: the optimizer_blocks would be kept in self.update_optimizers_and_blockss, instead of</span>
+<span class="sd">        Note: the optimizer_blocks would be kept in self.update_optimizers_and_blocks, instead of</span>
 <span class="sd">        self.optimizers_and_blocks&quot;&quot;&quot;</span>
         <span class="n">len_exist_optimizers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">)</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span>
-        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
         <span class="c1"># Check if already track the optimizer</span>
         <span class="n">optimizer_not_exists</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">:</span>
@@ -357,6 +360,7 @@
         <span class="n">config</span> <span class="o">=</span> <span class="n">tf_utils</span><span class="o">.</span><span class="n">maybe_serialize_keras_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;default_optimizer&quot;</span><span class="p">])</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;optimizers_and_blocks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;update_optimizers_and_blocks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">optimizer_blocks</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;optimizers_and_blocks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">get_config</span><span class="p">())</span>
         <span class="k">for</span> <span class="n">optimizer_blocks</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_optimizers_and_blocks</span><span class="p">:</span>
