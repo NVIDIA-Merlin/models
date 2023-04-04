@@ -31,6 +31,8 @@ from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
+# import pickle
+
 
 class TestGetOutputSchema:
     def test_scalar(self, tmpdir):

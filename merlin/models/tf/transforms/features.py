@@ -63,7 +63,11 @@ class FeaturesTensorTypeConversion(TabularBlock):
                 col_schema_shape = self.schema[name].shape
                 if col_schema_shape.is_list:
                     max_seq_length = col_schema_shape.dims[1].max
+                    if max_seq_length is not None:
+                        max_seq_length = int(max_seq_length)
                     shape = val.as_list()
+                    if max_seq_length is not None:
+                        max_seq_length = int(max_seq_length)
                     shape[1] = max_seq_length
                     val = tf.TensorShape(shape)
 
@@ -121,6 +125,8 @@ class ToDense(FeaturesTensorTypeConversion):
                         # max seq length from the col schema to
                         # have a dense tensor properly set
                         max_seq_length = col_schema_shape.dims[1].max
+                        if max_seq_length is not None:
+                            max_seq_length = int(max_seq_length)
                         val = to_dense(val, max_seq_length=max_seq_length)
                     else:
                         val = to_dense(val)
@@ -175,13 +181,8 @@ class PrepareListFeatures(TabularBlock):
                             val = inputs[name]
                         elif isinstance(val, tf.SparseTensor):
                             val = tf.RaggedTensor.from_sparse(val)
-                        else:
-                            val = tf.RaggedTensor.from_tensor(val)
                     else:
-                        # TODO: Change this condition to check is_ragged after this PR
-                        # from Oliver is merged https://github.com/NVIDIA-Merlin/dataloader/pull/103
-                        # if col_schema_shape.is_ragged:
-                        if True:
+                        if col_schema_shape.is_ragged:
                             if f"{name}__values" not in inputs or f"{name}__offsets" not in inputs:
                                 raise ValueError(
                                     f"The ragged list feature '{name}' is expected to be "
@@ -1325,10 +1326,11 @@ def expected_input_cols_from_schema(schema: Schema, inputs: Optional[TabularData
     schema = schema.remove_by_tag(Tags.TARGET)
     expected_features = []
     for name in schema.column_names:
-        # TODO: Change this condition to check is_ragged after this PR
-        # from Oliver is merged https://github.com/NVIDIA-Merlin/dataloader/pull/103
-        # if schema[name].shape.is_list and schema[name].shape.is_ragged ...
-        if schema[name].shape.is_list and (inputs is None or name not in inputs):
+        if (
+            schema[name].shape.is_list
+            and schema[name].shape.is_ragged
+            and (inputs is None or name not in inputs)
+        ):
             expected_features.extend([f"{name}__values", f"{name}__offsets"])
         else:
             expected_features.append(name)

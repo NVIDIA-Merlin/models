@@ -93,11 +93,13 @@ def test_contrastive_sample_weight_serialization(ecommerce_data: Dataset, run_ea
     item_inputs = mm.InputBlockV2(item_schema)
     candidate = mm.Encoder(item_inputs, mm.MLPBlock([128, tower_dim]))
 
+    item_id_cardinality = item_schema["item_id"].int_domain.max + 1
+
     output = mm.ContrastiveOutput(
         DotProduct(),
         post=ContrastiveSampleWeight(
-            pos_class_weight=tf.random.uniform(shape=(1000,)),
-            neg_class_weight=tf.random.uniform(shape=(1000,)),
+            pos_class_weight=tf.random.uniform(shape=(item_id_cardinality,)),
+            neg_class_weight=tf.random.uniform(shape=(item_id_cardinality,)),
             schema=data.schema,
         ),
         schema=data.schema.select_by_tag(Tags.ITEM_ID),
