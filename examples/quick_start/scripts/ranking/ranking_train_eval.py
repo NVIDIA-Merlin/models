@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 import numpy as np
 import tensorflow as tf
@@ -7,6 +8,8 @@ from args_parsing import Task, parse_arguments
 from mtl import get_mtl_loss_weights, get_mtl_prediction_tasks
 from ranking_models import get_model
 from run_logging import WandbLogger, get_callbacks
+from tensorflow.keras.losses import binary_crossentropy
+from tensorflow.keras.metrics import Mean
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
@@ -107,9 +110,11 @@ class RankingTrainEvalRunner:
         if Task.BINARY_CLASSIFICATION in self.targets:
             metrics.update(
                 {
-                    f"{target}/binary_output": tf.keras.metrics.AUC(
-                        name="auc", num_thresholds=int(1e5)
-                    )
+                    f"{target}/binary_output": [
+                        tf.keras.metrics.AUC(name="auc", curve="ROC", num_thresholds=int(1e5)),
+                        tf.keras.metrics.AUC(name="prauc", curve="PR", num_thresholds=int(1e5)),
+                        LogLossMetric(name="logloss"),
+                    ]
                     for target in self.targets[Task.BINARY_CLASSIFICATION]
                 }
             )
@@ -308,6 +313,26 @@ def main():
 
     runner = RankingTrainEvalRunner(logger, train_ds, eval_ds, args)
     runner.run()
+
+
+class LogLossMetric(Mean):
+    def __init__(self, name="logloss", from_logits=False, dtype=None):
+        self.from_logits = from_logits
+        super().__init__(name=name, dtype=dtype)
+
+    def update_state(
+        self,
+        y_true: tf.Tensor,
+        y_pred: tf.Tensor,
+        sample_weight: Optional[tf.Tensor] = None,
+    ):
+        result = binary_crossentropy(y_true, y_pred, from_logits=self.from_logits)
+        return super().update_state(result, sample_weight=sample_weight)
+
+    def get_config(self):
+        config = super().get_config()
+        config["from_logits"] = self.from_logits
+        return config
 
 
 if __name__ == "__main__":
