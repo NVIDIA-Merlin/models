@@ -1,13 +1,59 @@
 import logging
 import os
+import sys
 from typing import Any, Dict, Optional, Union
 
 import torch
 import torch.distributed as dist
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.utilities.types import _PATH
+from torch import nn
 
-logger: logging.Logger = logging.getLogger(__name__)
+# from torchrec.distributed import TrainPipelineSparseDist
+# from torchrec.distributed.model_parallel import DistributedModelParallel
+# from torchrec.distributed.train_pipeline import In
+from torchrec.optim.keyed import KeyedOptimizerWrapper
+
+from merlin.models.torch.models.base import Model
+from merlin.schema import Schema
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logger: logging.Logger = logging.getLogger()
+
+
+class TorchrecModel(Model):
+    """Model to be used with torchrec"""
+
+    def __init__(
+        self,
+        *blocks: nn.Module,
+        pre=None,
+        post=None,
+        schema: Optional[Schema] = None,
+        optimizer_cls=torch.optim.Adam,
+    ):
+        super().__init__(
+            *blocks, pre=pre, postpost=post, schema=schema, optimizer_cls=optimizer_cls
+        )
+
+        rank = int(os.environ["LOCAL_RANK"])
+        if torch.cuda.is_available():
+            device = torch.device(f"cuda:{rank}")
+            backend = "nccl"
+            torch.cuda.set_device(device)
+        else:
+            device = torch.device("cpu")
+            backend = "gloo"
+
+        if not torch.distributed.is_initialized():
+            dist.init_process_group(backend=backend)
+        self.to(device=device)
+
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        return KeyedOptimizerWrapper(
+            dict(self.model.named_parameters()),
+            lambda params: self.optimizer_cls(params, lr=0.01),
+        )
 
 
 class TorchrecStrategy(ParallelStrategy):

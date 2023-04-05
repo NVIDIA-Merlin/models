@@ -31,13 +31,9 @@ class ToKeyedJaggedTensor(nn.Module):
             else:
                 if col.name not in inputs:
                     continue
-                feature = inputs[col.name]
-                lengths = torch.ones_like(feature, dtype=torch.int)
-
-                # if feature.ndim == 1:
-                #     feature.unsqueeze_(-1)
-
-                jagged_dict[col.name] = JaggedTensor(feature, lengths=lengths)
+                jagged_dict[col.name] = JaggedTensor(
+                    inputs[col.name], lengths=torch.ones_like(inputs[col.name], dtype=torch.int)
+                )
 
         output = KeyedJaggedTensor.from_jt_dict(jagged_dict)
 
