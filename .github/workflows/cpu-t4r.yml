@@ -1,4 +1,4 @@
-name: nvtabular
+name: transformers4rec
 
 on:
   workflow_dispatch:
