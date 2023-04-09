@@ -5,7 +5,9 @@ def build_arg_parser():
     parser = argparse.ArgumentParser(description="MTL & STL models")
 
     # Inputs / Outputs
-    parser.add_argument("--input_data_path", default="/data/ranking/", help="")
+    parser.add_argument("--data_path", default="", help="")
+    parser.add_argument("--eval_data_path", default=None, help="")
+    parser.add_argument("--test_data_path", default=None, help="")
     parser.add_argument("--input_data_format", default="csv", choices=["csv", "parquet"], help="")
     parser.add_argument("--csv_sep", default=",", help="")
     parser.add_argument("--csv_na_values", default=None, help="")
@@ -25,6 +27,8 @@ def build_arg_parser():
 
     parser.add_argument("--categorical_features", default="", help="")
     parser.add_argument("--continuous_features", default="", help="")
+
+    parser.add_argument("--continuous_features_fillna", default=None, help="")
 
     parser.add_argument("--user_features", default="", help="")
     parser.add_argument("--item_features", default="", help="")
@@ -60,7 +64,7 @@ def build_arg_parser():
     )
 
     parser.add_argument("--random_split_eval_perc", default=None, type=float, help="")
-    parser.add_argument("--temporal_timestamp_split", default=None, type=int, help="")
+    parser.add_argument("--dataset_split_temporal_timestamp", default=None, type=int, help="")
 
     parser.add_argument("--visible_gpu_devices", default="0", type=str, help="")
     parser.add_argument("--gpu_device_spill_frac", default=0.7, type=float, help="")
@@ -105,5 +109,8 @@ def parse_arguments():
 
     if args.filter_query:
         args.filter_query = args.filter_query.replace('"', "")
+
+    if args.csv_sep.lower() == "<tab>":
+        args.csv_sep = "\t"
 
     return args

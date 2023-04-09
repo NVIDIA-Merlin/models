@@ -37,17 +37,18 @@ class PreprocessingRunner:
         self.args = args
         pass
 
-    def read_data(self) -> dask_cudf.DataFrame:
-        logging.info("Reading original data")
+    def read_data(self, path) -> dask_cudf.DataFrame:
         args = self.args
+        logging.info(f"Reading data: {args.data_path}")
         if args.input_data_format == "csv":
-            ddf = dask_cudf.read_csv(
-                args.input_data_path, sep=args.csv_sep, na_values=args.csv_na_values
-            )
+            ddf = dask_cudf.read_csv(path, sep=args.csv_sep, na_values=args.csv_na_values)
         elif args.input_data_format == "parquet":
-            ddf = dask_cudf.read_parquet(args.input_data_path)
+            ddf = dask_cudf.read_parquet(path)
         else:
             raise ValueError(f"Invalid input data format: {args.input_data_format}")
+
+        logging.info("First lines...")
+        logging.info(ddf.head())
 
         logging.info(f"Number of rows: {len(ddf)}")
         if args.filter_query:
@@ -60,14 +61,17 @@ class PreprocessingRunner:
     def cast_dtypes(self, ddf):
         logging.info("Converting dtypes")
         args = self.args
+        columns = set(ddf.columns)
         if args.to_int32:
-            ddf[args.to_int32] = ddf[args.to_int32].astype("int32")
+            ddf[args.to_int32] = ddf[list(set(args.to_int32).intersection(columns))].astype("int32")
         if args.to_int16:
-            ddf[args.to_int16] = ddf[args.to_int16].astype("int16")
+            ddf[args.to_int16] = ddf[list(set(args.to_int16).intersection(columns))].astype("int16")
         if args.to_int8:
-            ddf[args.to_int8] = ddf[args.to_int8].astype("int8")
+            ddf[args.to_int8] = ddf[list(set(args.to_int8).intersection(columns))].astype("int8")
         if args.to_float32:
-            ddf[args.to_float32] = ddf[args.to_float32].astype("float32")
+            ddf[args.to_float32] = ddf[list(set(args.to_float32).intersection(columns))].astype(
+                "float32"
+            )
         return ddf
 
     def filter_by_user_item_freq(self, ddf):
@@ -76,7 +80,6 @@ class PreprocessingRunner:
 
         filtered_ddf = ddf
         if args.min_user_freq or args.max_user_freq or args.min_item_freq or args.max_item_freq:
-
             print("Before filtering: ", len(filtered_ddf))
             for r in range(args.num_max_rounds_filtering):
                 print(f"Round #{r+1}")
@@ -148,28 +151,29 @@ class PreprocessingRunner:
             return train_ddf, eval_ddf
 
         elif args.dataset_split_strategy == "temporal":
-            train_ddf = ddf[ddf[args.timestamp_feature] < args.temporal_timestamp_split]
-            eval_ddf = ddf[ddf[args.timestamp_feature] >= args.temporal_timestamp_split]
+            train_ddf = ddf[ddf[args.timestamp_feature] < args.dataset_split_temporal_timestamp]
+            eval_ddf = ddf[ddf[args.timestamp_feature] >= args.dataset_split_temporal_timestamp]
 
             return train_ddf, eval_ddf
 
         else:
             raise ValueError(f"Invalid sampling strategy: {args.dataset_split_strategy}")
 
-    def generate_nvt_workflow(self):
-        logging.info("Generating NVTabular workflow")
+    def generate_nvt_workflow_features(self):
+        logging.info("Generating NVTabular workflow  for preprocessing features")
         args = self.args
         feats = dict()
 
         for col in args.categorical_features:
             feats[col] = [col] >> nvt_ops.Categorify()
         for col in args.continuous_features:
-            feats[col] = [col] >> nvt_ops.Normalize()
-
-        for col in args.binary_classif_targets:
-            feats[col] = [col] >> nvt_ops.AddTags([Tags.BINARY_CLASSIFICATION, Tags.TARGET])
-        for col in args.regression_targets:
-            feats[col] = [col] >> nvt_ops.AddTags([Tags.REGRESSION, Tags.TARGET, Tags.BINARY])
+            feats[col] = [col]
+            if args.continuous_features_fillna is not None:
+                if args.continuous_features_fillna.lower() == "<median>":
+                    feats[col] = feats[col] >> nvt_ops.FillMedian()
+                else:
+                    feats[col] = feats[col] >> nvt_ops.FillMissing(args.continuous_features_fillna)
+                feats[col] = feats[col] >> nvt_ops.Normalize()
 
         for col in args.user_features:
             feats[col] = feats[col] >> nvt_ops.TagAsUserFeatures()
@@ -189,6 +193,22 @@ class PreprocessingRunner:
             feats[args.session_id_feature] = [args.session_id_feature] >> nvt_ops.AddTags(
                 [Tags.SESSION_ID, Tags.SESSION, Tags.ID]
             )
+
+        # Combining all features
+        outputs = reduce(lambda x, y: x + y, list(feats.values()))
+
+        workflow = nvt.Workflow(outputs)
+        return workflow
+
+    def generate_nvt_workflow_targets(self):
+        logging.info("Generating NVTabular workflow for preprocessing targets")
+        args = self.args
+        feats = dict()
+
+        for col in args.binary_classif_targets:
+            feats[col] = [col] >> nvt_ops.AddTags([Tags.BINARY_CLASSIFICATION, Tags.TARGET])
+        for col in args.regression_targets:
+            feats[col] = [col] >> nvt_ops.AddTags([Tags.REGRESSION, Tags.TARGET, Tags.BINARY])
 
         # Combining all features
         outputs = reduce(lambda x, y: x + y, list(feats.values()))
@@ -247,49 +267,95 @@ class PreprocessingRunner:
         args = self.args
 
         ddf = self.setup_dask_cuda_cluster(
-            visible_devices=args.visible_gpu_devices, device_spill_frac=args.gpu_device_spill_frac
+            visible_devices=args.visible_gpu_devices,
+            device_spill_frac=args.gpu_device_spill_frac,
         )
 
-        ddf = self.read_data()
+        ddf = self.read_data(args.data_path)
         ddf = self.cast_dtypes(ddf)
         ddf = self.filter_by_user_item_freq(ddf)
 
         if args.persist_intermediate_files:
             ddf = self.persist_intermediate(ddf, "_cache/01/")
 
+        if args.eval_data_path:
+            eval_ddf = self.read_data(args.eval_data_path)
+            eval_ddf = self.cast_dtypes(eval_ddf)
+
+        if args.test_data_path:
+            test_ddf = self.read_data(args.test_data_path)
+            test_ddf = self.cast_dtypes(test_ddf)
+
         if args.dataset_split_strategy:
+            if args.eval_data_path:
+                raise ValueError(
+                    "You cannot provide both --eval_data_path and --dataset_split_strategy"
+                )
+
             ddf, eval_ddf = self.split_datasets(ddf)
 
             if args.persist_intermediate_files:
                 ddf = self.persist_intermediate(ddf, "_cache/02/train/")
                 eval_ddf = self.persist_intermediate(eval_ddf, "_cache/02/eval/")
 
-        nvt_workflow = self.generate_nvt_workflow()
+        nvt_workflow_features = self.generate_nvt_workflow_features()
+        nvt_workflow_targets = self.generate_nvt_workflow_targets()
 
         logging.info("Fitting/transforming the preprocessing on train set")
 
-        dataset = nvt.Dataset(ddf)
-        dataset_preproc = nvt_workflow.fit_transform(dataset)
+        output_dataset_path = args.output_path
 
-        output_dataset_path = os.path.join(args.output_path, "dataset")
-        output_train_dataset_path = os.path.join(output_dataset_path, "train")
-        logging.info(
-            f"Fitting/transforming the preprocessing on train set: {output_train_dataset_path}"
+        train_dataset = nvt.Dataset(ddf)
+        # Processing features and targets in separate workflows, because
+        # targets might not be available for test_dataset
+        train_dataset_features = nvt_workflow_features.fit_transform(train_dataset)
+        train_dataset_targets = nvt_workflow_targets.fit_transform(train_dataset)
+        train_dataset_preproc = nvt.Dataset(
+            dask_cudf.concat(
+                [train_dataset_features.to_ddf(), train_dataset_targets.to_ddf()],
+                axis=1,
+            ),
+            schema=train_dataset_features.schema + train_dataset_targets.schema,
         )
-        dataset_preproc.to_parquet(
+
+        output_train_dataset_path = os.path.join(output_dataset_path, "train")
+        logging.info(f"Fitting and transforming train set: {output_train_dataset_path}")
+        train_dataset_preproc.to_parquet(
             output_train_dataset_path,
             output_files=args.output_num_partitions,
         )
 
-        if args.dataset_split_strategy:
+        if args.eval_data_path or args.dataset_split_strategy:
             eval_dataset = nvt.Dataset(eval_ddf)
-            new_eval_dataset = nvt_workflow.transform(eval_dataset)
+            # Processing features and targets in separate workflows, because
+            # targets might not be available for test_dataset
+            eval_dataset_features = nvt_workflow_features.transform(eval_dataset)
+            eval_dataset_targets = nvt_workflow_targets.transform(eval_dataset)
+            eval_dataset_preproc = nvt.Dataset(
+                dask_cudf.concat(
+                    [eval_dataset_features.to_ddf(), eval_dataset_targets.to_ddf()],
+                    axis=1,
+                ),
+                schema=eval_dataset_features.schema + eval_dataset_targets.schema,
+            )
 
             output_eval_dataset_path = os.path.join(output_dataset_path, "eval")
-            logging.info(f"Preprocessing on eval set: {output_eval_dataset_path}")
+            logging.info(f"Transforming eval set: {output_eval_dataset_path}")
 
-            new_eval_dataset.to_parquet(
+            eval_dataset_preproc.to_parquet(
                 output_eval_dataset_path,
+                output_files=args.output_num_partitions,
+            )
+
+        if args.test_data_path:
+            test_dataset = nvt.Dataset(test_ddf)
+            new_test_dataset = nvt_workflow_features.transform(test_dataset)
+
+            output_test_dataset_path = os.path.join(output_dataset_path, "test")
+            logging.info(f"Transforming test set: {output_test_dataset_path}")
+
+            new_test_dataset.to_parquet(
+                output_test_dataset_path,
                 output_files=args.output_num_partitions,
             )
 
