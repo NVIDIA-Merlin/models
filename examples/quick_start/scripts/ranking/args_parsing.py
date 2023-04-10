@@ -85,11 +85,17 @@ def build_arg_parser():
     parser = argparse.ArgumentParser(description="MTL & STL models")
 
     # Inputs
-    parser.add_argument("--train_path", default="/data/train/", help="")
-    parser.add_argument("--eval_path", default="/data/eval/", help="")
+    parser.add_argument("--train_path", default="/data/train/", help="Path of the train set.")
+    parser.add_argument("--eval_path", default="/data/eval/", help="Path of the eval set.")
     # Outputs
-    parser.add_argument("--output_path", default="/results/", help="")
-    parser.add_argument("--save_trained_model_path", default=None, help="")
+    parser.add_argument(
+        "--output_path", default="/results/", help="Output path for saving predictions."
+    )
+    parser.add_argument(
+        "--save_trained_model_path",
+        default=None,
+        help="If provided, model is saved to this path after training.",
+    )
 
     parser.add_argument(
         "--predict",
@@ -97,11 +103,11 @@ def build_arg_parser():
         nargs="?",
         const=True,
         default=False,
-        help="If enabled, instead the dataset provided "
-        "will be used for prediction (instead of evaluation)."
-        "The prediction scores for the dataset in eval_path will "
-        "be saved to a file defined in --predict_output_path, "
-        "according to the --predict_output_format choice.",
+        help="If enabled, the dataset provided in --eval_path"
+        "will be used for prediction (instead of evaluation). "
+        "The prediction scores for the that dataset will "
+        "be saved to --predict_output_path (or to --output_path), "
+        "according to the --predict_output_format choice. ",
     )
     parser.add_argument(
         "--predict_keep_cols",
@@ -114,102 +120,208 @@ def build_arg_parser():
         "--predict_output_path",
         default=None,
         help="If provided the prediction scores will be saved to this path. "
-        "Otherwise, files will be saved to output_path/predictions",
+        "Otherwise, files will be saved to --output_path.",
     )
 
     parser.add_argument(
         "--predict_output_format",
         default="parquet",
         choices=["parquet", "csv", "tsv"],
-        help="Format of the output prediction file.",
+        help="Format of the output prediction files. By default 'parquet', "
+        "which is the most performant format.",
     )
 
     # Tasks
     parser.add_argument(
         "--tasks",
-        help="",
+        default="all",
+        help="Columns (comma-sep) with the target columns to be predicted. "
+        "A regression/binary classification head is created for each of the target columns. "
+        "If more than one column is provided, then multi-task learning is used to combine "
+        "the tasks losses. If 'all' is provided, all columns tagged as target in the schema "
+        "are used as tasks. By default 'all'",
     )
     parser.add_argument(
         "--tasks_sample_space",
         default="",
-        help="",
-    )
-    parser.add_argument(
-        "--ignore_tasks",
-        default="",
-        help="",
+        help="Columns (comma-sep) to be used as sample space for each task. "
+        "This list of columns should match the order of columns in --tasks. "
+        "Typically this is used to explicitly model "
+        "that the task event (e.g. purchase) can only occur when another binary event "
+        " has already happened (e.g. click). "
+        "Then by setting for example "
+        "--tasks=click,purchase --tasks_sample_space,click, you configure the training "
+        "to compute the purchase loss only for examples with click=1, making the "
+        "purchase target less sparser.",
     )
 
     # Model
     parser.add_argument(
         "--model",
         default="mlp",
-        choices=[
-            "mmoe",
-            "cgc",
-            "ple",
-            "dcn",
-            "dlrm",
-            "mlp",
-            "wide_n_deep",
-            "deepfm",
-        ],
-        help="",
+        choices=["mmoe", "cgc", "ple", "dcn", "dlrm", "mlp", "wide_n_deep", "deepfm"],
+        help="Types of ranking model architectures that are supported. Any of these "
+        "models can be used with multi-task learning (MTL). But these three are "
+        "specific to MTL: mmoe, cgc and ple. By default 'mlp'",
     )
 
     parser.add_argument(
         "--activation",
         default="relu",
-        choices=["tanh", "selu", "relu", "elu", "swish"],
-        help="",
+        help="Activation function supported by Keras, like: 'relu', 'selu', 'elu', "
+        "'tanh', 'sigmoid'. By default 'relu'",
     )
 
-    parser.add_argument("--mlp_init", type=str, default="glorot_uniform", help="")
-    parser.add_argument("--l2_reg", default=1e-5, type=float, help="")
-    parser.add_argument("--embeddings_l2_reg", default=0.0, type=float, help="")
+    parser.add_argument(
+        "--mlp_init", type=str, default="glorot_uniform", help="Keras initializer for MLP layers"
+    )
+    parser.add_argument(
+        "--l2_reg", default=1e-5, type=float, help="L2 regularization factor. By default 1e-5."
+    )
+    parser.add_argument(
+        "--embeddings_l2_reg",
+        default=0.0,
+        type=float,
+        help="L2 regularization factor for embedding tables. "
+        "It operates only on the embeddings in the current batch, not on the "
+        "whole embedding table. By default 0.0",
+    )
 
     # Embeddings args
-    parser.add_argument("--embedding_sizes_multiplier", default=2.0, type=float, help="")
+    parser.add_argument(
+        "--embedding_sizes_multiplier",
+        default=2.0,
+        type=float,
+        help="When --embedding_dim is not provided "
+        "it infers automatically the embedding dimensions from the categorical "
+        "features cardinality. This factor allows to increase/decrease the "
+        "embedding dim based on the cardinality. "
+        "Typical values range between 2 and 10. By default 2.0",
+    )
 
     # MLPs args
-    parser.add_argument("--dropout", default=0.00, type=float, help="")
+    parser.add_argument("--dropout", default=0.0, type=float, help="Dropout rate. By default 0.0")
 
     # hyperparams for STL models
-    parser.add_argument("--mlp_layers", default="128,64,32", type=str, help="")
-    parser.add_argument("--stl_positive_class_weight", default=1.0, type=float, help="")
+    parser.add_argument(
+        "--mlp_layers",
+        default="128,64,32",
+        type=str,
+        help="The dims of MLP layers. By default '128,64,32'",
+    )
+    parser.add_argument(
+        "--stl_positive_class_weight",
+        default=1.0,
+        type=float,
+        help="Positive class weight for single-task models. By default 1.0. "
+        "The negative class weight is fixed to 1.0",
+    )
 
     # DCN
-    parser.add_argument("--dcn_interacted_layer_num", default=1, type=int, help="")
+    parser.add_argument(
+        "--dcn_interacted_layer_num",
+        default=1,
+        type=int,
+        help="Number of interaction layers for DCN-v2 architecture. By default 1.",
+    )
 
     # DLRM & DeepFM
-    parser.add_argument("--embeddings_dim", default=128, type=int, help="")
+    parser.add_argument(
+        "--embeddings_dim",
+        default=128,
+        type=int,
+        help="Sets the embedding dim for all embedding columns to be the same. "
+        "This is only used for --model 'dlrm' and 'deepfm'",
+    )
 
     # Wide&Deep
-    parser.add_argument("--wnd_hashed_cross_num_bins", default=10000, type=int, help="")
-    parser.add_argument("--wnd_wide_l2_reg", default=1e-5, type=float, help="")
-    parser.add_argument("--wnd_ignore_combinations", default=None, type=str, help="")
+    parser.add_argument(
+        "--wnd_hashed_cross_num_bins",
+        default=10000,
+        type=int,
+        help="Used with Wide&Deep model. Sets the number of bins for hashing "
+        "feature interactions. By default 10000.",
+    )
+    parser.add_argument(
+        "--wnd_wide_l2_reg",
+        default=1e-5,
+        type=float,
+        help="Used with Wide&Deep model. Sets the L2 reg of the wide/linear sub-network. "
+        "By default 1e-5.",
+    )
+    parser.add_argument(
+        "--wnd_ignore_combinations",
+        default=None,
+        type=str,
+        help="Feature interactions to ignore. Separate feature combinations "
+        "with ',' and columns with ':'. For example: "
+        "--wnd_ignore_combinations='item_id:item_category,user_id:user_gender'",
+    )
 
     # DeepFM & Wide&Deep
-    parser.add_argument("--multihot_max_seq_length", default=5, type=float, help="")
+    parser.add_argument(
+        "--multihot_max_seq_length",
+        default=5,
+        type=float,
+        help="DeepFM and Wide&Deep support multi-hot categorical features for the wide/linear "
+        "sub-network. But they require setting the maximum list length, i.e., number of different "
+        "multi-hot values that can exist in a given example. By default 5.",
+    )
 
     # hyperparams for experts
-    parser.add_argument("--expert_mlp_layers", default="64", type=str, help="")
-    parser.add_argument("--expert_dcn_interacted_layer_num", default=1, type=int, help="")
+    parser.add_argument(
+        "--expert_mlp_layers",
+        default="64",
+        type=str,
+        help="For MTL models (MMOE, CGC, PLE) sets the MLP architecture of experts. "
+        "By default '64'",
+    )
 
     # MMOE
-    parser.add_argument("--mmoe_num_mlp_experts", default=4, type=int, help="")
-    parser.add_argument("--mmoe_num_dcn_experts", default=0, type=int, help="")
-    parser.add_argument("--mmoe_num_dlrm_experts", default=0, type=int, help="")
+    parser.add_argument(
+        "--mmoe_num_mlp_experts",
+        default=4,
+        type=int,
+        help="Number of experts for MMOE. All of them are shared by all the tasks. "
+        "By default 4.",
+    )
 
     # CGC and PLE
-    parser.add_argument("--cgc_num_task_experts", default=1, type=int, help="")
-    parser.add_argument("--cgc_num_shared_experts", default=2, type=int, help="")
-    parser.add_argument("--ple_num_layers", default=1, type=int, help="")
+    parser.add_argument(
+        "--cgc_num_task_experts",
+        default=1,
+        type=int,
+        help="Number of task-specific experts for CGC and PLE. By default 1.",
+    )
+    parser.add_argument(
+        "--cgc_num_shared_experts",
+        default=2,
+        type=int,
+        help="Number of shared experts for CGC and PLE. By default 2.",
+    )
+    parser.add_argument(
+        "--ple_num_layers",
+        default=1,
+        type=int,
+        help="Number of CGC modules to stack for PLE architecture. By default 1.",
+    )
 
     # hyperparams for multi-task (MMOE, CGC, PLE)
-    parser.add_argument("--gate_dim", default=64, type=int, help="")
+    parser.add_argument(
+        "--gate_dim",
+        default=64,
+        type=int,
+        help="Dimension of the gate dim MLP layer. By default 64",
+    )
 
-    parser.add_argument("--mtl_gates_softmax_temperature", default=1.0, type=float, help="")
+    parser.add_argument(
+        "--mtl_gates_softmax_temperature",
+        default=1.0,
+        type=float,
+        help="Sets the softmax temperature for the gates output layer, "
+        "that provides weights for the weighted average of experts outputs. "
+        "By default 1.0",
+    )
 
     parser.add_argument(
         "--use_task_towers",
@@ -217,39 +329,114 @@ def build_arg_parser():
         nargs="?",
         const=True,
         default=False,
-        help="",
+        help="Enables task-specific towers before its head.",
     )
 
-    parser.add_argument("--tower_layers", default="64", type=str, help="")
+    parser.add_argument(
+        "--tower_layers",
+        default="64",
+        type=str,
+        help="MLP architecture of task-specific towers. By default '64'",
+    )
 
     # hyperparams for training
-    parser.add_argument("--lr", default=1e-4, type=float, help="")
-    parser.add_argument("--lr_decay_rate", default=0.98, type=float, help="")
-    parser.add_argument("--lr_decay_steps", default=100, type=int, help="")
-    parser.add_argument("--train_batch_size", default=1024, type=int, help="")
-    parser.add_argument("--eval_batch_size", default=1024, type=int, help="")
-    parser.add_argument("--epochs", default=1, type=int, help="")
-    parser.add_argument("--optimizer", default="adam", choices=["adagrad", "adam"], help="")
+    parser.add_argument("--lr", default=1e-4, type=float, help="Learning rate")
+    parser.add_argument(
+        "--lr_decay_rate",
+        default=0.99,
+        type=float,
+        help=" Learning rate decay factor. By default 0.99",
+    )
+    parser.add_argument(
+        "--lr_decay_steps",
+        default=100,
+        type=int,
+        help="Learning rate decay steps. It decreases the LR at this frequency, "
+        "by default each 100 steps",
+    )
+    parser.add_argument(
+        "--train_batch_size",
+        default=1024,
+        type=int,
+        help=" Train batch size. By default 1024. Larger batch sizes are recommended "
+        "for better performance.",
+    )
+    parser.add_argument(
+        "--eval_batch_size",
+        default=1024,
+        type=int,
+        help="Eval batch size. By default 1024. Larger batch sizes are recommended "
+        "for better performance.",
+    )
+    parser.add_argument("--epochs", default=1, type=int, help="Number of epochs. By default 1.")
+    parser.add_argument(
+        "--optimizer",
+        default="adam",
+        choices=["adagrad", "adam"],
+        help="Optimizer. By default 'adam'",
+    )
 
-    parser.add_argument("--train_metrics_steps", default=10, type=int, help="")
-    parser.add_argument("--metrics_log_frequency", default=50, type=int, help="")
-    parser.add_argument("--validation_steps", default=10, type=int, help="")
+    parser.add_argument(
+        "--train_metrics_steps",
+        default=10,
+        type=int,
+        help="How often should train metrics be computed during training. "
+        "You might increase this number to reduce the frequency and increase a bit the "
+        "training throughput. By default 10.",
+    )
 
-    parser.add_argument("--random_seed", default=42, type=int, help="")
-    parser.add_argument("--train_steps_per_epoch", type=int, help="")
+    parser.add_argument(
+        "--validation_steps",
+        default=10,
+        type=int,
+        help="If not predicting, logs the validation metrics for "
+        "this number of steps at the end of each training epoch. By default 10.",
+    )
+
+    parser.add_argument(
+        "--random_seed",
+        default=42,
+        type=int,
+        help="Random seed for some reproducibility. By default 42.",
+    )
+    parser.add_argument(
+        "--train_steps_per_epoch",
+        type=int,
+        help="Number of train steps per epoch. Set this for quick debugging.",
+    )
 
     # In-batch negatives
-    parser.add_argument("--in_batch_negatives_train", default=0, type=int, help="")
-    parser.add_argument("--in_batch_negatives_eval", default=0, type=int, help="")
+    parser.add_argument(
+        "--in_batch_negatives_train",
+        default=0,
+        type=int,
+        help="If greater than 0, enables in-batch sampling, providing this number of "
+        "negative samples per positive. This requires that your data contains "
+        "only positive examples, and that item features are tagged accordingly in the schema, "
+        "for example, by setting --item_features in the preprocessing script.",
+    )
+    parser.add_argument(
+        "--in_batch_negatives_eval",
+        default=0,
+        type=int,
+        help="Same as --in_batch_negatives_train for evaluation.",
+    )
 
     # Logging
+    parser.add_argument(
+        "--metrics_log_frequency",
+        default=50,
+        type=int,
+        help="--How often metrics should be logged to Tensorboard or Weights&Biases. "
+        "By default each 50 steps.",
+    )
     parser.add_argument(
         "--log_to_tensorboard",
         type=str2bool,
         nargs="?",
         const=True,
         default=False,
-        help="",
+        help="Enables logging to Tensorboard.",
     )
 
     parser.add_argument(
@@ -258,11 +445,25 @@ def build_arg_parser():
         nargs="?",
         const=True,
         default=True,
-        help="",
+        help="Enables logging to Weights&Biases. "
+        "This requires sign-up for a free W&B account and providing an API key in the console.",
     )
 
-    parser.add_argument("--wandb_project", default="mm_quick_start", help="")
-    parser.add_argument("--wandb_entity", default="merlin-research", help="")
-    parser.add_argument("--wandb_exp_group", default="", help="")
+    parser.add_argument(
+        "--wandb_project",
+        default="mm_quick_start",
+        help="Name of the Weights&Biases project to log",
+    )
+    parser.add_argument(
+        "--wandb_entity",
+        default="merlin-research",
+        help="Name of the Weights&Biases team/org to log",
+    )
+    parser.add_argument(
+        "--wandb_exp_group",
+        default="",
+        help="Not used by the script. Just used to allow for logging some "
+        "info to organize experiments in Weights&Biases ",
+    )
 
     return parser

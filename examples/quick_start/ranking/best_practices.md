@@ -34,6 +34,12 @@ Different ranking model characteristics
 - STL: "mlp", "dcn", "dlrm", "deepfm", "wide_n_deep"
 - MTL: "mmoe", "cgc","ple",
 
+
+### Setting tasks sample space
+In that dataset, some targets depend on others. For example, you only have a `like/follow/share=1` event if the user has clicked in the item. The learning of the dependent tasks is better if we set the appropriate sample space for the targets. In this case, we want to train the `click` target  using the entire space, and train the other targets (i.e., compute the loss) only for click space (where `click=1`).  
+
+The scripts allows for setting the tasks sample space by using `--tasks_sample_space`, where the position should match the order of the `--tasks`. Empty value means the task will be trained in the entire space, i.e., loss computed for all examples in the dataset.
+
 # Hyperparameter tuning
 
 ## W&B sweeps

@@ -40,7 +40,7 @@ class PreprocessingRunner:
     def read_data(self, path) -> dask_cudf.DataFrame:
         args = self.args
         logging.info(f"Reading data: {args.data_path}")
-        if args.input_data_format == "csv":
+        if args.input_data_format in ["csv", "tsv"]:
             ddf = dask_cudf.read_csv(path, sep=args.csv_sep, na_values=args.csv_na_values)
         elif args.input_data_format == "parquet":
             ddf = dask_cudf.read_parquet(path)
@@ -164,12 +164,14 @@ class PreprocessingRunner:
         args = self.args
         feats = dict()
 
+        for col in args.control_features:
+            feats[col] = [col]
         for col in args.categorical_features:
             feats[col] = [col] >> nvt_ops.Categorify()
         for col in args.continuous_features:
             feats[col] = [col]
             if args.continuous_features_fillna is not None:
-                if args.continuous_features_fillna.lower() == "<median>":
+                if args.continuous_features_fillna.lower() == "median":
                     feats[col] = feats[col] >> nvt_ops.FillMedian()
                 else:
                     feats[col] = feats[col] >> nvt_ops.FillMissing(args.continuous_features_fillna)
