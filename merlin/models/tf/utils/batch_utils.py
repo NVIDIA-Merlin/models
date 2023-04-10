@@ -7,7 +7,7 @@ import tensorflow as tf
 from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.loader import Loader
-from merlin.models.tf.models.base import Model, RetrievalModel
+from merlin.models.tf.models.base import Model, RetrievalModel, get_task_names_from_outputs
 from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Schema, Tags
 
@@ -82,8 +82,8 @@ class TFModelEncode(ModelEncode):
         model_load_func = block_load_func if block_load_func else tf.keras.models.load_model
         if not output_names:
             try:
-                output_names = model.last.task_names
-            except AttributeError:
+                output_names = get_task_names_from_outputs(model.last)
+            except ValueError:
                 pass
         if not output_concat_func:
             if output_names and len(output_names) == 1:  # type: ignore
