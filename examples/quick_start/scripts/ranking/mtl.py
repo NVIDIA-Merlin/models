@@ -82,7 +82,7 @@ def get_mtl_prediction_tasks(targets, args):
     tasks_pos_class_weights = get_mtl_positive_class_weights(targets, args)
 
     if args.tasks_sample_space:
-        if len(args.tasks.split(",")) != len(args.tasks_sample_space.split(",")):
+        if len(args.tasks) != len(args.tasks_sample_space):
             raise ValueError(
                 "If --tasks_sample_space is provided, the list of tasks sample "
                 "(separated by ',') need to match the length of the list "
@@ -91,9 +91,9 @@ def get_mtl_prediction_tasks(targets, args):
                 "then you can use empty string ('') for that task. "
                 "For example: --tasks=click,like --tasks_sample_space=,click"
             )
-        tasks_space = dict(zip(args.tasks.split(","), args.tasks_sample_space.split(",")))
+        tasks_space = dict(zip(args.tasks, args.tasks_sample_space))
     else:
-        tasks_space = {t: None for t in args.tasks.split(",")}
+        tasks_space = {t: None for t in args.tasks}
 
     prediction_tasks = []
     if Task.BINARY_CLASSIFICATION in targets:

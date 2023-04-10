@@ -38,17 +38,15 @@ class RankingTrainEvalRunner:
         self.train_ds = train_ds
         self.eval_ds = eval_ds
 
-        self.schema, self.targets = self.filter_schema_with_selected_targets(self.train_ds.schema)
-        self.set_dataloaders(self.schema)
+        self.schema, eval_schema, self.targets = self.filter_schema_with_selected_targets(
+            self.train_ds.schema, self.eval_ds.schema
+        )
+        self.set_dataloaders(self.schema, eval_schema)
 
     def get_targets(self, schema):
         tasks = self.args.tasks
-        if tasks == "all":
+        if "all" in tasks:
             tasks = schema.select_by_tag(Tags.TARGET).column_names
-        elif "," in tasks:
-            tasks = tasks.split(",")
-        else:
-            tasks = [tasks]
 
         targets_schema = schema.select_by_name(tasks)
         targets = dict()
@@ -65,43 +63,46 @@ class RankingTrainEvalRunner:
 
         return targets
 
-    def filter_schema_with_selected_targets(self, schema):
-        targets = self.get_targets(schema)
-        flattened_targets = [y for x in targets.values() for y in x]
+    def filter_schema_with_selected_targets(self, train_schema, eval_schema):
+        targets = self.get_targets(train_schema)
 
-        if self.args.tasks != "all":
+        if "all" not in self.args.tasks:
+            flattened_targets = [y for x in targets.values() for y in x]
             # Removing targets not used from schema
             targets_to_remove = list(
-                set(schema.select_by_tag(Tags.TARGET).column_names).difference(
+                set(train_schema.select_by_tag(Tags.TARGET).column_names).difference(
                     set(flattened_targets)
                 )
             )
-            schema = schema.excluding_by_name(targets_to_remove)
+            train_schema = train_schema.excluding_by_name(targets_to_remove)
+            eval_schema = eval_schema.excluding_by_name(targets_to_remove)
 
-        return schema, targets
+        return train_schema, eval_schema, targets
 
-    def set_dataloaders(self, schema):
+    def set_dataloaders(self, train_schema, eval_schema):
         args = self.args
         train_loader_kwargs = {}
         if self.args.in_batch_negatives_train:
             train_loader_kwargs["transform"] = InBatchNegatives(
-                schema, args.in_batch_negatives_train
+                train_schema, args.in_batch_negatives_train
             )
         self.train_loader = mm.Loader(
             self.train_ds,
             batch_size=args.train_batch_size,
-            schema=schema,
+            schema=train_schema,
             **train_loader_kwargs,
         )
 
         eval_loader_kwargs = {}
         if args.in_batch_negatives_eval:
-            eval_loader_kwargs["transform"] = InBatchNegatives(schema, args.in_batch_negatives_eval)
+            eval_loader_kwargs["transform"] = InBatchNegatives(
+                eval_schema, args.in_batch_negatives_eval
+            )
 
         self.eval_loader = mm.Loader(
             self.eval_ds,
             batch_size=args.eval_batch_size,
-            schema=schema,
+            schema=eval_schema,
             **eval_loader_kwargs,
         )
 
@@ -172,6 +173,13 @@ class RankingTrainEvalRunner:
         callbacks = get_callbacks(self.args)
         class_weights = {0: 1.0, 1: self.args.stl_positive_class_weight}
 
+        fit_kwargs = {}
+        if not self.args.predict:
+            fit_kwargs = {
+                "validation_data": self.eval_loader,
+                "validation_steps": self.args.validation_steps,
+            }
+
         logging.info("Starting to train the model")
         model.fit(
             self.train_loader,
@@ -181,22 +189,26 @@ class RankingTrainEvalRunner:
             shuffle=False,
             drop_last=False,
             callbacks=callbacks,
-            validation_data=self.eval_loader,
-            validation_steps=self.args.validation_steps,
             train_metrics_steps=self.args.train_metrics_steps,
             class_weight=class_weights,
-        )
-        logging.info("Starting the evaluation of the model")
-
-        eval_metrics = model.evaluate(
-            self.eval_loader,
-            batch_size=self.args.eval_batch_size,
-            return_dict=True,
-            callbacks=callbacks,
+            **fit_kwargs,
         )
 
-        print(f"EVALUATION METRICS: {eval_metrics}")
-        self.log_final_metrics(eval_metrics)
+        if self.args.predict:
+            self.save_predictions(model, self.eval_loader.dataset)
+
+        else:
+            logging.info("Starting the evaluation of the model")
+
+            eval_metrics = model.evaluate(
+                self.eval_loader,
+                batch_size=self.args.eval_batch_size,
+                return_dict=True,
+                callbacks=callbacks,
+            )
+
+            logging.info(f"EVALUATION METRICS: {eval_metrics}")
+            self.log_final_metrics(eval_metrics)
 
         return model
 
@@ -220,6 +232,13 @@ class RankingTrainEvalRunner:
 
         logging.info(f"MODEL: {model}")
 
+        fit_kwargs = {}
+        if not self.args.predict:
+            fit_kwargs = {
+                "validation_data": self.eval_loader,
+                "validation_steps": self.args.validation_steps,
+            }
+
         logging.info("Starting to train the model (fit())")
         model.fit(
             self.train_loader,
@@ -229,42 +248,80 @@ class RankingTrainEvalRunner:
             shuffle=False,
             drop_last=False,
             callbacks=callbacks,
-            validation_data=self.eval_loader,
-            validation_steps=args.validation_steps,
             train_metrics_steps=args.train_metrics_steps,
+            **fit_kwargs,
         )
 
-        logging.info("Starting the evaluation the model (evaluate())")
+        if self.args.predict:
+            self.save_predictions(model, self.eval_loader.dataset)
 
-        eval_metrics = model.evaluate(
-            self.eval_loader,
-            batch_size=args.eval_batch_size,
-            return_dict=True,
-            callbacks=callbacks,
-        )
+        else:
+            logging.info("Starting the evaluation the model (evaluate())")
 
-        auc_metric_results = {
-            k.split("/")[0]: v for k, v in eval_metrics.items() if "binary_output/auc" in k
-        }
+            eval_metrics = model.evaluate(
+                self.eval_loader,
+                batch_size=args.eval_batch_size,
+                return_dict=True,
+                callbacks=callbacks,
+            )
 
-        auc_metric_results = {f"{k}-auc": v for k, v in auc_metric_results.items()}
+            auc_metric_results = {
+                k.split("/")[0]: v for k, v in eval_metrics.items() if "binary_output/auc" in k
+            }
 
-        avg_metrics = {
-            "auc_avg": np.mean(list(auc_metric_results.values())),
-        }
+            auc_metric_results = {f"{k}-auc": v for k, v in auc_metric_results.items()}
 
-        all_metrics = {
-            **avg_metrics,
-            **auc_metric_results,
-            **eval_metrics,
-        }
+            avg_metrics = {
+                "auc_avg": np.mean(list(auc_metric_results.values())),
+            }
 
-        logging.info(f"EVALUATION METRICS: {all_metrics}")
+            all_metrics = {
+                **avg_metrics,
+                **auc_metric_results,
+                **eval_metrics,
+            }
 
-        # log final metrics
-        self.log_final_metrics(all_metrics)
+            logging.info(f"EVALUATION METRICS: {all_metrics}")
+
+            # log final metrics
+            self.log_final_metrics(all_metrics)
 
         return model
+
+    def save_predictions(self, model, dataset):
+        logging.info("Starting the batch predict of the evaluation set")
+
+        predictions_ds = model.batch_predict(
+            dataset,
+            batch_size=self.args.eval_batch_size,
+        )
+        predictions_ddf = predictions_ds.to_ddf()
+
+        if self.args.predict_keep_cols:
+            cols = set(predictions_ddf.columns)
+            pred_cols = sorted(
+                list(cols.difference(set(self.eval_loader.dataset.to_ddf().columns)))
+            )
+            # Keeping only selected features and all targets
+            predictions_ddf = predictions_ddf[self.args.predict_keep_cols + pred_cols]
+
+        output_path = os.path.join(self.args.output_path, "predictions/")
+        if self.args.predict_output_path:
+            output_path = self.args.predict_output_path
+
+        if self.args.predict_output_format == "parquet":
+            predictions_ddf.to_parquet(output_path, write_index=False)
+        elif self.args.predict_output_format in ["csv", "tsv"]:
+            if self.args.predict_output_format == "csv":
+                sep = ","
+            elif self.args.predict_output_format == "tsv":
+                sep = "\t"
+            predictions_ddf.to_csv(output_path, single_file=True, index=False, sep=sep)
+        else:
+            raise ValueError(
+                "Only supported formats for output prediction files"
+                f" are parquet or csv, but got '{self.args.predict_output_format}'"
+            )
 
     def log_final_metrics(self, metrics_results):
         if self.logger:
@@ -287,7 +344,7 @@ class RankingTrainEvalRunner:
                 # Multiple targets = Multi-Task Learning
                 model = self.train_eval_mtl()
 
-            logging.info("Finished training and evaluation")
+            logging.info("Finished training / evaluation / prediction")
 
             if self.args.save_trained_model_path:
                 logging.info(f"Saving model to {self.args.save_trained_model_path}")
@@ -315,7 +372,26 @@ def main():
     runner.run()
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class LogLossMetric(Mean):
+    """Log loss metric.
+    Keras offers the log loss (a.k.a. binary cross entropy), but it
+    may be affected by sample weights, which you might not
+    want for the metric calculation).
+    This is the corresponding metric, that is useful to evaluate
+    the performance of binary classification tasks.
+
+    Parameters
+    ----------
+    name : str, optional
+        Name of the metric, by default "logloss"
+    from_logits : bool, optional
+        Whether the metric should expect the likelihood (e.g. sigmoid function in output)
+        or logits (False). By default False
+    dtype
+        Dtype of metric output, by default None
+    """
+
     def __init__(self, name="logloss", from_logits=False, dtype=None):
         self.from_logits = from_logits
         super().__init__(name=name, dtype=dtype)

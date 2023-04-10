@@ -197,7 +197,7 @@ def get_wide_and_deep_model(schema, args, prediction_tasks):
 
     ignore_combinations = None
     if args.wnd_ignore_combinations:
-        ignore_combinations = [x.split(":") for x in args.wnd_ignore_combinations.split(",")]
+        ignore_combinations = [x.split(":") for x in args.wnd_ignore_combinations]
 
     wide_preprocess = [
         # One-hot features

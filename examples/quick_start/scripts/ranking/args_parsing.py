@@ -13,6 +13,12 @@ class MtlArgsPrefix(Enum):
 
 
 INT_LIST_ARGS = ["mlp_layers", "expert_mlp_layers", "tower_layers"]
+STR_LIST_ARGS = [
+    "tasks",
+    "tasks_sample_space",
+    "predict_keep_cols",
+    "wnd_ignore_combinations",
+]
 
 
 def str2bool(v):
@@ -37,12 +43,12 @@ def parse_dynamic_args(dyn_args):
     return dyn_args_dict
 
 
-def parse_int_list_arg(value):
-    # Used because autobench can't provide empty string ("") as argument
-    if value == "None":
+def parse_list_arg(value, vtype=str):
+    # Used to allow providing empty string ("") as command line argument
+    if value is None or value == "None":
         value = ""
 
-    alist = list([int(v.strip()) for v in value.split(",") if v != ""])
+    alist = list([vtype(v.strip()) for v in value.split(",") if v != ""])
     return alist
 
 
@@ -65,7 +71,10 @@ def parse_arguments():
 
     # Parsing str args that contains lists of ints
     for a in INT_LIST_ARGS:
-        new_args[a] = parse_int_list_arg(new_args[a])
+        new_args[a] = parse_list_arg(new_args[a], vtype=int)
+
+    for a in STR_LIST_ARGS:
+        new_args[a] = parse_list_arg(new_args[a])
 
     # logging.info(f"ARGUMENTS: {new_args}")
 
@@ -81,6 +90,39 @@ def build_arg_parser():
     # Outputs
     parser.add_argument("--output_path", default="/results/", help="")
     parser.add_argument("--save_trained_model_path", default=None, help="")
+
+    parser.add_argument(
+        "--predict",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="If enabled, instead the dataset provided "
+        "will be used for prediction (instead of evaluation)."
+        "The prediction scores for the dataset in eval_path will "
+        "be saved to a file defined in --predict_output_path, "
+        "according to the --predict_output_format choice.",
+    )
+    parser.add_argument(
+        "--predict_keep_cols",
+        default=None,
+        help="Comma-separated list of columns to keep in the output "
+        "prediction file. If no columns is provided, all columns "
+        "are kept together with the prediction scores.",
+    )
+    parser.add_argument(
+        "--predict_output_path",
+        default=None,
+        help="If provided the prediction scores will be saved to this path. "
+        "Otherwise, files will be saved to output_path/predictions",
+    )
+
+    parser.add_argument(
+        "--predict_output_format",
+        default="parquet",
+        choices=["parquet", "csv", "tsv"],
+        help="Format of the output prediction file.",
+    )
 
     # Tasks
     parser.add_argument(
@@ -189,9 +231,9 @@ def build_arg_parser():
     parser.add_argument("--epochs", default=1, type=int, help="")
     parser.add_argument("--optimizer", default="adam", choices=["adagrad", "adam"], help="")
 
-    parser.add_argument("--train_metrics_steps", default=50, type=int, help="")
+    parser.add_argument("--train_metrics_steps", default=10, type=int, help="")
     parser.add_argument("--metrics_log_frequency", default=50, type=int, help="")
-    parser.add_argument("--validation_steps", default=0, type=int, help="")
+    parser.add_argument("--validation_steps", default=10, type=int, help="")
 
     parser.add_argument("--random_seed", default=42, type=int, help="")
     parser.add_argument("--train_steps_per_epoch", type=int, help="")
