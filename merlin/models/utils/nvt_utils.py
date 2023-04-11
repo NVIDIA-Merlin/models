@@ -1,5 +1,6 @@
 import logging
 
+from merlin.core.compat import cudf
 
 def require_nvt():
     try:
@@ -36,9 +37,7 @@ def require_nvt():
 
 
 def _check_nvt_gpu():
-    try:
-        import cudf  # noqa
-    except ImportError:
+    if not cudf:
         logging.warning(
             "A GPU was detected but rapids is not installed.",
             "NVTabular will not be able to use GPU.",

@@ -24,6 +24,7 @@ from typing import Dict, Sequence, Tuple, Union
 import numpy as np
 
 import merlin.io
+from merlin.core.compat import cudf
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata

@@ -20,6 +20,7 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
+from merlin.core.compat import cudf
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 from merlin.models.tf.core.aggregation import ElementWiseMultiply
@@ -59,17 +60,13 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
     assert os.path.exists(item_embedding_parquet)
 
     # Test GPU export if available
-    try:
-        import cudf  # noqa: F401
-
+    if cudf:
         user_embedding_parquet = str(tmp_path / "users.parquet")
         mf.export_embedding_table(Tags.USER_ID, user_embedding_parquet, gpu=True)
         assert os.path.exists(user_embedding_parquet)
         df = mf.embedding_table_df(Tags.USER_ID, gpu=True)
         assert isinstance(df, cudf.DataFrame)
         assert len(df) == 10001
-    except ImportError:
-        pass
 
 
 def test_elementwisemultiply():
