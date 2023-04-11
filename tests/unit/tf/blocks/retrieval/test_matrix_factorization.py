@@ -18,9 +18,9 @@ import os
 import tensorflow as tf
 
 import merlin.models.tf as ml
+from merlin.core.compat import cudf
 from merlin.io import Dataset
 from merlin.schema import Tags
-from merlin.core.compat import cudf
 
 
 def test_matrix_factorization_block(music_streaming_data: Dataset):
@@ -79,4 +79,3 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
         df = mf.embedding_table_df(Tags.USER_ID, gpu=True)
         assert isinstance(df, cudf.DataFrame)
         assert len(df) == 10001
-

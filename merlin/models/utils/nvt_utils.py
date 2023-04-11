@@ -2,6 +2,7 @@ import logging
 
 from merlin.core.compat import cudf
 
+
 def require_nvt():
     try:
         import nvtabular as nvt  # noqa

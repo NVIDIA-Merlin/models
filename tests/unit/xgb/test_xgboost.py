@@ -30,6 +30,7 @@ from merlin.models.xgb import XGBoost, dataset_to_xy
 if not HAS_GPU:
     pytest.skip(reason="No GPU available", allow_module_level=True)
 
+
 def test_without_dask_client(music_streaming_data: Dataset):
     with pytest.raises(ValueError) as exc_info:
         model = XGBoost(music_streaming_data.schema, objective="reg:logistic")

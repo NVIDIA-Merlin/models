@@ -725,7 +725,6 @@ def test_embedding_features_exporting_and_loading_pretrained_initializer(testing
 
     # Test GPU export if available
     if cudf:
-
         items_embeddings_dataset = emb_module.embedding_table_dataset(Tags.ITEM_ID, gpu=True)
         assert np.allclose(
             item_id_embeddings.numpy(),

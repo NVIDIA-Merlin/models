@@ -22,8 +22,8 @@ from keras.utils.tf_inspect import getfullargspec
 from packaging import version
 from tensorflow.python import to_dlpack
 
-from merlin.core.dispatch import DataFrameType
 from merlin.core.compat import cudf, cupy
+from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
 from merlin.models.tf.core.base import Block, ModelContext
 from merlin.models.tf.typing import TabularData

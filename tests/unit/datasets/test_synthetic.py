@@ -16,11 +16,11 @@
 import numpy as np
 import pytest
 
+from merlin.core.compat import cudf
 from merlin.datasets.synthetic import generate_data, generate_user_item_interactions
 from merlin.io import Dataset
 from merlin.models.utils.schema_utils import filter_dict_by_schema
 from merlin.schema import ColumnSchema, Schema, Tags
-from merlin.core.compat import cudf
 
 
 def test_synthetic_sequence_testing_data():
@@ -136,6 +136,7 @@ def test_generate_item_interactions_cpu(testing_data: Dataset):
     assert all(
         val == expected_dtypes[key] for key, val in dict(data.dtypes).items() if key != "categories"
     )
+
 
 @pytest.mark.skipif(not cudf, reason="cudf could not be imported")
 def test_generate_item_interactions_gpu(testing_data: Dataset):
