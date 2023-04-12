@@ -80,7 +80,7 @@ class TFModelEncode(ModelEncode):
         model.save(save_path)
 
         model_load_func = block_load_func if block_load_func else tf.keras.models.load_model
-        if not output_names:
+        if not output_names and isinstance(model, Model):
             try:
                 output_names = get_task_names_from_outputs(model.last)
             except ValueError:
