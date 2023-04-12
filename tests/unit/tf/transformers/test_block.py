@@ -182,7 +182,7 @@ def test_transformer_as_classification_model(sequence_testing_data: Dataset, run
     batch = loader.peek()[0]
 
     outputs = model(batch)
-    assert list(outputs.shape) == [50, 63]
+    assert list(outputs.shape) == [64, 63]
     testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
 
 
@@ -223,7 +223,7 @@ def classification_loader(sequence_testing_data: Dataset):
     sequence_testing_data.schema = schema
     dataloader = mm.Loader(
         sequence_testing_data,
-        batch_size=50,
+        batch_size=64,
     ).map(mm.ToTarget(schema, "user_country", one_hot=True))
     return dataloader, dataloader.output_schema
 
