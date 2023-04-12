@@ -1,6 +1,6 @@
 from copy import deepcopy
 from functools import reduce
-from typing import Callable, Dict, Iterator, List, Union
+from typing import Callable, Dict, Iterator, List, Union, Tuple
 
 import torch
 from torch import nn
@@ -27,6 +27,8 @@ class ParallelBlock(TabularBlock):
     aggregation : Callable, optional
         Aggregation function to apply on outputs.
     """
+    
+    _modules: Dict[str, nn.Module]  # type: ignore[assignment]
 
     def __init__(
         self, *inputs: Union[nn.Module, Dict[str, nn.Module]], pre=None, post=None, aggregation=None
@@ -46,16 +48,18 @@ class ParallelBlock(TabularBlock):
         else:
             raise ValueError(f"Invalid input. Got: {inputs}")
 
-        self.parallel_dict = _parallel_dict
-        for key, val in _parallel_dict.items():
-            self.add_module(str(key), val)
+        # # self.parallel_dict = torch.ModuleDict(_parallel_dict)
+        # for key, val in _parallel_dict.items():
+        #     self.add_module(str(key), val)
+        
+        self.branches = nn.ModuleDict({str(i): m for i, m in _parallel_dict.items()})
 
         if all(hasattr(m, "schema") for m in _parallel_dict.values()):
             self.schema = reduce(
                 lambda a, b: a + b, [m.schema for m in _parallel_dict.values()]
             )  # type: ignore
 
-    def forward(self, inputs, **kwargs):
+    def forward(self, inputs, features=None, targets=None) -> Dict[str, torch.Tensor]:
         """
         Process inputs through the parallel layers.
 
@@ -73,11 +77,12 @@ class ParallelBlock(TabularBlock):
         """
         outputs = {}
 
-        for name, module in self.parallel_dict.items():
+        for name, module in self.branches.items():
             module_inputs = inputs  # TODO: Add filtering when adding schema
-            out = apply(module, module_inputs, **kwargs)
-            if not isinstance(out, dict):
-                out = {name: out}
+            # out = apply(module, module_inputs, features=features, targets=targets)
+            out = module(module_inputs) # TODO: Fix features + targets
+            out = _check_dict(out, str(name))
+            
             outputs.update(out)
 
         return outputs
@@ -89,7 +94,7 @@ class ParallelBlock(TabularBlock):
         selected_branches = {}
         selected_schemas = Schema()
 
-        for name, branch in self.parallel_dict.items():
+        for name, branch in self.items():
             branch_has_schema = hasattr(branch, "schema")
             if not branch_has_schema:
                 continue
@@ -149,7 +154,7 @@ class ParallelBlock(TabularBlock):
         selected_branches = {}
         selected_schemas = Schema()
 
-        for name, branch in self.parallel_dict.items():
+        for name, branch in self.items():
             branch_has_schema = hasattr(branch, "schema")
             if not branch_has_schema:
                 continue
@@ -173,33 +178,37 @@ class ParallelBlock(TabularBlock):
             aggregation=self.aggregation,
         )
 
-    def items(self):
-        return self.parallel_dict.items()
+    @_copy_to_script_wrapper
+    def items(self) -> Iterator[Tuple[str, nn.Module]]:
+        return self._modules.items()
 
-    def keys(self):
-        return self.parallel_dict.keys()
+    @_copy_to_script_wrapper
+    def keys(self) -> Iterator[str]:
+        return self.branches.keys()
 
-    def values(self):
-        return self.parallel_dict.values()
+    @_copy_to_script_wrapper
+    def values(self) -> Iterator[nn.Module]:
+        return self.branches.values()
 
-    @property
+    # @property
+    @_copy_to_script_wrapper
     def first(self) -> nn.Module:
-        return next(iter(self.parallel_dict.values()))
+        return next(iter(self.branches.values()))
 
     @_copy_to_script_wrapper
     def __len__(self) -> int:
-        return len(self.parallel_dict)
+        return len(self.branches)
 
     @_copy_to_script_wrapper
     def __iter__(self) -> Iterator[nn.Module]:
-        return iter(self.parallel_dict.values())
+        return iter(self.branches.values())
 
     @_copy_to_script_wrapper
     def __getitem__(self, key) -> nn.Module:
-        return self.parallel_dict[key]
+        return self.branches[key]
 
     def __bool__(self) -> bool:
-        return bool(self.parallel_dict)
+        return bool(self.branches)
 
 
 class WithShortcut(ParallelBlock):
@@ -486,3 +495,14 @@ class SequentialBlock(nn.Sequential):
             repeated["shortcut"] = nn.Identity()
 
         return ParallelBlock(repeated, post=post, aggregation=aggregation, **kwargs)
+
+
+@torch.jit.script
+def _check_dict(output, name: str) -> Dict[str, torch.Tensor]:
+    if not torch.jit.isinstance(output, Dict[str, torch.Tensor]):
+        output = {name: output}
+    else:
+        # Ensure the keys are strings
+        output = {str(k): v for k, v in output.items()}
+        
+    return output

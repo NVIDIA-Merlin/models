@@ -3,7 +3,7 @@ from typing import Protocol, Union, runtime_checkable
 from torch import nn
 from typing_extensions import Self
 
-from merlin.models.torch.utils.module_utils import ModuleHook
+from merlin.models.torch.utils.module_utils import ModulePreHook, ModulePostHook
 from merlin.models.utils.registry import Registry
 
 registry: Registry = Registry.class_registry("torch.modules")
@@ -42,10 +42,10 @@ class Block(nn.Module):
 
 @runtime_checkable
 class Selectable(Protocol):
-    def select_by_name(self, names) -> Self:
+    def select_by_name(self, names):
         ...
 
-    def select_by_tag(self, tags) -> Self:
+    def select_by_tag(self, tags):
         ...
 
 
@@ -71,9 +71,9 @@ class TabularBlock(Block):
     def forward(self, inputs):
         return inputs
 
-    @property
-    def is_selectable(self) -> bool:
-        return isinstance(self, Selectable)
+    # @property
+    # def is_selectable(self) -> bool:
+    #     return isinstance(self, Selectable)
 
 
 def register_pre_hook(
@@ -97,7 +97,7 @@ def register_pre_hook(
     """
     pre = Block.from_registry(to_register) if isinstance(to_register, str) else to_register
 
-    module.register_forward_pre_hook(ModuleHook(pre), prepend=prepend, with_kwargs=with_kwargs)
+    module.register_forward_pre_hook(ModulePreHook(pre), prepend=prepend, with_kwargs=with_kwargs)
 
     return pre
 
@@ -124,6 +124,6 @@ def register_post_hook(
     """
     post = Block.from_registry(to_register) if isinstance(to_register, str) else to_register
 
-    module.register_forward_hook(ModuleHook(post), prepend=prepend, with_kwargs=with_kwargs)
+    module.register_forward_hook(ModulePostHook(post), prepend=prepend, with_kwargs=with_kwargs)
 
     return post

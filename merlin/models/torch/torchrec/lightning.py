@@ -6,12 +6,12 @@ from typing import Any, Dict, Optional, Union
 import torch
 import torch.distributed as dist
 from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.utilities.types import _PATH
 from torch import nn
 
-# from torchrec.distributed import TrainPipelineSparseDist
-# from torchrec.distributed.model_parallel import DistributedModelParallel
-# from torchrec.distributed.train_pipeline import In
+from torchrec.datasets.utils import Batch
+from torchrec.distributed import TrainPipelineSparseDist
+from torchrec.distributed.model_parallel import DistributedModelParallel
+from torchrec.distributed.train_pipeline import In
 from torchrec.optim.keyed import KeyedOptimizerWrapper
 
 from merlin.models.torch.models.base import Model
@@ -33,10 +33,10 @@ class TorchrecModel(Model):
         optimizer_cls=torch.optim.Adam,
     ):
         super().__init__(
-            *blocks, pre=pre, postpost=post, schema=schema, optimizer_cls=optimizer_cls
+            *blocks, pre=pre, post=post, schema=schema, optimizer_cls=optimizer_cls
         )
 
-        rank = int(os.environ["LOCAL_RANK"])
+        rank = int(os.environ.get("LOCAL_RANK", 1))
         if torch.cuda.is_available():
             device = torch.device(f"cuda:{rank}")
             backend = "nccl"
@@ -48,6 +48,31 @@ class TorchrecModel(Model):
         if not torch.distributed.is_initialized():
             dist.init_process_group(backend=backend)
         self.to(device=device)
+        
+        self.model = DistributedModelParallel(
+            module=self,
+            device=device,
+        )
+        
+        self.train_pipeline: TrainPipelineSparseDist = TrainPipelineSparseDist(
+            self.model,
+            self.configure_optimizers(),
+            device,
+        )
+        self.automatic_optimization = False
+        
+    def training_step(self, batch: Batch, batch_idx):
+        del batch_idx
+
+        if self.data_propagation_hook:
+            outputs = self(batch.sparse_features, targets=batch.labels)
+        else:
+            outputs = self(batch.sparse_features)
+
+        loss = self.calculate_loss(outputs, batch.labels)
+        self.log("train_loss", loss)
+
+        return loss
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return KeyedOptimizerWrapper(
@@ -97,7 +122,7 @@ class TorchrecStrategy(ParallelStrategy):
     def save_checkpoint(
         self,
         checkpoint: Dict[str, Any],
-        filepath: _PATH,
+        filepath,
         # pyre-ignore[2]: Parameter `storage_options` has type `None` but type `Any` is specified.
         storage_options: Optional[Any] = None,
     ) -> None:

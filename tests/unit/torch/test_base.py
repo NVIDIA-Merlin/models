@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from merlin.models.torch.base import Block, Selectable, TabularBlock
+from merlin.models.torch.utils import module_utils
 from merlin.schema import Schema
 
 
@@ -10,7 +11,7 @@ class TestBlock:
         block = Block()
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
 
-        outputs = block(inputs)
+        outputs = module_utils.module_test(block, inputs)
 
         assert torch.equal(inputs, outputs)
 
@@ -19,7 +20,7 @@ class TestBlock:
         block = Block(pre=pre)
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
 
-        outputs = block(inputs)
+        outputs = module_utils.module_test(block, inputs)
         expected_outputs = pre(inputs)
 
         assert torch.equal(outputs, expected_outputs)
@@ -29,7 +30,7 @@ class TestBlock:
         block = Block(post=post)
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
 
-        outputs = block(inputs)
+        outputs = module_utils.module_test(block, inputs)
         expected_outputs = post(inputs)
 
         assert torch.equal(outputs, expected_outputs)
@@ -40,7 +41,7 @@ class TestBlock:
         block = Block(pre=pre, post=post)
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
 
-        outputs = block(inputs)
+        outputs = module_utils.module_test(block, inputs)
         expected_outputs = pre(inputs)
         expected_outputs = post(expected_outputs)
 
@@ -64,7 +65,7 @@ class TestTabularBlock:
         block = TabularBlock()
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
 
-        outputs = block(inputs)
+        outputs = module_utils.module_test(block, inputs)
 
         assert torch.equal(inputs, outputs)
 
@@ -73,7 +74,7 @@ class TestTabularBlock:
         block = TabularBlock(aggregation=aggregation)
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
 
-        outputs = block(inputs)
+        outputs = module_utils.module_test(block, inputs)
         expected_outputs = aggregation(inputs)
 
         assert torch.equal(outputs, expected_outputs)

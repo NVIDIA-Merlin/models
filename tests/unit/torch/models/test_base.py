@@ -1,5 +1,8 @@
+import os
+
 import pandas as pd
 import pytorch_lightning as pl
+from lightning.fabric import Fabric
 import torch
 
 from merlin.dataloader.torch import Loader
@@ -21,6 +24,11 @@ class TestModel:
         # Multi-hot is not supported yet, TODO: add support for multi-hot
         schema: Schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
         music_streaming_data.schema = schema
+        
+        fabric = Fabric(
+            # strategy=TorchrecStrategy()
+        )
+        fabric.launch()
 
         model = Model(
             TabularInputBlock(schema),
@@ -36,8 +44,15 @@ class TestModel:
             schema.select_by_tag(Tags.TARGET).column_names
         )
 
-        trainer = pl.Trainer(max_epochs=1, devices=[0])
-        loader = Loader(music_streaming_data, batch_size=2, shuffle=False)
+        trainer = pl.Trainer(max_epochs=1)
+        loader = Loader(
+            music_streaming_data, 
+            batch_size=2, 
+            shuffle=False,
+            global_rank=int(os.environ["LOCAL_RANK"]),
+            global_size=2,
+            device=int(os.environ["LOCAL_RANK"]),
+        )
 
         # Initialize the model parameters
         model.initialize(loader)

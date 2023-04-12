@@ -60,7 +60,7 @@ class ToTorchRecBatch(nn.Module):
         self.schema = schema
         self.dense_concat = dense_concat
 
-    def forward(self, inputs) -> Batch:
+    def forward(self, inputs, targets=None) -> Batch:
         dense_dict = {}
         jagged_dict = {}
 
@@ -81,4 +81,4 @@ class ToTorchRecBatch(nn.Module):
         dense = self.dense_concat(dense_dict)
         key_jagged = KeyedJaggedTensor.from_jt_dict(jagged_dict)
 
-        return Batch(dense_features=dense, sparse_features=key_jagged, targets=None)
+        return Batch(dense_features=dense, sparse_features=key_jagged, targets=targets)
