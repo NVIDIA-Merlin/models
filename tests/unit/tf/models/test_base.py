@@ -923,11 +923,11 @@ def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=Tr
     assert isinstance(reloaded_model.query_encoder, mm.EmbeddingEncoder)
     assert isinstance(reloaded_model.candidate_encoder, mm.EmbeddingEncoder)
 
-    queries = model.query_embeddings(ecommerce_data, batch_size=10, index=Tags.USER_ID).compute()
+    queries = model.query_embeddings(ecommerce_data, batch_size=16, index=Tags.USER_ID).compute()
     _check_embeddings(queries, 100, "user_id")
 
     candidates = model.candidate_embeddings(
-        ecommerce_data, batch_size=10, index=candidate
+        ecommerce_data, batch_size=16, index=candidate
     ).compute()
     _check_embeddings(candidates, 100, "item_id")
 
