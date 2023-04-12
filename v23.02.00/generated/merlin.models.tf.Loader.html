@@ -205,6 +205,12 @@ better epoch-level randomness but can negatively impact throughput</p></li>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.Loader.__init__" title="merlin.models.tf.Loader.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(paths_or_dataset, batch_size[, …])</p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">array_lib</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_batch</span></code>(batch)</p></td>
+<td><p>Returns a batch after it has been converted to the appropriate tensor column type and then formats it in a flat dictionary which makes list columns into values and offsets as separate entries.</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">epochs</span></code>([epochs])</p></td>
 <td><p>Create a dataloader that will efficiently run for more than one epoch.</p></td>
 </tr>
@@ -215,10 +221,10 @@ better epoch-level randomness but can negatively impact throughput</p></li>
 <td><p>Applying a function to each batch.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_epoch_end</span></code>()</p></td>
-<td><p>Method called at the end of every epoch.</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">peek</span></code>()</p></td>
-<td><p>Get the next batch without advancing the iterator.</p></td>
+<td><p>Grab the next batch from the dataloader without removing it from the queue</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">stop</span></code>()</p></td>
 <td><p>Halts and resets the initialization parameters of the dataloader.</p></td>
