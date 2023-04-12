@@ -898,11 +898,11 @@ def test_two_tower_v2_export_embeddings(
 
     model, _ = testing_utils.model_test(model, ecommerce_data, reload_model=False)
 
-    queries = model.query_embeddings(ecommerce_data, batch_size=10, index=Tags.USER_ID).compute()
+    queries = model.query_embeddings(ecommerce_data, batch_size=16, index=Tags.USER_ID).compute()
     _check_embeddings(queries, 100, 8, "user_id")
 
     candidates = model.candidate_embeddings(
-        ecommerce_data, batch_size=10, index=Tags.ITEM_ID
+        ecommerce_data, batch_size=16, index=Tags.ITEM_ID
     ).compute()
     _check_embeddings(candidates, 100, 8, "item_id")
 
@@ -918,11 +918,11 @@ def test_mf_v2_export_embeddings(
 
     model, _ = testing_utils.model_test(model, ecommerce_data, reload_model=False)
 
-    queries = model.query_embeddings(ecommerce_data, batch_size=10, index=Tags.USER_ID).compute()
+    queries = model.query_embeddings(ecommerce_data, batch_size=16, index=Tags.USER_ID).compute()
     _check_embeddings(queries, 100, 8, "user_id")
 
     candidates = model.candidate_embeddings(
-        ecommerce_data, batch_size=10, index=Tags.ITEM_ID
+        ecommerce_data, batch_size=16, index=Tags.ITEM_ID
     ).compute()
     _check_embeddings(candidates, 100, 8, "item_id")
 
