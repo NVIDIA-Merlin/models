@@ -1,11 +1,17 @@
+import shutil
+
 import pytest
 from testbook import testbook
 
+from merlin.systems.triton.utils import run_triton_server
 from tests.conftest import REPO_ROOT
 
 pytest.importorskip("transformers")
 
+TRITON_SERVER_PATH = shutil.which("tritonserver")
 
+
+@pytest.mark.skipif(not TRITON_SERVER_PATH, reason="triton server not found")
 @testbook(
     REPO_ROOT / "examples/usecases/transformers-next-item-prediction.ipynb",
     timeout=180,
@@ -34,5 +40,11 @@ def test_next_item_prediction(tb):
     tb.cells[4].source = tb.cells[4].source.replace(
         "read_csv('/workspace/data/train_set.csv'", "read_csv('/tmp/train_set.csv'"
     )
-    tb.cells[30].source = tb.cells[30].source.replace("epochs=5", "epochs=1")
-    tb.execute()
+    tb.cells[31].source = tb.cells[31].source.replace("epochs=5", "epochs=1")
+    tb.cells[37].source = tb.cells[37].source.replace(
+        "/workspace/models_for_benchmarking", "/tmp/ensemble"
+    )
+    tb.execute_cell(list(range(0, 38)))
+
+    with run_triton_server("/tmp/ensemble", grpc_port=8001):
+        tb.execute_cell(list(range(38, len(tb.cells))))
