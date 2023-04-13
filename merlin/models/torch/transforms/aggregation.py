@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import torch
 from torch import nn
@@ -128,25 +128,21 @@ class SumResidual(nn.Module):
         The key in the input dictionary that corresponds to the skip-connection tensor.
     """
 
-    def __init__(self, activation="relu", shortcut_name="shortcut"):
+    def __init__(self, activation: Optional[nn.Module] = nn.ReLU(), shortcut_name="shortcut"):
         super().__init__()
 
         # Check if activation is a string or a callable object
         if activation and not isinstance(activation, str) and not callable(activation):
             raise ValueError("activation should be a string or a callable object")
 
-        if isinstance(activation, str):
-            if not hasattr(torch, activation):
-                raise ValueError(
-                    f"torch does not have the specified activation function: {activation}"
-                )
-            activation = getattr(torch, activation)
-
         # Check if shortcut_name is a string
         if not isinstance(shortcut_name, str):
             raise ValueError("shortcut_name should be a string")
 
-        self.activation = activation
+        if activation is None:
+            self.activation = nn.Identity()
+        else:
+            self.activation = activation
         self.shortcut_name = shortcut_name
 
     def forward(
@@ -187,8 +183,7 @@ class SumResidual(nn.Module):
                 )
 
             residual = val + shortcut
-            if self.activation:
-                residual = self.activation(residual)
+            residual = self.activation(residual)
             outputs[key] = residual
 
         if len(outputs) == 1:

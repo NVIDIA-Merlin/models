@@ -1,6 +1,6 @@
 from copy import deepcopy
 from functools import reduce
-from typing import Callable, Dict, Iterator, List, Union, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -8,7 +8,6 @@ from torch._jit_internal import _copy_to_script_wrapper
 
 from merlin.models.torch.base import TabularBlock, register_post_hook, register_pre_hook
 from merlin.models.torch.transforms.aggregation import SumResidual
-from merlin.models.torch.utils.module_utils import apply
 from merlin.schema import Schema, Tags
 
 
@@ -27,7 +26,7 @@ class ParallelBlock(TabularBlock):
     aggregation : Callable, optional
         Aggregation function to apply on outputs.
     """
-    
+
     _modules: Dict[str, nn.Module]  # type: ignore[assignment]
 
     def __init__(
@@ -51,7 +50,7 @@ class ParallelBlock(TabularBlock):
         # # self.parallel_dict = torch.ModuleDict(_parallel_dict)
         # for key, val in _parallel_dict.items():
         #     self.add_module(str(key), val)
-        
+
         self.branches = nn.ModuleDict({str(i): m for i, m in _parallel_dict.items()})
 
         if all(hasattr(m, "schema") for m in _parallel_dict.values()):
@@ -80,9 +79,9 @@ class ParallelBlock(TabularBlock):
         for name, module in self.branches.items():
             module_inputs = inputs  # TODO: Add filtering when adding schema
             # out = apply(module, module_inputs, features=features, targets=targets)
-            out = module(module_inputs) # TODO: Fix features + targets
+            out = module(module_inputs)  # TODO: Fix features + targets
             out = _check_dict(out, str(name))
-            
+
             outputs.update(out)
 
         return outputs
@@ -288,7 +287,7 @@ class ResidualBlock(WithShortcut):
         self,
         module: nn.Module,
         *,
-        activation: Union[Callable[[torch.Tensor], torch.Tensor], str] = None,
+        activation: Optional[nn.Module] = None,
         post=None,
         **kwargs,
     ):
@@ -504,5 +503,5 @@ def _check_dict(output, name: str) -> Dict[str, torch.Tensor]:
     else:
         # Ensure the keys are strings
         output = {str(k): v for k, v in output.items()}
-        
+
     return output

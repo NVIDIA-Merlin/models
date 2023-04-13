@@ -4,7 +4,6 @@ import pytest
 import torch
 import torch.nn as nn
 
-from merlin.models.torch.utils import module_utils
 from merlin.models.torch.combinators import (
     ParallelBlock,
     ResidualBlock,
@@ -12,6 +11,7 @@ from merlin.models.torch.combinators import (
     SumResidual,
     WithShortcut,
 )
+from merlin.models.torch.utils import module_utils
 
 
 class TestParallelBlock:
@@ -61,13 +61,13 @@ class TestParallelBlock:
                 return inputs * 2
 
         class PostModule(nn.Module):
-            def forward(self, inputs: Dict[str, torch.Tensor]):
+            def forward(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
                 return {"post": inputs["0"]}
 
         class AggModule(nn.Module):
             def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
                 return inputs["post"]
-        
+
         layers = [nn.Linear(2, 3), nn.ReLU(), nn.Linear(2, 1)]
         parallel_block = ParallelBlock(
             *layers, pre=PreModule(), post=PostModule(), aggregation=AggModule()
@@ -85,8 +85,8 @@ class TestWithShortcut:
         block = WithShortcut(linear)
 
         assert isinstance(block, ParallelBlock)
-        assert block.parallel_dict["output"] == linear
-        assert isinstance(block.parallel_dict["shortcut"], nn.Identity)
+        assert block.branches["output"] == linear
+        assert isinstance(block.branches["shortcut"], nn.Identity)
         assert block.post is None
         assert block.aggregation is None
 
@@ -104,12 +104,12 @@ class TestWithShortcut:
 
     def test_with_shortcut_post_aggregation(self):
         class PostModule(nn.Module):
-            def forward(self, tensors):
+            def forward(self, tensors: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
                 return {k: v + 1 for k, v in tensors.items()}
 
         class AggregationModule(nn.Module):
-            def forward(self, tensors):
-                return sum(tensors.values())
+            def forward(self, tensors: Dict[str, torch.Tensor]) -> torch.Tensor:
+                return torch.stack(list(tensors.values()), dim=-1).sum(dim=-1)
 
         linear = nn.Linear(5, 5)
         post = PostModule()
@@ -133,12 +133,12 @@ class TestResidualBlock:
         block = ResidualBlock(linear)
 
         assert isinstance(block, WithShortcut)
-        assert block.parallel_dict["output"] == linear
-        assert block.aggregation.activation is None
+        assert block.branches["output"] == linear
+        assert isinstance(block.aggregation.activation, nn.Identity)
 
-        block_with_activation = ResidualBlock(linear, activation="relu")
+        block_with_activation = ResidualBlock(linear, activation=nn.ReLU())
         assert isinstance(block_with_activation.aggregation, SumResidual)
-        assert block_with_activation.aggregation.activation == torch.relu
+        assert isinstance(block_with_activation.aggregation.activation, nn.ReLU)
 
     def test_residual_block_forward(self):
         linear = nn.Linear(5, 5)
@@ -207,7 +207,7 @@ class TestSequentialBlock:
         block = SequentialBlock(linear, relu).append_with_shortcut(linear)
 
         assert isinstance(block[2], WithShortcut)
-        assert block[2]._modules["output"] == linear
+        assert block[2].branches["output"] == linear
 
     def test_append_with_residual(self):
         linear = nn.Linear(5, 5)
@@ -215,7 +215,7 @@ class TestSequentialBlock:
         block = SequentialBlock(linear, relu).append_with_residual(linear, activation=nn.ReLU())
 
         assert isinstance(block[2], ResidualBlock)
-        assert block[2]._modules["output"] == linear
+        assert block[2].branches["output"] == linear
         assert isinstance(block[2].aggregation.activation, nn.ReLU)
 
     def test_append_branch(self):
@@ -224,8 +224,8 @@ class TestSequentialBlock:
         block = SequentialBlock(linear, relu).append_branch(linear, relu)
 
         assert isinstance(block[2], ParallelBlock)
-        assert block[2]._modules["0"] == linear
-        assert block[2]._modules["1"] == relu
+        assert block[2].branches["0"] == linear
+        assert block[2].branches["1"] == relu
 
     def test_repeat(self):
         linear = nn.Linear(5, 5)
