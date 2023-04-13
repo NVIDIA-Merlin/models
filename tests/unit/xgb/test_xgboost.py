@@ -35,7 +35,6 @@ def test_without_dask_client(music_streaming_data: Dataset):
     assert "No global client found" in str(exc_info.value)
 
 
-# @pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
 @pytest.mark.usefixtures("dask_client")
 class TestXGBoost:
     def test_unsupported_objective(self, music_streaming_data: Dataset):
