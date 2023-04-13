@@ -132,6 +132,7 @@
 
     <span class="k">def</span> <span class="nf">_check_concat_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">):</span>
         <span class="n">input_sizes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">v</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">input_sizes</span><span class="o">.</span><span class="n">values</span><span class="p">()]))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
                 <span class="s2">&quot;All features dimensions except the last one must match: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_sizes</span><span class="p">)</span>
@@ -335,7 +336,7 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">merge_with</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
                 <span class="n">merge_with</span> <span class="o">=</span> <span class="p">[</span><span class="n">merge_with</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">layer_or_tensor</span> <span class="ow">in</span> <span class="n">merge_with</span><span class="p">:</span>
-                <span class="n">to_add</span> <span class="o">=</span> <span class="n">layer_or_tensor</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">layer_or_tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">layer_or_tensor</span>
+                <span class="n">to_add</span> <span class="o">=</span> <span class="n">layer_or_tensor</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">layer_or_tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">layer_or_tensor</span>
                 <span class="n">outputs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">to_add</span><span class="p">)</span>
 
         <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_apply_transformations</span><span class="p">(</span>
@@ -406,6 +407,7 @@
         <span class="n">config</span> <span class="o">=</span> <span class="n">tf_utils</span><span class="o">.</span><span class="n">maybe_serialize_keras_objects</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;pre&quot;</span><span class="p">,</span> <span class="s2">&quot;post&quot;</span><span class="p">,</span> <span class="s2">&quot;aggregation&quot;</span><span class="p">]</span>
         <span class="p">)</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;is_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_input</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_schema</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">schema_to_tensorflow_metadata_json</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>

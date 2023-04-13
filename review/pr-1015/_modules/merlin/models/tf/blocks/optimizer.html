@@ -105,6 +105,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">packaging</span> <span class="kn">import</span> <span class="n">version</span>
 
 <span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
@@ -115,6 +116,12 @@
 <span class="n">FloatTensorLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
 
 
+<span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;2.11.0&quot;</span><span class="p">):</span>
+    <span class="n">keras_optimizers</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">keras_optimizers</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">legacy</span>
+
+
 <div class="viewcode-block" id="OptimizerBlocks"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.OptimizerBlocks.html#merlin.models.tf.OptimizerBlocks">[docs]</a><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">OptimizerBlocks</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;dataclass for a pair of optimizer and blocks that the optimizer should apply to.</span>
@@ -123,13 +130,18 @@
 <span class="sd">        ml.OptimizerBlocks(&quot;adam&quot;, item_tower)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">keras_optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span>
     <span class="n">blocks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span>
 
 <div class="viewcode-block" id="OptimizerBlocks.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.OptimizerBlocks.html#merlin.models.tf.OptimizerBlocks.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;return a tuple of serialized keras objects&quot;&quot;&quot;</span>
+        <span class="n">optimizer_config</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">serialize_keras_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;2.11.0&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">legacy</span><span class="o">.</span><span class="n">Optimizer</span>
+        <span class="p">):</span>
+            <span class="n">optimizer_config</span><span class="p">[</span><span class="s2">&quot;use_legacy_optimizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">serialize_keras_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">),</span>
+            <span class="n">optimizer_config</span><span class="p">,</span>
             <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">serialize_keras_object</span><span class="p">(</span><span class="n">block</span><span class="p">)</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">],</span>
         <span class="p">)</span></div>
 
@@ -142,7 +154,7 @@
 
 
 <div class="viewcode-block" id="MultiOptimizer"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiOptimizer.html#merlin.models.tf.MultiOptimizer">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">MultiOptimizer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">MultiOptimizer</span><span class="p">(</span><span class="n">keras_optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;An optimizer that composes multiple individual optimizers.</span>
 
 <span class="sd">    It allows different optimizers to be applied to different subsets of the model&#39;s variables. For</span>
@@ -164,8 +176,8 @@
 <span class="sd">      # The third_tower would be assigned the default_optimizer (&quot;adagrad&quot; in this example)</span>
 <span class="sd">      optimizer = ml.MultiOptimizer(default_optimizer=&quot;adagrad&quot;,</span>
 <span class="sd">        optimizers_and_blocks=[</span>
-<span class="sd">          ml.OptimizerBlocks(tf.keras.optimizers.SGD(), user_tower),</span>
-<span class="sd">          ml.OptimizerBlocks(tf.keras.optimizers.Adam(), item_tower),</span>
+<span class="sd">          ml.OptimizerBlocks(tf.keras.optimizers.legacy.SGD(), user_tower),</span>
+<span class="sd">          ml.OptimizerBlocks(tf.keras.optimizers.legacy.Adam(), item_tower),</span>
 <span class="sd">        ])</span>
 
 <span class="sd">      # The string identification of optimizer is also acceptable, here &quot;sgd&quot; for the third_tower</span>
@@ -182,7 +194,7 @@
 <div class="viewcode-block" id="MultiOptimizer.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiOptimizer.html#merlin.models.tf.MultiOptimizer.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">optimizers_and_blocks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">OptimizerBlocks</span><span class="p">],</span>
-        <span class="n">default_optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;rmsprop&quot;</span><span class="p">,</span>
+        <span class="n">default_optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">keras_optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;rmsprop&quot;</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;MultiOptimizer&quot;</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
@@ -194,7 +206,7 @@
 <span class="sd">            List of OptimizerBlocks(dataclass), the OptimizerBlocks contains two items, one is</span>
 <span class="sd">            optimizer, another one is a list of blocks or a block that the optimizer should apply</span>
 <span class="sd">            to. See &#39;class OptimizerBlocks&#39;</span>
-<span class="sd">        default_optimizer: Union[str, tf.keras.optimizers.Optimizer]</span>
+<span class="sd">        default_optimizer: Union[str, tf.keras.optimizers.legacy.Optimizer]</span>
 <span class="sd">            Default optimizer for the rest variables not specified in optimizers_and_blocks, by</span>
 <span class="sd">            default &quot;rmsprop&quot;.</span>
 <span class="sd">        name:str</span>
@@ -204,10 +216,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">optimizers_and_blocks</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`optimizers_and_blocks` can&#39;t be empty&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">default_optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">default_optimizer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">default_optimizer</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pair</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">optimizers_and_blocks</span><span class="p">):</span>
-            <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+            <span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_track_trackable</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Optimizer</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">pair</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="p">[</span><span class="n">pair</span><span class="o">.</span><span class="n">blocks</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">blocks</span><span class="p">,</span> <span class="n">Block</span><span class="p">)</span> <span class="k">else</span> <span class="n">pair</span><span class="o">.</span><span class="n">blocks</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
@@ -216,6 +228,24 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">update_optimizers_and_blocks</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;update_optimizers_and_blocks&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_optimizers_and_blocks</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_optimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;2.11.0&quot;</span><span class="p">):</span>
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">legacy</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Optimizers must be a str or an instance of &quot;</span>
+                    <span class="s2">&quot;tf.keras.optimizers.legacy.Optimizer with Tensorflow &gt;= 2.11.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">optimizer</span><span class="p">,</span>
+                <span class="n">use_legacy_optimizer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">optimizer</span>
 
     <span class="k">def</span> <span class="nf">_get_trainable_variables_optimizer_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizers_and_blocks</span><span class="p">,</span> <span class="n">require_disjoint</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">attribute</span> <span class="o">=</span> <span class="s2">&quot;_trainable_weights&quot;</span>
@@ -289,7 +319,7 @@
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;add another optimzier and specify which block to apply this optimizer to&quot;&quot;&quot;</span>
         <span class="n">len_exist_optimizers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">)</span>
-        <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+        <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span>
         <span class="c1"># Check if already track the optimizer</span>
         <span class="n">optimizer_not_exists</span> <span class="o">=</span> <span class="kc">True</span>
@@ -310,11 +340,11 @@
 <span class="sd">        what optimizer it used to utilize. If the block is not specified with an optimizer before,</span>
 <span class="sd">        this functions would have the same functionality as self.add()</span>
 
-<span class="sd">        Note: the optimizer_blocks would be kept in self.update_optimizers_and_blockss, instead of</span>
+<span class="sd">        Note: the optimizer_blocks would be kept in self.update_optimizers_and_blocks, instead of</span>
 <span class="sd">        self.optimizers_and_blocks&quot;&quot;&quot;</span>
         <span class="n">len_exist_optimizers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">)</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span>
-        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
         <span class="c1"># Check if already track the optimizer</span>
         <span class="n">optimizer_not_exists</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">:</span>
@@ -330,6 +360,7 @@
         <span class="n">config</span> <span class="o">=</span> <span class="n">tf_utils</span><span class="o">.</span><span class="n">maybe_serialize_keras_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;default_optimizer&quot;</span><span class="p">])</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;optimizers_and_blocks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;update_optimizers_and_blocks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">optimizer_blocks</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;optimizers_and_blocks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">get_config</span><span class="p">())</span>
         <span class="k">for</span> <span class="n">optimizer_blocks</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_optimizers_and_blocks</span><span class="p">:</span>
@@ -373,18 +404,26 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the optimizer&#39;s variables.&quot;&quot;&quot;</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">optimizer_blocks</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">:</span>
-            <span class="n">weights</span> <span class="o">+=</span> <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">weights</span>
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;weights&quot;</span><span class="p">):</span>  <span class="c1"># Tensorflow &lt; 2.11</span>
+                <span class="n">weights</span> <span class="o">+=</span> <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">weights</span>
+            <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;variables&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span>
+                <span class="n">optimizer</span><span class="o">.</span><span class="n">variables</span>
+            <span class="p">):</span>  <span class="c1"># Tensorflow &gt;= 2.11</span>
+                <span class="n">weights</span> <span class="o">+=</span> <span class="n">optimizer_blocks</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">variables</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to get weights from </span><span class="si">{</span><span class="n">optimizer</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">weights</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">keras_optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the optimizers in MultiOptimizer (in the original order). Note: default_optimizer</span>
 <span class="sd">        is included here&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">pair</span><span class="o">.</span><span class="n">optimizer</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizers_and_blocks</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">default_optimizer</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="LazyAdam"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.LazyAdam.html#merlin.models.tf.LazyAdam">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">LazyAdam</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">LazyAdam</span><span class="p">(</span><span class="n">keras_optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Variant of the Adam optimizer that handles sparse updates more efficiently.</span>
 
 <span class="sd">    The original Adam algorithm maintains two moving-average accumulators for each trainable</span>
@@ -419,7 +458,7 @@
 <span class="sd">        ----------</span>
 <span class="sd">        learning_rate: Union[FloatTensorLike, Callable]</span>
 <span class="sd">            A `Tensor` or a floating point value. or a schedule that is a</span>
-<span class="sd">            `tf.keras.optimizers.schedules.LearningRateSchedule` The learning rate.</span>
+<span class="sd">            `tf.keras.optimizers.legacy.schedules.LearningRateSchedule` The learning rate.</span>
 <span class="sd">            FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]</span>
 <span class="sd">        beta_1: FloatTensorLike</span>
 <span class="sd">            A `float` value or a constant `float` tensor. The exponential decay rate for the 1st</span>
@@ -480,6 +519,9 @@
         <span class="n">var_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_scatter_sub</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">var_slice</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">var_update_op</span><span class="p">,</span> <span class="n">m_update_op</span><span class="p">,</span> <span class="n">v_update_op</span><span class="p">])</span>
+
+<div class="viewcode-block" id="LazyAdam.get_weights"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.LazyAdam.html#merlin.models.tf.LazyAdam.get_weights">[docs]</a>    <span class="k">def</span> <span class="nf">get_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">()</span></div>
 
     <span class="k">def</span> <span class="nf">_resource_scatter_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">update</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_scatter_operate</span><span class="p">(</span>

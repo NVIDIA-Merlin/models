@@ -107,15 +107,14 @@ the sequential input features are truncated in the last position.</p>
 <li><p><strong>schema</strong> (<em>Schema</em>) – The schema with the sequential columns to be truncated</p></li>
 <li><p><strong>target</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>Tags</em><em>, </em><em>ColumnSchema</em><em>]</em>) – The sequential input column that will be used to extract the target</p></li>
 <li><p><strong>pre</strong> (<em>Optional</em><em>[</em><em>BlockType</em><em>]</em><em>, </em><em>optional</em>) – A block that is called before this method call().
-If not set, the ListToRagged() block is applied to convert
-the tuple representation of sequential features to RaggedTensors,
-so that the tensors sequences can be shifted/truncated</p></li>
+P.s. The PrepareFeatures() is called automatically before the pre
+to convert the list features representation</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py method">
 <dt id="merlin.models.tf.SequencePredictNext.__init__">
-<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.schema.schema.Schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.tags.Tags</span><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.schema.ColumnSchema</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.core.base.Block</span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#merlin.models.tf.SequencePredictNext.__init__" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.schema.schema.Schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.tags.Tags</span><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.schema.ColumnSchema</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.core.base.Block</span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#merlin.models.tf.SequencePredictNext.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <p class="rubric">Methods</p>
@@ -125,7 +124,7 @@ so that the tensors sequences can be shifted/truncated</p></li>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.__init__" title="merlin.models.tf.SequencePredictNext.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(schema, target[, pre])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.__init__" title="merlin.models.tf.SequencePredictNext.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(schema, target[, pre, transformer])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_loss</span></code>(losses, **kwargs)</p></td>
@@ -152,65 +151,77 @@ so that the tensors sequences can be shifted/truncated</p></li>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code>(input_shapes)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_batch_size_from_input_shapes</span></code>(…)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_from_config</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.call" title="merlin.models.tf.SequencePredictNext.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs[, targets, training, testing])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_batch_size_from_input_shapes</span></code>(…)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_outputs</span></code>(outputs[, training])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.call" title="merlin.models.tf.SequencePredictNext.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs[, targets, training, testing])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_schema</span></code>([schema])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_outputs</span></code>(outputs[, training])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_call_output_shape</span></code>(input_shapes)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
-<td><p>Computes an output mask tensor.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.compute_output_shape" title="merlin.models.tf.SequencePredictNext.compute_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code></a>(input_shape)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_call_output_shape</span></code>(input_shapes)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.compute_mask" title="merlin.models.tf.SequencePredictNext.compute_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code></a>(inputs[, mask])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.compute_output_shape" title="merlin.models.tf.SequencePredictNext.compute_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code></a>(input_shape)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
 <td><p>Compute the output tensor signature of the layer based on the inputs.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect</span></code>(*block[, block_name, context])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.configure_for_test" title="merlin.models.tf.SequencePredictNext.configure_for_test"><code class="xref py py-obj docutils literal notranslate"><span class="pre">configure_for_test</span></code></a>()</p></td>
+<td><p>Method called by the model.evaluate() to check that the <cite>masking_post</cite> and <cite>masking_pre</cite> set in the TransformerBlock are aligned with the evaluation strategy of SequencePredictNext</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequencePredictNext.configure_for_train" title="merlin.models.tf.SequencePredictNext.configure_for_train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">configure_for_train</span></code></a>()</p></td>
+<td><p>Method called by the model.fit() to set the specialized <cite>masking_post</cite> and <cite>masking_pre</cite> needed by the TransformerBlock to align with the SequencePredictNext outputs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect</span></code>(*block[, block_name, context])</p></td>
 <td><p>Connect the block to other blocks sequentially.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_branch</span></code>(*branches[, add_rest, post, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_branch</span></code>(*branches[, add_rest, post, …])</p></td>
 <td><p>Connect the block to one or multiple branches.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_debug_block</span></code>([append])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_debug_block</span></code>([append])</p></td>
 <td><p>Connect the block to a debug block.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_with_residual</span></code>(block[, activation])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_with_residual</span></code>(block[, activation])</p></td>
 <td><p>Connect the block to other blocks sequentially with a residual connection.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_with_shortcut</span></code>(block[, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_with_shortcut</span></code>(block[, …])</p></td>
 <td><p>Connect the block to other blocks sequentially with a shortcut connection.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_params</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_params</span></code>()</p></td>
 <td><p>Count the total number of scalars composing the weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
 <td><p>Finalizes the layers state after updating layer weights.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
 <td><p>Creates layer from its config.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_features</span></code>(features[, pre, post, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_features</span></code>(features[, pre, post, …])</p></td>
 <td><p>Initializes a TabularLayer instance where the contents of features will be filtered out</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code>(schema[, tags, allow_none])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code>(schema[, tags, allow_none])</p></td>
 <td><p>Instantiate a TabularLayer instance from a DatasetSchema.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_build_config</span></code>()</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
 <td><p>Returns the config of the layer as a Python dictionary.</p></td>
@@ -446,6 +457,27 @@ so that the tensors sequences can be shifted/truncated</p></li>
 <dt id="merlin.models.tf.SequencePredictNext.compute_output_shape">
 <code class="sig-name descname"><span class="pre">compute_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#SequencePredictNext.compute_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequencePredictNext.compute_output_shape" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.SequencePredictNext.compute_mask">
+<code class="sig-name descname"><span class="pre">compute_mask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#SequencePredictNext.compute_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequencePredictNext.compute_mask" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.SequencePredictNext.configure_for_train">
+<code class="sig-name descname"><span class="pre">configure_for_train</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#SequencePredictNext.configure_for_train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequencePredictNext.configure_for_train" title="Permalink to this definition"></a></dt>
+<dd><p>Method called by the model.fit() to set the specialized
+<cite>masking_post</cite> and <cite>masking_pre</cite> needed by the TransformerBlock
+to align with the SequencePredictNext outputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.SequencePredictNext.configure_for_test">
+<code class="sig-name descname"><span class="pre">configure_for_test</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#SequencePredictNext.configure_for_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequencePredictNext.configure_for_test" title="Permalink to this definition"></a></dt>
+<dd><p>Method called by the model.evaluate() to check that the
+<cite>masking_post</cite> and <cite>masking_pre</cite> set in the TransformerBlock
+are aligned with the evaluation strategy of SequencePredictNext</p>
+</dd></dl>
 
 </dd></dl>
 
