@@ -2,7 +2,9 @@ import argparse
 
 
 def build_arg_parser():
-    parser = argparse.ArgumentParser(description="MTL & STL models")
+    parser = argparse.ArgumentParser(
+        description="Preprocessing script for ranking models using NVTabular and dask-cudf on GPUs"
+    )
 
     # Inputs / Outputs
     parser.add_argument("--data_path", default="", help="Path to the data")

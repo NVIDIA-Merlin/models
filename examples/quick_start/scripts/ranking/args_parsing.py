@@ -82,7 +82,9 @@ def parse_arguments():
 
 
 def build_arg_parser():
-    parser = argparse.ArgumentParser(description="MTL & STL models")
+    parser = argparse.ArgumentParser(
+        description="Script for building, training and evaluating ranking models."
+    )
 
     # Inputs
     parser.add_argument("--train_path", default="/data/train/", help="Path of the train set.")
@@ -268,15 +270,6 @@ def build_arg_parser():
         "multi-hot values that can exist in a given example. By default 5.",
     )
 
-    # hyperparams for experts
-    parser.add_argument(
-        "--expert_mlp_layers",
-        default="64",
-        type=str,
-        help="For MTL models (MMOE, CGC, PLE) sets the MLP architecture of experts. "
-        "By default '64'",
-    )
-
     # MMOE
     parser.add_argument(
         "--mmoe_num_mlp_experts",
@@ -306,7 +299,16 @@ def build_arg_parser():
         help="Number of CGC modules to stack for PLE architecture. By default 1.",
     )
 
-    # hyperparams for multi-task (MMOE, CGC, PLE)
+    # hyperparams for expert-based multi-task models (MMOE, CGC, PLE)
+
+    parser.add_argument(
+        "--expert_mlp_layers",
+        default="64",
+        type=str,
+        help="For MTL models (MMOE, CGC, PLE) sets the MLP architecture of experts. "
+        "By default '64'",
+    )
+
     parser.add_argument(
         "--gate_dim",
         default=64,
