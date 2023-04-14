@@ -82,9 +82,13 @@
              
   <div class="tex2jax_ignore mathjax_ignore section" id="quick-start-for-ranking-models-with-merlin">
 <h1>Quick-start for ranking models with Merlin<a class="headerlink" href="#quick-start-for-ranking-models-with-merlin" title="Permalink to this headline"></a></h1>
-<p>This is a template for building a pipeline for preprocessing, training and exporting ranking models for serving. It is composed by generic scripts that can be used with your own dataset. We also share some best practices for preprocessing and training ranking models.</p>
-<p>In this example, we use the <a class="reference external" href="https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html">TenRec dataset</a>, which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).</p>
-<p>You will learn later how to preprocess and train your <a class="reference internal" href="using_your_data.html"><span class="doc std std-doc">own dataset</span></a>.</p>
+<p><strong>Do you want to get the best possible accuracy for your ranking problem?</strong>
+<strong>This guide will teach you best practices on preprocessing data, training and hypertuning ranking models with Merlin.</strong></p>
+<p>We iterate in this guide over a typical Data Science process which involves data preprocessing / feature engineering, model training and evaluation and hyperparameter tuning.</p>
+<center>
+<img src="../images/quick_start_ds_process.png" alt="Data science process with Merlin" >
+</center>
+<p>We use as example here the <a class="reference external" href="https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html">TenRec dataset</a>, which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).</p>
 <div class="section" id="setup">
 <h2>Setup<a class="headerlink" href="#setup" title="Permalink to this headline"></a></h2>
 <p>You can run these scripts either using the latest Merlin TensorFlow image or installing the necessary Merlin libraries according to their documentation (<a class="reference external" href="https://github.com/NVIDIA-Merlin/core">core</a>, <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a>, <a class="reference external" href="https://github.com/NVIDIA-Merlin/dataloader">dataloader</a>, <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/">models</a>).<br />
@@ -134,7 +138,7 @@ The <code class="docutils literal notranslate"><span class="pre">OUTPUT_PATH</sp
 <p>In order to make it easy getting the data ready for model training, we provide a generic script: <code class="docutils literal notranslate"><span class="pre">preprocessing.py</span></code>. That script is based on <strong>dask_cudf</strong> and <strong>NVTabular</strong> libraries that leverage GPUs for accelerated and distributed preprocessing.<br />
 P.s. <strong>NVTabular</strong> also supports CPU which is suitable for prototyping in dev environments.</p>
 <p>The preprocessing script outputs preprocessed data as a number of parquet files, as well as a <em>schema</em> that stores output features metadata like statistics and tags.</p>
-<p>In this example, we set some options for preprocessing. Here is the explanation of the main arguments, and you can find the full documentation (here)[…/scripts/preproc/cli_docs.md].</p>
+<p>In this example, we set some options for preprocessing. Here is the explanation of the main arguments, and you can find the full documentation of preprocessing command line arguments and also best practices <span class="xref myst">here</span>.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--categorical_features</span></code> - Names of the categorical/discrete features (concatenated with “,” without space).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--binary_classif_targets</span></code> - Names of the available target columns for binary classification task</p></li>
@@ -164,7 +168,7 @@ python<span class="w"> </span>preprocessing.py<span class="w"> </span>--input_da
 <h3>Dealing with class unbalance<a class="headerlink" href="#dealing-with-class-unbalance" title="Permalink to this headline"></a></h3>
 <p>There are many target columns available in the dataset, and you can select one of them for training by setting <code class="docutils literal notranslate"><span class="pre">--tasks=click</span></code>.<br />
 In this dataset, there are about 3.7 negative examples (<code class="docutils literal notranslate"><span class="pre">click=0</span></code>) for each positive example (<code class="docutils literal notranslate"><span class="pre">click=1</span></code>). That leads to some class unbalance. We can couple with that by setting <code class="docutils literal notranslate"><span class="pre">--stl_positive_class_weight</span> <span class="pre">4</span></code> to give more weight to the loss for positive examples, which are rarer</p>
-<p>You can find the full documentation of the training script arguments <a class="reference internal" href="../scripts/ranking/cli_docs.html"><span class="doc std std-doc">here</span></a>.</p>
+<p>You can find the full documentation of the training script arguments and best practices <span class="xref myst">here</span>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/models/examples/quick_start/scripts/ranking/
 <span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span><span class="w"> </span><span class="nv">TF_GPU_ALLOCATOR</span><span class="o">=</span>cuda_malloc_async<span class="w"> </span>python<span class="w">  </span>ranking.py<span class="w"> </span>--train_path<span class="w"> </span><span class="nv">$OUT_DATASET_PATH</span>/dataset/train<span class="w"> </span>--eval_path<span class="w"> </span><span class="nv">$OUT_DATASET_PATH</span>/dataset/eval<span class="w"> </span>--output_path<span class="w"> </span>./outputs/<span class="w"> </span>--tasks<span class="o">=</span>click<span class="w"> </span>--stl_positive_class_weight<span class="w"> </span><span class="m">3</span><span class="w"> </span>--model<span class="w"> </span>dlrm<span class="w"> </span>--embeddings_dim<span class="w"> </span><span class="m">64</span><span class="w"> </span>--l2_reg<span class="w"> </span>1e-2<span class="w"> </span>--embeddings_l2_reg<span class="w"> </span>1e-6<span class="w"> </span>--dropout<span class="w"> </span><span class="m">0</span>.05<span class="w"> </span>--mlp_layers<span class="w"> </span><span class="m">64</span>,32<span class="w">  </span>--lr<span class="w"> </span>1e-4<span class="w"> </span>--lr_decay_rate<span class="w"> </span><span class="m">0</span>.99<span class="w"> </span>--lr_decay_steps<span class="w"> </span><span class="m">100</span><span class="w"> </span>--train_batch_size<span class="w"> </span><span class="m">65536</span><span class="w"> </span>--eval_batch_size<span class="w"> </span><span class="m">65536</span><span class="w"> </span>--epochs<span class="w"> </span><span class="m">1</span><span class="w"> </span>
 //--train_steps_per_epoch<span class="w"> </span><span class="m">10</span><span class="w"> </span>
@@ -189,9 +193,10 @@ You can also balance the loss weights by setting <code class="docutils literal n
 </div>
 </div>
 </div>
-<div class="section" id="benchmark-of-ranking-models">
-<h2>Benchmark of ranking models<a class="headerlink" href="#benchmark-of-ranking-models" title="Permalink to this headline"></a></h2>
-<p>We have performed a benchmark comparing the different single-task and multi-task learning models for TenRec dataset, which you can find <a class="reference internal" href="ranking_models_benchmark.html"><span class="doc std std-doc">here</span></a>. It also provides empirical information on how to setup a hyperparameter tuning process for your own dataset, including the necessary tooling, and references on hyperparameter space, most important hyperparameters.</p>
+<div class="section" id="hyperparameter-tuning">
+<h2>Hyperparameter tuning<a class="headerlink" href="#hyperparameter-tuning" title="Permalink to this headline"></a></h2>
+<p>We provide a <a class="reference internal" href="../scripts/ranking/hpo/tutorial_with_wb_sweeps.html"><span class="doc std std-doc">tutorial</span></a> on how <strong>hyperparameter tuning with Merlin models and Weights&amp;Biases sweeps</strong>.</p>
+<p>We also make it available a <span class="xref myst">benchmark</span> resulted from our own hyperparameter tuning of TenRec dataset. It compares the different single-task and multi-task learning models. It provides also empirical information on what were the improvements obtained with hyperparameter tuning, the curated hypertuning search space for modeling hyperparameters of <code class="docutils literal notranslate"><span class="pre">ranking.py</span></code> and the most important hyperparameters.</p>
 </div>
 </div>
 

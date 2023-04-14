@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/scripts/preproc/cli_docs.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/scripts/preproc/index.html" />
   <!--[if lt IE 9]>
     <script src="../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -84,6 +84,41 @@
 <h1>Preprocessing script<a class="headerlink" href="#preprocessing-script" title="Permalink to this headline"></a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">preprocessing.py</span></code> is a template script that provides basic preprocessing and feature engineering operations for tabular data. It uses the <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a> and <a class="reference external" href="https://github.com/rapidsai/cudf/tree/main/python/dask_cudf">dask-cudf</a> libraries for GPU accelerated preprocessing.</p>
 <p>In this document we describe the provided preprocessing and feature engineernig options and the corresponding command line arguments.</p>
+<div class="section" id="best-practices">
+<h2>Best practices<a class="headerlink" href="#best-practices" title="Permalink to this headline"></a></h2>
+<p>TODO: List best practices on preprocessing and feature engineering</p>
+<div class="section" id="data-munging">
+<h3>Data munging<a class="headerlink" href="#data-munging" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Converting data into the right shape: each each example is either a real (positive) or non-existing (negative) user-item interaction. You can see in the following example from TenRec dataset that your dataset might contain user and item features, and one or more targets, that can be either binary (for classification) or continuous/discrete (for regression).</p></li>
+</ul>
+<p><img alt="TenRec dataset structure" src="../../../../_images/tenrec_dataset.png" /></p>
+<ul class="simple">
+<li><p>The input format can be CSV or Parquet, but the latter is recommended for being a columnar format which is faster to preprocess.</p></li>
+</ul>
+</div>
+<div class="section" id="feature-engineering">
+<h3>Feature Engineering<a class="headerlink" href="#feature-engineering" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>For count or long-tail distributions of continuous features, you might want to apply a log transformation before standardization. This can be done with NVTabular Log op.</p></li>
+<li><p>Count / Target encoding</p></li>
+</ul>
+</div>
+<div class="section" id="filtering">
+<h3>Filtering<a class="headerlink" href="#filtering" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Filtering infrequent users (<code class="docutils literal notranslate"><span class="pre">--min_user_freq</span></code>) and items (<code class="docutils literal notranslate"><span class="pre">--min_item_freq</span></code>) is a common practice, as it is hard to learn good embeddings for them… Talk also about frequency capping/hashing alternatices…</p></li>
+</ul>
+</div>
+<div class="section" id="data-set-splitting">
+<h3>Data set splitting<a class="headerlink" href="#data-set-splitting" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>“random”</p></li>
+<li><p>“random_by_user”</p></li>
+<li><p>“temporal”</p></li>
+</ul>
+</div>
+</div>
 <div class="section" id="command-line-arguments">
 <h2>Command line arguments<a class="headerlink" href="#command-line-arguments" title="Permalink to this headline"></a></h2>
 <div class="section" id="inputs">

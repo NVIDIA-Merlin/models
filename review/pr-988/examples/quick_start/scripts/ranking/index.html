@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/scripts/ranking/cli_docs.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/scripts/ranking/index.html" />
   <!--[if lt IE 9]>
     <script src="../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -98,7 +98,7 @@
 <div class="section" id="supported-models">
 <h2>Supported models<a class="headerlink" href="#supported-models" title="Permalink to this headline"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">ranking.py</span></code> script makes it easy to use baseline and advanced deep ranking models available in <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/">models</a> library.<br />
-The script can be also used as an advanced example that demonstrate <span class="xref myst">how to set specific hyperparamters using models API</span>.</p>
+The script can be also used as an <strong>advanced example</strong> that demonstrate <span class="xref myst">how to set specific hyperparamters using models API</span>.</p>
 <div class="section" id="baseline-ranking-architectures">
 <h3>Baseline ranking architectures<a class="headerlink" href="#baseline-ranking-architectures" title="Permalink to this headline"></a></h3>
 <ul class="simple">
@@ -117,8 +117,25 @@ The script can be also used as an advanced example that demonstrate <span class=
 <li><p>PLE (<a class="reference external" href="https://dl.acm.org/doi/10.1145/3383313.3412236">paper</a>) (<code class="docutils literal notranslate"><span class="pre">PLEBlock</span></code>) - In the same paper introducing CGC, authors proposed stacking multiple CGC models on top of each other to form a multi-level MTL model, so that the model can progressively combine shared and task-specific experts. They name this approach as Progressive Layered Extraction (PLE). Their paper experiments showed accuracy improvements by using PLE compared to CGC.</p></li>
 </ul>
 <center>
-<img src="https://miro.medium.com/v2/resize:fit:720/0*Fo6rIr10IJQCB6sb " alt="Multi-task learning architectures" >
+<img src="https://miro.medium.com/v2/resize:fit:720/0*Fo6rIr10IJQCB6sb" alt="Multi-task learning architectures" >
 </center>
+</div>
+</div>
+<div class="section" id="best-practices">
+<h2>Best practices<a class="headerlink" href="#best-practices" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>stl_positive_class_weight</p></li>
+<li><p>Negative sampling: in_batch_negatives_train</p></li>
+</ul>
+<p>Different ranking model characteristics</p>
+<ul class="simple">
+<li><p>STL: “mlp”, “dcn”, “dlrm”, “deepfm”, “wide_n_deep”</p></li>
+<li><p>MTL: “mmoe”, “cgc”,”ple”,</p></li>
+</ul>
+<div class="section" id="setting-tasks-sample-space">
+<h3>Setting tasks sample space<a class="headerlink" href="#setting-tasks-sample-space" title="Permalink to this headline"></a></h3>
+<p>In that dataset, some targets depend on others. For example, you only have a <code class="docutils literal notranslate"><span class="pre">like/follow/share=1</span></code> event if the user has clicked in the item. The learning of the dependent tasks is better if we set the appropriate sample space for the targets. In this case, we want to train the <code class="docutils literal notranslate"><span class="pre">click</span></code> target  using the entire space, and train the other targets (i.e., compute the loss) only for click space (where <code class="docutils literal notranslate"><span class="pre">click=1</span></code>).</p>
+<p>The scripts allows for setting the tasks sample space by using <code class="docutils literal notranslate"><span class="pre">--tasks_sample_space</span></code>, where the position should match the order of the <code class="docutils literal notranslate"><span class="pre">--tasks</span></code>. Empty value means the task will be trained in the entire space, i.e., loss computed for all examples in the dataset.</p>
 </div>
 </div>
 <div class="section" id="command-line-arguments">

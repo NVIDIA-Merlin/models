@@ -3,27 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Benchmark of ranking models &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/togglebutton.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/mystnb.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/ranking/ranking_models_benchmark.html" />
+  <title>Benchmark of ranking models &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/mystnb.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/custom.css" type="text/css" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/scripts/ranking/hpo/index.html" />
   <!--[if lt IE 9]>
-    <script src="../../../_static/js/html5shiv.min.js"></script>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
-        <script src="../../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
         <script >let toggleHintShow = 'Click to show';</script>
         <script >let toggleHintHide = 'Click to hide';</script>
         <script >let toggleOpenOnPrint = 'true';</script>
-        <script src="../../../_static/togglebutton.js"></script>
+        <script src="../../../../../_static/togglebutton.js"></script>
         <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
-    <script src="../../../_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" /> 
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -38,10 +38,10 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../../index.html" class="icon icon-home"> Merlin Models
+            <a href="../../../../../index.html" class="icon icon-home"> Merlin Models
           </a>
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -50,11 +50,11 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../README.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../models_overview.html">Standard Models: Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../index.html">Example Notebooks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../additional_resources.html">Additional Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../index.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../additional_resources.html">Additional Resources</a></li>
 </ul>
 
         </div>
@@ -63,14 +63,14 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">Merlin Models</a>
+          <a href="../../../../../index.html">Merlin Models</a>
       </nav>
 
       <div class="wy-nav-content">
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Benchmark of ranking models</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -86,7 +86,7 @@
 These results are reproduceable by using the TenRec and the quick-start scripts for preprocessing and training.</p>
 <div class="section" id="neural-ranking-models">
 <h2>Neural ranking models.<a class="headerlink" href="#neural-ranking-models" title="Permalink to this headline"></a></h2>
-<p>This benchmark includes the following neural architectures for ranking, which are described in the <a class="reference internal" href="../scripts/ranking/cli_docs.html"><span class="doc std std-doc">ranking script</span></a> and include links to the paper references and to models API docs.</p>
+<p>This benchmark includes the following neural architectures for ranking, which are described in the <span class="xref myst">ranking script</span> and include links to the paper references and to models API docs.</p>
 <ul class="simple">
 <li><p><strong>Single-Task Learning (STL)</strong>: MLP, Wide&amp;Deep, DeepFM, DLRM, DCN-v2</p></li>
 <li><p><strong>Multi-Task Learning (MTL)</strong>: MLP, MMOE, PLE</p></li>
@@ -95,7 +95,7 @@ These results are reproduceable by using the TenRec and the quick-start scripts 
 <div class="section" id="hyperparameter-tuning-setup">
 <h2>Hyperparameter tuning setup<a class="headerlink" href="#hyperparameter-tuning-setup" title="Permalink to this headline"></a></h2>
 <p>For a fair comparison of the models, we ran a separate hyperparameter tuning process for each model architecture using TenRec dataset, which we call experiment group. We use the <a class="reference external" href="https://docs.wandb.ai/guides/sweeps">Weights&amp;Biases Sweeps</a> feature for managing the hypertuning process for each experiment group. The hypertuning uses bayesian optimization (<code class="docutils literal notranslate"><span class="pre">method=bayes</span></code>) to improve the <code class="docutils literal notranslate"><span class="pre">AUC</span></code> metric, which is different for STL and MTL, as explained below.</p>
-<p>You can find the <span class="xref myst">hyperparameter space configurations</span> in <a class="reference external" href="https://docs.wandb.ai/guides/sweeps/define-sweep-configuration">W&amp;B sweeps format</a>, that we have curated after many experiments used for the hypertuning process. You can use it as a reference for experimentation with your own dataset.</p>
+<p>You can find the <span class="xref myst">here</span> the hyperparameter space configurations and a tutorial on how to use <a class="reference external" href="https://docs.wandb.ai/guides/sweeps">Weights&amp;Biases Sweeps</a> to run the hyperparameter tuning.</p>
 <div class="section" id="single-task-learning">
 <h3>Single-task learning<a class="headerlink" href="#single-task-learning" title="Permalink to this headline"></a></h3>
 <p>For benchmarking the ranking models with single-task learning we used the <code class="docutils literal notranslate"><span class="pre">click</span></code> binary target, as it is the most frequent event in the dataset. 200 trials were performed for each experiment group.</p>
@@ -103,30 +103,30 @@ These results are reproduceable by using the TenRec and the quick-start scripts 
 <h4>Benchmark results<a class="headerlink" href="#benchmark-results" title="Permalink to this headline"></a></h4>
 <p>In the following table, you can see the models with the best accuracy (AUC) for predicting the <code class="docutils literal notranslate"><span class="pre">click</span></code> target. You can see the models have a similar level of accuracy, maybe because the dataset contains only 5 basic features (which are presented <span class="xref myst">here</span>). But you can notice that models more advanced than MLP can provide better accuracy.</p>
 <center>
-<img src="../images/stl_benchmark.png" alt="Multi-task learning architectures" >
+<img src="../../../images/stl_benchmark.png" alt="Multi-task learning architectures" >
 </center>
 </div>
 <div class="section" id="most-important-hyperparameters">
 <h4>Most important hyperparameters<a class="headerlink" href="#most-important-hyperparameters" title="Permalink to this headline"></a></h4>
 <p><strong>MLP</strong></p>
 <center>
-<img src="../images/most_important_hparams/stl_mlp_click.png">
+<img src="../../../images/most_important_hparams/stl_mlp_click.png">
 </center>
 <p><strong>Wide&amp;Deep</strong></p>
 <center>
-<img src="../images/most_important_hparams/stl_wideanddeep_click.png">
+<img src="../../../images/most_important_hparams/stl_wideanddeep_click.png">
 </center>
 <p><strong>DeepFM</strong></p>
 <center>
-<img src="../images/most_important_hparams/stl_deepfm_click.png">
+<img src="../../../images/most_important_hparams/stl_deepfm_click.png">
 </center>
 <p><strong>DLRM</strong></p>
 <center>
-<img src="../images/most_important_hparams/stl_dlrm_click.png">
+<img src="../../../images/most_important_hparams/stl_dlrm_click.png">
 </center>
 <p><strong>DCN-v2</strong></p>
 <center>
-<img src="../images/most_important_hparams/stl_dcn_click.png">
+<img src="../../../images/most_important_hparams/stl_dcn_click.png">
 </center>
 </div>
 <div class="section" id="best-runs-hyperparameters">
@@ -144,27 +144,35 @@ These results are reproduceable by using the TenRec and the quick-start scripts 
 </ol>
 <p>TODO: Describe results</p>
 <center>
-<img src="../images/stl_mtl_benchmark.png" alt="Multi-task learning architectures" >
+<img src="../../../images/stl_mtl_benchmark.png" alt="Multi-task learning architectures" >
 </center>
 <div class="section" id="id1">
 <h4>Most important hyperparameters<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h4>
 <p><strong>MLP</strong></p>
 <center>
-<img src="../images/most_important_hparams/mtl_mlp.png">
+<img src="../../../images/most_important_hparams/mtl_mlp.png">
 </center>
 <p><strong>MMOE</strong></p>
 <center>
-<img src="../images/most_important_hparams/mtl_mmoe.png">
+<img src="../../../images/most_important_hparams/mtl_mmoe.png">
 </center>
 <p><strong>PLE</strong></p>
 <center>
-<img src="../images/most_important_hparams/mtl_ple.png">
+<img src="../../../images/most_important_hparams/mtl_ple.png">
 </center>
 </div>
 <div class="section" id="id2">
 <h4>Best runs hyperparameters<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h4>
-<p>TO INCLUDE</p>
+<p>TODO</p>
 </div>
+</div>
+<div class="section" id="improvements-with-hyperparameter-tuning">
+<h3>Improvements with hyperparameter tuning<a class="headerlink" href="#improvements-with-hyperparameter-tuning" title="Permalink to this headline"></a></h3>
+<p>Analysis on the number of experiments necessary to achieve best accuracy</p>
+<ul class="simple">
+<li><p>Plot the boxplot per model of the accuracy, to showcase how much it might vary</p></li>
+<li><p>Plot the HPO avg curves over 200 trials for the different models (maybe also keep the dots), to showcase for how many trials HPO should be run</p></li>
+</ul>
 </div>
 </div>
 </div>
