@@ -7,13 +7,17 @@
 #   pull_request:
 #     branches: [main]
 
-# jobs:
-#   tests:
-#     runs-on: ${{ matrix.os }}
-#     strategy:
-#       matrix:
-#         python-version: [3.8]
-#         os: [ubuntu-latest]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [3.8]
+        os: [ubuntu-latest]
 
 #     steps:
 #       - uses: actions/checkout@v3
