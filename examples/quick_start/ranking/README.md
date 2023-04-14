@@ -1,10 +1,13 @@
 # Quick-start for ranking models with Merlin
+**Do you want to get the best possible accuracy for your ranking problem?**
+**This guide will teach you best practices on preprocessing data, training and hypertuning ranking models with Merlin.**
 
-This is a template for building a pipeline for preprocessing, training and exporting ranking models for serving. It is composed by generic scripts that can be used with your own dataset. We also share some best practices for preprocessing and training ranking models.
+We iterate in this guide over a typical Data Science process which involves data preprocessing / feature engineering, model training and evaluation and hyperparameter tuning.
+<center>
+<img src="../images/quick_start_ds_process.png" alt="Data science process with Merlin" >
+</center>
 
-In this example, we use the [TenRec dataset](https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html), which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).
-
-You will learn later how to preprocess and train your [own dataset](./using_your_data.md).
+We use as example here the [TenRec dataset](https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html), which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).
 
 ## Setup
 You can run these scripts either using the latest Merlin TensorFlow image or installing the necessary Merlin libraries according to their documentation ([core](https://github.com/NVIDIA-Merlin/core), [NVTabular](https://github.com/NVIDIA-Merlin/NVTabular), [dataloader](https://github.com/NVIDIA-Merlin/dataloader), [models](https://github.com/NVIDIA-Merlin/models/)).  
@@ -58,7 +61,7 @@ P.s. **NVTabular** also supports CPU which is suitable for prototyping in dev en
 
 The preprocessing script outputs preprocessed data as a number of parquet files, as well as a *schema* that stores output features metadata like statistics and tags.
 
-In this example, we set some options for preprocessing. Here is the explanation of the main arguments, and you can find the full documentation (here)[../scripts/preproc/cli_docs.md].
+In this example, we set some options for preprocessing. Here is the explanation of the main arguments, and you can find the full documentation of preprocessing command line arguments and also best practices [here](../scripts/preproc/README.md).
 
 - `--categorical_features` - Names of the categorical/discrete features (concatenated with "," without space).
 - `--binary_classif_targets` - Names of the available target columns for binary classification task
@@ -91,7 +94,7 @@ In the following generic `ranking.py` script, you can easily train the popular *
 There are many target columns available in the dataset, and you can select one of them for training by setting `--tasks=click`.  
 In this dataset, there are about 3.7 negative examples (`click=0`) for each positive example (`click=1`). That leads to some class unbalance. We can couple with that by setting `--stl_positive_class_weight 4` to give more weight to the loss for positive examples, which are rarer
 
-You can find the full documentation of the training script arguments [here](../scripts/ranking/cli_docs.md).
+You can find the full documentation of the training script arguments and best practices [here](../scripts/ranking/README.md).
 
 
 ```bash
@@ -120,5 +123,7 @@ CUDA_VISIBLE_DEVICES=0 TF_MEMORY_ALLOCATION=0.8 python  ranking.py --train_path 
 //--train_steps_per_epoch 3  
 ```
 
-## Benchmark of ranking models
-We have performed a benchmark comparing the different single-task and multi-task learning models for TenRec dataset, which you can find [here](./ranking_models_benchmark.md). It also provides empirical information on how to setup a hyperparameter tuning process for your own dataset, including the necessary tooling, and references on hyperparameter space, most important hyperparameters.
+## Hyperparameter tuning
+We provide a [tutorial](../scripts/ranking/hpo/tutorial_with_wb_sweeps.md) on how **hyperparameter tuning with Merlin models and Weights&Biases sweeps**.
+
+We also make it available a [benchmark](../scripts/ranking/hpo/README.md) resulted from our own hyperparameter tuning of TenRec dataset. It compares the different single-task and multi-task learning models. It provides also empirical information on what were the improvements obtained with hyperparameter tuning, the curated hypertuning search space for modeling hyperparameters of `ranking.py` and the most important hyperparameters.
