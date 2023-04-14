@@ -4,7 +4,7 @@
 
 We iterate in this guide over a typical Data Science process which involves data preprocessing / feature engineering, model training and evaluation and hyperparameter tuning.
 <center>
-<img src="../images/quick_start_ds_process.png" alt="Data science process with Merlin" >
+<img src="../images/quick_start_process.png" alt="Data science process with Merlin" >
 </center>
 
 We use as example here the [TenRec dataset](https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html), which is large (140 million positive interactions from 5 million users), contains explicit negative feedback (items exposed to the user and not interacted) and multiple target columns (click, like, share, follow).
