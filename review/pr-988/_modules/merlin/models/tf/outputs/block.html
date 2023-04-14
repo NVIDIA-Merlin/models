@@ -197,7 +197,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">model_output_cls</span> <span class="o">=</span> <span class="n">CategoricalOutput</span>
 
-        <span class="n">task_name</span> <span class="o">=</span> <span class="n">model_output_cls</span><span class="o">.</span><span class="n">task_name</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">task_name</span> <span class="o">=</span> <span class="n">model_output_cls</span><span class="o">.</span><span class="n">get_task_name</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
             <span class="n">output_block</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="n">task_name</span><span class="p">]</span>

@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Preprocessing &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <title>&lt;no title&gt; &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/ranking/best_practices.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/ranking/using_your_data.html" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -71,7 +71,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Preprocessing</li>
+      <li>&lt;no title&gt;</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -80,65 +80,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <p>Describe best practices for:</p>
-<div class="tex2jax_ignore mathjax_ignore section" id="preprocessing">
-<h1>Preprocessing<a class="headerlink" href="#preprocessing" title="Permalink to this headline"></a></h1>
-<div class="section" id="data-munging">
-<h2>Data munging<a class="headerlink" href="#data-munging" title="Permalink to this headline"></a></h2>
-<ul class="simple">
-<li><p>Converting data into the right shape: each each example is either a real (positive) or non-existing (negative) user-item interaction. You can see in the following example from TenRec dataset that your dataset might contain user and item features, and one or more targets, that can be either binary (for classification) or continuous/discrete (for regression).</p></li>
-</ul>
-<p><img alt="TenRec dataset structure" src="../../../_images/tenrec_dataset.png" /></p>
-<ul class="simple">
-<li><p>The input format can be CSV or Parquet, but the latter is recommended for being a columnar format which is faster to preprocess.</p></li>
-</ul>
-</div>
-<div class="section" id="feature-engineering">
-<h2>Feature Engineering<a class="headerlink" href="#feature-engineering" title="Permalink to this headline"></a></h2>
-<ul class="simple">
-<li><p>For count or long-tail distributions of continuous features, you might want to apply a log transformation before standardization. This can be done with NVTabular Log op.</p></li>
-<li><p>Count / Target encoding</p></li>
-</ul>
-</div>
-<div class="section" id="filtering">
-<h2>Filtering<a class="headerlink" href="#filtering" title="Permalink to this headline"></a></h2>
-<ul class="simple">
-<li><p>Filtering infrequent users (<code class="docutils literal notranslate"><span class="pre">--min_user_freq</span></code>) and items (<code class="docutils literal notranslate"><span class="pre">--min_item_freq</span></code>) is a common practice, as it is hard to learn good embeddings for them… Talk also about frequency capping/hashing alternatices…</p></li>
-</ul>
-</div>
-<div class="section" id="data-set-splitting">
-<h2>Data set splitting<a class="headerlink" href="#data-set-splitting" title="Permalink to this headline"></a></h2>
-<ul class="simple">
-<li><p>“random”</p></li>
-<li><p>“random_by_user”</p></li>
-<li><p>“temporal”</p></li>
-</ul>
-</div>
-</div>
-<div class="tex2jax_ignore mathjax_ignore section" id="training">
-<h1>Training<a class="headerlink" href="#training" title="Permalink to this headline"></a></h1>
-<ul class="simple">
-<li><p>stl_positive_class_weight</p></li>
-<li><p>Negative sampling: in_batch_negatives_train</p></li>
-<li><p>MTL aspects: –tasks_sample_space</p></li>
-</ul>
-<p>Different ranking model characteristics</p>
-<ul class="simple">
-<li><p>STL: “mlp”, “dcn”, “dlrm”, “deepfm”, “wide_n_deep”</p></li>
-<li><p>MTL: “mmoe”, “cgc”,”ple”,</p></li>
-</ul>
-<div class="section" id="setting-tasks-sample-space">
-<h2>Setting tasks sample space<a class="headerlink" href="#setting-tasks-sample-space" title="Permalink to this headline"></a></h2>
-<p>In that dataset, some targets depend on others. For example, you only have a <code class="docutils literal notranslate"><span class="pre">like/follow/share=1</span></code> event if the user has clicked in the item. The learning of the dependent tasks is better if we set the appropriate sample space for the targets. In this case, we want to train the <code class="docutils literal notranslate"><span class="pre">click</span></code> target  using the entire space, and train the other targets (i.e., compute the loss) only for click space (where <code class="docutils literal notranslate"><span class="pre">click=1</span></code>).</p>
-<p>The scripts allows for setting the tasks sample space by using <code class="docutils literal notranslate"><span class="pre">--tasks_sample_space</span></code>, where the position should match the order of the <code class="docutils literal notranslate"><span class="pre">--tasks</span></code>. Empty value means the task will be trained in the entire space, i.e., loss computed for all examples in the dataset.</p>
-</div>
-</div>
-<div class="tex2jax_ignore mathjax_ignore section" id="hyperparameter-tuning">
-<h1>Hyperparameter tuning<a class="headerlink" href="#hyperparameter-tuning" title="Permalink to this headline"></a></h1>
-<div class="section" id="w-b-sweeps">
-<h2>W&amp;B sweeps<a class="headerlink" href="#w-b-sweeps" title="Permalink to this headline"></a></h2>
-</div>
-</div>
+  <p>TO BE WRITTEN.</p>
 
 
            </div>
