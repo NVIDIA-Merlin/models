@@ -106,6 +106,7 @@
 <span class="kn">from</span> <span class="nn">packaging</span> <span class="kn">import</span> <span class="n">version</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python</span> <span class="kn">import</span> <span class="n">to_dlpack</span>
 
+<span class="kn">from</span> <span class="nn">merlin.core.compat</span> <span class="kn">import</span> <span class="n">cudf</span><span class="p">,</span> <span class="n">cupy</span>
 <span class="kn">from</span> <span class="nn">merlin.core.dispatch</span> <span class="kn">import</span> <span class="n">DataFrameType</span>
 <span class="kn">from</span> <span class="nn">merlin.io</span> <span class="kn">import</span> <span class="n">Dataset</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">ModelContext</span>
@@ -382,13 +383,7 @@
 
 <span class="k">def</span> <span class="nf">tensor_to_df</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">gpu</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">cudf</span>  <span class="c1"># noqa: F401</span>
-            <span class="kn">import</span> <span class="nn">cupy</span>
-
-            <span class="n">gpu</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="n">gpu</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">gpu</span> <span class="o">=</span> <span class="n">cudf</span>
 
     <span class="k">if</span> <span class="n">gpu</span><span class="p">:</span>
         <span class="c1"># Note: It is not possible to convert Tensorflow tensors to the cudf dataframe</span>
