@@ -41,9 +41,7 @@ def test_next_item_prediction(tb):
         "read_csv('/workspace/data/train_set.csv'", "read_csv('/tmp/train_set.csv'"
     )
     tb.cells[31].source = tb.cells[31].source.replace("epochs=5", "epochs=1")
-    tb.cells[37].source = tb.cells[37].source.replace(
-        "/workspace/models_for_benchmarking", "/tmp/ensemble"
-    )
+    tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", "/tmp/ensemble")
     tb.execute_cell(list(range(0, 38)))
 
     with run_triton_server("/tmp/ensemble", grpc_port=8001):
