@@ -21,6 +21,7 @@ import tensorflow as tf
 from tensorflow.keras.initializers import RandomUniform
 
 import merlin.models.tf as mm
+from merlin.core.compat import cudf
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.models.tf.utils.testing_utils import assert_output_shape, model_test
@@ -723,9 +724,7 @@ def test_embedding_features_exporting_and_loading_pretrained_initializer(testing
     assert np.allclose(item_id_embeddings.numpy(), emb_init(item_id_embeddings.shape).numpy())
 
     # Test GPU export if available
-    try:
-        import cudf  # noqa: F401
-
+    if cudf:
         items_embeddings_dataset = emb_module.embedding_table_dataset(Tags.ITEM_ID, gpu=True)
         assert np.allclose(
             item_id_embeddings.numpy(),
@@ -734,9 +733,6 @@ def test_embedding_features_exporting_and_loading_pretrained_initializer(testing
 
         emb_init = mm.TensorInitializer.from_dataset(items_embeddings_dataset)
         assert np.allclose(item_id_embeddings.numpy(), emb_init(item_id_embeddings.shape).numpy())
-
-    except ImportError:
-        pass
 
 
 def test_shared_embeddings(music_streaming_data: Dataset):
