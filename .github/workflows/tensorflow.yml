@@ -54,6 +54,7 @@ jobs:
         run: |
           python -m pip install "tensorflow${{ matrix.tensorflow-version }}"
           python -m pip install .[tensorflow-dev]
+          pip install tritonclient[all]
       - name: Build
         run: |
           python setup.py develop
@@ -110,6 +111,7 @@ jobs:
         run: |
           python -m pip install "tensorflow${{ matrix.tensorflow-version }}"
           python -m pip install .[tensorflow-dev]
+          pip install tritonclient[all]
       - name: Build
         run: |
           python setup.py develop
