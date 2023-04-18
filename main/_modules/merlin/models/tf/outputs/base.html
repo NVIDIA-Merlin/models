@@ -160,7 +160,7 @@
     <span class="p">):</span>
         <span class="n">logits_scaler</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;logits_scaler&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_task_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">to_call</span> <span class="o">=</span> <span class="n">to_call</span>
@@ -175,6 +175,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">logits_temperature</span> <span class="o">=</span> <span class="n">logits_temperature</span>
             <span class="k">if</span> <span class="n">logits_temperature</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logits_scaler</span> <span class="o">=</span> <span class="n">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">logits_temperature</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">task_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_name</span>
 
 <div class="viewcode-block" id="ModelOutput.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ModelOutput.html#merlin.models.tf.ModelOutput.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Builds the PredictionBlock.</span>
@@ -332,8 +336,8 @@
 
         <span class="k">return</span> <span class="n">config</span></div>
 
-<div class="viewcode-block" id="ModelOutput.task_name"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ModelOutput.html#merlin.models.tf.ModelOutput.task_name">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">task_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">target_name</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelOutput.get_task_name"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ModelOutput.html#merlin.models.tf.ModelOutput.get_task_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_task_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">target_name</span><span class="p">):</span>
         <span class="n">base_name</span> <span class="o">=</span> <span class="n">to_snake_case</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">name_fn</span><span class="p">(</span><span class="n">target_name</span><span class="p">,</span> <span class="n">base_name</span><span class="p">)</span> <span class="k">if</span> <span class="n">target_name</span> <span class="k">else</span> <span class="n">base_name</span></div>
 
