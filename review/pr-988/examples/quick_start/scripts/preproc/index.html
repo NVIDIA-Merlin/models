@@ -82,45 +82,90 @@
              
   <div class="tex2jax_ignore mathjax_ignore section" id="preprocessing-script">
 <h1>Preprocessing script<a class="headerlink" href="#preprocessing-script" title="Permalink to this headline"></a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">preprocessing.py</span></code> is a template script that provides basic preprocessing and feature engineering operations for tabular data. It uses the <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a> and <a class="reference external" href="https://github.com/rapidsai/cudf/tree/main/python/dask_cudf">dask-cudf</a> libraries for GPU accelerated preprocessing.</p>
-<p>In this document we describe the provided preprocessing and feature engineernig options and the corresponding command line arguments.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">preprocessing.py</span></code> is a template script that provides basic preprocessing and feature engineering operations for tabular data, so that they are better represented for neural models. It uses the <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a> and <a class="reference external" href="https://github.com/rapidsai/cudf/tree/main/python/dask_cudf">dask-cudf</a> libraries for GPU accelerated preprocessing.</p>
+<p>In this document we describe the provided preprocessing and feature engineering options and the corresponding command line arguments.</p>
 <div class="section" id="best-practices">
 <h2>Best practices<a class="headerlink" href="#best-practices" title="Permalink to this headline"></a></h2>
-<p>TODO: List best practices on preprocessing and feature engineering</p>
-<div class="section" id="data-munging">
-<h3>Data munging<a class="headerlink" href="#data-munging" title="Permalink to this headline"></a></h3>
-<ul class="simple">
-<li><p>Converting data into the right shape: each each example is either a real (positive) or non-existing (negative) user-item interaction. You can see in the following example from TenRec dataset that your dataset might contain user and item features, and one or more targets, that can be either binary (for classification) or continuous/discrete (for regression).</p></li>
-</ul>
+<p>In this section we list some best practices on preprocessing and feature engineering for preparing data for neural models.</p>
+<div class="section" id="dataset">
+<h3>Dataset<a class="headerlink" href="#dataset" title="Permalink to this headline"></a></h3>
+<p>The typical data to train recommender systems is the <strong>log of user interactions</strong> on items from a platform like e-commerce, news portal, social network, ad network, streaming media platform, among others.
+In addition to users interactions.
+The logged users interaction might contain explicit feedback from users, e.g. like, dislike, rating, or implicit feedback events, e.g. click, comment, add-to-cart, purchase, which might be positive or negative, e.g. items shown to the user and ignored.</p>
+</div>
+<div class="section" id="defining-the-task">
+<h3>Defining the task<a class="headerlink" href="#defining-the-task" title="Permalink to this headline"></a></h3>
+<p>You need to prepare the dataset according to the desired task.</p>
+<p><strong>Retrieval</strong> - The model objective is to return for a given user the top-k recommended items. In this case, the data can contain only positive interactions as retrieval models are typically trained using negative sampling from other users interactions, not requiring implicit negatives.</p>
+<p><strong>Ranking</strong> - The model objective is to score the relevance of a target item for a given user. In this case, you have at least one target column that express implicit or explicit your feedback you want to predict. Typically each target will be used by either a binary classification (e.g. predicting binary events like click, <code class="docutils literal notranslate"><span class="pre">--binary_classif_targets</span></code>) or regression task (e.g. estimating rating, <code class="docutils literal notranslate"><span class="pre">--regression_targets</span></code>). You can see below an example of the TenRec dataset that is suitable for ranking.</p>
 <p><img alt="TenRec dataset structure" src="../../../../_images/tenrec_dataset.png" /></p>
+</div>
+<div class="section" id="preprocessing-features">
+<h3>Preprocessing features<a class="headerlink" href="#preprocessing-features" title="Permalink to this headline"></a></h3>
+<p>When preparing the data, you need to include features that are relevant for predicting a user interaction, which might include user features that are static (e.g. user id, age, gender), dynamic contextual features (e.g. location, device) and item features (e.g. item id, category, price).<br />
+For neural networks there is an important distinction between categorical and continuous features.</p>
+<p><strong>Continuous features</strong><br />
+Continuous features (<code class="docutils literal notranslate"><span class="pre">--continuous_features</span></code>) are naturally fed into neural networks, they typically just need need to be normalized to avoid numerical scaling issues. Typical approaches for normalizing continuous features are <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.Normalize.html#nvtabular.ops.Normalize">standardization (Z-scaling)</a> and <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.NormalizeMinMax.html#nvtabular.ops.NormalizeMinMax">min-max scaling</a>.
+It is important to have a strategy for imputation of missing values (e.g. with a constant <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.FillMissing.html#nvtabular.ops.FillMissing">float</a>, or some statistic like mean or <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.FillMedian.html#nvtabular.ops.FillMedian">median</a>), as null (NaN) values are not acceptable as input by neural networks.</p>
+<p><strong>Categorical features</strong><br />
+Categorical features (<code class="docutils literal notranslate"><span class="pre">--categorical_features</span></code>) are nominal data, which  typically strings or id numbers that don’t have any meaningful order or scaling properties. They are typically <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.Categorify.html#nvtabular.ops.Categorify">categorified</a> / represented as continuous ids, so that when fed to a model they can be represented either as one-hot representation for linear models or embedded for neural networks.</p>
+</div>
+<div class="section" id="dealing-with-high-cardinality-data">
+<h3>Dealing with high-cardinality data<a class="headerlink" href="#dealing-with-high-cardinality-data" title="Permalink to this headline"></a></h3>
+<p>Large services might have categorical features with very high cardinality (e.g. order of hundreds of millions or higher), like user id or item id. They typically require a high memory to be stored (e.g. with embedding tables) or processed (e.g. with one-hot encoding). In addition, most of the categorical values are very infrequent, for which it is not possible to learn good embeddings. Thus, your make some modeling choices in order to preprocess those categorical features accordingly. Here are some options:</p>
 <ul class="simple">
-<li><p>The input format can be CSV or Parquet, but the latter is recommended for being a columnar format which is faster to preprocess.</p></li>
+<li><p><strong>Keep the original high-cardinality</strong> - If you are going use a model with distributed embedding solution, that will support sharding the embedding table across multiple devices(typically GPUs) to avoid going out-of-memory, then you can categorify the features just as you do for low-cardinality ones.</p></li>
+<li><p><strong>Frequency capping</strong> (<code class="docutils literal notranslate"><span class="pre">--categ_min_freq_capping</span></code>)- Infrequent values are mapped to 0, forming a cluster of infrequent / cold-start users/items that can be useful for training the model to deal with them.</p></li>
+<li><p><strong>Filtering out infrequent values</strong> (<code class="docutils literal notranslate"><span class="pre">--min_user_freq</span></code>, <code class="docutils literal notranslate"><span class="pre">--min_item_freq</span></code>) - You might <em>filter out</em> interactions from infrequent or fresh users or items, which are typically the majority of systems interactions as they typically follow the long-tail distribution.</p></li>
+<li><p><strong>Hashing</strong> - An additional option is to hash the categorical values into a number of buckets much lower than the feature cardinality. That way, you introduce collisions as a trade-off for lower final cardinality and memory requirements in the modeling side. This can be in the <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.HashBucket.html#nvtabular.ops.HashBucket">preprocessing</a> or in the modeling.</p></li>
 </ul>
 </div>
 <div class="section" id="feature-engineering">
 <h3>Feature Engineering<a class="headerlink" href="#feature-engineering" title="Permalink to this headline"></a></h3>
+<p>Feature engineering allows designing new features from raw data that are can provide useful information to the model with respect to the prediction task.</p>
+<p>In this section we list common feature engineering techniques. Most of them are implemented as <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/api.html#categorical-operators">ops</a> in <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a>. User defined functions (UDF) can be implemented with <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.LambdaOp.html#nvtabular.ops.LambdaOp">Lambda</a> op, which are very useful for example for dealing with temporal and geographic feature engineering.</p>
+<p>This preprocessing script provides just basic feature engineering. For more using those more advanced techniques you can copy the <code class="docutils literal notranslate"><span class="pre">preprocessing.py</span></code> script and add them to the NVTabular workflow within <code class="docutils literal notranslate"><span class="pre">generate_nvt_workflow_features()</span></code>.</p>
+<p><strong>Continuous features</strong></p>
 <ul class="simple">
-<li><p>For count or long-tail distributions of continuous features, you might want to apply a log transformation before standardization. This can be done with NVTabular Log op.</p></li>
-<li><p>Count / Target encoding</p></li>
+<li><p>Smoothing long-tailed distributions of continuous features with <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.LogOp.html#nvtabular.ops.LogOp">Log</a>, so that the range of large numbers is compressed and the range of small numbers is expanded.</p></li>
+<li><p>Continuous features can be represented as categorical features by either binarization (converting to binary) or <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.Bucketize.html#nvtabular.ops.Bucketize">binning</a> (converting to multiple categorical or ordinal values). That might be useful to group together values that are similar, e.g., periods of the day, age ranges of users, etc.</p></li>
 </ul>
-</div>
-<div class="section" id="filtering">
-<h3>Filtering<a class="headerlink" href="#filtering" title="Permalink to this headline"></a></h3>
+<p><strong>Categorical features</strong></p>
 <ul class="simple">
-<li><p>Filtering infrequent users (<code class="docutils literal notranslate"><span class="pre">--min_user_freq</span></code>) and items (<code class="docutils literal notranslate"><span class="pre">--min_item_freq</span></code>) is a common practice, as it is hard to learn good embeddings for them… Talk also about frequency capping/hashing alternatices…</p></li>
+<li><p>Besides contiguous ids, categorical features can be also represented by global statistics of their values, or by statistics conditioned in other columns. Some popular techniques are:</p>
+<ul>
+<li><p><strong>Count encoding</strong> - represents the count of a given categorical value across the whole dataset (e.g. count of user past interactions)</p></li>
+<li><p><strong>Target encoding</strong> - represents one statistic of a categorical column conditioned on a target column. One example would be computing the average of click binary target segmented by the item id categorical values, which represents its Click-Through Rate (CTR) or likelihood to be clicked by a random user. <a class="reference external" href="https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.TargetEncoding.html#nvtabular.ops.TargetEncoding"><em>Target encoding</em></a> is a very powerful feature engineering technique, and has been a key for many of our <a class="reference external" href="https://medium.com/rapids-ai/winning-solution-of-recsys2020-challenge-gpu-accelerated-feature-engineering-and-training-for-cd67c5a87b1f">winning solutions</a> for RecSys competitions.</p></li>
+</ul>
+</li>
+</ul>
+<p><strong>Temporal features</strong></p>
+<ul class="simple">
+<li><p>Extracting temporal features from timestamps, like day of week, day, month, year, quarter, hour, period of the day, among others.</p></li>
+<li><p>Compute the “age” of the item or how long the user is active in the system, e.g. by subtracting the interaction timestamp by the timestamp when the user/item were seen for the first time.</p></li>
+<li><p>Trending features might also be useful: for example, including continuous features that accumulates the user engagement in a specific category of product the last month, quarter, semester.</p></li>
+</ul>
+<p><strong>Geographic features</strong></p>
+<ul class="simple">
+<li><p>You can treat Zip codes, cities, states, countries as categorical features</p></li>
+<li><p>If latitude/longitude are available, you can also compute distances, e.g. the distance between a hotel (item) location and the user location / airport / touristic landmark.</p></li>
+<li><p>You can also enrich adding features based on external geolocation data (e.g. from census or government).,</p></li>
 </ul>
 </div>
 <div class="section" id="data-set-splitting">
 <h3>Data set splitting<a class="headerlink" href="#data-set-splitting" title="Permalink to this headline"></a></h3>
+<p>There are many approaches for splitting (<code class="docutils literal notranslate"><span class="pre">--dataset_split_strategy</span></code>) train and evaluation data:</p>
 <ul class="simple">
-<li><p>“random”</p></li>
-<li><p>“random_by_user”</p></li>
-<li><p>“temporal”</p></li>
+<li><p><strong>random</strong> - Examples are randomly assigned to train and eval sets (according to a percentage, <code class="docutils literal notranslate"><span class="pre">--random_split_eval_perc</span></code>).</p></li>
+<li><p><strong>random by user</strong> - It is like random but stratified by user.Ensures that users have examples in both train and eval sets. This approach doesn’t provide cold-start users on eval set.</p></li>
+<li><p><strong>temporal</strong> - Uses a reference timestamp (<code class="docutils literal notranslate"><span class="pre">dataset_split_temporal_timestamp</span></code>) to split train and eval sets. Typically this is the most realistic approach, as when deployed models will not have access to future information when performing predictions.</p></li>
 </ul>
 </div>
 </div>
 <div class="section" id="command-line-arguments">
 <h2>Command line arguments<a class="headerlink" href="#command-line-arguments" title="Permalink to this headline"></a></h2>
+<p>In this section we describe the command line arguments of the preprocessing script.</p>
+<p>The input and format can be CSV, TSV or Parquet, but the latter is recommended for being a columnar format which is faster to preprocess. Output preprocessing format is parquet format.</p>
 <div class="section" id="inputs">
 <h3>Inputs<a class="headerlink" href="#inputs" title="Permalink to this headline"></a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="o">--</span><span class="n">data_path</span>
@@ -220,13 +265,23 @@
 </div>
 <div class="section" id="data-casting-and-filtering">
 <h3>Data casting and filtering<a class="headerlink" href="#data-casting-and-filtering" title="Permalink to this headline"></a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  --to_int32            Cast these columns (comma-sep) to int32.
-  --to_int16            Cast these columns (comma-sep) to int16, to save some
-                        memory.
-  --to_int8             Cast these columns (comma-sep) to int32, to save some
-                        memory.
-  --to_float32 
-                        Cast these columns (comma-sep) to float32
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="o">--</span><span class="n">to_int32</span>            <span class="n">Cast</span> <span class="n">these</span> <span class="n">columns</span> <span class="p">(</span><span class="n">comma</span><span class="o">-</span><span class="n">sep</span><span class="p">)</span> <span class="n">to</span> <span class="n">int32</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">to_int16</span>            <span class="n">Cast</span> <span class="n">these</span> <span class="n">columns</span> <span class="p">(</span><span class="n">comma</span><span class="o">-</span><span class="n">sep</span><span class="p">)</span> <span class="n">to</span> <span class="n">int16</span><span class="p">,</span> <span class="n">to</span> <span class="n">save</span> <span class="n">some</span>
+                        <span class="n">memory</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">to_int8</span>             <span class="n">Cast</span> <span class="n">these</span> <span class="n">columns</span> <span class="p">(</span><span class="n">comma</span><span class="o">-</span><span class="n">sep</span><span class="p">)</span> <span class="n">to</span> <span class="n">int32</span><span class="p">,</span> <span class="n">to</span> <span class="n">save</span> <span class="n">some</span>
+                        <span class="n">memory</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">to_float32</span> 
+                        <span class="n">Cast</span> <span class="n">these</span> <span class="n">columns</span> <span class="p">(</span><span class="n">comma</span><span class="o">-</span><span class="n">sep</span><span class="p">)</span> <span class="n">to</span> <span class="n">float32</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="filtering-and-frequency-capping">
+<h1>Filtering and frequency capping<a class="headerlink" href="#filtering-and-frequency-capping" title="Permalink to this headline"></a></h1>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  --categ_min_freq_capping
+                        Value used for min frequency capping. If greater than 0, all categorical values which are less frequent than this threshold will be mapped to the null value encoded id.
+                        
   --min_user_freq 
                         Users with frequency lower than this value are removed
                         from the dataset (before data splitting).
@@ -249,9 +304,8 @@
                         `DataFrame.query()`
 </pre></div>
 </div>
-</div>
 <div class="section" id="dataset-splitting-train-and-eval-sets">
-<h3>Dataset splitting (train and eval sets)<a class="headerlink" href="#dataset-splitting-train-and-eval-sets" title="Permalink to this headline"></a></h3>
+<h2>Dataset splitting (train and eval sets)<a class="headerlink" href="#dataset-splitting-train-and-eval-sets" title="Permalink to this headline"></a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="o">--</span><span class="n">dataset_split_strategy</span> <span class="p">{</span><span class="n">random</span><span class="p">,</span><span class="n">random_by_user</span><span class="p">,</span><span class="n">temporal</span><span class="p">}</span>
                         <span class="n">If</span> <span class="kc">None</span><span class="p">,</span> <span class="n">no</span> <span class="n">data</span> <span class="n">split</span> <span class="ow">is</span> <span class="n">performed</span><span class="o">.</span> <span class="n">If</span> <span class="s1">&#39;random&#39;</span><span class="p">,</span>
                         <span class="n">samples</span> <span class="n">are</span> <span class="n">assigned</span> <span class="n">randomly</span> <span class="n">to</span> <span class="nb">eval</span> <span class="nb">set</span> <span class="n">according</span> <span class="n">to</span>
@@ -274,7 +328,7 @@
 </div>
 </div>
 <div class="section" id="cuda-cluster-options">
-<h3>CUDA cluster options<a class="headerlink" href="#cuda-cluster-options" title="Permalink to this headline"></a></h3>
+<h2>CUDA cluster options<a class="headerlink" href="#cuda-cluster-options" title="Permalink to this headline"></a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="o">--</span><span class="n">visible_gpu_devices</span> 
                         <span class="n">Ids</span> <span class="n">of</span> <span class="n">GPU</span> <span class="n">devices</span> <span class="n">that</span> <span class="n">should</span> <span class="n">be</span> <span class="n">used</span> <span class="k">for</span>
                         <span class="n">preprocessing</span><span class="p">,</span> <span class="k">if</span> <span class="nb">any</span><span class="o">.</span> <span class="n">For</span> <span class="n">example</span><span class="p">:</span>
@@ -284,7 +338,6 @@
                         <span class="n">LocalCUDACluster</span> <span class="n">should</span> <span class="n">spill</span> <span class="n">memory</span> <span class="n">to</span> <span class="n">CPU</span><span class="p">,</span> <span class="n">before</span>
                         <span class="n">raising</span> <span class="n">out</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">memory</span> <span class="n">errors</span><span class="o">.</span> <span class="n">Default</span> <span class="ow">is</span> <span class="mf">0.7</span>
 </pre></div>
-</div>
 </div>
 </div>
 </div>
