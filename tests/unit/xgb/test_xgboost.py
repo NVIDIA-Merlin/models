@@ -22,7 +22,7 @@ import pytest
 import sklearn.datasets
 import xgboost
 
-from merlin.core.dispatch import HAS_GPU
+from merlin.core.compat import HAS_GPU
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 from merlin.models.xgb import XGBoost, dataset_to_xy
