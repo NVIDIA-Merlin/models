@@ -1,33 +1,86 @@
 # Preprocessing script
-The `preprocessing.py` is a template script that provides basic preprocessing and feature engineering operations for tabular data. It uses the [NVTabular](https://github.com/NVIDIA-Merlin/NVTabular) and [dask-cudf](https://github.com/rapidsai/cudf/tree/main/python/dask_cudf) libraries for GPU accelerated preprocessing.
+The `preprocessing.py` is a template script that provides basic preprocessing and feature engineering operations for tabular data, so that they are better represented for neural models. It uses the [NVTabular](https://github.com/NVIDIA-Merlin/NVTabular) and [dask-cudf](https://github.com/rapidsai/cudf/tree/main/python/dask_cudf) libraries for GPU accelerated preprocessing.
 
-In this document we describe the provided preprocessing and feature engineernig options and the corresponding command line arguments.
+In this document we describe the provided preprocessing and feature engineering options and the corresponding command line arguments.
 
 ## Best practices
-TODO: List best practices on preprocessing and feature engineering
+In this section we list some best practices on preprocessing and feature engineering for preparing data for neural models.
 
-### Data munging
-- Converting data into the right shape: each each example is either a real (positive) or non-existing (negative) user-item interaction. You can see in the following example from TenRec dataset that your dataset might contain user and item features, and one or more targets, that can be either binary (for classification) or continuous/discrete (for regression).
+### Dataset
+The typical data to train recommender systems is the **log of user interactions** on items from a platform like e-commerce, news portal, social network, ad network, streaming media platform, among others.
+In addition to users interactions.
+The logged users interaction might contain explicit feedback from users, e.g. like, dislike, rating, or implicit feedback events, e.g. click, comment, add-to-cart, purchase, which might be positive or negative, e.g. items shown to the user and ignored.
+
+### Defining the task
+
+You need to prepare the dataset according to the desired task. 
+
+**Retrieval** - The model objective is to return for a given user the top-k recommended items. In this case, the data can contain only positive interactions as retrieval models are typically trained using negative sampling from other users interactions, not requiring implicit negatives.
+
+**Ranking** - The model objective is to score the relevance of a target item for a given user. In this case, you have at least one target column that express implicit or explicit your feedback you want to predict. Typically each target will be used by either a binary classification (e.g. predicting binary events like click, `--binary_classif_targets`) or regression task (e.g. estimating rating, `--regression_targets`). You can see below an example of the TenRec dataset that is suitable for ranking.
 
 ![TenRec dataset structure](../../images/tenrec_dataset.png)
 
-- The input format can be CSV or Parquet, but the latter is recommended for being a columnar format which is faster to preprocess.
+
+### Preprocessing features
+
+When preparing the data, you need to include features that are relevant for predicting a user interaction, which might include user features that are static (e.g. user id, age, gender), dynamic contextual features (e.g. location, device) and item features (e.g. item id, category, price).  
+For neural networks there is an important distinction between categorical and continuous features. 
+
+**Continuous features**  
+Continuous features (`--continuous_features`) are naturally fed into neural networks, they typically just need need to be normalized to avoid numerical scaling issues. Typical approaches for normalizing continuous features are [standardization (Z-scaling)](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.Normalize.html#nvtabular.ops.Normalize) and [min-max scaling](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.NormalizeMinMax.html#nvtabular.ops.NormalizeMinMax).
+It is important to have a strategy for imputation of missing values (e.g. with a constant [float](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.FillMissing.html#nvtabular.ops.FillMissing), or some statistic like mean or [median](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.FillMedian.html#nvtabular.ops.FillMedian)), as null (NaN) values are not acceptable as input by neural networks. 
+
+**Categorical features**  
+Categorical features (`--categorical_features`) are nominal data, which  typically strings or id numbers that don't have any meaningful order or scaling properties. They are typically [categorified](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.Categorify.html#nvtabular.ops.Categorify) / represented as continuous ids, so that when fed to a model they can be represented either as one-hot representation for linear models or embedded for neural networks.
+
+### Dealing with high-cardinality data
+Large services might have categorical features with very high cardinality (e.g. order of hundreds of millions or higher), like user id or item id. They typically require a high memory to be stored (e.g. with embedding tables) or processed (e.g. with one-hot encoding). In addition, most of the categorical values are very infrequent, for which it is not possible to learn good embeddings. Thus, your make some modeling choices in order to preprocess those categorical features accordingly. Here are some options:
+
+- **Keep the original high-cardinality** - If you are going use a model with distributed embedding solution, that will support sharding the embedding table across multiple devices(typically GPUs) to avoid going out-of-memory, then you can categorify the features just as you do for low-cardinality ones.
+- **Frequency capping** (`--categ_min_freq_capping`)- Infrequent values are mapped to 0, forming a cluster of infrequent / cold-start users/items that can be useful for training the model to deal with them.
+- **Filtering out infrequent values** (`--min_user_freq`, `--min_item_freq`) - You might *filter out* interactions from infrequent or fresh users or items, which are typically the majority of systems interactions as they typically follow the long-tail distribution. 
+- **Hashing** - An additional option is to hash the categorical values into a number of buckets much lower than the feature cardinality. That way, you introduce collisions as a trade-off for lower final cardinality and memory requirements in the modeling side. This can be in the [preprocessing](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.HashBucket.html#nvtabular.ops.HashBucket) or in the modeling.
+
 
 ### Feature Engineering
-- For count or long-tail distributions of continuous features, you might want to apply a log transformation before standardization. This can be done with NVTabular Log op.
-- Count / Target encoding
+Feature engineering allows designing new features from raw data that are can provide useful information to the model with respect to the prediction task.
 
+In this section we list common feature engineering techniques. Most of them are implemented as [ops](https://nvidia-merlin.github.io/NVTabular/v1.8.1/api.html#categorical-operators) in [NVTabular](https://github.com/NVIDIA-Merlin/NVTabular). User defined functions (UDF) can be implemented with [Lambda](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.LambdaOp.html#nvtabular.ops.LambdaOp) op, which are very useful for example for dealing with temporal and geographic feature engineering. 
 
-### Filtering
-- Filtering infrequent users (`--min_user_freq`) and items (`--min_item_freq`) is a common practice, as it is hard to learn good embeddings for them... Talk also about frequency capping/hashing alternatices...
+This preprocessing script provides just basic feature engineering. For more using those more advanced techniques you can copy the `preprocessing.py` script and add them to the NVTabular workflow within `generate_nvt_workflow_features()`.
 
+**Continuous features**  
+- Smoothing long-tailed distributions of continuous features with [Log](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.LogOp.html#nvtabular.ops.LogOp), so that the range of large numbers is compressed and the range of small numbers is expanded. 
+- Continuous features can be represented as categorical features by either binarization (converting to binary) or [binning](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.Bucketize.html#nvtabular.ops.Bucketize) (converting to multiple categorical or ordinal values). That might be useful to group together values that are similar, e.g., periods of the day, age ranges of users, etc.  
+
+**Categorical features**    
+- Besides contiguous ids, categorical features can be also represented by global statistics of their values, or by statistics conditioned in other columns. Some popular techniques are:
+  - **Count encoding** - represents the count of a given categorical value across the whole dataset (e.g. count of user past interactions) 
+  - **Target encoding** - represents one statistic of a categorical column conditioned on a target column. One example would be computing the average of click binary target segmented by the item id categorical values, which represents its Click-Through Rate (CTR) or likelihood to be clicked by a random user. [*Target encoding*](https://nvidia-merlin.github.io/NVTabular/v1.8.1/generated/nvtabular.ops.TargetEncoding.html#nvtabular.ops.TargetEncoding) is a very powerful feature engineering technique, and has been a key for many of our [winning solutions](https://medium.com/rapids-ai/winning-solution-of-recsys2020-challenge-gpu-accelerated-feature-engineering-and-training-for-cd67c5a87b1f) for RecSys competitions.
+  
+
+**Temporal features**
+- Extracting temporal features from timestamps, like day of week, day, month, year, quarter, hour, period of the day, among others. 
+- Compute the "age" of the item or how long the user is active in the system, e.g. by subtracting the interaction timestamp by the timestamp when the user/item were seen for the first time.
+- Trending features might also be useful: for example, including continuous features that accumulates the user engagement in a specific category of product the last month, quarter, semester.
+
+**Geographic features**
+- You can treat Zip codes, cities, states, countries as categorical features
+- If latitude/longitude are available, you can also compute distances, e.g. the distance between a hotel (item) location and the user location / airport / touristic landmark.
+- You can also enrich adding features based on external geolocation data (e.g. from census or government).,
 
 ### Data set splitting
-- "random"
-- "random_by_user"
-- "temporal"
+There are many approaches for splitting (`--dataset_split_strategy`) train and evaluation data:
+- **random** - Examples are randomly assigned to train and eval sets (according to a percentage, `--random_split_eval_perc`).
+- **random by user** - It is like random but stratified by user.Ensures that users have examples in both train and eval sets. This approach doesn't provide cold-start users on eval set.
+- **temporal** - Uses a reference timestamp (`dataset_split_temporal_timestamp`) to split train and eval sets. Typically this is the most realistic approach, as when deployed models will not have access to future information when performing predictions.
 
 ## Command line arguments
+In this section we describe the command line arguments of the preprocessing script.
+
+The input and format can be CSV, TSV or Parquet, but the latter is recommended for being a columnar format which is faster to preprocess. Output preprocessing format is parquet format.
+
 ### Inputs
 ```
   --data_path
@@ -131,6 +184,13 @@ TODO: List best practices on preprocessing and feature engineering
                         memory.
   --to_float32 
                         Cast these columns (comma-sep) to float32
+```
+
+# Filtering and frequency capping
+```
+  --categ_min_freq_capping
+                        Value used for min frequency capping. If greater than 0, all categorical values which are less frequent than this threshold will be mapped to the null value encoded id.
+                        
   --min_user_freq 
                         Users with frequency lower than this value are removed
                         from the dataset (before data splitting).

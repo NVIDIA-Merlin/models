@@ -39,6 +39,9 @@ The script can be also used as an **advanced example** that demonstrate [how to 
 
 ## Best practices
 
+
+Neural networks typically use embeddings (1D continuous vectors) to represent categorical features as input. The embeddings are stored in embedding layers or tables, whose first dim in the cardinality of the categorical feature and 2nd dim is the embedding size. In order to minimize the memory requirements of the embedding table, **the categorical values need to be encoded into contiguous ids in the preprocessing**, which will define the size of the embedding table in the model.
+
 - stl_positive_class_weight
 - Negative sampling: in_batch_negatives_train
 

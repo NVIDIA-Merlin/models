@@ -167,7 +167,7 @@ class PreprocessingRunner:
         for col in args.control_features:
             feats[col] = [col]
         for col in args.categorical_features:
-            feats[col] = [col] >> nvt_ops.Categorify()
+            feats[col] = [col] >> nvt_ops.Categorify(freq_threshold=args.categ_min_freq_capping)
         for col in args.continuous_features:
             feats[col] = [col]
             if args.continuous_features_fillna is not None:

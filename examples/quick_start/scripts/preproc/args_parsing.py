@@ -162,6 +162,15 @@ def build_arg_parser():
     )
 
     parser.add_argument(
+        "--categ_min_freq_capping",
+        default=0,
+        type=int,
+        help="Value used for min frequency capping. If greater than 0, "
+        "all categorical values which are less frequent than this "
+        "threshold will be mapped to the null value encoded id.",
+    )
+
+    parser.add_argument(
         "--min_user_freq",
         default=None,
         type=int,
