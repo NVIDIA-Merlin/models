@@ -8,7 +8,7 @@ on:
       - v*
   pull_request:
     branches: [ main ]
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,19 +16,16 @@ concurrency:
 
 jobs:
   gpu-ci:
-    runs-on: 2GPU
+    runs-on: 1GPU
 
     steps:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
+    - name: Get Branch name
+      id: get-branch-name
+      uses: NVIDIA-Merlin/.github/actions/branch-name@main
     - name: Run tests
       run: |
-        ref_type=${{ github.ref_type }}
-        branch=main
-        if [[ $ref_type == "tag"* ]]
-        then
-          git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
-          branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
-        fi
+        branch="${{ steps.get-branch-name.outputs.branch }}"
         cd ${{ github.workspace }}; tox -e py38-gpu -- $branch
