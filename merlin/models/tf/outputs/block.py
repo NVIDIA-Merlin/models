@@ -113,7 +113,7 @@ def OutputBlock(
             else:
                 model_output_cls = CategoricalOutput
 
-        task_name = model_output_cls.task_name(col.name)
+        task_name = model_output_cls.get_task_name(col.name)
 
         if task_name in outputs:
             output_block = outputs[task_name]

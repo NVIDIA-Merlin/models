@@ -2529,18 +2529,22 @@ def get_task_names_from_outputs(
         output_names = outputs.task_names
     elif isinstance(outputs, ParallelBlock):
         if all(isinstance(x, ModelOutput) for x in outputs.parallel_values):
-            output_names = [o.full_name for o in outputs.parallel_values]
+            output_names = [o.task_name for o in outputs.parallel_values]
         else:
             raise ValueError("The blocks within ParallelBlock must be ModelOutput.")
     elif isinstance(outputs, (list, tuple)):
         if all(isinstance(x, PredictionTask) for x in outputs):
             output_names = [o.task_name for o in outputs]  # type: ignore
         elif all(isinstance(x, ModelOutput) for x in outputs):
-            output_names = [o.full_name for o in outputs]  # type: ignore
+            output_names = [o.task_name for o in outputs]  # type: ignore
         else:
             raise ValueError(
                 "The blocks within the list/tuple must be ModelOutput or PredictionTask."
             )
+    elif isinstance(outputs, PredictionTask):
+        output_names = [outputs.task_name]
+    elif isinstance(outputs, ModelOutput):
+        output_names = [outputs.task_name]
     else:
-        raise ValueError("Invalid outputs")
+        raise ValueError("Invalid model outputs")
     return output_names

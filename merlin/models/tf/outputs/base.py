@@ -76,7 +76,7 @@ class ModelOutput(Layer):
     ):
         logits_scaler = kwargs.pop("logits_scaler", None)
         self.target = target
-        self.full_name = self.task_name(self.target)
+        self.full_name = self.get_task_name(self.target)
 
         super().__init__(name=name or self.full_name, **kwargs)
         self.to_call = to_call
@@ -91,6 +91,10 @@ class ModelOutput(Layer):
             self.logits_temperature = logits_temperature
             if logits_temperature != 1.0:
                 self.logits_scaler = LogitsTemperatureScaler(logits_temperature)
+
+    @property
+    def task_name(self) -> str:
+        return self.full_name
 
     def build(self, input_shape=None):
         """Builds the PredictionBlock.
@@ -249,7 +253,7 @@ class ModelOutput(Layer):
         return config
 
     @classmethod
-    def task_name(cls, target_name):
+    def get_task_name(cls, target_name):
         base_name = to_snake_case(cls.__name__)
         return name_fn(target_name, base_name) if target_name else base_name
 

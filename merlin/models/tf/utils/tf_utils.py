@@ -22,6 +22,7 @@ from keras.utils.tf_inspect import getfullargspec
 from packaging import version
 from tensorflow.python import to_dlpack
 
+from merlin.core.compat import cudf, cupy
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
 from merlin.models.tf.core.base import Block, ModelContext
@@ -298,13 +299,7 @@ def df_to_tensor(gdf, dtype=None):
 
 def tensor_to_df(tensor, index=None, gpu=None):
     if gpu is None:
-        try:
-            import cudf  # noqa: F401
-            import cupy
-
-            gpu = True
-        except ImportError:
-            gpu = False
+        gpu = cudf
 
     if gpu:
         # Note: It is not possible to convert Tensorflow tensors to the cudf dataframe
