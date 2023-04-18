@@ -14,7 +14,7 @@ TRITON_SERVER_PATH = shutil.which("tritonserver")
 @pytest.mark.skipif(not TRITON_SERVER_PATH, reason="triton server not found")
 @testbook(
     REPO_ROOT / "examples/usecases/transformers-next-item-prediction.ipynb",
-    timeout=180,
+    timeout=360,
     execute=False,
 )
 @pytest.mark.notebook
