@@ -30,6 +30,8 @@ class Candidate(NamedTuple):
     ----------
     id : tf.Tensor
         The tensor of item ids
+    sampling_prob : tf.Tensor
+        Useful for logQ correction, based on the sampling distribution
     metadata:
         dictionary of tensors containing meta information
         about items such as item embeddings and item category
@@ -37,6 +39,7 @@ class Candidate(NamedTuple):
 
     id: tf.Tensor
     metadata: Dict[str, tf.Tensor]
+    sampling_prob: Optional[tf.Tensor] = None
 
     @property
     def embedding(self) -> tf.Tensor:
@@ -50,6 +53,9 @@ class Candidate(NamedTuple):
         self.metadata[EMBEDDING_KEY] = embedding
 
         return self
+
+    def with_sampling_prob(self, sampling_prob: tf.Tensor) -> "Candidate":
+        return Candidate(id=self.id, metadata=self.metadata, sampling_prob=sampling_prob)
 
     def __add__(self, other):
         metadata = {}
@@ -68,12 +74,12 @@ class Candidate(NamedTuple):
     def __repr__(self):
         metadata = {key: str(val) for key, val in self.metadata.items()}
 
-        return f"Candidate({self.id}, {metadata})"
+        return f"Candidate({self.id}, {self.sampling_prob}, {metadata})"
 
     def __str__(self):
         metadata = {key: str(val) for key, val in self.metadata.items()}
 
-        return f"Candidate({self.id}, {metadata})"
+        return f"Candidate({self.id}, {self.sampling_prob}, {metadata})"
 
     def __eq__(self, other) -> bool:
         if self.id.shape != other.id.shape:
@@ -84,15 +90,17 @@ class Candidate(NamedTuple):
     def get_config(self):
         return {
             "id": self.id,
+            "sampling_prob": self.sampling_prob,
             "metadata": self.metadata,
         }
 
     @classmethod
     def from_config(cls, config):
         ids = config["config"]["id"]
+        sampling_prob = config["config"]["sampling_prob"]
         metadata = config["config"]["metadata"]
 
-        return cls(ids, metadata)
+        return cls(ids, sampling_prob, metadata)
 
 
 negative_sampling_registry: Registry = Registry.class_registry("tf.negative_sampling")
@@ -138,6 +146,9 @@ class CandidateSampler(tf.keras.layers.Layer, RegistryMixin["CandidateSampler"],
     @abc.abstractmethod
     def sample(self) -> Candidate:
         raise NotImplementedError()
+
+    def with_sampling_probs(self, items: Candidate) -> Candidate:
+        return items
 
     @property
     def max_num_samples(self) -> int:

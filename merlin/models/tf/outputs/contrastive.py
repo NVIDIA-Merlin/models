@@ -14,7 +14,8 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Optional, Protocol, Union, runtime_checkable
+import warnings
+from typing import List, Optional, Protocol, Tuple, Union, runtime_checkable
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -77,6 +78,20 @@ class ContrastiveOutput(ModelOutput):
     store_negative_ids: bool, optional
         Whether to store negative ids for post-processing
         by default False
+    logq_sampling_correction: bool, optional
+        The LogQ correction is a standard technique for
+        sampled softmax and popularity-biased sampling.
+        It subtracts from the logits the
+        log expected count/prob of the positive and
+        negative samples in order to not overpenalize the
+        popular items for being sampled more often as negatives.
+        It can be enabled if a single negative sampler is provided
+        and if it provides the sampler provides the
+        sampling probabilities (i.e. implements with_sampling_probs()).
+        Another alternative for performing logQ correction is using
+        ContrastiveOutput(..., post=PopularityLogitsCorrection(item_frequencies)),
+        where you need to provide the items frequency probability distribution (prior).
+        Default is False.
 
     References:
     ----------
@@ -132,6 +147,7 @@ class ContrastiveOutput(ModelOutput):
         query_name: str = "query",
         candidate_name: str = "candidate",
         store_negative_ids: bool = False,
+        logq_sampling_correction: Optional[bool] = False,
         **kwargs,
     ):
         self.col_schema = None
@@ -168,6 +184,7 @@ class ContrastiveOutput(ModelOutput):
         self.query_name = query_name
         self.candidate_name = candidate_name
         self.store_negative_ids = store_negative_ids
+        self.logq_sampling_correction = logq_sampling_correction
 
         self.target_name = kwargs.pop("target", target_name)
         super().__init__(
@@ -223,7 +240,9 @@ class ContrastiveOutput(ModelOutput):
         positive = Candidate(id=positive_id, metadata={**features}).with_embedding(
             positive_embedding
         )
-        negative = self.sample_negatives(positive, features, training=training, testing=testing)
+        negative, positive = self.sample_negatives(
+            positive, features, training=training, testing=testing
+        )
         if self.has_candidate_weights and (
             positive.id.shape != negative.id.shape or positive != negative
         ):
@@ -264,6 +283,18 @@ class ContrastiveOutput(ModelOutput):
             tf.multiply(query_embedding, positive.embedding), keepdims=True, axis=-1
         )
 
+        if self.logq_sampling_correction:
+            if positive.sampling_prob is None or negative.sampling_prob is None:
+                warnings.warn(
+                    "The logQ sampling correction is enabled, but sampling probs were not found "
+                    "for both positive and negative candidates",
+                    RuntimeWarning,
+                )
+
+            epsilon = 1e-16
+            positive_scores -= tf.math.log(positive.sampling_prob + epsilon)
+            negative_scores -= tf.math.log(tf.transpose(negative.sampling_prob + epsilon))
+
         if self.downscore_false_negatives:
             negative_scores, _ = tf_utils.rescore_false_negatives(
                 positive.id, negative.id, negative_scores, self.false_negative_score
@@ -295,7 +326,7 @@ class ContrastiveOutput(ModelOutput):
         features: TabularData,
         training=False,
         testing=False,
-    ) -> Candidate:
+    ) -> Tuple[Candidate, Candidate]:
         """Method to sample negatives from `self.negative_samplers`
 
         Parameters
@@ -311,16 +342,28 @@ class ContrastiveOutput(ModelOutput):
 
         Returns
         -------
-        Items
-            Class containing the sampled negative ids
+        Tuple[Candidate, Candidate]
+            Tuple of candidates with sampled negative ids and the provided positive ids
+            added with the sampling probability
         """
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
         candidates: List[Candidate] = []
-        for sampler in self.negative_samplers:
-            sampled: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
 
-            if sampled.id is not None:
-                candidates.append(sampled)
+        if self.logq_sampling_correction and len(self.negative_samplers) > 1:
+            raise ValueError(
+                "It is only possible to apply logQ sampling correction "
+                "(logq_sampling_correction=True) when only one negative sampler is provided."
+            )
+
+        for sampler in self.negative_samplers:
+            neg_samples: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
+
+            # Adds to the positive and negative candidates their sampling probs from the sampler
+            positive = sampler.with_sampling_probs(positive)
+            neg_samples = sampler.with_sampling_probs(neg_samples)
+
+            if neg_samples.id is not None:
+                candidates.append(neg_samples)
             else:
                 LOG.warn(
                     f"The sampler {type(sampler).__name__} returned no samples for this batch."
@@ -336,7 +379,7 @@ class ContrastiveOutput(ModelOutput):
             for neg in candidates[1:]:
                 negatives += neg
 
-        return negatives
+        return negatives, positive
 
     def embedding_lookup(self, ids: tf.Tensor):
         return self.to_call.embedding_lookup(tf.squeeze(ids))

@@ -579,6 +579,7 @@ def YoutubeDNNRetrievalModelV2(
             negative_samplers=PopularityBasedSamplerV2(
                 max_num_samples=num_sampled, max_id=num_classes - 1, min_id=min_sampled_id
             ),
+            logq_sampling_correction=True,
         )
 
     return RetrievalModelV2(query=query, output=outputs)

@@ -82,7 +82,8 @@ class PopularityLogitsCorrection(Block):
     where `item_prob = item_freq_count / sum(item_freq_count)` is
     a probability distribution of the item frequency. In a nutshell,
     the logQ correction aims to increase the prediction scores (logits)
-    for infrequent items and decrease the ones for frequent items.
+    for infrequent items and decrease the ones for frequent items, so
+    that they are not much more penalized for being sampled more often.
 
     References
     ----------

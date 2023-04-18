@@ -101,7 +101,7 @@ def test_two_tower_constrastive_with_logq_correction(ecommerce_data: Dataset):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_contrastive_output(ecommerce_data: Dataset, run_eagerly):
+def test_contrastive_output_with_sampled_softmax(ecommerce_data: Dataset, run_eagerly):
     schema = ecommerce_data.schema
     schema["item_category"] = schema["item_category"].with_tags(
         schema["item_category"].tags + "target"
@@ -112,7 +112,8 @@ def test_contrastive_output(ecommerce_data: Dataset, run_eagerly):
         mm.MLPBlock([8]),
         mm.ContrastiveOutput(
             schema["item_category"],
-            negative_samplers=PopularityBasedSamplerV2(max_id=100, max_num_samples=20),
+            negative_samplers=PopularityBasedSamplerV2(max_id=100, max_num_samples=20, min_id=1),
+            logq_sampling_correction=True,
         ),
     )
 
