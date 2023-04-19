@@ -20,7 +20,7 @@ TRITON_SERVER_PATH = shutil.which("tritonserver")
 @pytest.mark.notebook
 def test_next_item_prediction(tb, tmpdir):
     tb.inject(
-        """
+        f"""
         import os, random
         from datetime import datetime, timedelta
         from merlin.datasets.synthetic import generate_data
@@ -33,15 +33,15 @@ def test_next_item_prediction(tb, tmpdir):
             return date
         df['checkin'] = [generate_date() for _ in range(df.shape[0])]
         df['checkout'] = [generate_date() for _ in range(df.shape[0])]
-        df.to_csv('/tmpdir/train_set.csv')
+        df.to_csv('{tmpdir}/train_set.csv')
         """
     )
     tb.cells[4].source = tb.cells[4].source.replace("get_booking('/workspace/data')", "")
     tb.cells[4].source = tb.cells[4].source.replace(
-        "read_csv('/workspace/data/train_set.csv'", "read_csv('/tmpdir/train_set.csv'"
+        "read_csv('/workspace/data/train_set.csv'", f"read_csv('{tmpdir}/train_set.csv'"
     )
     tb.cells[31].source = tb.cells[31].source.replace("epochs=5", "epochs=1")
-    tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", "/tmpdir/ensemble")
+    tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", f"{tmpdir}/ensemble")
     tb.execute_cell(list(range(0, 38)))
 
     with utils.run_triton_server(f"{tmpdir}/ensemble", grpc_port=8001):
