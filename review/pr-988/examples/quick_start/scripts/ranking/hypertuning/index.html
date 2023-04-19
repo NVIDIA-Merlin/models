@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../../../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/scripts/ranking/hpo/index.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/quick_start/scripts/ranking/hypertuning/index.html" />
   <!--[if lt IE 9]>
     <script src="../../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -95,7 +95,7 @@ These results are reproduceable by using the TenRec and the quick-start scripts 
 <div class="section" id="hyperparameter-tuning-setup">
 <h2>Hyperparameter tuning setup<a class="headerlink" href="#hyperparameter-tuning-setup" title="Permalink to this headline"></a></h2>
 <p>For a fair comparison of the models, we ran a separate hyperparameter tuning process for each model architecture using TenRec dataset, which we call experiment group. We use the <a class="reference external" href="https://docs.wandb.ai/guides/sweeps">Weights&amp;Biases Sweeps</a> feature for managing the hypertuning process for each experiment group. The hypertuning uses bayesian optimization (<code class="docutils literal notranslate"><span class="pre">method=bayes</span></code>) to improve the <code class="docutils literal notranslate"><span class="pre">AUC</span></code> metric, which is different for STL and MTL, as explained below.</p>
-<p>You can find the <span class="xref myst">here</span> the hyperparameter space configurations and a tutorial on how to use <a class="reference external" href="https://docs.wandb.ai/guides/sweeps">Weights&amp;Biases Sweeps</a> to run the hyperparameter tuning.</p>
+<p>You can find the <span class="xref myst">hyperparameter space configurations</span> and a <a class="reference internal" href="tutorial_with_wb_sweeps.html"><span class="doc std std-doc">tutorial</span></a> on how to use <a class="reference external" href="https://docs.wandb.ai/guides/sweeps">Weights&amp;Biases Sweeps</a> to run the hyperparameter tuning.</p>
 <div class="section" id="single-task-learning">
 <h3>Single-task learning<a class="headerlink" href="#single-task-learning" title="Permalink to this headline"></a></h3>
 <p>For benchmarking the ranking models with single-task learning we used the <code class="docutils literal notranslate"><span class="pre">click</span></code> binary target, as it is the most frequent event in the dataset. 200 trials were performed for each experiment group.</p>
