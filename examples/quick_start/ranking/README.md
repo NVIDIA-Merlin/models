@@ -56,12 +56,12 @@ docker run --gpus all --rm -it --ipc=host -v $INPUT_DATA_PATH:/data -v $OUTPUT_P
 
 ## Preprocessing
 
-In order to make it easy getting the data ready for model training, we provide a generic script: `preprocessing.py`. That script is based on **dask_cudf** and **NVTabular** libraries that leverage GPUs for accelerated and distributed preprocessing.  
+In order to make it easy getting the data ready for model training, we provide a generic script: [preprocessing.py](../scripts/preproc/preprocessing.py). That script is based on **dask_cudf** and **NVTabular** libraries that leverage GPUs for accelerated and distributed preprocessing.  
 P.s. **NVTabular** also supports CPU which is suitable for prototyping in dev environments.
 
 The preprocessing script outputs preprocessed data as a number of parquet files, as well as a *schema* that stores output features metadata like statistics and tags.
 
-In this example, we set some options for preprocessing. Here is the explanation of the main arguments, and you can find the full documentation of preprocessing command line arguments and also best practices [here](../scripts/preproc/README.md).
+In this example, we set some options for preprocessing. Here is the explanation of the main arguments; you can check the [full documentation and best practices for preprocessing](../scripts/preproc/README.md).
 
 - `--categorical_features` - Names of the categorical/discrete features (concatenated with "," without space).
 - `--binary_classif_targets` - Names of the available target columns for binary classification task
@@ -73,7 +73,7 @@ In this example, we set some options for preprocessing. Here is the explanation 
 - `--persist_intermediate_files` - Whether should persist/cache to disk intermediate files during preprocessing. This is useful for large datasets.
 - `--dataset_split_strategy` - Strategy for splitting train and eval sets. In this case, `random_by_user` is chosen, which means that train and test will have the same users with some random examples reserved for evaluation.
 - `--random_split_eval_perc` - Percentage of data to reserve for eval set
-- `filter_query` - A filter query condition compatible with dask-cudf `DataFrame.query()`
+- `--filter_query` - A filter query condition compatible with dask-cudf `DataFrame.query()`
 
 ```bash
 cd /models/examples/quick_start/scripts/preproc/
@@ -86,24 +86,23 @@ After you execute this script, a folder `preproc` will be created in `--output_p
 ## Training a ranking model
 Merlin Models is a Merlin library that makes it easy to build and train RecSys models. It is built on top of TensorFlow, and provides building blocks for creating input layers based on the features in the schema, different feature interaction layers and output layers based on the target columns defined in the schema.
 
-A number of popular ranking models are available in Merlin Models like **DLRM**, **DCN-v2**, **Wide&Deep**, **DeepFM**.
+A number of popular ranking models are available in Merlin Models API like **DLRM**, **DCN-v2**, **Wide&Deep**, **DeepFM**. This Quick-start provides a generic ranking script [ranking.py](../scripts/ranking/ranking.py) for building and training those models using Models API.
 
-In the following generic `ranking.py` script, you can easily train the popular **DLRM** model which performs 2nd level feature interaction. It sets `--model dlrm` and `--embeddings_dim 64` because DLRM models require all categorical columns to be embedded with the same dimension for the feature interaction. You notice that we can set many of the common model (e.g. `--mlp_layers`) and training hyperparameters like learning rate (`--lr`) and its decay (`--lr_decay_rate`, `--lr_decay_steps`), L2 regularization (`--l2_reg`, `embeddings_l2_reg`), `--dropout` among others.  We set `--epochs 1` and `--train_steps_per_epoch 10` to train for just 10 batches and make runtime faster. If you have a more GPU with more memory (e.g. V100 with 32 GB), you might increase `--train_batch_size` and `--eval_batch_size` to a much larger batch size, for example to `65536`.  
-There are many target columns available in the dataset, and you can select one of them for training by setting `--tasks=click`. In this dataset, there are about 3.7 negative examples (`click=0`) for each positive example (`click=1`). That leads to some class unbalance. We can couple with that by setting `--stl_positive_class_weight` to give more weight to the loss for positive examples, which are rarer.
+ In the following command example, you can easily train the popular **DLRM** model which performs 2nd level feature interaction. It sets `--model dlrm` and `--embeddings_dim 64` because DLRM models require all categorical columns to be embedded with the same dimension for the feature interaction. You notice that we can set many of the common model (e.g. top `--mlp_layers`) and training hyperparameters like learning rate (`--lr`) and its decay (`--lr_decay_rate`, `--lr_decay_steps`), L2 regularization (`--l2_reg`, `embeddings_l2_reg`), `--dropout` among others.  We set `--epochs 1` and `--train_steps_per_epoch 10` to train for just 10 batches and make runtime faster. If you have a more GPU with more memory (e.g. V100 with 32 GB), you might increase `--train_batch_size` and `--eval_batch_size` to a much larger batch size, for example to `65536`.  
+There are many target columns available in the dataset, and you can select one of them for training by setting `--tasks=click`. In this dataset, there are about 3.7 negative examples (`click=0`) for each positive example (`click=1`). That leads to some class unbalance. We can deal with that by setting `--stl_positive_class_weight` to give more weight to the loss for positive examples, which are rarer.
 
 
 ```bash
 cd /models/examples/quick_start/scripts/ranking/
-CUDA_VISIBLE_DEVICES=0 TF_GPU_ALLOCATOR=cuda_malloc_async python  ranking.py --train_path $OUT_DATASET_PATH/dataset/train --eval_path $OUT_DATASET_PATH/dataset/eval --output_path ./outputs/ --tasks=click --stl_positive_class_weight 3 --model dlrm --embeddings_dim 64 --l2_reg 1e-2 --embeddings_l2_reg 1e-6 --dropout 0.05 --mlp_layers 64,32  --lr 1e-4 --lr_decay_rate 0.99 --lr_decay_steps 100 --train_batch_size 65536 --eval_batch_size 65536 --epochs 1 
-//--train_steps_per_epoch 10 
+CUDA_VISIBLE_DEVICES=0 TF_GPU_ALLOCATOR=cuda_malloc_async python  ranking.py --train_path $OUT_DATASET_PATH/dataset/train --eval_path $OUT_DATASET_PATH/dataset/eval --output_path ./outputs/ --tasks=click --stl_positive_class_weight 3 --model dlrm --embeddings_dim 64 --l2_reg 1e-2 --embeddings_l2_reg 1e-6 --dropout 0.05 --mlp_layers 64,32  --lr 1e-4 --lr_decay_rate 0.99 --lr_decay_steps 100 --train_batch_size 65536 --eval_batch_size 65536 --epochs 1 --train_steps_per_epoch 10 
 ```
-You can find the full documentation of the training script arguments and best practices [here](../scripts/ranking/README.md).
+You can explore the [full documentation and best practices for ranking models](../scripts/ranking/README.md), which contains details about the command line arguments.
 
 ## Training a ranking model with multi-task learning
 When multiple targets are available for the same features, models typically benefit from joint training a single model with multiple heads / losses. Merlin Models supports some architectures designed specifically for multi-task learning based on experts. You can find an example notebook with detailed explanations [here](https://github.com/NVIDIA-Merlin/models/blob/main/examples/usecases/ranking_with_multitask_learning.ipynb).
 
 
-The `ranking.py` script makes it easy to train ranking models with multi-task learning by setting more than one target, e.g. `--tasks="click,like,follow,share"`). 
+The [ranking.py](../scripts/ranking/ranking.py) script makes it easy to train ranking models with multi-task learning by setting more than one target, e.g. `--tasks="click,like,follow,share"`). 
 
 
 ### Training an MMOE model
@@ -114,13 +113,13 @@ You can also balance the loss weights by setting `--mtl_loss_weight_*` arguments
 cd /models/examples/quick_start/scripts/ranking/
 DATA_PATH=/quick_start/scripts/preproc/output/final_dataset
 
-CUDA_VISIBLE_DEVICES=0 TF_MEMORY_ALLOCATION=0.8 python  ranking.py --train_path $DATA_PATH/train --eval_path $DATA_PATH/eval --output_path ./outputs/ --tasks=click,like,follow,share --model mmoe --mmoe_num_mlp_experts 3 --expert_mlp_layers 128 --gate_dim 32 --use_task_towers --tower_layers 64 --embedding_sizes_multiplier 4 --l2_reg 1e-5 --embeddings_l2_reg 1e-6 --dropout 0.05  --lr 1e-4 --lr_decay_rate 0.99 --lr_decay_steps 100 --train_batch_size 65536 --eval_batch_size 65536 --epochs 1 --mtl_pos_class_weight_click=1 --mtl_pos_class_weight_follow=1 --mtl_pos_class_weight_like=1 --mtl_loss_weight_click=4 --mtl_loss_weight_follow=3 --mtl_loss_weight_like=2 --mtl_loss_weight_share=1 
+CUDA_VISIBLE_DEVICES=0 TF_MEMORY_ALLOCATION=0.8 python  ranking.py --train_path $DATA_PATH/train --eval_path $DATA_PATH/eval --output_path ./outputs/ --tasks=click,like,follow,share --model mmoe --mmoe_num_mlp_experts 3 --expert_mlp_layers 128 --gate_dim 32 --use_task_towers=True --tower_layers 64 --embedding_sizes_multiplier 4 --l2_reg 1e-5 --embeddings_l2_reg 1e-6 --dropout 0.05  --lr 1e-4 --lr_decay_rate 0.99 --lr_decay_steps 100 --train_batch_size 65536 --eval_batch_size 65536 --epochs 1 --mtl_pos_class_weight_click=1 --mtl_pos_class_weight_follow=1 --mtl_pos_class_weight_like=1 --mtl_loss_weight_click=4 --mtl_loss_weight_follow=3 --mtl_loss_weight_like=2 --mtl_loss_weight_share=1 
 //--train_steps_per_epoch 3  
 ```
 
 You can find more quick-start information on multi-task learning and MMOE architecture [here](../scripts/ranking/README.md).
 
 ## Hyperparameter tuning
-We provide a [tutorial](../scripts/ranking/hpo/tutorial_with_wb_sweeps.md) on how **hyperparameter tuning with Merlin models and Weights&Biases Sweeps**.
+We provide a [tutorial](../scripts/ranking/hpo/tutorial_with_wb_sweeps.md) on how to do **hyperparameter tuning with Merlin models and Weights&Biases Sweeps**.
 
 We also make it available a [benchmark](../scripts/ranking/hpo/README.md) resulted from our own hyperparameter tuning of TenRec dataset. It compares the different single-task and multi-task learning models. It provides also empirical information on what were the improvements obtained with hyperparameter tuning, the curated hypertuning search space for modeling hyperparameters of `ranking.py` and the most important hyperparameters.

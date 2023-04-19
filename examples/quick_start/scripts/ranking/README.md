@@ -1,7 +1,7 @@
 # Ranking script
 The `ranking.py` is a template script that leverages the Merlin [models](https://github.com/NVIDIA-Merlin/models/) library (Tensorflow API) to build, train, evaluate ranking models. In the end you can either save the model for interence or persist model predictions to file.
 
-Merlin models provide building blocks on top of Tensorflow (Keras) that make it easy to build and train advanced neural ranking models. There are blocks for representing input, configuring model outputs/heads, perform feature interactions, losses, metrics, negative sampling, among others.
+Merlin models library provides building blocks on top of Tensorflow (Keras) that make it easy to build and train advanced neural ranking models. There are blocks for representing input, configuring model outputs/heads, perform feature interactions, losses, metrics, negative sampling, among others.
 
 ## Ranking in multi-stage RecSys
 Large online services like social media, streaming, e-commerce, and news provide a very broad catalog of items and leverage recommender systems to help users find relevant items. Those companies typically deploy recommender systems pipelines with [multiple stages](https://medium.com/nvidia-merlin/recommender-systems-not-just-recommender-models-485c161c755e), in particular the retrieval and ranking. The retrieval stage selects a few hundreds or thousands of items from a large catalog. It can be a heuristic approach (like most recent items) or a scalable model like Matrix Factorization, [Two-Tower architecture](https://medium.com/nvidia-merlin/scale-faster-with-less-code-using-two-tower-with-merlin-c16f32aafa9f) or [YouTubeDNN](https://static.googleusercontent.com/media/research.google.com/pt-BR//pubs/archive/45530.pdf). Then, the ranking stage scores the relevance of the candidate items provided by the previous stage for a given user and context.
@@ -47,42 +47,45 @@ It is assumed that in the preprocessing the categorical features were encoded as
 - **One-hot encoding** Sparse representation where each categorical value is represented by a binary feature with 1 only for the actual value. If the categorical feature contains a list of values, it can be encoded with multi-hot encoding, with 1s for all values in the list. This encoding is useful to represent low-cardinality categorical features or to provide input to linear models.
 - **Embedding** - This encoding is very popular for deep neural networks. Each categorical value is mapped to a 1D continuous vector, that can be trainable or pre-trained. The embeddings are stored in embedding layers or tables, whose first dim in the cardinality of the categorical feature and 2nd dim is the embedding size. 
 
-**Dealing with high-cardinality categorical features**  
+#### **Dealing with high-cardinality categorical features**  
 We explain in the [Quick-start preprocessing documentation](../preproc/README.md) that large services might have categorical features with very high cardinality (e.g. order of hundreds of millions or higher), like user id or item id. They typically require a high memory to be stored (e.g. with embedding tables) or processed (e.g. with one-hot encoding). In addition, most of the categorical values are very infrequent, for which it is not possible to learn good embeddings. 
 
 The [preprocessing documentation](../preproc/README.md) describes some options to deal with the high-cardinality features: **Frequency capping**, **Filtering out rows with infrequent values** and  **Hashing**.
 
 You might also decide to keep the original high-cardinality of the categorical features for better personalization level and accuracy. 
 
-> The embedding tables are typically responsible for most of the parameters of Recommender System models. For large scale systems, where the number of users and items is in the order of hundreds of millions, it is typically needed to use a distributed embeddings solution, so that embedding embedding tables can be sharded in multiple compute devices (e.g. GPU, CPU).  NVIDIA offers distributed embedding solutions that can be used with Merlin and Tensorflow.  
+> The embedding tables are typically responsible for most of the parameters of Recommender System models. For large scale systems, where the number of users and items is in the order of hundreds of millions, it is typically needed to use a distributed embeddings solution, so that embedding embedding tables can be sharded in multiple compute devices (e.g. GPU, CPU). 
 
-**TODO**: Add references to NVIDIA distributed embeddings solutions
+<!--**TODO**: Add references to NVIDIA distributed embeddings solutions -->
 
-**Defining the embedding size**
+#### **Defining the embedding size**
 
 It is common sense that higher the cardinality of categorical feature the higher should be the embedding dimension, as its vector space gets more complex.
 
-Models library uses by default a heuristic method that sets embedding sizes based on cardinality (implementation [here](https://github.com/NVIDIA-Merlin/models/blob/a5e392cbc575fe984c96ddcbce696e4b71b7073d/merlin/models/utils/schema_utils.py#L169)), which can be scaled by `--embedding_sizes_multiplier`. Models library API also allow setting [specific embedding dims](https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.Embeddings.html#merlin.models.tf.Embeddings) for each / all categorical features
+Models library uses by default a heuristic method that sets embedding sizes based on cardinality (implementation [here](https://github.com/NVIDIA-Merlin/models/blob/a5e392cbc575fe984c96ddcbce696e4b71b7073d/merlin/models/utils/schema_utils.py#L169)), which can be scaled by `--embedding_sizes_multiplier`. Models library API also allows setting [specific embedding dims](https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.Embeddings.html#merlin.models.tf.Embeddings) for each / all categorical features.
 
 > Some models supported by this script (DLRM and DeepFM) require the embedding sizes of categorical features to be the same (`--embedding_dim`) because of their feature interaction approach based on Factorization Machines.
 
 ### Regularization
-Neural networks typically require regularization in order to avoid overfitting, in particular if trained on small data or for many epochs that can make it memorize train set. This script provide typical regularization techniques like Dropout (`--dropout`) and L2 regularization of model parameters (--l2_reg) and embeddings (`--embeddings_l2_reg `).               
+Neural networks typically require regularization in order to avoid overfitting, in particular if trained on small data or for many epochs that can make it memorize train set. This script provide typical regularization techniques like Dropout (`--dropout`) and L2 regularization of model parameters (`--l2_reg`) and embeddings (`--embeddings_l2_reg`).               
 
 ### Classes weights
 Typically positive user interactions are just a small fraction of the items that were exposed to the users. That leads to class unbalanced targets.  
-A common technique to deal with this problem in machine learning is to assign a higher weight in the loss to the examples with infrequent targets - positive classes in this case.  
-You might set the positive class weight for single-task learning models with `--stl_positive_class_weight` and for multi-task learning you can set the class weight for each target separately by using `--mtl_pos_class_weight_*`, where `*` must be replaced by the target name. In this case, the negative class weight is always 1.0
+A common technique to deal with this problem in machine learning is to assign a higher weight to the loss for examples with infrequent targets - positive classes in this case.  
+You might set the positive class weight for single-task learning models with `--stl_positive_class_weight` and for multi-task learning you can set the class weight for each target separately by using `--mtl_pos_class_weight_*`, where `*` must be replaced by the target name. In this case, the negative class weight is always 1.0.
 
-### Losses weights
+### Negative sampling
+If you have only positive interactions in your training data, you can use negative sampling to include synthetic negative examples in the training batch. The negative samples are generated by adding for each positive example N negative examples, keeping user features and replacing features of the target item by other item interacted by another users in the batch. You can easily set the number of negative examples for train (`--in_batch_negatives_train`) and evaluate (`--in_batch_negatives_eval`).  
+This functionality require that user and item features are tagged accordingly, as explained in the [Quick-start preprocessing documentation](../preproc/README.md). 
+
+### Multi-task learning
+
+#### **Losses weights**  
 
 You can balance the learning of the multiple tasks by setting losses weights when using multi-task learning. You can set them by providing `--mtl_loss_weight_*` for each task, where `*` must be replaced by the target name.
 
-### Negative sampling
-TODO: Describe --in_batch_negatives_train and --in_batch_negatives_eval for positive only data
+#### **Setting tasks sample space** 
 
-
-### Multi-task learning: Setting tasks sample space
 Some targets might depend on other target columns for some datasets. For example, the preprocessed TenRec dataset have positive (=1) `like`, `follow`, and `share` events only if the user has also clicked on the item (`click=1`). 
 
 You might want to model dependent tasks explicitly by setting the sample space, i.e., computing the loss of the dependent tasks only for examples where the dominant target is 1. That would make the dependent targets less sparser, as their value is always 0 when dominant target is 0.
@@ -90,8 +93,7 @@ You might want to model dependent tasks explicitly by setting the sample space, 
 The scripts allows setting the tasks sample space by using `--tasks_sample_space`, which accepts comma-separated values. The order of sample spaces should match the order of the `--tasks`. Empty value means the task will be trained in the entire space, i.e., loss computed for all examples in the dataset.   
 For TenRec dataset, you could use `--tasks click,like,share,follow` and `--tasks_sample_space=,click,click,click`, meaning that the click task will be trained using the entire space and the other tasks will be trained only in click space.
 
-> <p><img src="../../images/lamp.png"  width=25 height=25 /> We have observed empirically that if you want a model to predict all tasks at the same time (e.g. the likelihood of a user to click-like-share a post), it is better to train all tasks using entire space. On the other hand, if you want to train a MTL model that predicts rarer events (e.g. add-to-cart, purchase) given prior events (e.g. click), then you typically get better accuracy on the dependent tasks training them in the dominant task space, while training the dominant task on entire space.
-</p>
+> We have observed empirically that if you want a model to predict all tasks at the same time (e.g. the likelihood of a user to click-like-share a post), it is better to train all tasks using entire space. On the other hand, if you want to train a MTL model that predicts rarer events (e.g. add-to-cart, purchase) given prior events (e.g. click), then you typically get better accuracy on the dependent tasks training them in the dominant task space, while training the dominant task on entire space.
 
 ## Command line arguments
 
@@ -141,7 +143,8 @@ For TenRec dataset, you could use `--tasks click,like,share,follow` and `--tasks
                         Activation function supported by Keras, like:
                         'relu', 'selu', 'elu', 'tanh', 'sigmoid'. By
                         default 'relu'
-  --mlp_init            Keras initializer for MLP layers
+  --mlp_init            Keras initializer for MLP layers. 
+                        By default 'glorot_uniform'.
   --l2_reg              L2 regularization factor. By default 1e-5.
   --embeddings_l2_reg 
                         L2 regularization factor for embedding tables.
@@ -157,9 +160,12 @@ For TenRec dataset, you could use `--tasks click,like,share,follow` and `--tasks
                         between 2 and 10. By default 2.0
   --dropout             Dropout rate. By default 0.0
   --mlp_layers 
-                        The dims of MLP layers. By default '128,64,32'
+                        Comma-separated dims of MLP layers. 
+                        It is used by MLP model and also for dense blocks
+                        of DLRM, DeepFM, DCN and Wide&Deep.
+                        By default '128,64,32'
   --stl_positive_class_weight 
-                        Positive class weight for single-task models. By
+                        Positive class weight for single-task  models. By
                         default 1.0. The negative class weight is fixed
                         to 1.0
 ```
@@ -230,7 +236,9 @@ For TenRec dataset, you could use `--tasks click,like,share,follow` and `--tasks
 ```
   --expert_mlp_layers 
                         For MTL models (MMOE, CGC, PLE) sets the MLP
-                        architecture of experts. By default '64'
+                        layers of experts. 
+                        It expects a comma-separated list of layer dims.
+                        By default '64'
   --gate_dim            Dimension of the gate dim MLP layer. By default
                         64
   --mtl_gates_softmax_temperature 
@@ -243,10 +251,12 @@ For TenRec dataset, you could use `--tasks click,like,share,follow` and `--tasks
 ### Multi-task learning models
 ```
   --use_task_towers 
-                        Enables task-specific towers before its head.
+                        Creates task-specific MLP tower before its head.
+                        By default True.
   --tower_layers 
-                        MLP architecture of task-specific towers. By
-                        default '64'
+                        MLP architecture of task-specific towers. 
+                        It expects a comma-separated list of layer dims.
+                        By default '64'
 ```
 
 ### Negative sampling
@@ -307,9 +317,10 @@ For TenRec dataset, you could use `--tasks click,like,share,follow` and `--tasks
   --log_to_tensorboard 
                         Enables logging to Tensorboard.
   --log_to_wandb 
-                        Enables logging to Weights&Biases. This requires
-                        sign-up for a free W&B account and providing an
-                        API key in the console.
+                        Enables logging to Weights&Biases. This requires 
+                        sign-up for a free Weights&Biases account at https://wandb.ai/
+                        and providing an API key in the console you can get at 
+                        https://wandb.ai/authorize
   --wandb_project 
                         Name of the Weights&Biases project to log
   --wandb_entity 
@@ -320,18 +331,22 @@ For TenRec dataset, you could use `--tasks click,like,share,follow` and `--tasks
                         Weights&Biases
 ```
 
+
+This requires sign-up for a free Weights&Biases account at https://wandb.ai/home "
+        "and providing an API key in the console.
+
 ### Outputs
 ```
-  --output_path 
-                        Output path for saving predictions.
+  --output_path
+                        Folder to save training and logging assets.
   --save_trained_model_path 
                         If provided, model is saved to this path after
                         training.
   --predict             If enabled, the dataset provided in
-                        --eval_pathwill be used for prediction (instead
+                        --eval_path will be used for prediction (instead
                         of evaluation). The prediction scores for the
                         that dataset will be saved to
-                        --predict_output_path (or to --output_path),
+                        --predict_output_path,
                         according to the --predict_output_format choice.
   --predict_keep_cols 
                         Comma-separated list of columns to keep in the
@@ -340,12 +355,9 @@ For TenRec dataset, you could use `--tasks click,like,share,follow` and `--tasks
                         prediction scores.
   --predict_output_path 
                         If provided the prediction scores will be saved
-                        to this path. Otherwise, files will be saved to
-                        --output_path.
+                        to this path. 
   --predict_output_format {parquet,csv,tsv}
                         Format of the output prediction files. By
                         default 'parquet', which is the most performant
                         format.
 ```                        
-
-<a href="https://www.flaticon.com/free-icons/lamp" title="lamp icons">Lamp icon created by Freepik - Flaticon</a>

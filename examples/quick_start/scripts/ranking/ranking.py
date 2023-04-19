@@ -305,9 +305,7 @@ class RankingTrainEvalRunner:
             # Keeping only selected features and all targets
             predictions_ddf = predictions_ddf[self.args.predict_keep_cols + pred_cols]
 
-        output_path = os.path.join(self.args.output_path, "predictions/")
-        if self.args.predict_output_path:
-            output_path = self.args.predict_output_path
+        output_path = self.args.predict_output_path
 
         if self.args.predict_output_format == "parquet":
             predictions_ddf.to_parquet(output_path, write_index=False)
@@ -362,9 +360,16 @@ def main():
 
     args = parse_arguments()
 
+    os.makedirs(args.output_path, exist_ok=True)
+
     logger = None
     if args.log_to_wandb:
-        logger = WandbLogger(project=args.wandb_project, entity=args.wandb_entity, config=args)
+        logger = WandbLogger(
+            project=args.wandb_project,
+            entity=args.wandb_entity,
+            config=args,
+            logging_path=args.output_path,
+        )
 
     train_ds, eval_ds = get_datasets(args)
 

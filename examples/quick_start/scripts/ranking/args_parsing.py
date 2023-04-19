@@ -90,9 +90,11 @@ def build_arg_parser():
     parser.add_argument("--train_path", default="/data/train/", help="Path of the train set.")
     parser.add_argument("--eval_path", default="/data/eval/", help="Path of the eval set.")
     # Outputs
+
     parser.add_argument(
-        "--output_path", default="/results/", help="Output path for saving predictions."
+        "--output_path", default="./output/", help="Folder to save training assets and logging."
     )
+
     parser.add_argument(
         "--save_trained_model_path",
         default=None,
@@ -105,10 +107,10 @@ def build_arg_parser():
         nargs="?",
         const=True,
         default=False,
-        help="If enabled, the dataset provided in --eval_path"
+        help="If enabled, the dataset provided in --eval_path "
         "will be used for prediction (instead of evaluation). "
         "The prediction scores for the that dataset will "
-        "be saved to --predict_output_path (or to --output_path), "
+        "be saved to --predict_output_path, "
         "according to the --predict_output_format choice. ",
     )
     parser.add_argument(
@@ -121,8 +123,7 @@ def build_arg_parser():
     parser.add_argument(
         "--predict_output_path",
         default=None,
-        help="If provided the prediction scores will be saved to this path. "
-        "Otherwise, files will be saved to --output_path.",
+        help="If provided the prediction scores will be saved to this path.",
     )
 
     parser.add_argument(
@@ -175,7 +176,10 @@ def build_arg_parser():
     )
 
     parser.add_argument(
-        "--mlp_init", type=str, default="glorot_uniform", help="Keras initializer for MLP layers"
+        "--mlp_init",
+        type=str,
+        default="glorot_uniform",
+        help="Keras initializer for MLP layers." "By default 'glorot_uniform'.",
     )
     parser.add_argument(
         "--l2_reg", default=1e-5, type=float, help="L2 regularization factor. By default 1e-5."
@@ -209,7 +213,8 @@ def build_arg_parser():
         "--mlp_layers",
         default="128,64,32",
         type=str,
-        help="The dims of MLP layers. By default '128,64,32'",
+        help="The dims of MLP layers. It is used by MLP model and also for dense blocks "
+        "of DLRM, DeepFM, DCN and Wide&Deep. By default '128,64,32'",
     )
     parser.add_argument(
         "--stl_positive_class_weight",
@@ -305,8 +310,9 @@ def build_arg_parser():
         "--expert_mlp_layers",
         default="64",
         type=str,
-        help="For MTL models (MMOE, CGC, PLE) sets the MLP architecture of experts. "
-        "By default '64'",
+        help="For MTL models (MMOE, CGC, PLE) sets the MLP "
+        "layers of experts.  It expects a comma-separated "
+        "list of layer dims. By default '64'",
     )
 
     parser.add_argument(
@@ -330,15 +336,16 @@ def build_arg_parser():
         type=str2bool,
         nargs="?",
         const=True,
-        default=False,
-        help="Enables task-specific towers before its head.",
+        default=True,
+        help="Enables task-specific towers before its head. By default True.",
     )
 
     parser.add_argument(
         "--tower_layers",
         default="64",
         type=str,
-        help="MLP architecture of task-specific towers. By default '64'",
+        help="MLP architecture of task-specific towers. "
+        "It expects a comma-separated list of layer dims. By default '64'",
     )
 
     # hyperparams for training
@@ -446,9 +453,10 @@ def build_arg_parser():
         type=str2bool,
         nargs="?",
         const=True,
-        default=True,
+        default=False,
         help="Enables logging to Weights&Biases. "
-        "This requires sign-up for a free W&B account and providing an API key in the console.",
+        "This requires sign-up for a free Weights&Biases account at https://wandb.ai/home "
+        "and providing an API key in the console you can get at https://wandb.ai/authorize",
     )
 
     parser.add_argument(

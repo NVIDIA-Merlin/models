@@ -9,13 +9,19 @@ import wandb
 
 
 class WandbLogger:
-    def __init__(self, project, entity, config):
+    def __init__(self, project, entity, config, logging_path=None):
         self.project = project
         self.entity = entity
         self.config = config
+        self.logging_path = logging_path
 
     def setup(self):
-        wandb.init(project=self.project, entity=self.entity, config=self.config)
+        wandb.init(
+            project=self.project,
+            entity=self.entity,
+            config=self.config,
+            dir=self.logging_path,
+        )
 
     def log(self, metrics):
         wandb.log(metrics)
@@ -84,7 +90,11 @@ class ExamplesPerSecondCallback(tf.keras.callbacks.Callback):
 
 def get_callbacks(args):
     callbacks = [
-        ExamplesPerSecondCallback(args.train_batch_size, every_n_steps=args.metrics_log_frequency)
+        ExamplesPerSecondCallback(
+            args.train_batch_size,
+            every_n_steps=args.metrics_log_frequency,
+            log_to_wandb=args.log_to_wandb,
+        )
     ]
 
     if args.log_to_tensorboard:
@@ -95,12 +105,10 @@ def get_callbacks(args):
             log_dir=logdir,
             update_freq=args.metrics_log_frequency,
             write_steps_per_second=True,
-            histogram_freq=args.tb_log_hist_epochs,
         )
         callbacks.append(tensorboard_callback)
 
     if args.log_to_wandb:
-
         wandb_callback = wandb.keras.WandbCallback(
             log_batch_frequency=args.metrics_log_frequency,
             save_model=False,
