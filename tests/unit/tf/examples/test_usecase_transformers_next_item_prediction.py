@@ -33,16 +33,27 @@ def test_next_item_prediction(tb):
             return date
         df['checkin'] = [generate_date() for _ in range(df.shape[0])]
         df['checkout'] = [generate_date() for _ in range(df.shape[0])]
-        df.to_csv('/tmp/train_set.csv')
+        df.to_csv('/tmpdir/train_set.csv')
         """
     )
     tb.cells[4].source = tb.cells[4].source.replace("get_booking('/workspace/data')", "")
     tb.cells[4].source = tb.cells[4].source.replace(
-        "read_csv('/workspace/data/train_set.csv'", "read_csv('/tmp/train_set.csv'"
+        "read_csv('/workspace/data/train_set.csv'", "read_csv('/tmpdir/train_set.csv'"
     )
     tb.cells[31].source = tb.cells[31].source.replace("epochs=5", "epochs=1")
-    tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", "/tmp/ensemble")
+    tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", "/tmpdir/ensemble")
     tb.execute_cell(list(range(0, 38)))
 
-    with utils.run_triton_server("/tmp/ensemble", grpc_port=8001):
+    with run_triton_server("/tmpdir/ensemble", grpc_port=8001):
         tb.execute_cell(list(range(38, len(tb.cells))))
+
+    tb.inject(
+        """
+        logits_count = predictions.shape[1]
+        """
+    )
+    tb.execute_cell(len(tb.cells) - 1)
+
+    cardinality = tb.ref("cardinality")
+    logits_count = tb.ref("logits_count")
+    assert logits_count == cardinality
