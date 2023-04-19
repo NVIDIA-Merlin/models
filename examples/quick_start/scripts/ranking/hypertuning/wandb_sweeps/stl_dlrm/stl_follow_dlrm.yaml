@@ -15,7 +15,7 @@ parameters:
   activation:
     distribution: categorical
     values:
-      - relu  
+      - relu
   dropout:
     distribution: uniform
     max: 0.2

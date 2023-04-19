@@ -11,7 +11,7 @@ This benchmark includes the following neural architectures for ranking, which ar
 ## Hyperparameter tuning setup
 For a fair comparison of the models, we ran a separate hyperparameter tuning process for each model architecture using TenRec dataset, which we call experiment group. We use the [Weights&Biases Sweeps](https://docs.wandb.ai/guides/sweeps) feature for managing the hypertuning process for each experiment group. The hypertuning uses bayesian optimization (`method=bayes`) to improve the `AUC` metric, which is different for STL and MTL, as explained below.
 
-You can find the [here](../scripts/ranking/hpo/) the hyperparameter space configurations and a tutorial on how to use [Weights&Biases Sweeps](https://docs.wandb.ai/guides/sweeps) to run the hyperparameter tuning.
+You can find the [hyperparameter space configurations](../scripts/ranking/hypertuning/) and a [tutorial](./tutorial_with_wb_sweeps.md) on how to use [Weights&Biases Sweeps](https://docs.wandb.ai/guides/sweeps) to run the hyperparameter tuning.
 
 
 ### Single-task learning

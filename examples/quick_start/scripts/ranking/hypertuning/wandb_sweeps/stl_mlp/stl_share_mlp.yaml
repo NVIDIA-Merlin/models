@@ -7,7 +7,7 @@ parameters:
   tasks:
     distribution: categorical
     values:
-      - "follow"
+      - "share"
   stl_positive_class_weight:
     distribution: int_uniform
     min: 1
@@ -15,7 +15,7 @@ parameters:
   activation:
     distribution: categorical
     values:
-      - relu  
+      - relu
   dropout:
     distribution: uniform
     max: 0.2
@@ -58,11 +58,7 @@ parameters:
   model:
     distribution: categorical
     values:
-      - dcn
-  dcn_interacted_layer_num:
-    distribution: int_uniform
-    max: 5
-    min: 1
+      - mlp
   train_batch_size:
     distribution: categorical
     values:

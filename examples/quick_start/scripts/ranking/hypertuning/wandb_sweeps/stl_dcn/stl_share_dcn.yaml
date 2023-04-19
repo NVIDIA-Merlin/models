@@ -1,57 +1,21 @@
 program: ranking_train_eval.py
 method: bayes
 metric:
-  name: auc_avg-final
+  name: auc-final
   goal: maximize
 parameters:
   tasks:
     distribution: categorical
     values:
-      - "click,like,share,follow"
-  tasks_sample_space:
-    distribution: categorical
-    values:
-      - ",click,click,click"
-  mtl_pos_class_weight_click:
-    distribution: categorical
-    values:
-      - 5
-  mtl_pos_class_weight_like:
-    distribution: categorical
-    values:
-      - 50
-  mtl_pos_class_weight_share:
-    distribution: categorical
-    values:
-      - 50
-  mtl_pos_class_weight_follow:
-    distribution: categorical
-    values:
-      - 50
-  mtl_loss_weight_click:
-    distribution: categorical
-    values:
-      - 1
-  mtl_loss_weight_like:
-    distribution: categorical
-    values:
-      - 1
-  mtl_loss_weight_share:
-    distribution: categorical
-    values:
-      - 1
-  mtl_loss_weight_follow:
-    distribution: categorical
-    values:
-      - 1
+      - "share"
+  stl_positive_class_weight:
+    distribution: int_uniform
+    min: 1
+    max: 100
   activation:
     distribution: categorical
     values:
       - relu
-  model:
-    distribution: categorical
-    values:
-      - mlp
   dropout:
     distribution: uniform
     max: 0.2
@@ -91,16 +55,14 @@ parameters:
       - "256,128"
       - "128,64,32"
       - "256,128,64"
-  use_task_towers:
+  model:
     distribution: categorical
     values:
-      - "True"
-  tower_layers:
-    distribution: categorical
-    values:
-      - "64"
-      - "64,32"
-      - "128,64"
+      - dcn
+  dcn_interacted_layer_num:
+    distribution: int_uniform
+    max: 5
+    min: 1
   train_batch_size:
     distribution: categorical
     values:

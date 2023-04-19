@@ -7,15 +7,15 @@ parameters:
   tasks:
     distribution: categorical
     values:
-      - "share"
+      - "click"
   stl_positive_class_weight:
     distribution: int_uniform
     min: 1
-    max: 100
+    max: 10
   activation:
     distribution: categorical
     values:
-      - relu  
+      - relu
   dropout:
     distribution: uniform
     max: 0.2

@@ -7,7 +7,7 @@ parameters:
   tasks:
     distribution: categorical
     values:
-      - "follow"
+      - "like"
   stl_positive_class_weight:
     distribution: int_uniform
     min: 1
@@ -15,7 +15,7 @@ parameters:
   activation:
     distribution: categorical
     values:
-      - relu  
+      - relu
   dropout:
     distribution: uniform
     max: 0.2
@@ -24,10 +24,6 @@ parameters:
     distribution: uniform
     max: 1e-05
     min: 1e-09
-  embedding_sizes_multiplier:
-    distribution: int_uniform
-    max: 8
-    min: 2
   l2_reg:
     distribution: uniform
     max: 1e-04
@@ -58,7 +54,15 @@ parameters:
   model:
     distribution: categorical
     values:
-      - mlp
+      - dlrm
+
+  embeddings_dim:
+    distribution: categorical
+    values:
+      - "64"
+      - "128"
+      - "256"
+
   train_batch_size:
     distribution: categorical
     values:

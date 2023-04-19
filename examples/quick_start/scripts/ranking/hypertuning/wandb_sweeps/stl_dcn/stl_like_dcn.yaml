@@ -7,7 +7,7 @@ parameters:
   tasks:
     distribution: categorical
     values:
-      - "share"
+      - "like"
   stl_positive_class_weight:
     distribution: int_uniform
     min: 1
@@ -15,7 +15,7 @@ parameters:
   activation:
     distribution: categorical
     values:
-      - relu  
+      - relu
   dropout:
     distribution: uniform
     max: 0.2
