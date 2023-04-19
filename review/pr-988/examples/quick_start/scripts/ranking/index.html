@@ -83,7 +83,7 @@
   <div class="tex2jax_ignore mathjax_ignore section" id="ranking-script">
 <h1>Ranking script<a class="headerlink" href="#ranking-script" title="Permalink to this headline"></a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">ranking.py</span></code> is a template script that leverages the Merlin <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/">models</a> library (Tensorflow API) to build, train, evaluate ranking models. In the end you can either save the model for interence or persist model predictions to file.</p>
-<p>Merlin models provide building blocks on top of Tensorflow (Keras) that make it easy to build and train advanced neural ranking models. There are blocks for representing input, configuring model outputs/heads, perform feature interactions, losses, metrics, negative sampling, among others.</p>
+<p>Merlin models library provides building blocks on top of Tensorflow (Keras) that make it easy to build and train advanced neural ranking models. There are blocks for representing input, configuring model outputs/heads, perform feature interactions, losses, metrics, negative sampling, among others.</p>
 <div class="section" id="ranking-in-multi-stage-recsys">
 <h2>Ranking in multi-stage RecSys<a class="headerlink" href="#ranking-in-multi-stage-recsys" title="Permalink to this headline"></a></h2>
 <p>Large online services like social media, streaming, e-commerce, and news provide a very broad catalog of items and leverage recommender systems to help users find relevant items. Those companies typically deploy recommender systems pipelines with <a class="reference external" href="https://medium.com/nvidia-merlin/recommender-systems-not-just-recommender-models-485c161c755e">multiple stages</a>, in particular the retrieval and ranking. The retrieval stage selects a few hundreds or thousands of items from a large catalog. It can be a heuristic approach (like most recent items) or a scalable model like Matrix Factorization, <a class="reference external" href="https://medium.com/nvidia-merlin/scale-faster-with-less-code-using-two-tower-with-merlin-c16f32aafa9f">Two-Tower architecture</a> or <a class="reference external" href="https://static.googleusercontent.com/media/research.google.com/pt-BR//pubs/archive/45530.pdf">YouTubeDNN</a>. Then, the ranking stage scores the relevance of the candidate items provided by the previous stage for a given user and context.</p>
@@ -131,49 +131,56 @@ It is assumed that in the preprocessing the categorical features were encoded as
 <li><p><strong>One-hot encoding</strong> Sparse representation where each categorical value is represented by a binary feature with 1 only for the actual value. If the categorical feature contains a list of values, it can be encoded with multi-hot encoding, with 1s for all values in the list. This encoding is useful to represent low-cardinality categorical features or to provide input to linear models.</p></li>
 <li><p><strong>Embedding</strong> - This encoding is very popular for deep neural networks. Each categorical value is mapped to a 1D continuous vector, that can be trainable or pre-trained. The embeddings are stored in embedding layers or tables, whose first dim in the cardinality of the categorical feature and 2nd dim is the embedding size.</p></li>
 </ul>
-<p><strong>Dealing with high-cardinality categorical features</strong><br />
-We explain in the <span class="xref myst">Quick-start preprocessing documentation</span> that large services might have categorical features with very high cardinality (e.g. order of hundreds of millions or higher), like user id or item id. They typically require a high memory to be stored (e.g. with embedding tables) or processed (e.g. with one-hot encoding). In addition, most of the categorical values are very infrequent, for which it is not possible to learn good embeddings.</p>
+<div class="section" id="dealing-with-high-cardinality-categorical-features">
+<h4><strong>Dealing with high-cardinality categorical features</strong><a class="headerlink" href="#dealing-with-high-cardinality-categorical-features" title="Permalink to this headline"></a></h4>
+<p>We explain in the <span class="xref myst">Quick-start preprocessing documentation</span> that large services might have categorical features with very high cardinality (e.g. order of hundreds of millions or higher), like user id or item id. They typically require a high memory to be stored (e.g. with embedding tables) or processed (e.g. with one-hot encoding). In addition, most of the categorical values are very infrequent, for which it is not possible to learn good embeddings.</p>
 <p>The <span class="xref myst">preprocessing documentation</span> describes some options to deal with the high-cardinality features: <strong>Frequency capping</strong>, <strong>Filtering out rows with infrequent values</strong> and  <strong>Hashing</strong>.</p>
 <p>You might also decide to keep the original high-cardinality of the categorical features for better personalization level and accuracy.</p>
 <blockquote>
-<div><p>The embedding tables are typically responsible for most of the parameters of Recommender System models. For large scale systems, where the number of users and items is in the order of hundreds of millions, it is typically needed to use a distributed embeddings solution, so that embedding embedding tables can be sharded in multiple compute devices (e.g. GPU, CPU).  NVIDIA offers distributed embedding solutions that can be used with Merlin and Tensorflow.</p>
+<div><p>The embedding tables are typically responsible for most of the parameters of Recommender System models. For large scale systems, where the number of users and items is in the order of hundreds of millions, it is typically needed to use a distributed embeddings solution, so that embedding embedding tables can be sharded in multiple compute devices (e.g. GPU, CPU).</p>
 </div></blockquote>
-<p><strong>TODO</strong>: Add references to NVIDIA distributed embeddings solutions</p>
-<p><strong>Defining the embedding size</strong></p>
+<!--**TODO**: Add references to NVIDIA distributed embeddings solutions -->
+</div>
+<div class="section" id="defining-the-embedding-size">
+<h4><strong>Defining the embedding size</strong><a class="headerlink" href="#defining-the-embedding-size" title="Permalink to this headline"></a></h4>
 <p>It is common sense that higher the cardinality of categorical feature the higher should be the embedding dimension, as its vector space gets more complex.</p>
-<p>Models library uses by default a heuristic method that sets embedding sizes based on cardinality (implementation <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/a5e392cbc575fe984c96ddcbce696e4b71b7073d/merlin/models/utils/schema_utils.py#L169">here</a>), which can be scaled by <code class="docutils literal notranslate"><span class="pre">--embedding_sizes_multiplier</span></code>. Models library API also allow setting <a class="reference external" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.Embeddings.html#merlin.models.tf.Embeddings">specific embedding dims</a> for each / all categorical features</p>
+<p>Models library uses by default a heuristic method that sets embedding sizes based on cardinality (implementation <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/a5e392cbc575fe984c96ddcbce696e4b71b7073d/merlin/models/utils/schema_utils.py#L169">here</a>), which can be scaled by <code class="docutils literal notranslate"><span class="pre">--embedding_sizes_multiplier</span></code>. Models library API also allows setting <a class="reference external" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.Embeddings.html#merlin.models.tf.Embeddings">specific embedding dims</a> for each / all categorical features.</p>
 <blockquote>
 <div><p>Some models supported by this script (DLRM and DeepFM) require the embedding sizes of categorical features to be the same (<code class="docutils literal notranslate"><span class="pre">--embedding_dim</span></code>) because of their feature interaction approach based on Factorization Machines.</p>
 </div></blockquote>
 </div>
+</div>
 <div class="section" id="regularization">
 <h3>Regularization<a class="headerlink" href="#regularization" title="Permalink to this headline"></a></h3>
-<p>Neural networks typically require regularization in order to avoid overfitting, in particular if trained on small data or for many epochs that can make it memorize train set. This script provide typical regularization techniques like Dropout (<code class="docutils literal notranslate"><span class="pre">--dropout</span></code>) and L2 regularization of model parameters (–l2_reg) and embeddings (<code class="docutils literal notranslate"><span class="pre">--embeddings_l2_reg</span> </code>).</p>
+<p>Neural networks typically require regularization in order to avoid overfitting, in particular if trained on small data or for many epochs that can make it memorize train set. This script provide typical regularization techniques like Dropout (<code class="docutils literal notranslate"><span class="pre">--dropout</span></code>) and L2 regularization of model parameters (<code class="docutils literal notranslate"><span class="pre">--l2_reg</span></code>) and embeddings (<code class="docutils literal notranslate"><span class="pre">--embeddings_l2_reg</span></code>).</p>
 </div>
 <div class="section" id="classes-weights">
 <h3>Classes weights<a class="headerlink" href="#classes-weights" title="Permalink to this headline"></a></h3>
 <p>Typically positive user interactions are just a small fraction of the items that were exposed to the users. That leads to class unbalanced targets.<br />
-A common technique to deal with this problem in machine learning is to assign a higher weight in the loss to the examples with infrequent targets - positive classes in this case.<br />
-You might set the positive class weight for single-task learning models with <code class="docutils literal notranslate"><span class="pre">--stl_positive_class_weight</span></code> and for multi-task learning you can set the class weight for each target separately by using <code class="docutils literal notranslate"><span class="pre">--mtl_pos_class_weight_*</span></code>, where <code class="docutils literal notranslate"><span class="pre">*</span></code> must be replaced by the target name. In this case, the negative class weight is always 1.0</p>
-</div>
-<div class="section" id="losses-weights">
-<h3>Losses weights<a class="headerlink" href="#losses-weights" title="Permalink to this headline"></a></h3>
-<p>You can balance the learning of the multiple tasks by setting losses weights when using multi-task learning. You can set them by providing <code class="docutils literal notranslate"><span class="pre">--mtl_loss_weight_*</span></code> for each task, where <code class="docutils literal notranslate"><span class="pre">*</span></code> must be replaced by the target name.</p>
+A common technique to deal with this problem in machine learning is to assign a higher weight to the loss for examples with infrequent targets - positive classes in this case.<br />
+You might set the positive class weight for single-task learning models with <code class="docutils literal notranslate"><span class="pre">--stl_positive_class_weight</span></code> and for multi-task learning you can set the class weight for each target separately by using <code class="docutils literal notranslate"><span class="pre">--mtl_pos_class_weight_*</span></code>, where <code class="docutils literal notranslate"><span class="pre">*</span></code> must be replaced by the target name. In this case, the negative class weight is always 1.0.</p>
 </div>
 <div class="section" id="negative-sampling">
 <h3>Negative sampling<a class="headerlink" href="#negative-sampling" title="Permalink to this headline"></a></h3>
-<p>TODO: Describe –in_batch_negatives_train and –in_batch_negatives_eval for positive only data</p>
+<p>If you have only positive interactions in your training data, you can use negative sampling to include synthetic negative examples in the training batch. The negative samples are generated by adding for each positive example N negative examples, keeping user features and replacing features of the target item by other item interacted by another users in the batch. You can easily set the number of negative examples for train (<code class="docutils literal notranslate"><span class="pre">--in_batch_negatives_train</span></code>) and evaluate (<code class="docutils literal notranslate"><span class="pre">--in_batch_negatives_eval</span></code>).<br />
+This functionality require that user and item features are tagged accordingly, as explained in the <span class="xref myst">Quick-start preprocessing documentation</span>.</p>
 </div>
-<div class="section" id="multi-task-learning-setting-tasks-sample-space">
-<h3>Multi-task learning: Setting tasks sample space<a class="headerlink" href="#multi-task-learning-setting-tasks-sample-space" title="Permalink to this headline"></a></h3>
+<div class="section" id="multi-task-learning">
+<h3>Multi-task learning<a class="headerlink" href="#multi-task-learning" title="Permalink to this headline"></a></h3>
+<div class="section" id="losses-weights">
+<h4><strong>Losses weights</strong><a class="headerlink" href="#losses-weights" title="Permalink to this headline"></a></h4>
+<p>You can balance the learning of the multiple tasks by setting losses weights when using multi-task learning. You can set them by providing <code class="docutils literal notranslate"><span class="pre">--mtl_loss_weight_*</span></code> for each task, where <code class="docutils literal notranslate"><span class="pre">*</span></code> must be replaced by the target name.</p>
+</div>
+<div class="section" id="setting-tasks-sample-space">
+<h4><strong>Setting tasks sample space</strong><a class="headerlink" href="#setting-tasks-sample-space" title="Permalink to this headline"></a></h4>
 <p>Some targets might depend on other target columns for some datasets. For example, the preprocessed TenRec dataset have positive (=1) <code class="docutils literal notranslate"><span class="pre">like</span></code>, <code class="docutils literal notranslate"><span class="pre">follow</span></code>, and <code class="docutils literal notranslate"><span class="pre">share</span></code> events only if the user has also clicked on the item (<code class="docutils literal notranslate"><span class="pre">click=1</span></code>).</p>
 <p>You might want to model dependent tasks explicitly by setting the sample space, i.e., computing the loss of the dependent tasks only for examples where the dominant target is 1. That would make the dependent targets less sparser, as their value is always 0 when dominant target is 0.</p>
 <p>The scripts allows setting the tasks sample space by using <code class="docutils literal notranslate"><span class="pre">--tasks_sample_space</span></code>, which accepts comma-separated values. The order of sample spaces should match the order of the <code class="docutils literal notranslate"><span class="pre">--tasks</span></code>. Empty value means the task will be trained in the entire space, i.e., loss computed for all examples in the dataset.<br />
 For TenRec dataset, you could use <code class="docutils literal notranslate"><span class="pre">--tasks</span> <span class="pre">click,like,share,follow</span></code> and <code class="docutils literal notranslate"><span class="pre">--tasks_sample_space=,click,click,click</span></code>, meaning that the click task will be trained using the entire space and the other tasks will be trained only in click space.</p>
 <blockquote>
-<div><p><img src="../../images/lamp.png"  width=25 height=25 /> We have observed empirically that if you want a model to predict all tasks at the same time (e.g. the likelihood of a user to click-like-share a post), it is better to train all tasks using entire space. On the other hand, if you want to train a MTL model that predicts rarer events (e.g. add-to-cart, purchase) given prior events (e.g. click), then you typically get better accuracy on the dependent tasks training them in the dominant task space, while training the dominant task on entire space.
+<div><p>We have observed empirically that if you want a model to predict all tasks at the same time (e.g. the likelihood of a user to click-like-share a post), it is better to train all tasks using entire space. On the other hand, if you want to train a MTL model that predicts rarer events (e.g. add-to-cart, purchase) given prior events (e.g. click), then you typically get better accuracy on the dependent tasks training them in the dominant task space, while training the dominant task on entire space.</p>
 </div></blockquote>
-</p>
+</div>
 </div>
 </div>
 <div class="section" id="command-line-arguments">
@@ -225,7 +232,8 @@ For TenRec dataset, you could use <code class="docutils literal notranslate"><sp
                         <span class="n">Activation</span> <span class="n">function</span> <span class="n">supported</span> <span class="n">by</span> <span class="n">Keras</span><span class="p">,</span> <span class="n">like</span><span class="p">:</span>
                         <span class="s1">&#39;relu&#39;</span><span class="p">,</span> <span class="s1">&#39;selu&#39;</span><span class="p">,</span> <span class="s1">&#39;elu&#39;</span><span class="p">,</span> <span class="s1">&#39;tanh&#39;</span><span class="p">,</span> <span class="s1">&#39;sigmoid&#39;</span><span class="o">.</span> <span class="n">By</span>
                         <span class="n">default</span> <span class="s1">&#39;relu&#39;</span>
-  <span class="o">--</span><span class="n">mlp_init</span>            <span class="n">Keras</span> <span class="n">initializer</span> <span class="k">for</span> <span class="n">MLP</span> <span class="n">layers</span>
+  <span class="o">--</span><span class="n">mlp_init</span>            <span class="n">Keras</span> <span class="n">initializer</span> <span class="k">for</span> <span class="n">MLP</span> <span class="n">layers</span><span class="o">.</span> 
+                        <span class="n">By</span> <span class="n">default</span> <span class="s1">&#39;glorot_uniform&#39;</span><span class="o">.</span>
   <span class="o">--</span><span class="n">l2_reg</span>              <span class="n">L2</span> <span class="n">regularization</span> <span class="n">factor</span><span class="o">.</span> <span class="n">By</span> <span class="n">default</span> <span class="mf">1e-5</span><span class="o">.</span>
   <span class="o">--</span><span class="n">embeddings_l2_reg</span> 
                         <span class="n">L2</span> <span class="n">regularization</span> <span class="n">factor</span> <span class="k">for</span> <span class="n">embedding</span> <span class="n">tables</span><span class="o">.</span>
@@ -241,9 +249,12 @@ For TenRec dataset, you could use <code class="docutils literal notranslate"><sp
                         <span class="n">between</span> <span class="mi">2</span> <span class="ow">and</span> <span class="mf">10.</span> <span class="n">By</span> <span class="n">default</span> <span class="mf">2.0</span>
   <span class="o">--</span><span class="n">dropout</span>             <span class="n">Dropout</span> <span class="n">rate</span><span class="o">.</span> <span class="n">By</span> <span class="n">default</span> <span class="mf">0.0</span>
   <span class="o">--</span><span class="n">mlp_layers</span> 
-                        <span class="n">The</span> <span class="n">dims</span> <span class="n">of</span> <span class="n">MLP</span> <span class="n">layers</span><span class="o">.</span> <span class="n">By</span> <span class="n">default</span> <span class="s1">&#39;128,64,32&#39;</span>
+                        <span class="n">Comma</span><span class="o">-</span><span class="n">separated</span> <span class="n">dims</span> <span class="n">of</span> <span class="n">MLP</span> <span class="n">layers</span><span class="o">.</span> 
+                        <span class="n">It</span> <span class="ow">is</span> <span class="n">used</span> <span class="n">by</span> <span class="n">MLP</span> <span class="n">model</span> <span class="ow">and</span> <span class="n">also</span> <span class="k">for</span> <span class="n">dense</span> <span class="n">blocks</span>
+                        <span class="n">of</span> <span class="n">DLRM</span><span class="p">,</span> <span class="n">DeepFM</span><span class="p">,</span> <span class="n">DCN</span> <span class="ow">and</span> <span class="n">Wide</span><span class="o">&amp;</span><span class="n">Deep</span><span class="o">.</span>
+                        <span class="n">By</span> <span class="n">default</span> <span class="s1">&#39;128,64,32&#39;</span>
   <span class="o">--</span><span class="n">stl_positive_class_weight</span> 
-                        <span class="n">Positive</span> <span class="k">class</span> <span class="nc">weight</span> <span class="k">for</span> <span class="n">single</span><span class="o">-</span><span class="n">task</span> <span class="n">models</span><span class="o">.</span> <span class="n">By</span>
+                        <span class="n">Positive</span> <span class="k">class</span> <span class="nc">weight</span> <span class="k">for</span> <span class="n">single</span><span class="o">-</span><span class="n">task</span>  <span class="n">models</span><span class="o">.</span> <span class="n">By</span>
                         <span class="n">default</span> <span class="mf">1.0</span><span class="o">.</span> <span class="n">The</span> <span class="n">negative</span> <span class="k">class</span> <span class="nc">weight</span> <span class="ow">is</span> <span class="n">fixed</span>
                         <span class="n">to</span> <span class="mf">1.0</span>
 </pre></div>
@@ -321,7 +332,9 @@ For TenRec dataset, you could use <code class="docutils literal notranslate"><sp
 <h3>Expert-based MTL models<a class="headerlink" href="#expert-based-mtl-models" title="Permalink to this headline"></a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="o">--</span><span class="n">expert_mlp_layers</span> 
                         <span class="n">For</span> <span class="n">MTL</span> <span class="n">models</span> <span class="p">(</span><span class="n">MMOE</span><span class="p">,</span> <span class="n">CGC</span><span class="p">,</span> <span class="n">PLE</span><span class="p">)</span> <span class="n">sets</span> <span class="n">the</span> <span class="n">MLP</span>
-                        <span class="n">architecture</span> <span class="n">of</span> <span class="n">experts</span><span class="o">.</span> <span class="n">By</span> <span class="n">default</span> <span class="s1">&#39;64&#39;</span>
+                        <span class="n">layers</span> <span class="n">of</span> <span class="n">experts</span><span class="o">.</span> 
+                        <span class="n">It</span> <span class="n">expects</span> <span class="n">a</span> <span class="n">comma</span><span class="o">-</span><span class="n">separated</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">layer</span> <span class="n">dims</span><span class="o">.</span>
+                        <span class="n">By</span> <span class="n">default</span> <span class="s1">&#39;64&#39;</span>
   <span class="o">--</span><span class="n">gate_dim</span>            <span class="n">Dimension</span> <span class="n">of</span> <span class="n">the</span> <span class="n">gate</span> <span class="n">dim</span> <span class="n">MLP</span> <span class="n">layer</span><span class="o">.</span> <span class="n">By</span> <span class="n">default</span>
                         <span class="mi">64</span>
   <span class="o">--</span><span class="n">mtl_gates_softmax_temperature</span> 
@@ -335,10 +348,12 @@ For TenRec dataset, you could use <code class="docutils literal notranslate"><sp
 <div class="section" id="multi-task-learning-models">
 <h3>Multi-task learning models<a class="headerlink" href="#multi-task-learning-models" title="Permalink to this headline"></a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="o">--</span><span class="n">use_task_towers</span> 
-                        <span class="n">Enables</span> <span class="n">task</span><span class="o">-</span><span class="n">specific</span> <span class="n">towers</span> <span class="n">before</span> <span class="n">its</span> <span class="n">head</span><span class="o">.</span>
+                        <span class="n">Creates</span> <span class="n">task</span><span class="o">-</span><span class="n">specific</span> <span class="n">MLP</span> <span class="n">tower</span> <span class="n">before</span> <span class="n">its</span> <span class="n">head</span><span class="o">.</span>
+                        <span class="n">By</span> <span class="n">default</span> <span class="kc">True</span><span class="o">.</span>
   <span class="o">--</span><span class="n">tower_layers</span> 
-                        <span class="n">MLP</span> <span class="n">architecture</span> <span class="n">of</span> <span class="n">task</span><span class="o">-</span><span class="n">specific</span> <span class="n">towers</span><span class="o">.</span> <span class="n">By</span>
-                        <span class="n">default</span> <span class="s1">&#39;64&#39;</span>
+                        <span class="n">MLP</span> <span class="n">architecture</span> <span class="n">of</span> <span class="n">task</span><span class="o">-</span><span class="n">specific</span> <span class="n">towers</span><span class="o">.</span> 
+                        <span class="n">It</span> <span class="n">expects</span> <span class="n">a</span> <span class="n">comma</span><span class="o">-</span><span class="n">separated</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">layer</span> <span class="n">dims</span><span class="o">.</span>
+                        <span class="n">By</span> <span class="n">default</span> <span class="s1">&#39;64&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -402,9 +417,10 @@ For TenRec dataset, you could use <code class="docutils literal notranslate"><sp
   <span class="o">--</span><span class="n">log_to_tensorboard</span> 
                         <span class="n">Enables</span> <span class="n">logging</span> <span class="n">to</span> <span class="n">Tensorboard</span><span class="o">.</span>
   <span class="o">--</span><span class="n">log_to_wandb</span> 
-                        <span class="n">Enables</span> <span class="n">logging</span> <span class="n">to</span> <span class="n">Weights</span><span class="o">&amp;</span><span class="n">Biases</span><span class="o">.</span> <span class="n">This</span> <span class="n">requires</span>
-                        <span class="n">sign</span><span class="o">-</span><span class="n">up</span> <span class="k">for</span> <span class="n">a</span> <span class="n">free</span> <span class="n">W</span><span class="o">&amp;</span><span class="n">B</span> <span class="n">account</span> <span class="ow">and</span> <span class="n">providing</span> <span class="n">an</span>
-                        <span class="n">API</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">console</span><span class="o">.</span>
+                        <span class="n">Enables</span> <span class="n">logging</span> <span class="n">to</span> <span class="n">Weights</span><span class="o">&amp;</span><span class="n">Biases</span><span class="o">.</span> <span class="n">This</span> <span class="n">requires</span> 
+                        <span class="n">sign</span><span class="o">-</span><span class="n">up</span> <span class="k">for</span> <span class="n">a</span> <span class="n">free</span> <span class="n">Weights</span><span class="o">&amp;</span><span class="n">Biases</span> <span class="n">account</span> <span class="n">at</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">wandb</span><span class="o">.</span><span class="n">ai</span><span class="o">/</span>
+                        <span class="ow">and</span> <span class="n">providing</span> <span class="n">an</span> <span class="n">API</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">console</span> <span class="n">you</span> <span class="n">can</span> <span class="n">get</span> <span class="n">at</span> 
+                        <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">wandb</span><span class="o">.</span><span class="n">ai</span><span class="o">/</span><span class="n">authorize</span>
   <span class="o">--</span><span class="n">wandb_project</span> 
                         <span class="n">Name</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Weights</span><span class="o">&amp;</span><span class="n">Biases</span> <span class="n">project</span> <span class="n">to</span> <span class="n">log</span>
   <span class="o">--</span><span class="n">wandb_entity</span> 
@@ -415,19 +431,21 @@ For TenRec dataset, you could use <code class="docutils literal notranslate"><sp
                         <span class="n">Weights</span><span class="o">&amp;</span><span class="n">Biases</span>
 </pre></div>
 </div>
+<p>This requires sign-up for a free Weights&amp;Biases account at <a class="reference external" href="https://wandb.ai/home">https://wandb.ai/home</a> “
+“and providing an API key in the console.</p>
 </div>
 <div class="section" id="outputs">
 <h3>Outputs<a class="headerlink" href="#outputs" title="Permalink to this headline"></a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="o">--</span><span class="n">output_path</span> 
-                        <span class="n">Output</span> <span class="n">path</span> <span class="k">for</span> <span class="n">saving</span> <span class="n">predictions</span><span class="o">.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="o">--</span><span class="n">output_path</span>
+                        <span class="n">Folder</span> <span class="n">to</span> <span class="n">save</span> <span class="n">training</span> <span class="ow">and</span> <span class="n">logging</span> <span class="n">assets</span><span class="o">.</span>
   <span class="o">--</span><span class="n">save_trained_model_path</span> 
                         <span class="n">If</span> <span class="n">provided</span><span class="p">,</span> <span class="n">model</span> <span class="ow">is</span> <span class="n">saved</span> <span class="n">to</span> <span class="n">this</span> <span class="n">path</span> <span class="n">after</span>
                         <span class="n">training</span><span class="o">.</span>
   <span class="o">--</span><span class="n">predict</span>             <span class="n">If</span> <span class="n">enabled</span><span class="p">,</span> <span class="n">the</span> <span class="n">dataset</span> <span class="n">provided</span> <span class="ow">in</span>
-                        <span class="o">--</span><span class="n">eval_pathwill</span> <span class="n">be</span> <span class="n">used</span> <span class="k">for</span> <span class="n">prediction</span> <span class="p">(</span><span class="n">instead</span>
+                        <span class="o">--</span><span class="n">eval_path</span> <span class="n">will</span> <span class="n">be</span> <span class="n">used</span> <span class="k">for</span> <span class="n">prediction</span> <span class="p">(</span><span class="n">instead</span>
                         <span class="n">of</span> <span class="n">evaluation</span><span class="p">)</span><span class="o">.</span> <span class="n">The</span> <span class="n">prediction</span> <span class="n">scores</span> <span class="k">for</span> <span class="n">the</span>
                         <span class="n">that</span> <span class="n">dataset</span> <span class="n">will</span> <span class="n">be</span> <span class="n">saved</span> <span class="n">to</span>
-                        <span class="o">--</span><span class="n">predict_output_path</span> <span class="p">(</span><span class="ow">or</span> <span class="n">to</span> <span class="o">--</span><span class="n">output_path</span><span class="p">),</span>
+                        <span class="o">--</span><span class="n">predict_output_path</span><span class="p">,</span>
                         <span class="n">according</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">predict_output_format</span> <span class="n">choice</span><span class="o">.</span>
   <span class="o">--</span><span class="n">predict_keep_cols</span> 
                         <span class="n">Comma</span><span class="o">-</span><span class="n">separated</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">keep</span> <span class="ow">in</span> <span class="n">the</span>
@@ -436,15 +454,13 @@ For TenRec dataset, you could use <code class="docutils literal notranslate"><sp
                         <span class="n">prediction</span> <span class="n">scores</span><span class="o">.</span>
   <span class="o">--</span><span class="n">predict_output_path</span> 
                         <span class="n">If</span> <span class="n">provided</span> <span class="n">the</span> <span class="n">prediction</span> <span class="n">scores</span> <span class="n">will</span> <span class="n">be</span> <span class="n">saved</span>
-                        <span class="n">to</span> <span class="n">this</span> <span class="n">path</span><span class="o">.</span> <span class="n">Otherwise</span><span class="p">,</span> <span class="n">files</span> <span class="n">will</span> <span class="n">be</span> <span class="n">saved</span> <span class="n">to</span>
-                        <span class="o">--</span><span class="n">output_path</span><span class="o">.</span>
+                        <span class="n">to</span> <span class="n">this</span> <span class="n">path</span><span class="o">.</span> 
   <span class="o">--</span><span class="n">predict_output_format</span> <span class="p">{</span><span class="n">parquet</span><span class="p">,</span><span class="n">csv</span><span class="p">,</span><span class="n">tsv</span><span class="p">}</span>
                         <span class="n">Format</span> <span class="n">of</span> <span class="n">the</span> <span class="n">output</span> <span class="n">prediction</span> <span class="n">files</span><span class="o">.</span> <span class="n">By</span>
                         <span class="n">default</span> <span class="s1">&#39;parquet&#39;</span><span class="p">,</span> <span class="n">which</span> <span class="ow">is</span> <span class="n">the</span> <span class="n">most</span> <span class="n">performant</span>
                         <span class="nb">format</span><span class="o">.</span>
 </pre></div>
 </div>
-<p><a href="https://www.flaticon.com/free-icons/lamp" title="lamp icons">Lamp icon created by Freepik - Flaticon</a></p>
 </div>
 </div>
 </div>
