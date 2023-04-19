@@ -18,7 +18,7 @@ TRITON_SERVER_PATH = shutil.which("tritonserver")
     execute=False,
 )
 @pytest.mark.notebook
-def test_next_item_prediction(tb):
+def test_next_item_prediction(tb, tmpdir):
     tb.inject(
         """
         import os, random
@@ -44,7 +44,7 @@ def test_next_item_prediction(tb):
     tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", "/tmpdir/ensemble")
     tb.execute_cell(list(range(0, 38)))
 
-    with run_triton_server("/tmpdir/ensemble", grpc_port=8001):
+    with utils.run_triton_server(f"{tmpdir}/ensemble", grpc_port=8001):
         tb.execute_cell(list(range(38, len(tb.cells))))
 
     tb.inject(
