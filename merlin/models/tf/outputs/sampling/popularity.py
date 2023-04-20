@@ -23,9 +23,25 @@ from merlin.models.tf.outputs.sampling.base import Candidate, CandidateSampler
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PopularityBasedSamplerV2(CandidateSampler):
     """
-    Provides a popularity-based negative sampling for the softmax layer
+    Provides a popularity-based negative sampling for sampled softmax [1]_ [2]_.
     to ensure training efficiency when the catalog of items is very large.
-    The capacity of the queue is fixed and is equal to the catalog size.
+    Items are sampled from the whole catalog. It also allows saving
+    the sampling probabilities for both positive and negative candidates,
+    that are required by the logQ sampling correction of sampled softmax.
+    This class do not require the actual frequency of items. It assumes that
+    item ids are sorted by frequency and follow a long tail distribution and
+    uses tf.random.log_uniform_candidate_sampler() for sampling the candidate ids.
+
+    References
+    ----------
+    .. [1] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
+       Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial
+       Intelligence and Statistics (AISTATS).
+
+    .. [2] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
+       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
+       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
+
 
     Parameters
     ----------
@@ -38,6 +54,8 @@ class PopularityBasedSamplerV2(CandidateSampler):
         Defaults to 0.
     max_num_samples: int
         The number of unique negatives to sample at each batch.
+    unique: True
+        Whether to return unique candidate ids or allow for repeated ones
     seed: int
         Fix the random values returned by the sampler to ensure reproducibility
         Defaults to None
@@ -48,6 +66,7 @@ class PopularityBasedSamplerV2(CandidateSampler):
         max_id: int,
         min_id: int = 0,
         max_num_samples: int = 10,
+        unique: Optional[bool] = True,
         seed: Optional[int] = None,
         **kwargs,
     ):
@@ -55,6 +74,9 @@ class PopularityBasedSamplerV2(CandidateSampler):
         self.max_id = max_id
         self.min_id = min_id
         self.seed = seed
+        self.unique = unique
+
+        self.sampling_dist = self.get_sampling_distribution()
 
         assert (
             self.max_num_samples <= self.max_id
@@ -91,21 +113,78 @@ class PopularityBasedSamplerV2(CandidateSampler):
         Items
             The negative items ids
         """
-        sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(
+        (
+            sampled_ids,
+            _,
+            _,
+        ) = tf.random.log_uniform_candidate_sampler(
+            # This is just a placeholder for true_classestrue classes.
+            # It should be provided the positive ids here if wanted to
+            # get the expected count probs returned.
+            # We rather make usage of CandidateSampler.with_sampling_probs()
+            # method to get the sampling probs from positives and negatives
             true_classes=tf.ones((1, 1), dtype=tf.int64),
             num_true=1,
             num_sampled=self.max_num_samples,
-            unique=True,
+            unique=self.unique,
             range_max=self.max_id - self.min_id,
             seed=self.seed,
         )
-
         # Shifting the sampled ids to ignore the first ids (usually reserved for nulls, OOV)
         sampled_ids += self.min_id
-
         sampled_ids = tf.expand_dims(sampled_ids, -1)
 
+        sampled_ids = tf.stop_gradient(sampled_ids)
+
         return Candidate(id=sampled_ids, metadata={})
+
+    def get_sampling_distribution(self) -> tf.Tensor:
+        """Returns the approximated distribution used to sample items
+        by using tf.random.log_uniform_candidate_sampler()
+
+        Returns
+        -------
+        tf.Tensor
+            Probabilities of each item to be sampled
+        """
+        log_indices = tf.math.log(tf.range(1.0, self.max_id - self.min_id + 2.0, 1.0))
+        sampling_probs = (log_indices[1:] - log_indices[:-1]) / log_indices[-1]
+
+        if self.unique:
+            # Below is a more numerically stable implementation of the probability of
+            # sampling an item at least once (suitable for sampling unique items)
+            # P(item is sampled at least once) = 1 - P(item is not sampled)^num_trials
+            # where P(item is not sampled) = 1-p and p is the
+            # probability to be sampled
+            sampling_probs = -tf.math.expm1(self.max_num_samples * tf.math.log1p(-sampling_probs))
+
+        # Shifting probs if first values of item id mapping table are reserved
+        if self.min_id > 0:
+            sampling_probs = tf.concat(
+                [tf.zeros([self.min_id], dtype=sampling_probs.dtype), sampling_probs], axis=0
+            )
+
+        sampling_probs = tf.stop_gradient(sampling_probs)
+
+        return sampling_probs
+
+    def with_sampling_probs(self, items: Candidate) -> Candidate:
+        """Returns a copy of the Candidate named tuple with
+        the sampling_probs set,
+
+        Parameters
+        ----------
+        items : Candidate
+            Positive or negative candidate items
+
+        Returns
+        -------
+        Candidate
+            Candidate items with sampling probability set
+        """
+        sampling_probs = tf.gather(self.sampling_dist, items.id)
+        items_with_sampling_prob = items.with_sampling_prob(sampling_probs)
+        return items_with_sampling_prob
 
     def get_config(self):
         config = super().get_config()
