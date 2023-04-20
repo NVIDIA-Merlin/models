@@ -125,6 +125,19 @@ by default ‘categorical_crossentropy’</p></li>
 to use for categorical-classification</p></li>
 <li><p><strong>store_negative_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to store negative ids for post-processing
 by default False</p></li>
+<li><p><strong>logq_sampling_correction</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – The LogQ correction is a standard technique for
+sampled softmax and popularity-biased sampling.
+It subtracts from the logits the
+log expected count/prob of the positive and
+negative samples in order to not overpenalize the
+popular items for being sampled more often as negatives.
+It can be enabled if a single negative sampler is provided
+and if it provides the sampler provides the
+sampling probabilities (i.e. implements with_sampling_probs()).
+Another alternative for performing logQ correction is using
+ContrastiveOutput(…, post=PopularityLogitsCorrection(item_frequencies)),
+where you need to provide the items frequency probability distribution (prior).
+Default is False.</p></li>
 <li><p><strong>References</strong> – </p></li>
 <li><p><strong>----------</strong> – </p></li>
 <li><p><strong>Hakan Inan</strong> (<em>[</em><em>1</em><em>]</em>) – </p></li>
@@ -169,7 +182,7 @@ logits_temperature = 0.2,</p>
 </dl>
 <dl class="py method">
 <dt id="merlin.models.tf.ContrastiveOutput.__init__">
-<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">to_call:</span> <span class="pre">Union[merlin.schema.schema.Schema,</span> <span class="pre">merlin.schema.schema.ColumnSchema,</span> <span class="pre">merlin.models.tf.inputs.embedding.EmbeddingTable,</span> <span class="pre">merlin.models.tf.outputs.classification.CategoricalTarget,</span> <span class="pre">merlin.models.tf.outputs.classification.EmbeddingTablePrediction,</span> <span class="pre">merlin.models.tf.outputs.base.DotProduct],</span> <span class="pre">negative_samplers:</span> <span class="pre">Union[merlin.models.tf.outputs.sampling.base.CandidateSampler,</span> <span class="pre">Sequence[Union[merlin.models.tf.outputs.sampling.base.CandidateSampler,</span> <span class="pre">str]],</span> <span class="pre">str],</span> <span class="pre">target_name:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">pre:</span> <span class="pre">Optional[keras.engine.base_layer.Layer]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">post:</span> <span class="pre">Optional[keras.engine.base_layer.Layer]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">logits_temperature:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.0,</span> <span class="pre">name:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">default_loss:</span> <span class="pre">Union[str,</span> <span class="pre">keras.losses.Loss]</span> <span class="pre">=</span> <span class="pre">'categorical_crossentropy',</span> <span class="pre">default_metrics_fn:</span> <span class="pre">Callable[[],</span> <span class="pre">Sequence[keras.metrics.base_metric.Metric]]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">default_categorical_prediction_metrics&gt;,</span> <span class="pre">downscore_false_negatives=True,</span> <span class="pre">false_negative_score:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">-655.04,</span> <span class="pre">query_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'query',</span> <span class="pre">candidate_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'candidate',</span> <span class="pre">store_negative_ids:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/outputs/contrastive.html#ContrastiveOutput.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ContrastiveOutput.__init__" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">to_call:</span> <span class="pre">Union[merlin.schema.schema.Schema,</span> <span class="pre">merlin.schema.schema.ColumnSchema,</span> <span class="pre">merlin.models.tf.inputs.embedding.EmbeddingTable,</span> <span class="pre">merlin.models.tf.outputs.classification.CategoricalTarget,</span> <span class="pre">merlin.models.tf.outputs.classification.EmbeddingTablePrediction,</span> <span class="pre">merlin.models.tf.outputs.base.DotProduct],</span> <span class="pre">negative_samplers:</span> <span class="pre">Union[merlin.models.tf.outputs.sampling.base.CandidateSampler,</span> <span class="pre">Sequence[Union[merlin.models.tf.outputs.sampling.base.CandidateSampler,</span> <span class="pre">str]],</span> <span class="pre">str],</span> <span class="pre">target_name:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">pre:</span> <span class="pre">Optional[keras.engine.base_layer.Layer]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">post:</span> <span class="pre">Optional[keras.engine.base_layer.Layer]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">logits_temperature:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.0,</span> <span class="pre">name:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">default_loss:</span> <span class="pre">Union[str,</span> <span class="pre">keras.losses.Loss]</span> <span class="pre">=</span> <span class="pre">'categorical_crossentropy',</span> <span class="pre">default_metrics_fn:</span> <span class="pre">Callable[[],</span> <span class="pre">Sequence[keras.metrics.base_metric.Metric]]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">default_categorical_prediction_metrics&gt;,</span> <span class="pre">downscore_false_negatives=True,</span> <span class="pre">false_negative_score:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">-655.04,</span> <span class="pre">query_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'query',</span> <span class="pre">candidate_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'candidate',</span> <span class="pre">store_negative_ids:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">logq_sampling_correction:</span> <span class="pre">Optional[bool]</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/outputs/contrastive.html#ContrastiveOutput.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ContrastiveOutput.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <p class="rubric">Methods</p>
@@ -257,23 +270,23 @@ logits_temperature = 0.2,</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_shape_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the output shape(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_task_name</span></code>(target_name)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
 <td><p>Returns the current weights of the layer, as NumPy arrays.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ContrastiveOutput.outputs" title="merlin.models.tf.ContrastiveOutput.outputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs</span></code></a>(query_embedding, positive, negative)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ContrastiveOutput.outputs" title="merlin.models.tf.ContrastiveOutput.outputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs</span></code></a>(query_embedding, positive, negative)</p></td>
 <td><p>Method to compute the dot product between the query embeddings and positive/negative candidates</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ContrastiveOutput.sample_negatives" title="merlin.models.tf.ContrastiveOutput.sample_negatives"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_negatives</span></code></a>(positive, features[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ContrastiveOutput.sample_negatives" title="merlin.models.tf.ContrastiveOutput.sample_negatives"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_negatives</span></code></a>(positive, features[, …])</p></td>
 <td><p>Method to sample negatives from <cite>self.negative_samplers</cite></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ContrastiveOutput.set_negative_samplers" title="merlin.models.tf.ContrastiveOutput.set_negative_samplers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_negative_samplers</span></code></a>(negative_samplers)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ContrastiveOutput.set_negative_samplers" title="merlin.models.tf.ContrastiveOutput.set_negative_samplers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_negative_samplers</span></code></a>(negative_samplers)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
 <td><p>Sets the weights of the layer, from NumPy arrays.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">task_name</span></code>(target_name)</p></td>
-<td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ContrastiveOutput.to_dataset" title="merlin.models.tf.ContrastiveOutput.to_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_dataset</span></code></a>([gpu])</p></td>
 <td><p></p></td>
@@ -365,25 +378,28 @@ logits_temperature = 0.2,</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">supports_masking</span></code></p></td>
 <td><p>Whether this layer supports computing a mask using <cite>compute_mask</cite>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">task_name</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable_variables</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable_weights</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable_variables</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable_weights</span></code></p></td>
 <td><p>List of all trainable weights tracked by this layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">updates</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">updates</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">variable_dtype</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">variable_dtype</span></code></p></td>
 <td><p>Alias of <cite>Layer.dtype</cite>, the dtype of the weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code></p></td>
 <td><p>Returns the list of all layer variables/weights.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">weights</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">weights</span></code></p></td>
 <td><p>Returns the list of all layer variables/weights.</p></td>
 </tr>
 </tbody>
@@ -428,7 +444,7 @@ the negative candidates ids if specified.</p>
 
 <dl class="py method">
 <dt id="merlin.models.tf.ContrastiveOutput.sample_negatives">
-<code class="sig-name descname"><span class="pre">sample_negatives</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positive</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.outputs.sampling.base.Candidate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">testing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">merlin.models.tf.outputs.sampling.base.Candidate</span><a class="reference internal" href="../_modules/merlin/models/tf/outputs/contrastive.html#ContrastiveOutput.sample_negatives"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ContrastiveOutput.sample_negatives" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">sample_negatives</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positive</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.outputs.sampling.base.Candidate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">testing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.outputs.sampling.base.Candidate</span><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.models.tf.outputs.sampling.base.Candidate</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="../_modules/merlin/models/tf/outputs/contrastive.html#ContrastiveOutput.sample_negatives"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ContrastiveOutput.sample_negatives" title="Permalink to this definition"></a></dt>
 <dd><p>Method to sample negatives from <cite>self.negative_samplers</cite></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -440,10 +456,11 @@ the negative candidates ids if specified.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Class containing the sampled negative ids</p>
+<dd class="field-even"><p>Tuple of candidates with sampled negative ids and the provided positive ids
+added with the sampling probability</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Items</p>
+<dd class="field-odd"><p>Tuple[Candidate, Candidate]</p>
 </dd>
 </dl>
 </dd></dl>
