@@ -312,18 +312,20 @@ class EmbeddingTablePrediction(Layer):
     arXiv:1611.01462 (2016).
     """
 
-    def __init__(self, table: EmbeddingTable, bias_initializer="zeros", **kwargs):
+    def __init__(self, table: EmbeddingTable, bias_initializer="zeros", use_bias=False, **kwargs):
         self.table = table
         self.num_classes = table.input_dim
         self.bias_initializer = bias_initializer
+        self.use_bias = use_bias
         super().__init__(**kwargs)
 
     def build(self, input_shape):
-        self.bias = self.add_weight(
-            name="output_layer_bias",
-            shape=(self.num_classes,),
-            initializer=self.bias_initializer,
-        )
+        if self.use_bias:
+            self.bias = self.add_weight(
+                name="output_layer_bias",
+                shape=(self.num_classes,),
+                initializer=self.bias_initializer,
+            )
         self.table.build(input_shape)
         return super().build(input_shape)
 
@@ -333,7 +335,8 @@ class EmbeddingTablePrediction(Layer):
             original_inputs = inputs
             inputs = inputs.flat_values
         logits = tf.matmul(inputs, self.table.table.embeddings, transpose_b=True)
-        logits = tf.nn.bias_add(logits, self.bias)
+        if self.use_bias:
+            logits = tf.nn.bias_add(logits, self.bias)
         if is_ragged:
             logits = original_inputs.with_flat_values(logits)
         return logits
