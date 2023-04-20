@@ -289,7 +289,7 @@ def main(args):
 
     # load schema, if specified
     schema = TensorflowMetadata.from_proto_text_file(
-        args.schema_path, file_name="schema_modified.pbtxt"
+        args.schema_path, file_name="schema.pbtxt"
     ).to_merlin_schema()
 
     if args.side_information_features == "":
@@ -313,11 +313,12 @@ def main(args):
     if args.weight_tying:
         # project tranformer's output to same dimension as target
         projection = mm.MLPBlock(
-            [output_block.to_call.table.dim], no_activation_last_layer=True, activation="relu"
+            [output_block.to_call.table.dim],
+            no_activation_last_layer=True,
         )
         session_encoder = mm.Encoder(
             input_block,
-            mm.MLPBlock([args.d_model], activation="relu", no_activation_last_layer=True),
+            mm.MLPBlock([args.d_model], no_activation_last_layer=True),
             transformer_block,
             projection,
         )
@@ -325,7 +326,7 @@ def main(args):
     else:
         session_encoder = mm.Encoder(
             input_block,
-            mm.MLPBlock([args.d_model], activation="relu", no_activation_last_layer=True),
+            mm.MLPBlock([args.d_model], no_activation_last_layer=True),
             transformer_block,
         )
 
@@ -344,7 +345,6 @@ def main(args):
     # get metrics
     metrics = get_metrics(args)
 
-    # compile the model
     # compile the model
     model.compile(optimizer, run_eagerly=False, metrics=metrics, loss=loss)
 
@@ -381,16 +381,23 @@ def main(args):
     info_logger.info(f"EVALUATION METRICS: {eval_metrics}")
 
     if args.save_topk_predictions:
-        loader = mm.Loader(eval_ds, batch_size=args.eval_batch_size, shuffle=False)
+        target = schema_model.select_by_tag(Tags.ITEM_ID).first
+        sequence_schema = schema_model.select_by_tag(Tags.LIST)
         max_k = max([int(k) for k in args.top_ks.split(",")])
         topk_model = model.to_top_k_encoder(k=max_k)
         topk_model.compile(run_eagerly=False, metrics=metrics)
         # Check the evaluation scores
+        loader = mm.Loader(eval_ds, batch_size=args.eval_batch_size)
         metrics = topk_model.evaluate(loader, return_dict=True, pre=pre_eval)
-        info_logger.info("Logging top-k metrics ---> {0}".format(metrics))
-        eval_metrics[f"top-{max_k}_recall"] = metrics[f"recall_at_{max_k}"]
+        for k in args.top_ks.split(","):
+            eval_metrics[f"top-{k}_recall"] = metrics[f"recall_at_{k}"]
+            eval_metrics[f"top-{k}_ndcg"] = metrics[f"ndcg_at_{k}"]
 
         # Get topk predictions
+        # Extract last item by applying the SequencePredictLast transform to dataloader
+        loader = mm.Loader(eval_ds, batch_size=args.eval_batch_size, shuffle=False).map(
+            mm.SequencePredictLast(sequence_schema, target)
+        )
         predictions = topk_model.predict(loader)
 
         data = eval_ds.to_ddf().compute().to_pandas()
@@ -398,9 +405,10 @@ def main(args):
         data["topk_scores"] = list(predictions.scores)
 
         data.to_parquet(
-            os.path.join(args.output_path, f"top_{max_k}_predictions_task_{args.training_task}"),
+            os.path.join(args.output_path, f"mm_top_{max_k}_predictions_task_{args.training_task}"),
             row_group_size=10000,
         )
+
     log_final_metrics(logger, eval_metrics)
 
 
