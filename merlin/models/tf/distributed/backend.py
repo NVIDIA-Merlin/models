@@ -30,4 +30,4 @@ if HAS_GPU:
 
 
 if sok_installed:
-    sok.init()
+    sok.init(use_legacy_optimizer=False)
