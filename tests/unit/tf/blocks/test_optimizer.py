@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import keras
 import numpy as np
 import pytest
 import tensorflow as tf
@@ -31,7 +32,7 @@ from merlin.schema import Schema, Tags
 if version.parse(tf.__version__) < version.parse("2.11.0"):
     keras_optimizers = tf.keras.optimizers
 else:
-    keras_optimizers = tf.keras.optimizers.legacy
+    keras_optimizers = keras.api._v2.keras.optimizers.legacy
 
 
 def generate_two_layers():
@@ -560,8 +561,8 @@ def test_lazy_adam_slots_unique_eager():
 
 def test_lazy_adam_serialization():
     optimizer = ml.LazyAdam()
-    config = tf.keras.optimizers.serialize(optimizer)
-    new_optimizer = tf.keras.optimizers.deserialize(config)
+    config = keras.api._v2.keras.optimizers.serialize(optimizer)
+    new_optimizer = keras.api._v2.keras.optimizers.deserialize(config)
     assert new_optimizer.get_config() == optimizer.get_config()
 
 

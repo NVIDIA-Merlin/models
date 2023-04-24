@@ -19,6 +19,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
 
+import keras
 import tensorflow as tf
 from tensorflow.keras import backend
 from tensorflow.python import to_dlpack
@@ -1189,7 +1190,7 @@ def serialize_table_config(table_config: TableConfig) -> Dict[str, Any]:
     if "initializer" in table:
         table["initializer"] = tf.keras.initializers.serialize(table["initializer"])
     if "optimizer" in table:
-        table["optimizer"] = tf.keras.optimizers.serialize(table["optimizer"])
+        table["optimizer"] = keras.api._v2.keras.optimizers.serialize(table["optimizer"])
 
     return table
 

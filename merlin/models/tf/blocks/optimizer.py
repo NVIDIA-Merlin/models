@@ -19,6 +19,7 @@ import warnings
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
+import keras
 import numpy as np
 import tensorflow as tf
 from packaging import version
@@ -35,7 +36,7 @@ FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]
 if version.parse(tf.__version__) < version.parse("2.11.0"):
     keras_optimizers = tf.keras.optimizers
 else:
-    keras_optimizers = tf.keras.optimizers.legacy
+    keras_optimizers = keras.api._v2.keras.optimizers.legacy
 
 
 @dataclass
@@ -53,7 +54,7 @@ class OptimizerBlocks:
         """return a tuple of serialized keras objects"""
         optimizer_config = tf.keras.utils.serialize_keras_object(self.optimizer)
         if version.parse(tf.__version__) >= version.parse("2.11.0") and isinstance(
-            self.optimizer, tf.keras.optimizers.legacy.Optimizer
+            self.optimizer, keras.optimizers.optimizer_v2.optimizer_v2.OptimizerV2
         ):
             optimizer_config["use_legacy_optimizer"] = True
         return (
@@ -64,8 +65,8 @@ class OptimizerBlocks:
     @classmethod
     def from_config(cls, config):
         return cls(
-            tf.keras.optimizers.deserialize(config[0]),
-            [tf.keras.layers.deserialize(block) for block in config[1]],
+            keras.optimizers.deserialize(config[0]),
+            [keras.optimizers.deserialize(block) for block in config[1]],
         )
 
 
@@ -147,17 +148,17 @@ class MultiOptimizer(keras_optimizers.Optimizer):
 
     def _get_optimizer(self, optimizer):
         if version.parse(tf.__version__) < version.parse("2.11.0"):
-            optimizer = tf.keras.optimizers.get(optimizer)
+            optimizer = keras.optimizers.get(optimizer)
         else:
             if not (
                 isinstance(optimizer, str)
-                or isinstance(optimizer, tf.keras.optimizers.legacy.Optimizer)
+                or isinstance(optimizer, keras.api._v2.keras.optimizers.legacy.Optimizer)
             ):
                 raise ValueError(
                     "Optimizers must be a str or an instance of "
                     "tf.keras.optimizers.legacy.Optimizer with Tensorflow >= 2.11."
                 )
-            optimizer = tf.keras.optimizers.get(
+            optimizer = keras.optimizers.get(
                 optimizer,
                 use_legacy_optimizer=True,
             )
@@ -285,7 +286,7 @@ class MultiOptimizer(keras_optimizers.Optimizer):
 
     @classmethod
     def from_config(cls, config):
-        config["default_optimizer"] = tf.keras.optimizers.deserialize(config["default_optimizer"])
+        config["default_optimizer"] = keras.optimizers.deserialize(config["default_optimizer"])
         optimizers_and_blocks, update_optimizers_and_blocks = [], []
         for optimizer_blocks_config in config["optimizers_and_blocks"]:
             optimizers_and_blocks.append(OptimizerBlocks.from_config(optimizer_blocks_config))

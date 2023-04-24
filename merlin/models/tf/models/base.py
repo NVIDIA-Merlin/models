@@ -24,6 +24,7 @@ from collections.abc import Sequence as SequenceCollection
 from functools import partial
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Union, runtime_checkable
 
+import keras
 import six
 import tensorflow as tf
 from keras.engine.compile_utils import MetricsContainer
@@ -469,7 +470,7 @@ class BaseModel(tf.keras.Model):
         if version.parse(tf.__version__) < version.parse("2.11.0"):
             optimizer = tf.keras.optimizers.get(optimizer)
         else:
-            optimizer = tf.keras.optimizers.get(optimizer, use_legacy_optimizer=True)
+            optimizer = keras.optimizers.get(optimizer, use_legacy_optimizer=True)
 
         if hvd_installed and hvd.size() > 1:
             if optimizer.__module__.startswith("horovod"):
