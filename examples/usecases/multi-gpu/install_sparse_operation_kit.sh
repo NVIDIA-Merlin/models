@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 rm -rf hugectr/
 
-git clone -b release-23.02 https://github.com/NVIDIA-Merlin/HugeCTR.git hugectr
+git clone https://github.com/NVIDIA-Merlin/HugeCTR.git hugectr
 
 cd hugectr/sparse_operation_kit/
 python setup.py install

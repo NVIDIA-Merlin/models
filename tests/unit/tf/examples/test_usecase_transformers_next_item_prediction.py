@@ -3,10 +3,10 @@ import shutil
 import pytest
 from testbook import testbook
 
-from merlin.systems.triton.utils import run_triton_server
 from tests.conftest import REPO_ROOT
 
 pytest.importorskip("transformers")
+utils = pytest.importorskip("merlin.systems.triton.utils")
 
 TRITON_SERVER_PATH = shutil.which("tritonserver")
 
@@ -44,5 +44,5 @@ def test_next_item_prediction(tb):
     tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", "/tmp/ensemble")
     tb.execute_cell(list(range(0, 38)))
 
-    with run_triton_server("/tmp/ensemble", grpc_port=8001):
+    with utils.run_triton_server("/tmp/ensemble", grpc_port=8001):
         tb.execute_cell(list(range(38, len(tb.cells))))
