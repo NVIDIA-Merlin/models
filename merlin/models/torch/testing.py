@@ -1,5 +1,5 @@
 import inspect
-from typing import Dict, Final, List, Optional, Union
+from typing import Dict, Final, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -32,15 +32,15 @@ class TabularSequence:
     A PyTorch scriptable class representing a sequence of tabular data.
 
     Attributes:
-        seq_lengths (Dict[str, torch.Tensor]): A dictionary mapping the feature names to their
+        lengths (Dict[str, torch.Tensor]): A dictionary mapping the feature names to their
             corresponding sequence lengths.
         masks (Dict[str, torch.Tensor]): A dictionary mapping the feature names to their
             corresponding masks. Default is an empty dictionary.
 
     Examples:
-        >>> seq_lengths = {'feature1': torch.tensor([4, 5]), 'feature2': torch.tensor([3, 7])}
+        >>> lengths = {'feature1': torch.tensor([4, 5]), 'feature2': torch.tensor([3, 7])}
         >>> masks = {'feature1': torch.tensor([[1, 0], [1, 1]]), 'feature2': torch.tensor([[1, 1], [1, 0]])}    # noqa: E501
-        >>> tab_seq = TabularSequence(seq_lengths, masks)
+        >>> tab_seq = TabularSequence(lengths, masks)
     """
 
     def __init__(
@@ -91,6 +91,21 @@ class TabularBatch:
         self.targets: Dict[str, torch.Tensor] = _targets
         self.sequences: Optional[TabularSequence] = sequences
 
+    def replace(
+        self,
+        features: Optional[Dict[str, torch.Tensor]] = None,
+        targets: Optional[Dict[str, torch.Tensor]] = None,
+        sequences: Optional[TabularSequence] = None,
+    ) -> "TabularBatch":
+        return TabularBatch(
+            features=features if features is not None else self.features,
+            targets=targets if targets is not None else self.targets,
+            sequences=sequences if sequences is not None else self.sequences,
+        )
+
+    def __bool__(self) -> bool:
+        return bool(self.features)
+
 
 class _ModuleWrapper(nn.Module):
     needs_batch: Final[bool]
@@ -110,15 +125,97 @@ class _ModuleWrapper(nn.Module):
         self.needs_batch = has_batch_arg(to_wrap)
 
     def forward(self, inputs, batch: Optional[TabularBatch] = None):
+        _batch: TabularBatch = TabularBatch({}) if batch is None else batch
+
         if self.has_list:
             x = inputs
             for m in self.to_call:
-                x = m(x, batch=batch)
+                x = m(x, batch=_batch)
 
             return x
 
         if self.needs_batch:
-            return self.to_call(inputs, batch=batch)
+            return self.to_call(inputs, batch=_batch)
+        else:
+            return self.to_call(inputs)
+
+    def __repr__(self):
+        return self.to_wrap_repr
+
+    def _get_name(self) -> str:
+        return self.to_wrap_name
+
+
+class _TabularModuleWrapper(nn.Module):
+    needs_batch: Final[bool]
+    has_list: Final[bool]
+
+    def __init__(self, to_wrap: nn.Module):
+        super().__init__()
+
+        self.to_wrap_name: str = to_wrap._get_name()
+        self.to_wrap_repr: str = repr(to_wrap)
+        if type(to_wrap) == nn.Sequential:
+            self.to_call = nn.ModuleList([_ModuleWrapper(m) for m in to_wrap])
+            self.has_list = True
+        else:
+            self.to_call = to_wrap
+            self.has_list = False
+        self.needs_batch = has_batch_arg(to_wrap)
+
+    def forward(self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None):
+        _batch: TabularBatch = TabularBatch({}) if batch is None else batch
+
+        if self.has_list:
+            x = inputs
+            for m in self.to_call:
+                x = m(x, batch=_batch)
+
+            return x
+
+        if self.needs_batch:
+            return self.to_call(inputs, batch=_batch)
+        else:
+            return self.to_call(inputs)
+
+    def __repr__(self):
+        return self.to_wrap_repr
+
+    def _get_name(self) -> str:
+        return self.to_wrap_name
+
+
+class _AggModuleWrapper(nn.Module):
+    needs_batch: Final[bool]
+    has_list: Final[bool]
+
+    def __init__(self, to_wrap: nn.Module):
+        super().__init__()
+
+        self.to_wrap_name: str = to_wrap._get_name()
+        self.to_wrap_repr: str = repr(to_wrap)
+        if type(to_wrap) == nn.Sequential:
+            self.to_call = nn.ModuleList([_ModuleWrapper(m) for m in to_wrap])
+            self.has_list = True
+        else:
+            self.to_call = to_wrap
+            self.has_list = False
+        self.needs_batch = has_batch_arg(to_wrap)
+
+    def forward(
+        self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None
+    ) -> torch.Tensor:
+        _batch: TabularBatch = TabularBatch({}) if batch is None else batch
+
+        if self.has_list:
+            x = inputs
+            for m in self.to_call:
+                x = m(x, batch=_batch)
+
+            return x
+
+        if self.needs_batch:
+            return self.to_call(inputs, batch=_batch)
         else:
             return self.to_call(inputs)
 
@@ -130,10 +227,13 @@ class _ModuleWrapper(nn.Module):
 
 
 class BlockMixin:
-    def register_block_hooks(self, pre=None, post=None, agg=None):
+    def register_block_hooks(
+        self,
+        pre: Optional[nn.Module] = None,
+        post: Optional[nn.Module] = None,
+    ):
         self.pre = _ModuleWrapper(pre) if pre else None
         self.post = _ModuleWrapper(post) if post else None
-        self.agg = _ModuleWrapper(agg) if agg else None
 
     def block_prepare(self, inputs, batch: Optional[TabularBatch] = None):
         if self.pre is not None:
@@ -142,14 +242,57 @@ class BlockMixin:
         return inputs
 
     def block_finalize(self, inputs, batch: Optional[TabularBatch] = None):
-        x = inputs
         if self.post is not None:
-            x = self.post(inputs, batch=batch)
+            return self.post(inputs, batch=batch)
 
+        return inputs
+
+    def block_finalize_batch(self, inputs: TabularBatch, batch: Optional[TabularBatch] = None):
+        if self.post is not None:
+            return self.post(inputs, batch=batch)
+
+        return inputs
+
+
+class TabularBlockMixin:
+    def register_block_hooks(
+        self,
+        pre: Optional[nn.Module] = None,
+        post: Optional[nn.Module] = None,
+        agg: Optional[nn.Module] = None,
+    ):
+        self.pre = _TabularModuleWrapper(pre) if pre else None
+        self.post = _TabularModuleWrapper(post) if post else None
+        self.agg = _AggModuleWrapper(agg) if agg else None
+
+    def block_prepare(self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None):
+        if self.pre is not None:
+            return self.pre(inputs, batch=batch)
+
+        return inputs
+
+    def block_finalize(self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None):
         if self.agg is not None:
-            x = self.agg(x, batch=batch)
+            return self._block_finalize_with_agg(inputs, batch=batch)
 
-        return x
+        return self._block_finalize_without_agg(inputs, batch=batch)
+
+    def _block_finalize_with_agg(
+        self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None
+    ) -> torch.Tensor:
+        x: Dict[str, torch.Tensor] = inputs
+        if self.post is not None:
+            x = self.post(x, batch=batch)
+
+        return self.agg(x, batch=batch)
+
+    def _block_finalize_without_agg(
+        self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None
+    ) -> Dict[str, torch.Tensor]:
+        if self.post is not None:
+            return self.post(inputs, batch=batch)
+
+        return inputs
 
 
 class Block(nn.Module, BlockMixin):
@@ -159,10 +302,9 @@ class Block(nn.Module, BlockMixin):
         *,
         pre: Optional[nn.Module] = None,
         post: Optional[nn.Module] = None,
-        agg: Optional[nn.Module] = None
     ):
         super().__init__()
-        self.register_block_hooks(pre=pre, post=post, agg=agg)
+        self.register_block_hooks(pre=pre, post=post)
         self.module = _ModuleWrapper(module)
 
         if hasattr(module, "input_schema"):
@@ -171,6 +313,47 @@ class Block(nn.Module, BlockMixin):
             self.output_schema = module.output_schema
 
     def forward(self, inputs, batch: Optional[TabularBatch] = None):
+        inputs = self.block_prepare(inputs, batch=batch)
+        outputs = self.module(inputs, batch=batch)
+
+        if torch.jit.isinstance(outputs, TabularBatch):
+            outputs = self.block_finalize_batch(outputs, batch=batch)
+        else:
+            outputs = self.block_finalize(outputs, batch=batch)
+
+        return outputs
+
+    def _get_name(self) -> str:
+        if hasattr(self.module, "_get_name"):
+            module_name = self.module._get_name()
+
+            if not module_name.endswith("Block"):
+                module_name += "Block"
+
+            return module_name
+
+        return super()._get_name()
+
+
+class TabularBlock(nn.Module, TabularBlockMixin):
+    def __init__(
+        self,
+        module: nn.Module,
+        *,
+        pre: Optional[nn.Module] = None,
+        post: Optional[nn.Module] = None,
+        agg: Optional[nn.Module] = None,
+    ):
+        super().__init__()
+        self.register_block_hooks(pre=pre, post=post, agg=agg)
+        self.module = _TabularModuleWrapper(module)
+
+        if hasattr(module, "input_schema"):
+            self.input_schema = module.input_schema
+        if hasattr(module, "output_schema"):
+            self.output_schema = module.output_schema
+
+    def forward(self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None):
         inputs = self.block_prepare(inputs, batch=batch)
         outputs = self.module(inputs, batch=batch)
         outputs = self.block_finalize(outputs, batch=batch)
@@ -187,6 +370,40 @@ class Block(nn.Module, BlockMixin):
             return module_name
 
         return super()._get_name()
+
+
+class Model(nn.Module, TabularBlockMixin):
+    def __init__(
+        self,
+        module: nn.Module,
+        *,
+        pre: Optional[nn.Module] = None,
+        post: Optional[nn.Module] = None,
+        agg: Optional[nn.Module] = None,
+    ):
+        super().__init__()
+        self.register_block_hooks(pre=pre, post=post, agg=agg)
+        self.module = _TabularModuleWrapper(module)
+
+        if hasattr(module, "input_schema"):
+            self.input_schema = module.input_schema
+        if hasattr(module, "output_schema"):
+            self.output_schema = module.output_schema
+
+    def forward(self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None):
+        _batch: TabularBatch = TabularBatch({}) if batch is None else batch
+
+        prepared = self.block_prepare(inputs, batch=batch)
+        if torch.jit.isinstance(prepared, TabularBatch):
+            _batch = prepared
+            inputs = prepared.features
+        else:
+            inputs = prepared
+
+        outputs = self.module(inputs, batch=_batch)
+        outputs = self.block_finalize(outputs, batch=_batch)
+
+        return outputs
 
 
 class TabularPadding(nn.Module):
