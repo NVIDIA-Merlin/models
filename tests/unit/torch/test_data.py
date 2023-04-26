@@ -1,8 +1,10 @@
 import torch
 from torch import nn
 
-from merlin.models.torch.data import register_target_hook
+from merlin.models.torch.blocks.mlp import MLPBlock
+from merlin.models.torch.data import DataPropagationModule, register_target_hook
 from merlin.models.torch.models.base import Model
+from merlin.models.torch.utils import module_utils
 
 
 class TargetConsumer(nn.Module):
@@ -33,7 +35,8 @@ class TestTargetPropagation:
     def test_target_receiving(self):
         model = Model(TargetConsumer(), nn.Identity())
         targets = torch.rand(5, 1)
-        outputs = model(torch.rand(5, 10), targets=targets)
+        # outputs = model(torch.rand(5, 10), targets=targets)
+        outputs = module_utils.module_test(model, torch.rand(5, 10), targets=targets)
 
         assert torch.allclose(outputs, targets)
 
@@ -45,3 +48,12 @@ class TestTargetPropagation:
         outputs = model(torch.rand(5, 10), targets=targets)
 
         assert torch.allclose(target * 2, outputs["target"])
+
+
+class TestDataPropagationModule:
+    def test_basic(self):
+        module = DataPropagationModule(nn.Sequential(MLPBlock([10]), TargetConsumer()))
+
+        compiled = torch.jit.script(module)
+
+        assert compiled is not None

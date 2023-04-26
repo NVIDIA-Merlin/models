@@ -1,8 +1,5 @@
-import os
-
 import pandas as pd
 import pytorch_lightning as pl
-from lightning.fabric import Fabric
 import torch
 
 from merlin.dataloader.torch import Loader
@@ -24,12 +21,8 @@ class TestModel:
         # Multi-hot is not supported yet, TODO: add support for multi-hot
         schema: Schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
         music_streaming_data.schema = schema
-        
-        fabric = Fabric(
-            # strategy=TorchrecStrategy()
-        )
-        fabric.launch()
 
+        # Fabric().launch()
         model = Model(
             TabularInputBlock(schema),
             MLPBlock([10, 10]),
@@ -39,23 +32,29 @@ class TestModel:
             ),
         )
 
-        assert model.input_schema == schema.excluding_by_tag(TabularInputBlock.TAGS_TO_EXCLUDE)
-        assert set(model.output_schema.column_names) == set(
+        assert model.input_schema() == schema.excluding_by_tag(TabularInputBlock.TAGS_TO_EXCLUDE)
+        assert set(model.output_schema().column_names) == set(
             schema.select_by_tag(Tags.TARGET).column_names
         )
 
-        trainer = pl.Trainer(max_epochs=1)
+        trainer = pl.Trainer(max_epochs=1, devices=[0])
         loader = Loader(
-            music_streaming_data, 
-            batch_size=2, 
+            music_streaming_data,
+            batch_size=2,
             shuffle=False,
-            global_rank=int(os.environ["LOCAL_RANK"]),
-            global_size=2,
-            device=int(os.environ["LOCAL_RANK"]),
+            # global_rank=int(os.environ["LOCAL_RANK"]),
+            # global_size=2,
+            # device=int(os.environ["LOCAL_RANK"]),
         )
 
         # Initialize the model parameters
         model.initialize(loader)
+
+        # batch = sample_batch(
+        #     loader, batch_size=1, shuffle=False, include_targets=False
+        # )
+
+        # module_utils.module_test(model, batch)
 
         # import torch
         # if hasattr(torch, "compile"):
@@ -71,6 +70,8 @@ class TestModel:
         ddf = predictions.compute(scheduler="synchronous")
         assert len(ddf) == 100
         assert len(ddf.columns) == 15
+
+        # script = model.to_torchscript()
 
 
 class TestRetrievalModel:

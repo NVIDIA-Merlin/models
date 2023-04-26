@@ -120,6 +120,48 @@ class _TargetReceiverHook(nn.Module):
         return hasattr(module, cls.PROPERTY_NAME)
 
 
+class DataPropagationModule(nn.Module):
+    """A data propagation hook for PyTorch modules.
+
+    This hook allows you to propagate features and/or targets through
+    the children of a model during the forward pass.
+    """
+
+    FEAT_KEY_NAME = "features"
+    FEAT_PROPERTY_NAME = "__feature_receiver"
+    TARGET_KEY_NAME = "targets"
+    TARGET_PROPERTY_NAME = "__target_receiver"
+
+    def __init__(self, model: nn.Module):
+        super().__init__()
+
+        need_features = []
+        for module in module_utils.get_all_children(model):
+            if hasattr(module, self.FEAT_PROPERTY_NAME):
+                need_features.append(module)
+        self.need_features = nn.ModuleList(need_features)
+
+        need_targets = []
+        for module in module_utils.get_all_children(model):
+            if hasattr(module, self.TARGET_PROPERTY_NAME):
+                need_targets.append(module)
+        self.need_targets = nn.ModuleList(need_targets)
+
+    def forward(self, inputs, targets: Dict[str, torch.Tensor] = None):
+        # for child in self.need_features:
+        #     _upsert_buffers(child, inputs, "feature")
+        #     _upsert_buffer(child, self.FEAT_PROPERTY_NAME, torch.tensor(True))
+
+        if targets is not None:
+            for child in self.need_targets:
+                # child.register_buffer(self.TARGET_PROPERTY_NAME, torch.tensor(True))
+                for key, val in targets.items():
+                    name = f"targets_{key}"
+                    child.register_buffer(name, val)
+
+        return inputs
+
+
 class _DataPropagationHook(nn.Module):
     """A data propagation hook for PyTorch modules.
 
@@ -246,8 +288,10 @@ def register_feature_hook(module: nn.Module, schema: Schema):
 def register_target_hook(module: nn.Module):
     hook = _TargetReceiverHook()
 
-    module.register_forward_pre_hook(hook, with_kwargs=True)
-    module.register_buffer(hook.PROPERTY_NAME, torch.tensor(True), persistent=False)
+    module.register_buffer(hook.PROPERTY_NAME, torch.tensor(True))
+
+    # module.register_forward_pre_hook(hook, with_kwargs=True)
+    # module.register_buffer(hook.PROPERTY_NAME, torch.tensor(True), persistent=False)
 
     return hook
 

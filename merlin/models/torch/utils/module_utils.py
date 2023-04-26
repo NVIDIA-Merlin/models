@@ -106,6 +106,69 @@ def ModulePreHook(module: nn.Module):
     return hook
 
 
+def ModulePreHookKwargs(module: nn.Module):
+    inp_type, out_type = _extract_types(module)
+
+    def _hook_t_to_t(
+        self,
+        inputs: Tuple[torch.Tensor],
+    ) -> torch.Tensor:
+        out = module(inputs[0][0])
+        return out
+
+    def _hook_dict_to_t(
+        self,
+        inputs: Tuple[Dict[str, torch.Tensor]],
+    ) -> torch.Tensor:
+        return module(*inputs)
+
+    def _hook_t_to_tuple(
+        self,
+        inputs: Tuple[torch.Tensor],
+    ) -> Tuple[torch.Tensor]:
+        return module(*inputs)
+
+    def _hook_dict_to_tuple(
+        self,
+        inputs: Tuple[Dict[str, torch.Tensor]],
+    ) -> Tuple[torch.Tensor]:
+        return module(*inputs)
+
+    def _hook_t_to_dict(
+        self,
+        inputs: Tuple[torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
+        return module(*inputs)
+
+    def _hook_dict_to_dict(
+        self,
+        inputs: Tuple[Dict[str, torch.Tensor]],
+    ) -> Dict[str, torch.Tensor]:
+        return module(*inputs)
+
+    if inp_type == "Tensor" and out_type == "Tensor":
+        hook = _hook_t_to_t
+    elif inp_type == "Dict[str, Tensor]" and out_type == "Tensor":
+        hook = _hook_dict_to_t
+    elif inp_type == "Tensor" and out_type == "Tuple[Tensor]":
+        hook = _hook_t_to_tuple
+    elif inp_type == "Dict[str, Tensor]" and out_type == "Tuple[Tensor]":
+        hook = _hook_dict_to_tuple
+    elif inp_type == "Tensor" and out_type == "Dict[str, Tensor]":
+        hook = _hook_t_to_dict
+    elif inp_type == "Dict[str, Tensor]" and out_type == "Dict[str, Tensor]":
+        hook = _hook_dict_to_dict
+    else:
+        raise RuntimeError(
+            f"Unsupported input and output types for module: {module._get_name()} "
+            f"got input type: {inp_type} and output type: {out_type}. "
+            "Supported input types are: torch.Tensor, Dict[str, torch.Tensor]. "
+            "Please annotate the return type of the forward function of the module."
+        )
+
+    return hook
+
+
 def ModulePostHook(module: nn.Module):
     inp_type, out_type = _extract_types(module)
 
@@ -271,10 +334,12 @@ def module_name(module: nn.Module, snakecase=True) -> str:
     return cls_name
 
 
-def module_test(module, input_data):
+def module_test(module, input_data, **kwargs):
+    from merlin.models.torch.testing import TabularBatch
+
     # Check if the module can be called with the provided inputs
     try:
-        original_output = module(input_data)
+        original_output = module(input_data, **kwargs)
     except Exception as e:
         raise RuntimeError(f"Failed to call the module with provided inputs: {e}")
 
@@ -286,22 +351,34 @@ def module_test(module, input_data):
 
     # Compare the output of the original module and the scripted module
     with torch.no_grad():
-        scripted_output = scripted_module(input_data)
+        scripted_output = scripted_module(input_data, **kwargs)
 
     if isinstance(original_output, dict):
-        for key in original_output.keys():
-            if not torch.allclose(original_output[key], scripted_output[key]):
-                raise ValueError(
-                    "The outputs of the original and scripted modules are not the same"
-                )
+        _all_close_dict(original_output, scripted_output)
     elif isinstance(original_output, tuple):
         for i in range(len(original_output)):
             if not torch.allclose(original_output[i], scripted_output[i]):
                 raise ValueError(
                     "The outputs of the original and scripted modules are not the same"
                 )
+    elif isinstance(original_output, TabularBatch):
+        _all_close_dict(original_output.features, scripted_output.features)
+        if original_output.targets is not None:
+            _all_close_dict(original_output.targets, scripted_output.targets)
+        if original_output.sequences is not None:
+            _all_close_dict(
+                original_output.sequences.seq_lengths, scripted_output.sequences.seq_lengths
+            )
+            if original_output.sequences.masks is not None:
+                _all_close_dict(original_output.sequences.masks, scripted_output.sequences.masks)
     else:
         if not torch.allclose(original_output, scripted_output):
             raise ValueError("The outputs of the original and scripted modules are not the same")
 
     return original_output
+
+
+def _all_close_dict(left, right):
+    for key in left.keys():
+        if not torch.allclose(left[key], right[key]):
+            raise ValueError("The outputs of the original and scripted modules are not the same")

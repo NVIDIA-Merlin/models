@@ -25,8 +25,8 @@ class TestTabularInputBlock:
         ]
         input_item_id = input_block.select_by_tag(Tags.ITEM_ID)
         assert len(input_item_id) == 1
-        assert isinstance(input_item_id.first, EmbeddingTable)
-        assert input_item_id.first.schema == schema.select_by_tag(Tags.ITEM_ID)
+        assert isinstance(input_item_id.first(), EmbeddingTable)
+        assert input_item_id.first().schema == schema.select_by_tag(Tags.ITEM_ID)
         assert input_item_id.schema == schema.select_by_tag(Tags.ITEM_ID)
         assert input_block.select_by_name("event_hour_sin").schema == schema.select_by_name(
             "event_hour_sin"

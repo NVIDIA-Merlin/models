@@ -94,8 +94,8 @@ class TestEmbeddings:
 
         assert isinstance(embeddings, ParallelBlock)
         assert len(embeddings) == 2
-        assert isinstance(embeddings._modules["item_id"], EmbeddingTable)
-        assert isinstance(embeddings._modules["user_id"], EmbeddingTable)
+        assert isinstance(embeddings.branches["item_id"], EmbeddingTable)
+        assert isinstance(embeddings.branches["user_id"], EmbeddingTable)
 
     def test_embeddings_with_custom_dim(self, item_id_col_schema, user_id_col_schema):
         schema = Schema([item_id_col_schema, user_id_col_schema])

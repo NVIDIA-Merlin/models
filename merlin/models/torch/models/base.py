@@ -1,9 +1,9 @@
 from functools import reduce
 from typing import Dict, List, Optional, Tuple, Union
 
+import pytorch_lightning as pl
 import torch
 from torch import nn
-import pytorch_lightning as pl
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
@@ -89,7 +89,7 @@ class Model(pl.LightningModule):
         self, dataset: Dataset, batch_size: int, add_inputs: bool = True, index=None
     ) -> Dataset:
         return batch_predict(
-            self, self.output_schema, dataset, batch_size, add_inputs=add_inputs, index=index
+            self, self.output_schema(), dataset, batch_size, add_inputs=add_inputs, index=index
         )
 
     def initialize(self, data: Loader):
@@ -123,7 +123,7 @@ class Model(pl.LightningModule):
     def last(self) -> nn.Module:
         return self.blocks[-1]
 
-    @property
+    # @property
     def input_schema(self) -> Schema:
         if self.schema:
             return self.schema
@@ -138,7 +138,7 @@ class Model(pl.LightningModule):
 
         return reduce(lambda a, b: a + b, input_schemas)  # type: ignore
 
-    @property
+    # @property
     def output_schema(self) -> Schema:
         output_schemas = []
         for child in module_utils.get_all_children(self):

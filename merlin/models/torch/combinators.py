@@ -80,7 +80,11 @@ class ParallelBlock(TabularBlock):
             module_inputs = inputs  # TODO: Add filtering when adding schema
             # out = apply(module, module_inputs, features=features, targets=targets)
             out = module(module_inputs)  # TODO: Fix features + targets
-            out = _check_dict(out, str(name))
+
+            if isinstance(out, torch.Tensor):
+                out = {name: out}
+            elif isinstance(out, tuple):
+                out = {name: out}
 
             outputs.update(out)
 
@@ -179,7 +183,7 @@ class ParallelBlock(TabularBlock):
 
     @_copy_to_script_wrapper
     def items(self) -> Iterator[Tuple[str, nn.Module]]:
-        return self._modules.items()
+        return self.branches.items()
 
     @_copy_to_script_wrapper
     def keys(self) -> Iterator[str]:
@@ -189,10 +193,15 @@ class ParallelBlock(TabularBlock):
     def values(self) -> Iterator[nn.Module]:
         return self.branches.values()
 
+    # @torch.jit.export
+    def _first(self):
+        for b in self.branches.values():
+            return b
+
     # @property
-    @_copy_to_script_wrapper
-    def first(self) -> nn.Module:
-        return next(iter(self.branches.values()))
+    @torch.jit.ignore
+    def first(self):
+        return self._first()
 
     @_copy_to_script_wrapper
     def __len__(self) -> int:
@@ -494,14 +503,3 @@ class SequentialBlock(nn.Sequential):
             repeated["shortcut"] = nn.Identity()
 
         return ParallelBlock(repeated, post=post, aggregation=aggregation, **kwargs)
-
-
-@torch.jit.script
-def _check_dict(output, name: str) -> Dict[str, torch.Tensor]:
-    if not torch.jit.isinstance(output, Dict[str, torch.Tensor]):
-        output = {name: output}
-    else:
-        # Ensure the keys are strings
-        output = {str(k): v for k, v in output.items()}
-
-    return output

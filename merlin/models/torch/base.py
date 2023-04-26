@@ -1,9 +1,12 @@
 from typing import Protocol, Union, runtime_checkable
 
 from torch import nn
-from typing_extensions import Self
 
-from merlin.models.torch.utils.module_utils import ModulePreHook, ModulePostHook
+from merlin.models.torch.utils.module_utils import (
+    ModulePostHook,
+    ModulePreHook,
+    ModulePreHookKwargs,
+)
 from merlin.models.utils.registry import Registry
 
 registry: Registry = Registry.class_registry("torch.modules")
@@ -97,7 +100,8 @@ def register_pre_hook(
     """
     pre = Block.from_registry(to_register) if isinstance(to_register, str) else to_register
 
-    module.register_forward_pre_hook(ModulePreHook(pre), prepend=prepend, with_kwargs=with_kwargs)
+    hook = ModulePreHookKwargs(pre) if with_kwargs else ModulePreHook(pre)
+    module.register_forward_pre_hook(hook, prepend=prepend, with_kwargs=False)
 
     return pre
 
