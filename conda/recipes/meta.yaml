@@ -19,7 +19,6 @@ build:
   noarch: python
   script: python -m pip install . -vvv
 
-
 requirements:
   build:
     - python
@@ -29,8 +28,6 @@ requirements:
     {% for req in setup_py_data.get('install_requires', []) %}
     - {{ req }}
     {% endfor %}
-    - tensorflow
-    - nvtabular
 
 about:
   home: https://github.com/NVIDIA-Merlin/models
