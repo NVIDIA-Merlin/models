@@ -1,229 +1,11 @@
+import inspect
 import re
-import uuid
-from inspect import getfullargspec
 from typing import Dict, List, Sequence, Tuple, Type, TypeVar, Union
 
 import torch
 import torch.nn as nn
 
 from merlin.models.utils.misc_utils import filter_kwargs
-
-
-@torch.jit.script
-def to_tuple(x):
-    if not torch.jit.isinstance(x, Tuple[torch.Tensor]):
-        return (x,)
-
-    return x
-
-
-def _extract_types(module: nn.Module) -> Tuple[str, str]:
-    compiled = torch.jit.script(module)
-
-    # Compile regular expression patterns to match the input and output
-    # type annotations in a function signature
-    input_pattern = re.compile(
-        r"def .+?\(.*?self,\s*?[a-zA-Z_][a-zA-Z0-9_]*:\s+((?:[a-zA-Z_][a-zA-Z0-9_]*)(?:\[[^\]]*\])?)"  # noqa: E501
-    )
-    output_pattern = re.compile(r"->\s+((?:[a-zA-Z_][a-zA-Z0-9_]*)(?:\[.*\])?)")
-
-    # Search for input type annotation
-    input_match = input_pattern.search(compiled.code)
-    if input_match:
-        input_type = input_match.group(1)
-    else:
-        input_type = "Any"
-
-    # Search for output type annotation
-    output_match = output_pattern.search(compiled.code)
-    if output_match:
-        output_type = output_match.group(1)
-    else:
-        output_type = "Any"
-
-    return input_type, output_type
-
-
-def ModulePreHook(module: nn.Module):
-    inp_type, out_type = _extract_types(module)
-
-    def _hook_t_to_t(
-        parent,
-        inputs: Tuple[torch.Tensor],
-    ) -> torch.Tensor:
-        return module(*inputs)
-
-    def _hook_dict_to_t(
-        parent,
-        inputs: Tuple[Dict[str, torch.Tensor]],
-    ) -> torch.Tensor:
-        return module(*inputs)
-
-    def _hook_t_to_tuple(
-        parent,
-        inputs: Tuple[torch.Tensor],
-    ) -> Tuple[torch.Tensor]:
-        return module(*inputs)
-
-    def _hook_dict_to_tuple(
-        parent,
-        inputs: Tuple[Dict[str, torch.Tensor]],
-    ) -> Tuple[torch.Tensor]:
-        return module(*inputs)
-
-    def _hook_t_to_dict(
-        parent,
-        inputs: Tuple[torch.Tensor],
-    ) -> Dict[str, torch.Tensor]:
-        return module(*inputs)
-
-    def _hook_dict_to_dict(
-        parent,
-        inputs: Tuple[Dict[str, torch.Tensor]],
-    ) -> Dict[str, torch.Tensor]:
-        return module(*inputs)
-
-    if inp_type == "Tensor" and out_type == "Tensor":
-        hook = _hook_t_to_t
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Tensor":
-        hook = _hook_dict_to_t
-    elif inp_type == "Tensor" and out_type == "Tuple[Tensor]":
-        hook = _hook_t_to_tuple
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Tuple[Tensor]":
-        hook = _hook_dict_to_tuple
-    elif inp_type == "Tensor" and out_type == "Dict[str, Tensor]":
-        hook = _hook_t_to_dict
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Dict[str, Tensor]":
-        hook = _hook_dict_to_dict
-    else:
-        raise RuntimeError(
-            f"Unsupported input and output types for module: {module._get_name()} "
-            f"got input type: {inp_type} and output type: {out_type}. "
-            "Supported input types are: torch.Tensor, Dict[str, torch.Tensor]. "
-            "Please annotate the return type of the forward function of the module."
-        )
-
-    return hook
-
-
-def ModulePreHookKwargs(module: nn.Module):
-    inp_type, out_type = _extract_types(module)
-
-    def _hook_t_to_t(
-        self,
-        inputs: Tuple[torch.Tensor],
-    ) -> torch.Tensor:
-        out = module(inputs[0][0])
-        return out
-
-    def _hook_dict_to_t(
-        self,
-        inputs: Tuple[Dict[str, torch.Tensor]],
-    ) -> torch.Tensor:
-        return module(*inputs)
-
-    def _hook_t_to_tuple(
-        self,
-        inputs: Tuple[torch.Tensor],
-    ) -> Tuple[torch.Tensor]:
-        return module(*inputs)
-
-    def _hook_dict_to_tuple(
-        self,
-        inputs: Tuple[Dict[str, torch.Tensor]],
-    ) -> Tuple[torch.Tensor]:
-        return module(*inputs)
-
-    def _hook_t_to_dict(
-        self,
-        inputs: Tuple[torch.Tensor],
-    ) -> Dict[str, torch.Tensor]:
-        return module(*inputs)
-
-    def _hook_dict_to_dict(
-        self,
-        inputs: Tuple[Dict[str, torch.Tensor]],
-    ) -> Dict[str, torch.Tensor]:
-        return module(*inputs)
-
-    if inp_type == "Tensor" and out_type == "Tensor":
-        hook = _hook_t_to_t
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Tensor":
-        hook = _hook_dict_to_t
-    elif inp_type == "Tensor" and out_type == "Tuple[Tensor]":
-        hook = _hook_t_to_tuple
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Tuple[Tensor]":
-        hook = _hook_dict_to_tuple
-    elif inp_type == "Tensor" and out_type == "Dict[str, Tensor]":
-        hook = _hook_t_to_dict
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Dict[str, Tensor]":
-        hook = _hook_dict_to_dict
-    else:
-        raise RuntimeError(
-            f"Unsupported input and output types for module: {module._get_name()} "
-            f"got input type: {inp_type} and output type: {out_type}. "
-            "Supported input types are: torch.Tensor, Dict[str, torch.Tensor]. "
-            "Please annotate the return type of the forward function of the module."
-        )
-
-    return hook
-
-
-def ModulePostHook(module: nn.Module):
-    inp_type, out_type = _extract_types(module)
-
-    def _hook_t_to_t(parent, inputs: Tuple[torch.Tensor], outputs) -> torch.Tensor:
-        return module(outputs)
-
-    def _hook_dict_to_t(parent, inputs: Tuple[Dict[str, torch.Tensor]], outputs) -> torch.Tensor:
-        return module(outputs)
-
-    def _hook_t_to_tuple(parent, inputs: Tuple[torch.Tensor], outputs) -> Tuple[torch.Tensor]:
-        return module(outputs)
-
-    def _hook_dict_to_tuple(
-        parent, inputs: Tuple[Dict[str, torch.Tensor]], outputs
-    ) -> Tuple[torch.Tensor]:
-        return module(outputs)
-
-    def _hook_t_to_dict(parent, inputs: Tuple[torch.Tensor], outputs) -> Dict[str, torch.Tensor]:
-        return module(outputs)
-
-    def _hook_dict_to_dict(
-        parent, inputs: Tuple[Dict[str, torch.Tensor]], outputs
-    ) -> Dict[str, torch.Tensor]:
-        return module(outputs)
-
-    def _hook_dict_to_union(
-        parent, inputs: Tuple[Dict[str, torch.Tensor]], outputs
-    ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
-        return module(outputs)
-
-    if inp_type == "Tensor" and out_type == "Tensor":
-        hook = _hook_t_to_t
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Tensor":
-        hook = _hook_dict_to_t
-    elif inp_type == "Tensor" and out_type == "Tuple[Tensor]":
-        hook = _hook_t_to_tuple
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Tuple[Tensor]":
-        hook = _hook_dict_to_tuple
-    elif inp_type == "Tensor" and out_type == "Dict[str, Tensor]":
-        hook = _hook_t_to_dict
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Dict[str, Tensor]":
-        hook = _hook_dict_to_dict
-    elif inp_type == "Dict[str, Tensor]" and out_type == "Union[Tensor, Dict[str, Tensor]]":
-        hook = _hook_dict_to_union
-    else:
-        raise RuntimeError(
-            f"Unsupported input and output types for module: {module._get_name()} "
-            f"got input type: {inp_type} and output type: {out_type}. "
-            "Supported input types are: torch.Tensor, Dict[str, torch.Tensor]. "
-            "Please annotate the return type of the forward function of the module."
-        )
-
-    hook.__name__ = "_".join([module._get_name(), uuid.uuid4().hex[10:]])
-
-    return hook
 
 
 def has_custom_call(module: nn.Module) -> bool:
@@ -334,7 +116,102 @@ def module_name(module: nn.Module, snakecase=True) -> str:
     return cls_name
 
 
-def module_test(module, input_data, **kwargs):
+def has_batch_arg(module: nn.Module) -> bool:
+    if isinstance(module, torch.jit.ScriptModule):
+        # Retrieve the schema of the forward method in the TorchScript module
+        forward_schema = module.schema("forward")
+        forward_signature = forward_schema.signature()
+        num_args = len(forward_signature.arguments)
+        has_batch_arg = any(arg.name == "batch" for arg in forward_signature.arguments)
+    else:
+        forward_signature = inspect.signature(module.forward)
+        num_args = len(forward_signature.parameters)
+        has_batch_arg = "batch" in forward_signature.parameters
+
+    if has_batch_arg and num_args > 1:
+        return True
+
+    return False
+
+
+def is_tabular(module: torch.nn.Module) -> bool:
+    # Get the forward method of the input module
+    forward_method = module.forward
+
+    # Get the signature of the forward method
+    forward_signature = inspect.signature(forward_method)
+
+    # Get the first argument of the forward method
+    first_arg = list(forward_signature.parameters.values())[0]
+
+    # Check if the annotation exists for the first argument
+    if first_arg.annotation != inspect.Parameter.empty:
+        # Check if the annotation is a dict of tensors
+        if first_arg.annotation == Dict[str, torch.Tensor]:
+            return True
+
+    return False
+
+
+def check_batch_arg(module: nn.Module) -> Tuple[bool, bool]:
+    accepts_batch = False
+    requires_batch = False
+
+    if isinstance(module, torch.jit.ScriptModule):
+        # Retrieve the schema of the forward method in the TorchScript module
+        forward_schema = module.schema("forward")
+        forward_signature = forward_schema.signature()
+        num_args = len(forward_signature.arguments)
+        accepts_batch = any(arg.name == "batch" for arg in forward_signature.arguments)
+
+        if accepts_batch:
+            batch_arg = next(arg for arg in forward_signature.arguments if arg.name == "batch")
+            requires_batch = batch_arg.type.isSubtypeOf(
+                torch.jit.annotations.ann_to_type(TabularBatch)
+            )
+    else:
+        forward_signature = inspect.signature(module.forward)
+        num_args = len(forward_signature.parameters)
+        accepts_batch = "batch" in forward_signature.parameters
+
+        if accepts_batch:
+            batch_arg = forward_signature.parameters["batch"]
+            requires_batch = batch_arg.default is not None
+
+    if accepts_batch and num_args > 1:
+        return accepts_batch, requires_batch
+
+    return False, False
+
+
+def torchscript_io_types(module: nn.Module) -> Tuple[str, str]:
+    compiled = torch.jit.script(module)
+
+    # Compile regular expression patterns to match the input and output
+    # type annotations in a function signature
+    input_pattern = re.compile(
+        r"def .+?\(.*?self,\s*?[a-zA-Z_][a-zA-Z0-9_]*:\s+((?:[a-zA-Z_][a-zA-Z0-9_]*)(?:\[[^\]]*\])?)"  # noqa: E501
+    )
+    output_pattern = re.compile(r"->\s+((?:[a-zA-Z_][a-zA-Z0-9_]*)(?:\[.*\])?)")
+
+    # Search for input type annotation
+    input_match = input_pattern.search(compiled.code)
+    if input_match:
+        input_type = input_match.group(1)
+    else:
+        input_type = "Any"
+
+    # Search for output type annotation
+    output_match = output_pattern.search(compiled.code)
+    if output_match:
+        output_type = output_match.group(1)
+    else:
+        output_type = "Any"
+
+    return input_type, output_type
+
+
+def module_test(module, input_data, method="script", **kwargs):
     from merlin.models.torch.testing import TabularBatch
 
     # Check if the module can be called with the provided inputs
@@ -345,7 +222,12 @@ def module_test(module, input_data, **kwargs):
 
     # Check if the module can be scripted
     try:
-        scripted_module = torch.jit.script(module)
+        if method == "script":
+            scripted_module = torch.jit.script(module)
+        elif method == "trace":
+            scripted_module = torch.jit.trace(module, input_data, strict=True)
+        else:
+            raise ValueError(f"Unknown method: {method}")
     except RuntimeError as e:
         raise RuntimeError(f"Failed to script the module: {e}")
 

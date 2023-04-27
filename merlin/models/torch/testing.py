@@ -5,7 +5,10 @@ import torch
 from torch import nn
 
 from merlin.models.torch.utils import padding_utils
+from merlin.models.utils.registry import Registry
 from merlin.schema import ColumnSchema, Schema
+
+registry: Registry = Registry.class_registry("test")
 
 
 def has_batch_arg(module: nn.Module) -> bool:
@@ -274,6 +277,15 @@ class BlockMixin:
             return self.post(inputs, batch=batch)
 
         return inputs
+
+    @classmethod
+    def from_registry(cls, name):
+        if isinstance(name, str):
+            if name not in registry:
+                raise ValueError(f"Block {name} not found in registry")
+            return registry.parse(name)
+
+        raise ValueError(f"Block {name} is not a string")
 
 
 class TabularBlockMixin(BlockMixin):

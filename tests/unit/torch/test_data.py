@@ -2,58 +2,69 @@ import torch
 from torch import nn
 
 from merlin.models.torch.blocks.mlp import MLPBlock
-from merlin.models.torch.data import DataPropagationModule, register_target_hook
-from merlin.models.torch.models.base import Model
+from merlin.models.torch.data import TabularBatch, TabularSequence
 from merlin.models.torch.utils import module_utils
 
 
-class TargetConsumer(nn.Module):
-    def __init__(self):
-        super().__init__()
-        register_target_hook(self)
-
-    def forward(self, inputs, targets=None):
-        return targets
-
-
-class TargetTransformation(nn.Module):
-    def __init__(self):
-        super().__init__()
-        register_target_hook(self)
-
-    def forward(self, inputs, targets=None):
-        if isinstance(targets, dict):
-            for key in targets:
-                targets[key] = targets[key] * 2
-        else:
-            targets = targets * 2
-
-        return inputs, targets
-
-
-class TestTargetPropagation:
-    def test_target_receiving(self):
-        model = Model(TargetConsumer(), nn.Identity())
-        targets = torch.rand(5, 1)
-        # outputs = model(torch.rand(5, 10), targets=targets)
-        outputs = module_utils.module_test(model, torch.rand(5, 10), targets=targets)
-
-        assert torch.allclose(outputs, targets)
-
-    def test_target_transformation(self):
-        model = Model(TargetTransformation(), TargetConsumer())
-
-        target = torch.rand(5, 1)
-        targets = {"target": target.clone()}
-        outputs = model(torch.rand(5, 10), targets=targets)
-
-        assert torch.allclose(target * 2, outputs["target"])
-
-
-class TestDataPropagationModule:
+class TestTabularSequence:
     def test_basic(self):
-        module = DataPropagationModule(nn.Sequential(MLPBlock([10]), TargetConsumer()))
+        lengths = {"feature1": torch.tensor([4, 5]), "feature2": torch.tensor([3, 7])}
+        masks = {
+            "feature1": torch.tensor([[1, 0], [1, 1]]),
+            "feature2": torch.tensor([[1, 1], [1, 0]]),
+        }
 
-        compiled = torch.jit.script(module)
+        tab_seq = TabularSequence(lengths, masks)
 
-        assert compiled is not None
+        assert len(tab_seq.lengths) == 2
+        assert len(tab_seq.masks) == 2
+
+        assert torch.equal(tab_seq.lengths["feature1"], lengths["feature1"])
+        assert torch.equal(tab_seq.lengths["feature2"], lengths["feature2"])
+
+        assert torch.equal(tab_seq.masks["feature1"], masks["feature1"])
+        assert torch.equal(tab_seq.masks["feature2"], masks["feature2"])
+
+        assert "feature1" in tab_seq
+        assert "feature2" in tab_seq
+        assert "feature3" not in tab_seq
+
+
+class TestTabularBatch:
+    def test_basic(self):
+        features = {"feature1": torch.tensor([1, 2]), "feature2": torch.tensor([3, 4])}
+        targets = {"target1": torch.tensor([0, 1])}
+
+        lengths = {"feature1": torch.tensor([4, 5]), "feature2": torch.tensor([3, 7])}
+        masks = {
+            "feature1": torch.tensor([[1, 0], [1, 1]]),
+            "feature2": torch.tensor([[1, 1], [1, 0]]),
+        }
+        sequences = TabularSequence(lengths, masks)
+
+        tab_batch = TabularBatch(features, targets, sequences)
+
+        assert len(tab_batch.features) == 2
+        assert len(tab_batch.targets) == 1
+        assert tab_batch.sequences is not None
+
+        assert torch.equal(tab_batch.features["feature1"], features["feature1"])
+        assert torch.equal(tab_batch.features["feature2"], features["feature2"])
+
+        assert torch.equal(tab_batch.targets["target1"], targets["target1"])
+
+        new_features = {"feature1": torch.tensor([5, 6]), "feature2": torch.tensor([7, 8])}
+        new_targets = {"target1": torch.tensor([1, 0])}
+
+        new_tab_batch = tab_batch.replace(features=new_features, targets=new_targets)
+
+        assert torch.equal(new_tab_batch.features["feature1"], new_features["feature1"])
+        assert torch.equal(new_tab_batch.features["feature2"], new_features["feature2"])
+
+        assert torch.equal(new_tab_batch.targets["target1"], new_targets["target1"])
+
+        assert new_tab_batch.sequences is not None
+        assert bool(new_tab_batch)
+
+        empty_tab_batch = TabularBatch({}, {})
+        assert not bool(empty_tab_batch)

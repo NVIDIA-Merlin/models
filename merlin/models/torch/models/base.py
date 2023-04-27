@@ -7,12 +7,11 @@ from torch import nn
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
-from merlin.models.torch.base import register_post_hook, register_pre_hook
+
+# from merlin.models.torch.base import register_post_hook, register_pre_hook
 from merlin.models.torch.combinators import ParallelBlock
-from merlin.models.torch.data import (
+from merlin.models.torch.data import (  # needs_data_propagation_hook,; register_data_propagation_hook,
     initialize,
-    needs_data_propagation_hook,
-    register_data_propagation_hook,
 )
 from merlin.models.torch.inputs.encoder import Encoder
 from merlin.models.torch.outputs.base import ModelOutput
@@ -38,10 +37,7 @@ class Model(pl.LightningModule):
 
         self.pre = register_pre_hook(self, pre) if pre else None
         self.post = register_post_hook(self, post) if post else None
-        self.data_propagation_hook = None
         self.testing = False
-        if needs_data_propagation_hook(self):
-            self.data_propagation_hook = register_data_propagation_hook(self)
 
     def forward(self, inputs):
         return module_utils.apply(self.blocks, inputs)

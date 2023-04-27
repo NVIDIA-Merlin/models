@@ -1,17 +1,24 @@
 from copy import deepcopy
 from functools import reduce
-from typing import Dict, Iterator, List, Optional, Tuple, Union
+from typing import Dict, Final, Iterator, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
 
-from merlin.models.torch.base import TabularBlock, register_post_hook, register_pre_hook
+from merlin.models.torch.base import (
+    TabularBlockMixin,
+    _AggModuleWrapper,
+    _ModuleWrapper,
+    _TabularModuleWrapper,
+)
+from merlin.models.torch.data import TabularBatch
 from merlin.models.torch.transforms.aggregation import SumResidual
+from merlin.models.torch.utils import module_utils
 from merlin.schema import Schema, Tags
 
 
-class ParallelBlock(TabularBlock):
+class ParallelBlock(nn.Module, TabularBlockMixin):
     """
     A block that processes inputs in parallel through multiple layers and returns their outputs.
 
@@ -23,16 +30,22 @@ class ParallelBlock(TabularBlock):
         Preprocessing function to apply on inputs before processing.
     post : Callable, optional
         Postprocessing function to apply on outputs after processing.
-    aggregation : Callable, optional
+    agg : Callable, optional
         Aggregation function to apply on outputs.
     """
 
     _modules: Dict[str, nn.Module]  # type: ignore[assignment]
+    accepts_dict: Final[bool]
 
     def __init__(
-        self, *inputs: Union[nn.Module, Dict[str, nn.Module]], pre=None, post=None, aggregation=None
+        self,
+        *inputs: Union[nn.Module, Dict[str, nn.Module]],
+        pre: Optional[nn.Module] = None,
+        post: Optional[nn.Module] = None,
+        agg: Optional[nn.Module] = None,
+        strict: bool = True,
     ):
-        super().__init__(pre, post, aggregation)
+        super().__init__()
 
         if isinstance(inputs, tuple) and len(inputs) == 1 and isinstance(inputs[0], (list, tuple)):
             inputs = inputs[0]
@@ -47,6 +60,19 @@ class ParallelBlock(TabularBlock):
         else:
             raise ValueError(f"Invalid input. Got: {inputs}")
 
+        if not strict:
+            self.accepts_dict = False
+        else:
+            # TODO: Handle with pre
+            self.accepts_dict = _parallel_check_strict(_parallel_dict, pre=pre, post=post)
+
+        if pre:
+            self.pre = _TabularModuleWrapper(pre) if self.accepts_dict else _ModuleWrapper(pre)
+        else:
+            self.pre = None
+        self.post = _TabularModuleWrapper(post) if post else None
+        self.agg = _AggModuleWrapper(agg) if agg else None
+
         # # self.parallel_dict = torch.ModuleDict(_parallel_dict)
         # for key, val in _parallel_dict.items():
         #     self.add_module(str(key), val)
@@ -58,7 +84,11 @@ class ParallelBlock(TabularBlock):
                 lambda a, b: a + b, [m.schema for m in _parallel_dict.values()]
             )  # type: ignore
 
-    def forward(self, inputs, features=None, targets=None) -> Dict[str, torch.Tensor]:
+    def forward(
+        self,
+        inputs: Union[torch.Tensor, Dict[str, torch.Tensor]],
+        batch: Optional[TabularBatch] = None,
+    ):
         """
         Process inputs through the parallel layers.
 
@@ -74,19 +104,57 @@ class ParallelBlock(TabularBlock):
         outputs : dict
             Dictionary containing the outputs of the parallel layers.
         """
+        if not self.accepts_dict:
+            if not torch.jit.isinstance(inputs, torch.Tensor):
+                raise RuntimeError("Expected a tensor, but got a dictionary instead.")
+            x: torch.Tensor = inputs if isinstance(inputs, torch.Tensor) else inputs["x"]
+
+            x = self.block_prepare_tensor(x, batch=batch)
+
+            outputs = {}
+
+            for name, module in self.branches.items():
+                module_inputs = x  # TODO: Add filtering when adding schema
+                out = module(module_inputs)
+
+                if isinstance(out, torch.Tensor):
+                    out = {name: out}
+                elif isinstance(out, tuple):
+                    out = {name: out}
+
+                outputs.update(out)
+
+            if torch.jit.isinstance(outputs, TabularBatch):
+                outputs = self.block_finalize_batch(outputs, batch=batch)
+            else:
+                outputs = self.block_finalize(outputs, batch=batch)
+
+            return outputs
+
+        if not torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
+            raise RuntimeError("Expected a dictionary, but got a tensor instead.")
+        x: Dict[str, torch.Tensor] = inputs
+
+        x = self.block_prepare(x, batch=batch)
+
         outputs = {}
 
         for name, module in self.branches.items():
-            module_inputs = inputs  # TODO: Add filtering when adding schema
-            # out = apply(module, module_inputs, features=features, targets=targets)
-            out = module(module_inputs)  # TODO: Fix features + targets
+            module_inputs = x  # TODO: Add filtering when adding schema
+            out = module(module_inputs)
 
             if isinstance(out, torch.Tensor):
                 out = {name: out}
             elif isinstance(out, tuple):
                 out = {name: out}
 
+            # TODO: Throw RuntimeError if we overwrite a key
             outputs.update(out)
+
+        if torch.jit.isinstance(outputs, TabularBatch):
+            outputs = self.block_finalize_batch(outputs, batch=batch)
+        else:
+            outputs = self.block_finalize(outputs, batch=batch)
 
         return outputs
 
@@ -338,8 +406,8 @@ class SequentialBlock(nn.Sequential):
 
     def __init__(self, *args, pre=None, post=None):
         super().__init__(*args)
-        self.pre = register_pre_hook(self, pre) if pre else None
-        self.post = register_post_hook(self, post) if post else None
+        # self.pre = register_pre_hook(self, pre) if pre else None
+        # self.post = register_post_hook(self, post) if post else None
 
     def append_with_shortcut(
         self,
@@ -503,3 +571,52 @@ class SequentialBlock(nn.Sequential):
             repeated["shortcut"] = nn.Identity()
 
         return ParallelBlock(repeated, post=post, aggregation=aggregation, **kwargs)
+
+
+def _parallel_check_strict(
+    parallel: Dict[str, nn.Module],
+    pre: Optional[nn.Module] = None,
+    post: Optional[nn.Module] = None,
+) -> bool:
+    pre_input_type, pre_output_type = None, None
+
+    if pre:
+        pre_input_type, pre_output_type = module_utils.torchscript_io_types(pre)
+
+    parallel_input_types = {}
+    parallel_output_types = {}
+
+    for name, module in parallel.items():
+        input_type, output_type = module_utils.torchscript_io_types(module)
+        parallel_input_types[name] = input_type
+        parallel_output_types[name] = output_type
+
+        if pre and pre_output_type != input_type:
+            raise ValueError(
+                f"Input type mismatch between pre module and parallel module {name}: {pre_output_type} != {input_type}. "
+                "If the input argument in forward is not annotated, TorchScript assumes it's of type Tensor. "
+                "Consider annotating one of the provided modules."
+            )
+
+    first_parallel_input_type = next(iter(parallel_input_types.values()))
+    if not all(i_type == first_parallel_input_type for i_type in parallel_input_types.values()):
+        raise ValueError(
+            f"Input type mismatch among parallel modules: {parallel_input_types}. "
+            "If the input argument in forward is not annotated, TorchScript assumes it's of type Tensor. "
+            "Consider annotating one of the provided modules."
+        )
+
+    if post:
+        parallel_out = f"Dict[str, {first_parallel_input_type}]"
+        post_input_type, _ = module_utils.torchscript_io_types(post)
+
+        if parallel_out != post_input_type:
+            raise ValueError(
+                f"Output type mismatch between parallel modules and post module: {parallel_output_types} != {post_input_type}. "
+                "If the input argument in forward is not annotated, TorchScript assumes it's of type Tensor. "
+                "Consider annotating one of the provided modules."
+            )
+
+    inp_type = pre_input_type if pre else first_parallel_input_type
+
+    return inp_type == "Dict[str, Tensor]"

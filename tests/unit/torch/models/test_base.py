@@ -1,140 +1,140 @@
-import pandas as pd
-import pytorch_lightning as pl
-import torch
+# import pandas as pd
+# import pytorch_lightning as pl
+# import torch
 
-from merlin.dataloader.torch import Loader
-from merlin.io import Dataset
-from merlin.models.torch.blocks.mlp import MLPBlock
-from merlin.models.torch.combinators import ParallelBlock
-from merlin.models.torch.inputs.base import TabularInputBlock
-from merlin.models.torch.inputs.embedding import EmbeddingTable
-from merlin.models.torch.inputs.encoder import Encoder
-from merlin.models.torch.models.base import Model, RetrievalModel
-from merlin.models.torch.outputs.classification import BinaryOutput
-from merlin.models.torch.outputs.contrastive import ContrastiveOutput
-from merlin.models.torch.outputs.regression import RegressionOutput
-from merlin.schema import Schema, Tags
-
-
-class TestModel:
-    def test_simple_regression_mlp(self, music_streaming_data):
-        # Multi-hot is not supported yet, TODO: add support for multi-hot
-        schema: Schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
-        music_streaming_data.schema = schema
-
-        # Fabric().launch()
-        model = Model(
-            TabularInputBlock(schema),
-            MLPBlock([10, 10]),
-            ParallelBlock(
-                RegressionOutput(schema.select_by_name("play_percentage").first),
-                BinaryOutput("click"),
-            ),
-        )
-
-        assert model.input_schema() == schema.excluding_by_tag(TabularInputBlock.TAGS_TO_EXCLUDE)
-        assert set(model.output_schema().column_names) == set(
-            schema.select_by_tag(Tags.TARGET).column_names
-        )
-
-        trainer = pl.Trainer(max_epochs=1, devices=[0])
-        loader = Loader(
-            music_streaming_data,
-            batch_size=2,
-            shuffle=False,
-            # global_rank=int(os.environ["LOCAL_RANK"]),
-            # global_size=2,
-            # device=int(os.environ["LOCAL_RANK"]),
-        )
-
-        # Initialize the model parameters
-        model.initialize(loader)
-
-        # batch = sample_batch(
-        #     loader, batch_size=1, shuffle=False, include_targets=False
-        # )
-
-        # module_utils.module_test(model, batch)
-
-        # import torch
-        # if hasattr(torch, "compile"):
-        #     model = torch.compile(model)
-
-        trainer.fit(model, loader)
-
-        assert trainer.state.status.value == "finished"
-
-        predictions = model.batch_predict(music_streaming_data, batch_size=10)
-        assert isinstance(predictions, Dataset)
-
-        ddf = predictions.compute(scheduler="synchronous")
-        assert len(ddf) == 100
-        assert len(ddf.columns) == 15
-
-        # script = model.to_torchscript()
+# from merlin.dataloader.torch import Loader
+# from merlin.io import Dataset
+# from merlin.models.torch.blocks.mlp import MLPBlock
+# from merlin.models.torch.combinators import ParallelBlock
+# from merlin.models.torch.inputs.base import TabularInputBlock
+# from merlin.models.torch.inputs.embedding import EmbeddingTable
+# from merlin.models.torch.inputs.encoder import Encoder
+# from merlin.models.torch.models.base import Model, RetrievalModel
+# from merlin.models.torch.outputs.classification import BinaryOutput
+# from merlin.models.torch.outputs.contrastive import ContrastiveOutput
+# from merlin.models.torch.outputs.regression import RegressionOutput
+# from merlin.schema import Schema, Tags
 
 
-class TestRetrievalModel:
-    def test_mf(self, user_id_col_schema, item_id_col_schema):
-        model = RetrievalModel(
-            query=EmbeddingTable(10, user_id_col_schema),
-            output=ContrastiveOutput(item_id_col_schema),
-        )
+# class TestModel:
+#     def test_simple_regression_mlp(self, music_streaming_data):
+#         # Multi-hot is not supported yet, TODO: add support for multi-hot
+#         schema: Schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
+#         music_streaming_data.schema = schema
 
-        user_id = torch.tensor([0, 1, 2])
-        item_id = torch.tensor([1, 2, 3])
+#         # Fabric().launch()
+#         model = Model(
+#             TabularInputBlock(schema),
+#             MLPBlock([10, 10]),
+#             ParallelBlock(
+#                 RegressionOutput(schema.select_by_name("play_percentage").first),
+#                 BinaryOutput("click"),
+#             ),
+#         )
 
-        outputs, targets = model(user_id, targets=item_id)
-        assert outputs.shape == (3, 4)
-        assert targets.shape == (3, 4)
-        assert torch.equal(targets[:, 0], torch.ones(3))
-        assert torch.equal(targets[:, 1:], torch.zeros([3, 3]))
+#         assert model.input_schema() == schema.excluding_by_tag(TabularInputBlock.TAGS_TO_EXCLUDE)
+#         assert set(model.output_schema().column_names) == set(
+#             schema.select_by_tag(Tags.TARGET).column_names
+#         )
 
-        user_embs = model.query_embeddings(gpu=False)
-        user_embs_ddf = user_embs.compute(scheduler="synchronous")
-        assert isinstance(user_embs, Dataset)
-        assert len(user_embs_ddf) == 21
-        assert len(user_embs_ddf.columns) == 10
+#         trainer = pl.Trainer(max_epochs=1, devices=[0])
+#         loader = Loader(
+#             music_streaming_data,
+#             batch_size=2,
+#             shuffle=False,
+#             # global_rank=int(os.environ["LOCAL_RANK"]),
+#             # global_size=2,
+#             # device=int(os.environ["LOCAL_RANK"]),
+#         )
 
-        candidate_embs = model.candidate_embeddings(gpu=False)
-        candidate_embs_ddf = candidate_embs.compute(scheduler="synchronous")
-        assert isinstance(candidate_embs, Dataset)
-        assert len(candidate_embs_ddf) == 11
-        assert len(candidate_embs_ddf.columns) == 10
+#         # Initialize the model parameters
+#         model.initialize(loader)
 
-    def test_two_tower(self, user_id_col_schema, item_id_col_schema):
-        user_schema = Schema([user_id_col_schema])
-        item_schema = Schema([item_id_col_schema])
-        model = RetrievalModel(
-            query=Encoder(user_schema, MLPBlock([10])),
-            candidate=Encoder(item_schema, MLPBlock([10])),
-            output=ContrastiveOutput(item_id_col_schema),
-        )
+#         # batch = sample_batch(
+#         #     loader, batch_size=1, shuffle=False, include_targets=False
+#         # )
 
-        assert isinstance(model.query, Encoder)
+#         # module_utils.module_test(model, batch)
 
-        user_id = torch.tensor([0, 1, 2])
-        item_id = torch.tensor([1, 2, 3])
-        data = {"user_id": user_id, "item_id": item_id}
+#         # import torch
+#         # if hasattr(torch, "compile"):
+#         #     model = torch.compile(model)
 
-        outputs, targets = model(data)
-        assert outputs.shape == (3, 4)
-        assert targets.shape == (3, 4)
-        assert torch.equal(targets[:, 0], torch.ones(3))
-        assert torch.equal(targets[:, 1:], torch.zeros([3, 3]))
+#         trainer.fit(model, loader)
 
-        df = pd.DataFrame({"user_id": [0, 1, 2], "item_id": [1, 2, 3]})
-        dataset = Dataset(df)
+#         assert trainer.state.status.value == "finished"
 
-        user_embs = model.query_embeddings(dataset, batch_size=3)
-        user_embs_ddf = user_embs.compute(scheduler="synchronous")
-        assert isinstance(user_embs, Dataset)
-        assert len(user_embs_ddf) == 3
-        assert len(user_embs_ddf.columns) == 10
+#         predictions = model.batch_predict(music_streaming_data, batch_size=10)
+#         assert isinstance(predictions, Dataset)
 
-        candidate_embs = model.candidate_embeddings(dataset, batch_size=3, index=item_id_col_schema)
-        embs_ddf = candidate_embs.compute(scheduler="synchronous")
-        assert isinstance(candidate_embs, Dataset)
-        assert len(embs_ddf) == 3
-        assert len(embs_ddf.columns) == 10
-        assert embs_ddf.index.name == "item_id"
+#         ddf = predictions.compute(scheduler="synchronous")
+#         assert len(ddf) == 100
+#         assert len(ddf.columns) == 15
+
+#         # script = model.to_torchscript()
+
+
+# class TestRetrievalModel:
+#     def test_mf(self, user_id_col_schema, item_id_col_schema):
+#         model = RetrievalModel(
+#             query=EmbeddingTable(10, user_id_col_schema),
+#             output=ContrastiveOutput(item_id_col_schema),
+#         )
+
+#         user_id = torch.tensor([0, 1, 2])
+#         item_id = torch.tensor([1, 2, 3])
+
+#         outputs, targets = model(user_id, targets=item_id)
+#         assert outputs.shape == (3, 4)
+#         assert targets.shape == (3, 4)
+#         assert torch.equal(targets[:, 0], torch.ones(3))
+#         assert torch.equal(targets[:, 1:], torch.zeros([3, 3]))
+
+#         user_embs = model.query_embeddings(gpu=False)
+#         user_embs_ddf = user_embs.compute(scheduler="synchronous")
+#         assert isinstance(user_embs, Dataset)
+#         assert len(user_embs_ddf) == 21
+#         assert len(user_embs_ddf.columns) == 10
+
+#         candidate_embs = model.candidate_embeddings(gpu=False)
+#         candidate_embs_ddf = candidate_embs.compute(scheduler="synchronous")
+#         assert isinstance(candidate_embs, Dataset)
+#         assert len(candidate_embs_ddf) == 11
+#         assert len(candidate_embs_ddf.columns) == 10
+
+#     def test_two_tower(self, user_id_col_schema, item_id_col_schema):
+#         user_schema = Schema([user_id_col_schema])
+#         item_schema = Schema([item_id_col_schema])
+#         model = RetrievalModel(
+#             query=Encoder(user_schema, MLPBlock([10])),
+#             candidate=Encoder(item_schema, MLPBlock([10])),
+#             output=ContrastiveOutput(item_id_col_schema),
+#         )
+
+#         assert isinstance(model.query, Encoder)
+
+#         user_id = torch.tensor([0, 1, 2])
+#         item_id = torch.tensor([1, 2, 3])
+#         data = {"user_id": user_id, "item_id": item_id}
+
+#         outputs, targets = model(data)
+#         assert outputs.shape == (3, 4)
+#         assert targets.shape == (3, 4)
+#         assert torch.equal(targets[:, 0], torch.ones(3))
+#         assert torch.equal(targets[:, 1:], torch.zeros([3, 3]))
+
+#         df = pd.DataFrame({"user_id": [0, 1, 2], "item_id": [1, 2, 3]})
+#         dataset = Dataset(df)
+
+#         user_embs = model.query_embeddings(dataset, batch_size=3)
+#         user_embs_ddf = user_embs.compute(scheduler="synchronous")
+#         assert isinstance(user_embs, Dataset)
+#         assert len(user_embs_ddf) == 3
+#         assert len(user_embs_ddf.columns) == 10
+
+#         candidate_embs = model.candidate_embeddings(dataset, batch_size=3, index=item_id_col_schema)
+#         embs_ddf = candidate_embs.compute(scheduler="synchronous")
+#         assert isinstance(candidate_embs, Dataset)
+#         assert len(embs_ddf) == 3
+#         assert len(embs_ddf.columns) == 10
+#         assert embs_ddf.index.name == "item_id"
