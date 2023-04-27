@@ -3,10 +3,10 @@ import shutil
 import pytest
 from testbook import testbook
 
-from merlin.systems.triton.utils import run_triton_server
 from tests.conftest import REPO_ROOT
 
 pytest.importorskip("transformers")
+utils = pytest.importorskip("merlin.systems.triton.utils")
 
 TRITON_SERVER_PATH = shutil.which("tritonserver")
 
@@ -18,9 +18,9 @@ TRITON_SERVER_PATH = shutil.which("tritonserver")
     execute=False,
 )
 @pytest.mark.notebook
-def test_next_item_prediction(tb):
+def test_next_item_prediction(tb, tmpdir):
     tb.inject(
-        """
+        f"""
         import os, random
         from datetime import datetime, timedelta
         from merlin.datasets.synthetic import generate_data
@@ -33,16 +33,27 @@ def test_next_item_prediction(tb):
             return date
         df['checkin'] = [generate_date() for _ in range(df.shape[0])]
         df['checkout'] = [generate_date() for _ in range(df.shape[0])]
-        df.to_csv('/tmp/train_set.csv')
+        df.to_csv('{tmpdir}/train_set.csv')
         """
     )
     tb.cells[4].source = tb.cells[4].source.replace("get_booking('/workspace/data')", "")
     tb.cells[4].source = tb.cells[4].source.replace(
-        "read_csv('/workspace/data/train_set.csv'", "read_csv('/tmp/train_set.csv'"
+        "read_csv('/workspace/data/train_set.csv'", f"read_csv('{tmpdir}/train_set.csv'"
     )
     tb.cells[31].source = tb.cells[31].source.replace("epochs=5", "epochs=1")
-    tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", "/tmp/ensemble")
+    tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", f"{tmpdir}/ensemble")
     tb.execute_cell(list(range(0, 38)))
 
-    with run_triton_server("/tmp/ensemble", grpc_port=8001):
+    with utils.run_triton_server(f"{tmpdir}/ensemble", grpc_port=8001):
         tb.execute_cell(list(range(38, len(tb.cells))))
+
+    tb.inject(
+        """
+        logits_count = predictions.shape[1]
+        """
+    )
+    tb.execute_cell(len(tb.cells) - 1)
+
+    cardinality = tb.ref("cardinality")
+    logits_count = tb.ref("logits_count")
+    assert logits_count == cardinality
