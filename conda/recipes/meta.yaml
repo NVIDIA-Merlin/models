@@ -1,12 +1,10 @@
-# Copyright (c) 2021, NVIDIA CORPORATION.
+# Copyright (c) 2023, NVIDIA CORPORATION.
 
 # Usage:
 #   conda build . -c defaults -c conda-forge -c numba -c rapidsai
 
 {% set version = environ.get('GIT_DESCRIBE_TAG', '0.1').lstrip('v') + environ.get('VERSION_SUFFIX', '') %}
-{% set minor_version = version.split('.')[0] + '.' + version.split('.')[1] %}
 {% set git_revision_count=environ.get('GIT_DESCRIBE_NUMBER', 0) %}
-{% set py_version=environ.get('CONDA_PY', 36) %}
 {% set setup_py_data = load_setup_py_data() %}
 
 package:
@@ -18,15 +16,19 @@ source:
 
 build:
   number: {{ git_revision_count }}
+  noarch: python
   script: python -m pip install . -vvv
 
 
 requirements:
-  run:
-  {% for req in setup_py_data.get('install_requires', []) %}
-    - {{ req }}
-  {% endfor %}
+  build:
     - python
+    - setuptools
+  run:
+    - python
+    {% for req in setup_py_data.get('install_requires', []) %}
+    - {{ req }}
+    {% endfor %}
     - tensorflow
     - nvtabular
 
