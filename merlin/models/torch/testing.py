@@ -241,6 +241,28 @@ class BlockMixin:
 
         return inputs
 
+    def block_prepare_dict(
+        self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None
+    ):
+        if self.pre is not None:
+            return self.pre(inputs, batch=batch)
+
+        return inputs
+
+    def block_prepare_tuple(
+        self, inputs: Tuple[torch.Tensor], batch: Optional[TabularBatch] = None
+    ):
+        if self.pre is not None:
+            return self.pre(inputs, batch=batch)
+
+        return inputs
+
+    def block_prepare_batch(self, inputs: TabularBatch, batch: Optional[TabularBatch] = None):
+        if self.pre is not None:
+            return self.pre(inputs, batch=batch)
+
+        return inputs
+
     def block_finalize(self, inputs, batch: Optional[TabularBatch] = None):
         if self.post is not None:
             return self.post(inputs, batch=batch)
@@ -254,7 +276,7 @@ class BlockMixin:
         return inputs
 
 
-class TabularBlockMixin:
+class TabularBlockMixin(BlockMixin):
     def register_block_hooks(
         self,
         pre: Optional[nn.Module] = None,
@@ -266,10 +288,7 @@ class TabularBlockMixin:
         self.agg = _AggModuleWrapper(agg) if agg else None
 
     def block_prepare(self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None):
-        if self.pre is not None:
-            return self.pre(inputs, batch=batch)
-
-        return inputs
+        return self.block_prepare_dict(inputs, batch=batch)
 
     def block_finalize(self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None):
         if self.agg is not None:
@@ -313,15 +332,20 @@ class Block(nn.Module, BlockMixin):
             self.output_schema = module.output_schema
 
     def forward(self, inputs, batch: Optional[TabularBatch] = None):
-        inputs = self.block_prepare(inputs, batch=batch)
-        outputs = self.module(inputs, batch=batch)
+        _batch: TabularBatch = TabularBatch({}) if batch is None else batch
+
+        inputs = self.block_prepare(inputs, batch=_batch)
+        outputs = self.forward_module(inputs, batch=_batch)
 
         if torch.jit.isinstance(outputs, TabularBatch):
-            outputs = self.block_finalize_batch(outputs, batch=batch)
+            outputs = self.block_finalize_batch(outputs, batch=_batch)
         else:
-            outputs = self.block_finalize(outputs, batch=batch)
+            outputs = self.block_finalize(outputs, batch=_batch)
 
         return outputs
+
+    def forward_module(self, inputs, batch: Optional[TabularBatch] = None):
+        return self.module(inputs, batch=batch)
 
     def _get_name(self) -> str:
         if hasattr(self.module, "_get_name"):
@@ -333,6 +357,26 @@ class Block(nn.Module, BlockMixin):
             return module_name
 
         return super()._get_name()
+
+
+class BinaryOutput(Block):
+    def __init__(self, pre: Optional[nn.Module] = None, post: Optional[nn.Module] = None):
+        module = nn.Sequential(nn.LazyLinear(1), nn.Sigmoid())
+
+        super().__init__(module, pre=pre, post=post)
+        self.register_buffer("target", torch.zeros(1, dtype=torch.float32))
+
+    def forward_module(self, inputs, batch: Optional[TabularBatch] = None):
+        if self.training and batch is not None and "target" in batch.targets:
+            self.target = batch.targets["target"]
+
+        return self.module(inputs, batch=batch)
+
+    def eval(self):
+        # Reset target
+        self.target = torch.zeros(1, dtype=torch.float32)
+
+        return self.train(False)
 
 
 class TabularBlock(nn.Module, TabularBlockMixin):
@@ -379,10 +423,9 @@ class Model(nn.Module, TabularBlockMixin):
         *,
         pre: Optional[nn.Module] = None,
         post: Optional[nn.Module] = None,
-        agg: Optional[nn.Module] = None,
     ):
         super().__init__()
-        self.register_block_hooks(pre=pre, post=post, agg=agg)
+        self.register_block_hooks(pre=pre, post=post)
         self.module = _TabularModuleWrapper(module)
 
         if hasattr(module, "input_schema"):
@@ -393,7 +436,7 @@ class Model(nn.Module, TabularBlockMixin):
     def forward(self, inputs: Dict[str, torch.Tensor], batch: Optional[TabularBatch] = None):
         _batch: TabularBatch = TabularBatch({}) if batch is None else batch
 
-        prepared = self.block_prepare(inputs, batch=batch)
+        prepared = self.block_prepare(inputs, batch=_batch)
         if torch.jit.isinstance(prepared, TabularBatch):
             _batch = prepared
             inputs = prepared.features

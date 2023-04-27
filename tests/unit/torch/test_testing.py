@@ -5,6 +5,7 @@ from torch import nn
 
 from merlin.models.torch.data import sample_batch
 from merlin.models.torch.testing import (
+    BinaryOutput,
     Block,
     Model,
     TabularBatch,
@@ -105,6 +106,22 @@ class TestBlockMixin:
 
         for val in output.features.values():
             assert torch.allclose(val, input_tensor * 2)
+
+
+class TestBinaryOutput:
+    def test_binary_output(self):
+        inputs = torch.randn(10, 5)
+        model_out = BinaryOutput()
+
+        batch = TabularBatch(features={"a": inputs}, targets={"target": torch.ones(10, 1)})
+
+        outputs = model_out(inputs, batch=batch)
+        assert torch.allclose(model_out.target, batch.targets["target"])
+        assert outputs.shape == (10, 1)
+
+        outputs = module_utils.module_test(model_out, inputs, batch=batch)
+
+        a = 5
 
 
 class TestModel:
