@@ -97,7 +97,6 @@ jobs:
   release-conda:
     name: Release Conda
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
     needs: [build-conda]
     steps:
       - uses: actions/setup-python@v2
