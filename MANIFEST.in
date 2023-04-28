@@ -1,4 +1,4 @@
-
+include Makefile
 
 include *.md
 include *.yaml
@@ -9,7 +9,10 @@ recursive-exclude docs *
 recursive-exclude docs *.ipynb
 exclude docs/source/_images
 
+recursive-include conda *.yaml
+
 recursive-include requirements *.txt
+recursive-include requirements *.yml
 
 recursive-exclude tests *.coveragerc
 recursive-include tests *.parquet
