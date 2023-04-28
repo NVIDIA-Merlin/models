@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from merlin.models.torch.blocks.mlp import MLPBlock
-from merlin.models.torch.data import TabularBatch, TabularSequence
+from merlin.models.torch.data import Batch, Sequence
 from merlin.models.torch.utils import module_utils
 
 
@@ -14,7 +14,7 @@ class TestTabularSequence:
             "feature2": torch.tensor([[1, 1], [1, 0]]),
         }
 
-        tab_seq = TabularSequence(lengths, masks)
+        tab_seq = Sequence(lengths, masks)
 
         assert len(tab_seq.lengths) == 2
         assert len(tab_seq.masks) == 2
@@ -40,9 +40,9 @@ class TestTabularBatch:
             "feature1": torch.tensor([[1, 0], [1, 1]]),
             "feature2": torch.tensor([[1, 1], [1, 0]]),
         }
-        sequences = TabularSequence(lengths, masks)
+        sequences = Sequence(lengths, masks)
 
-        tab_batch = TabularBatch(features, targets, sequences)
+        tab_batch = Batch(features, targets, sequences)
 
         assert len(tab_batch.features) == 2
         assert len(tab_batch.targets) == 1
@@ -66,5 +66,5 @@ class TestTabularBatch:
         assert new_tab_batch.sequences is not None
         assert bool(new_tab_batch)
 
-        empty_tab_batch = TabularBatch({}, {})
+        empty_tab_batch = Batch({}, {})
         assert not bool(empty_tab_batch)

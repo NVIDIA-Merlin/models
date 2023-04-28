@@ -72,6 +72,14 @@ class TestParallelBlock:
         for i, layer in enumerate(layers):
             assert torch.allclose(out["a" + str(i + 1)], layer(x)["a" + str(i + 1)])
 
+    def test_branch_list_dict_same_keys(self):
+        layers = [TabularMultiply(1), TabularMultiply(2)]
+        parallel_block = ParallelBlock(*layers)
+        x = {"a": torch.randn(4, 2)}
+
+        with pytest.raises(RuntimeError):
+            parallel_block(x)
+
     def test_branch_dict(self):
         layers_dict = {"linear": nn.Linear(2, 3), "relu": nn.ReLU(), "linear2": nn.Linear(2, 1)}
         parallel_block = ParallelBlock(layers_dict)

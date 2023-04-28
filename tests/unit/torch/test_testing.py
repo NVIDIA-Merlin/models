@@ -8,10 +8,10 @@ from merlin.models.torch.testing import (
     BinaryOutput,
     Block,
     Model,
+    Sequence,
     TabularBatch,
     TabularBlock,
     TabularPadding,
-    TabularSequence,
 )
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Tags
@@ -149,4 +149,4 @@ def test_padding(sequence_testing_data):
     # out = padding(TabularBatch(features, targets))
 
     assert isinstance(out, TabularBatch)
-    assert isinstance(out.sequences, TabularSequence)
+    assert isinstance(out.sequences, Sequence)

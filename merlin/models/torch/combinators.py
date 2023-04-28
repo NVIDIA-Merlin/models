@@ -12,7 +12,7 @@ from merlin.models.torch.base import (
     _ModuleWrapper,
     _TabularModuleWrapper,
 )
-from merlin.models.torch.data import TabularBatch
+from merlin.models.torch.data import Batch
 from merlin.models.torch.transforms.aggregation import SumResidual
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Schema, Tags
@@ -72,11 +72,6 @@ class ParallelBlock(nn.Module, TabularBlockMixin):
             self.pre = None
         self.post = _TabularModuleWrapper(post) if post else None
         self.agg = _AggModuleWrapper(agg) if agg else None
-
-        # # self.parallel_dict = torch.ModuleDict(_parallel_dict)
-        # for key, val in _parallel_dict.items():
-        #     self.add_module(str(key), val)
-
         self.branches = nn.ModuleDict({str(i): m for i, m in _parallel_dict.items()})
 
         if all(hasattr(m, "schema") for m in _parallel_dict.values()):
@@ -87,7 +82,7 @@ class ParallelBlock(nn.Module, TabularBlockMixin):
     def forward(
         self,
         inputs: Union[torch.Tensor, Dict[str, torch.Tensor]],
-        batch: Optional[TabularBatch] = None,
+        batch: Optional[Batch] = None,
     ):
         """
         Process inputs through the parallel layers.
@@ -122,9 +117,15 @@ class ParallelBlock(nn.Module, TabularBlockMixin):
                 elif isinstance(out, tuple):
                     out = {name: out}
 
+                for key in out.keys():
+                    if key in outputs:
+                        raise RuntimeError(
+                            f"Duplicate keys found in outputs. "
+                            f"Got: {list(out.keys())} and {list(outputs.keys())}"
+                        )
                 outputs.update(out)
 
-            if torch.jit.isinstance(outputs, TabularBatch):
+            if torch.jit.isinstance(outputs, Batch):
                 outputs = self.block_finalize_batch(outputs, batch=batch)
             else:
                 outputs = self.block_finalize(outputs, batch=batch)
@@ -148,10 +149,15 @@ class ParallelBlock(nn.Module, TabularBlockMixin):
             elif isinstance(out, tuple):
                 out = {name: out}
 
-            # TODO: Throw RuntimeError if we overwrite a key
+            for key in out.keys():
+                if key in outputs:
+                    raise RuntimeError(
+                        f"Duplicate keys found in outputs. "
+                        f"Got: {list(out.keys())} and {list(outputs.keys())}"
+                    )
             outputs.update(out)
 
-        if torch.jit.isinstance(outputs, TabularBatch):
+        if torch.jit.isinstance(outputs, Batch):
             outputs = self.block_finalize_batch(outputs, batch=batch)
         else:
             outputs = self.block_finalize(outputs, batch=batch)

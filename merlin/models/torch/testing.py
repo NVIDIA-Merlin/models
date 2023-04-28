@@ -30,7 +30,7 @@ def has_batch_arg(module: nn.Module) -> bool:
 
 
 @torch.jit.script
-class TabularSequence:
+class Sequence:
     """
     A PyTorch scriptable class representing a sequence of tabular data.
 
@@ -84,7 +84,7 @@ class TabularBatch:
         self,
         features: Dict[str, torch.Tensor],
         targets: Optional[Dict[str, torch.Tensor]] = None,
-        sequences: Optional[TabularSequence] = None,
+        sequences: Optional[Sequence] = None,
     ):
         self.features: Dict[str, torch.Tensor] = features
         if targets is None:
@@ -92,13 +92,13 @@ class TabularBatch:
         else:
             _targets = targets
         self.targets: Dict[str, torch.Tensor] = _targets
-        self.sequences: Optional[TabularSequence] = sequences
+        self.sequences: Optional[Sequence] = sequences
 
     def replace(
         self,
         features: Optional[Dict[str, torch.Tensor]] = None,
         targets: Optional[Dict[str, torch.Tensor]] = None,
-        sequences: Optional[TabularSequence] = None,
+        sequences: Optional[Sequence] = None,
     ) -> "TabularBatch":
         return TabularBatch(
             features=features if features is not None else self.features,
@@ -506,4 +506,4 @@ class TabularPadding(nn.Module):
         for key, val in padded.items():
             outputs[key] = val
 
-        return TabularBatch(outputs, batch.targets, sequences=TabularSequence(lengths))
+        return TabularBatch(outputs, batch.targets, sequences=Sequence(lengths))

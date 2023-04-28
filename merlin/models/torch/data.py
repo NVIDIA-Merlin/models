@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import Dict, Final, Optional, Union
 
 import torch
 
@@ -78,7 +78,7 @@ def initialize(module, data: Loader):
 
 
 @torch.jit.script
-class TabularSequence:
+class Sequence:
     """
     A PyTorch scriptable class representing a sequence of tabular data.
 
@@ -96,21 +96,40 @@ class TabularSequence:
 
     def __init__(
         self,
-        lengths: Dict[str, torch.Tensor],
-        masks: Optional[Dict[str, torch.Tensor]] = None,
+        lengths: Union[torch.Tensor, Dict[str, torch.Tensor]],
+        masks: Optional[Union[torch.Tensor, Dict[str, torch.Tensor]]] = None,
     ):
-        self.lengths: Dict[str, torch.Tensor] = lengths
-        _masks = {}
-        if masks is not None:
+        if isinstance(lengths, torch.Tensor):
+            self.lengths = {"default": lengths}
+        else:
+            self.lengths: Dict[str, torch.Tensor] = lengths
+        if masks is None:
+            _masks = {}
+        elif isinstance(masks, torch.Tensor):
+            _masks = {"default": masks}
+        else:
             _masks = masks
         self.masks: Dict[str, torch.Tensor] = _masks
 
     def __contains__(self, name: str) -> bool:
         return name in self.lengths
 
+    def length(self, name: str = "default") -> torch.Tensor:
+        if name in self.lengths:
+            return self.lengths["default"]
+
+        raise ValueError("Batch has multiple lengths, please specify a feature name")
+
+    def mask(self, name: str = "default") -> torch.Tensor:
+        if name in self.masks:
+            return self.masks["default"]
+
+        raise ValueError("Batch has multiple masks, please specify a feature name")
+
 
 @torch.jit.script
-class TabularBatch:
+class Batch:
+
     """
     A PyTorch scriptable class representing a batch of tabular data.
 
@@ -130,29 +149,54 @@ class TabularBatch:
 
     def __init__(
         self,
-        features: Dict[str, torch.Tensor],
-        targets: Optional[Dict[str, torch.Tensor]] = None,
-        sequences: Optional[TabularSequence] = None,
+        features: Union[torch.Tensor, Dict[str, torch.Tensor]],
+        targets: Optional[Union[torch.Tensor, Dict[str, torch.Tensor]]] = None,
+        sequences: Optional[Sequence] = None,
     ):
-        self.features: Dict[str, torch.Tensor] = features
+        default_key = "default"
+
+        if features is None:
+            _features = {}
+        elif isinstance(features, torch.Tensor):
+            _features = {default_key: features}
+        else:
+            _features = features
+
+        self.features: Dict[str, torch.Tensor] = _features
+
+        if isinstance(targets, torch.Tensor):
+            targets = {default_key: targets}
+
         if targets is None:
             _targets = {}
         else:
             _targets = targets
         self.targets: Dict[str, torch.Tensor] = _targets
-        self.sequences: Optional[TabularSequence] = sequences
+        self.sequences: Optional[Sequence] = sequences
 
     def replace(
         self,
         features: Optional[Dict[str, torch.Tensor]] = None,
         targets: Optional[Dict[str, torch.Tensor]] = None,
-        sequences: Optional[TabularSequence] = None,
-    ) -> "TabularBatch":
-        return TabularBatch(
+        sequences: Optional[Sequence] = None,
+    ) -> "Batch":
+        return Batch(
             features=features if features is not None else self.features,
             targets=targets if targets is not None else self.targets,
             sequences=sequences if sequences is not None else self.sequences,
         )
+
+    def feature(self, name: str = "default") -> torch.Tensor:
+        if name in self.features:
+            return self.features["default"]
+
+        raise ValueError("Batch has multiple features, please specify a feature name")
+
+    def target(self, name: str = "default") -> torch.Tensor:
+        if name in self.targets:
+            return self.targets["default"]
+
+        raise ValueError("Batch has multiple target, please specify a target name")
 
     # def select(self, schema: Schema) -> "TabularBatch":
     #     _features = {}
