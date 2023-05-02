@@ -365,8 +365,19 @@ def main(args):
         train_metrics_steps=args.train_metrics_steps,
         pre=pre_fit,
     )
+
+    info_logger.info("Starting to evlaluate the model on train data")
+    train_metrics = model.evaluate(
+        train_ds,
+        batch_size=args.eval_batch_size,
+        return_dict=True,
+        callbacks=callbacks,
+        pre=pre_eval,
+    )
+    train_metrics = {"train_" + k: v for k, v in train_metrics.items()}
+
     # start evaluation
-    info_logger.info("Starting to evlaluate the model")
+    info_logger.info("Starting to evlaluate the model on eval data")
     eval_metrics = model.evaluate(
         eval_ds,
         batch_size=args.eval_batch_size,
@@ -410,6 +421,7 @@ def main(args):
         )
 
     log_final_metrics(logger, eval_metrics)
+    log_final_metrics(logger, train_metrics)
 
 
 if __name__ == "__main__":

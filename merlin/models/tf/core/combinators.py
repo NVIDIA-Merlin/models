@@ -837,6 +837,8 @@ def call_sequentially(layers, inputs, **kwargs):
 
     outputs = inputs
     for layer in layers:
+        if isinstance(layer, tf.keras.layers.LSTM):
+            kwargs.pop("mask", None)
         outputs = call_layer(layer, outputs, **kwargs)
 
     return outputs
