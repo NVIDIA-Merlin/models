@@ -92,6 +92,13 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.unit)
         if "/tf/" in path:
             item.add_marker(pytest.mark.tensorflow)
+            if any(
+                [
+                    segment in path
+                    for segment in ["/inputs/", "/outputs/", "/models/", "/transformers/"]
+                ]
+            ):
+                item.add_marker(pytest.mark.model)
         if "/examples/" in path:
             item.add_marker(pytest.mark.example)
         if "/torch/" in path:
