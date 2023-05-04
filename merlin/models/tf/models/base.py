@@ -282,16 +282,6 @@ class ModelBlock(Block, tf.keras.Model):
     def get_config(self):
         return {"block": tf.keras.utils.serialize_keras_object(self.block)}
 
-    def _set_save_spec(self, inputs, args=None, kwargs=None):
-        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
-        super()._set_save_spec(inputs, args, kwargs)
-
-        if version.parse(tf.__version__) < version.parse("2.9.0"):
-            # Keras will interpret kwargs like `features` & `targets` as
-            # required args, which is wrong. This is a workaround.
-            _arg_spec = self._saved_model_arg_spec
-            self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
-
 
 class BaseModel(tf.keras.Model):
     def __init__(self, **kwargs):
@@ -1944,16 +1934,6 @@ class Model(BaseModel):
         config["batch_size"] = self._batch_size
 
         return config
-
-    def _set_save_spec(self, inputs, args=None, kwargs=None):
-        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
-        super()._set_save_spec(inputs, args, kwargs)
-
-        if version.parse(tf.__version__) < version.parse("2.9.0"):
-            # Keras will interpret kwargs like `features` & `targets` as
-            # required args, which is wrong. This is a workaround.
-            _arg_spec = self._saved_model_arg_spec
-            self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
 
     @property
     def frozen_blocks(self):
