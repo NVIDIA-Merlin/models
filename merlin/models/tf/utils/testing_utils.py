@@ -169,8 +169,11 @@ def numeric_test(actual, expected):
 
 
 # This function is copied from keras/testing_infra/test_utils.py
-# We need it here because this was not publicly exposed prior to 2.9.0
-# and our CI tests multiple versions of tensorflow/keras
+# We need it here because the EmbeddingTable signature requires us to pass some args
+# as positional instead of keyword arguments
+# If we change the signature of EmbeddingTable,
+# or if keras adds support for passing args as well as kwargs
+# we may be able to remove this in future and replace with the keras version
 @disable_cudnn_autotune
 def layer_test(
     layer_cls,
