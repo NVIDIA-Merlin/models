@@ -19,7 +19,6 @@ from typing import Dict, Optional, Union
 
 import numpy as np
 import tensorflow as tf
-from packaging import version
 
 import merlin.io
 from merlin.models.io import save_merlin_metadata
@@ -213,16 +212,6 @@ class Encoder(tf.keras.Model):
             "This block is not meant to be trained by itself. ",
             "It can only be trained as part of a model.",
         )
-
-    def _set_save_spec(self, inputs, args=None, kwargs=None):
-        super()._set_save_spec(inputs, args, kwargs)
-
-        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
-        if version.parse(tf.__version__) < version.parse("2.9.0"):
-            # Keras will interpret kwargs like `features` & `targets` as
-            # required args, which is wrong. This is a workaround.
-            _arg_spec = self._saved_model_arg_spec
-            self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
 
     def save(
         self,
