@@ -32,11 +32,39 @@ class L2Norm(TabularBlock):
 
     def call(self, inputs: Union[tf.Tensor, TabularData], axis: int = -1, **kwargs):
         if isinstance(inputs, dict):
-            inputs = {key: tf.linalg.l2_normalize(inp, axis=axis) for key, inp in inputs.items()}
+            inputs = {key: self._l2_norm(inp, axis=axis) for key, inp in inputs.items()}
         else:
-            inputs = tf.linalg.l2_normalize(inputs, axis=axis)
+            inputs = self._l2_norm(inputs)
 
         return inputs
+
+    def _l2_norm(
+        self,
+        inputs: Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor],
+        epsilon: float = 1e-12,
+        axis: int = -1,
+    ) -> Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]:
+        """Computes L2-norm for a given axis, typically axis = -1.
+        Equivalent to tf.linalg.l2_normalize(), but that function
+        does not support tf.RaggedTensor
+
+        Parameters
+        ----------
+        inputs : Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
+            A dense or sparse/ragged tensor
+        epsilon : float, optional
+            A small value to add to the sum(vector**2) to avoid div by 0, by default 1e-12
+        axis : int, optional
+            The axis on which to normalize, by default -1
+
+        Returns
+        -------
+        Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
+            The L2 normalized tensor
+        """
+        return inputs / tf.math.sqrt(
+            tf.math.maximum(tf.reduce_sum(tf.pow(inputs, 2), axis=axis, keepdims=True), epsilon)
+        )
 
     def compute_output_shape(self, input_shape):
         return input_shape

@@ -197,7 +197,9 @@ class PrepareListFeatures(TabularBlock):
                         else:
                             raise ValueError(f"Feature '{name}' was not found in the inputs")
 
-                    if len(val.shape) == 2:
+                    if len(val.shape) == 2 and Tags.EMBEDDING not in self.schema[name].tags:
+                        # Only expands 2D sequential features  if
+                        # they are not pre-trained embeeddings
                         val = tf.expand_dims(val, axis=-1)
 
                     if self.list_as_dense:
@@ -244,7 +246,10 @@ class PrepareListFeatures(TabularBlock):
                         output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
 
                     else:
-                        if len(input_shapes[name]) == 2:
+                        if (
+                            len(input_shapes[name]) == 2
+                            and Tags.EMBEDDING not in self.schema[name].tags
+                        ):
                             output_shapes[name] = input_shapes[name] + (1,)
 
                 elif name in input_shapes:
@@ -316,7 +321,7 @@ class PrepareFeatures(TabularBlock):
                 if name in inputs:
                     val = inputs[name]
 
-                    if not self.schema[name].shape.is_list:
+                    if not self.schema[name].shape.is_list and val.get_shape().rank == 1:
                         # Expanding / setting last dim of non-list input features to be 2D
                         val = tf.reshape(val, (-1, 1))
 
@@ -325,7 +330,7 @@ class PrepareFeatures(TabularBlock):
                 if isinstance(targets, dict) and name in targets:
                     val = targets[name]
 
-                    if not self.schema[name].shape.is_list:
+                    if not self.schema[name].shape.is_list and val.get_shape().rank == 1:
                         # Expanding / setting last dim of non-list target features to be 2D
                         val = tf.reshape(val, (-1, 1))
 

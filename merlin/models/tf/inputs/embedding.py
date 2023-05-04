@@ -27,8 +27,8 @@ from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableCon
 import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
-from merlin.models.tf.blocks.mlp import InitializerType, RegularizerType
-from merlin.models.tf.core.base import Block, BlockType
+from merlin.models.tf.blocks.mlp import InitializerType, MLPBlock, RegularizerType
+from merlin.models.tf.core.base import Block, BlockType, NoOp, block_registry
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
@@ -423,11 +423,7 @@ class EmbeddingTable(EmbeddingTableBase):
             if inputs.shape.as_list()[-1] == 1:
                 inputs = tf.squeeze(inputs, axis=-1)
             out = call_layer(self.table, inputs, **kwargs)
-            if len(out.get_shape()) > 2 and self.sequence_combiner is not None:
-                if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
-                    out = call_layer(self.sequence_combiner, out, **kwargs)
-                elif isinstance(self.sequence_combiner, str):
-                    out = process_str_sequence_combiner(out, self.sequence_combiner, **kwargs)
+            out = process_sequence_combiner(out, self.sequence_combiner, **kwargs)
 
         if self.l2_batch_regularization_factor > 0:
             self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
@@ -623,6 +619,96 @@ def _get_dim(col, embedding_dims, infer_dim_fn):
         dim = infer_dim_fn(col)
 
     return dim
+
+
+def PretrainedEmbeddings(
+    schema: Schema,
+    output_dims: Optional[Union[Dict[str, int], int]] = None,
+    sequence_combiner: Optional[Union[CombinerType, Dict[str, CombinerType]]] = "mean",
+    normalizer: Union[str, tf.keras.layers.Layer] = None,
+    pre: Optional[BlockType] = None,
+    post: Optional[BlockType] = None,
+    aggregation: Optional[TabularAggregationType] = None,
+    block_name: str = "pretrained_embeddings",
+    **kwargs,
+) -> ParallelBlock:
+    """Creates a ParallelBlock with branch for each pre-trained embedding feature
+    in the schema.
+
+    Parameters
+    ----------
+    schema: Schema
+        Schema of the input data, with the pre-trained embeddings.
+        You typically will pass schema.select_by_tag(Tags.EMBEDDING), as that is the tag
+        added to pre-trained embedding features when using the
+        merlin.dataloader.ops.embeddings.EmbeddingOperator
+    output_dims: Optional[Union[Dict[str, int], int]], optional
+        If provided, it projects features to specified dim(s).
+        If an int, all features are projected to that dim.
+        If a dict, only features provided in the dict will be mapped to the specified dim,
+        for example {"feature_name": projection_dim, ...}. By default None
+    sequence_combiner: Optional[Union[str, tf.keras.layers.Layer]], optional
+       A string ("mean", "sum", "max") or Layer specifying
+       how to combine the second dimension of
+       the pre-trained embeddings if it is 3D.
+       Default is None (no sequence combiner used)
+    normalizer: Union[str, tf.keras.layers.Layer], optional
+       A Layer (e.g. mm.L2Norm()) or string ("l2-norm") to be applied
+       to pre-trained embeddings after projected and sequence combined
+       Default is None (no normalization)
+    pre: Optional[BlockType], optional
+        Transformation block to apply before the embeddings lookup, by default None
+    post: Optional[BlockType], optional
+        Transformation block to apply after the embeddings lookup, by default None
+    aggregation: Optional[TabularAggregationType], optional
+        Transformation block to apply for aggregating the inputs, by default None
+    block_name: str, optional
+        Name of the block, by default "embeddings"
+    Returns
+    -------
+    ParallelBlock
+        Returns a parallel block with a branch for each pre-trained embedding
+    """
+
+    tables = {}
+
+    for col in schema:
+        table_name = col.name
+
+        tables[table_name] = NoOp()
+
+        if output_dims:
+            new_dim = output_dims
+            if isinstance(output_dims, dict):
+                if table_name in output_dims:
+                    new_dim = (
+                        output_dims[table_name] if isinstance(output_dims, dict) else output_dims
+                    )
+                else:
+                    new_dim = None
+            if new_dim:
+                tables[table_name] = MLPBlock([new_dim], activation=None)
+
+        if sequence_combiner:
+            # TODO: Create a block for SequenceCombiner with compute_output_shape defined
+            combiner = tf.keras.layers.Lambda(
+                lambda x: process_sequence_combiner(x, sequence_combiner)
+            )
+            tables[table_name] = SequentialBlock([tables[table_name], combiner])
+
+        if normalizer:
+            normalizer = block_registry.parse(normalizer)
+            tables[table_name] = SequentialBlock([tables[table_name], normalizer])
+
+    return ParallelBlock(
+        tables,
+        pre=pre,
+        post=post,
+        aggregation=aggregation,
+        name=block_name,
+        schema=schema,
+        **kwargs,
+    )
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -1215,17 +1301,28 @@ def serialize_feature_config(feature_config: FeatureConfig) -> Dict[str, Any]:
     return outputs
 
 
+def process_sequence_combiner(self, inputs, combiner, **kwargs):
+    result = inputs
+    if len(input.get_shape()) > 2 and combiner:
+        if isinstance(combiner, tf.keras.layers.Layer):
+            result = call_layer(combiner, inputs, **kwargs)
+        elif isinstance(self.sequence_combiner, str):
+            result = process_str_sequence_combiner(inputs, combiner, **kwargs)
+
+    return result
+
+
 def process_str_sequence_combiner(
     inputs: Union[tf.Tensor, tf.RaggedTensor], combiner: str, **kwargs
 ) -> tf.Tensor:
-    """Process inputs with str sequence combiners ("mean" or "sum")
+    """Process inputs with str sequence combiners ("mean", "sum" or "max")
 
     Parameters
     ----------
     inputs : Union[tf.Tensor, tf.RaggedTensor]
         Input 3D tensor (batch size, seq length, embedding dim)
     combiner : str
-        The combiner: "mean" or "sum"
+        The combiner: "mean", "sum" or "max"
 
     Returns
     -------
@@ -1238,6 +1335,8 @@ def process_str_sequence_combiner(
         combiner = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1))
     elif combiner == "sum":
         combiner = tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=1))
+    elif combiner == "max":
+        combiner = tf.keras.layers.Lambda(lambda x: tf.reduce_max(x, axis=1))
     else:
         raise ValueError(
             "Only 'mean' and 'sum' str combiners is implemented for dense"

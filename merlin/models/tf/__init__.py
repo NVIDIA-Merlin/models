@@ -86,6 +86,7 @@ from merlin.models.tf.inputs.embedding import (
     Embeddings,
     EmbeddingTable,
     FeatureConfig,
+    PretrainedEmbeddings,
     SequenceEmbeddingFeatures,
     TableConfig,
 )
@@ -215,6 +216,7 @@ __all__ = [
     "EmbeddingTable",
     "AverageEmbeddingsByWeightFeature",
     "Embeddings",
+    "PretrainedEmbeddings",
     "FeatureConfig",
     "TableConfig",
     "ParallelPredictionBlock",
