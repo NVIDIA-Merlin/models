@@ -1,7 +1,5 @@
 # Test is currently breaks in TF 2.10
 import pytest
-import tensorflow as tf
-from packaging import version
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
@@ -15,10 +13,6 @@ p = "examples/usecases/incremental-training-with-layer-freezing.ipynb"
     execute=False,
 )
 @pytest.mark.notebook
-@pytest.mark.skipif(
-    version.parse(tf.__version__) < version.parse("2.9.0"),
-    reason="tf.keras.optimizers.legacy is not available in TF <= 2.8",
-)
 def test_usecase_incremental_training_layer_freezing(tb):
     tb.inject(
         """
