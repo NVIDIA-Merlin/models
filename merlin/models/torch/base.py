@@ -1,7 +1,8 @@
-from typing import Dict, Final, Optional, Tuple, Union
+from typing import Dict, Final, Iterator, Optional, Tuple, Union
 
 import torch
 from torch import nn
+from torch._jit_internal import _copy_to_script_wrapper
 
 from merlin.models.torch.container import Parallel, WithShortcut, _WrappedModuleList
 from merlin.models.torch.data import Batch
@@ -220,6 +221,22 @@ class Block(nn.Module, BlockMixin):
             return module_name
 
         return super()._get_name()
+    
+    # @property
+    @_copy_to_script_wrapper
+    def __len__(self) -> int:
+        return len(self.block.unwrap())
+
+    @_copy_to_script_wrapper
+    def __iter__(self) -> Iterator[nn.Module]:
+        return iter(self.block)
+
+    @_copy_to_script_wrapper
+    def __getitem__(self, key) -> nn.Module:
+        return self.block[key].unwrap()
+
+    def __bool__(self) -> bool:
+        return bool(self.block)
 
 
 class TabularIdentity(nn.Module):

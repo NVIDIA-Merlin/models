@@ -100,9 +100,11 @@ class Sequence:
         masks: Optional[Union[torch.Tensor, Dict[str, torch.Tensor]]] = None,
     ):
         if isinstance(lengths, torch.Tensor):
-            self.lengths = {"default": lengths}
+            _lengths = {"default": lengths}
         else:
-            self.lengths: Dict[str, torch.Tensor] = lengths
+            _lengths = lengths
+        self.lengths: Dict[str, torch.Tensor] = _lengths
+        
         if masks is None:
             _masks = {}
         elif isinstance(masks, torch.Tensor):

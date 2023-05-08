@@ -8,7 +8,8 @@ from typing_extensions import Self
 
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
-from merlin.models.torch.combinators import ParallelBlock
+# from merlin.models.torch.combinators import ParallelBlock
+from merlin.models.torch.base import ParallelBlock
 from merlin.models.torch.utils.tensor_utils import tensor_to_df
 from merlin.models.utils.schema_utils import infer_embedding_dim
 from merlin.schema import ColumnSchema, Schema
@@ -140,7 +141,7 @@ class EmbeddingTableModule(nn.Module):
 
         return EmbeddingTable(self.dim, self.schema.select_by_tag(tags))
 
-    @property
+    # @property
     def contains_multiple_domains(self) -> bool:
         """
         Check if the module contains multiple domains.
@@ -150,7 +151,7 @@ class EmbeddingTableModule(nn.Module):
         """
         return len(self.domains) > 1
 
-    @property
+    # @property
     def table_name(self) -> str:
         """Get the table name.
 
@@ -207,10 +208,10 @@ class EmbeddingTable(EmbeddingTableModule):
         else:
             self.table = nn.Embedding(self.num_embeddings, self.dim)
 
-        self.sequence_combiner = sequence_combiner
+        self.sequence_combiner: str = sequence_combiner if sequence_combiner else ""
 
     def forward(self, inputs):
-        if isinstance(inputs, dict):
+        if not isinstance(inputs, torch.Tensor):
             return self.forward_dict(inputs)
 
         if inputs.dim() > 2:
@@ -233,11 +234,11 @@ class EmbeddingTable(EmbeddingTableModule):
     def to_df(self, gpu=None) -> DataFrameType:
         return tensor_to_df(self.weight, gpu=gpu)
 
-    @property
+    # @property
     def weight(self):
         return self.table.weight
 
-    @property
+    # @property
     def input_schema(self) -> Schema:
         return self.schema
 
@@ -251,7 +252,7 @@ class Embeddings(ParallelBlock):
         table_cls: Type[nn.Module] = EmbeddingTable,
         pre=None,
         post=None,
-        aggregation=None,
+        agg=None,
     ):
         kwargs = {}
         tables = {}
@@ -268,9 +269,9 @@ class Embeddings(ParallelBlock):
                     **table_kwargs,
                 )
 
-        super().__init__(tables, pre=pre, post=post, aggregation=aggregation)
+        super().__init__(tables, pre=pre, post=post, agg=agg)
 
-    @property
+    # @property
     def input_schema(self) -> Schema:
         return self.schema
 

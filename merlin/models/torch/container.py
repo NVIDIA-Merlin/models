@@ -151,6 +151,9 @@ class Parallel(nn.Module):
     @_copy_to_script_wrapper
     def __getitem__(self, key) -> nn.Module:
         return self.branches[key]
+    
+    def __setitem__(self, key: str, module: nn.Module) -> None:
+        self.branches.add_module(key, module)
 
     def __bool__(self) -> bool:
         return bool(self.branches)
@@ -189,7 +192,9 @@ class _WrappedModuleList(nn.ModuleList):
 
     def _get_name(self):
         return "ModuleList"
-
+    
+    def unwrap(self) -> nn.ModuleList:
+        return nn.ModuleList([m.unwrap() for m in self])
 
 class _WrappedModuleDict(nn.ModuleDict):
     def add_module(self, name: str, module: Optional[nn.Module]):
@@ -200,6 +205,10 @@ class _WrappedModuleDict(nn.ModuleDict):
 
     def _get_name(self):
         return "ModuleDict"
+    
+    @_copy_to_script_wrapper
+    def __getitem__(self, key: str) -> nn.Module:
+        return self._modules[key].unwrap()
 
 
 class _WrappedTabularModuleDict(nn.ModuleDict):
