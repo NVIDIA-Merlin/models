@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import logging
 import os
 import time
 from dataclasses import dataclass
@@ -23,12 +22,12 @@ from typing import Any, Optional
 
 import numpy as np
 import tensorflow as tf
-import wandb
 from tensorflow.keras import regularizers
 from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
+from merlin.models.tf.logging.callbacks import ExamplesPerSecondCallback
 from merlin.models.tf.outputs.base import DotProduct
 from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
 from merlin.models.utils import schema_utils
@@ -505,120 +504,21 @@ def get_optimizer(
     return opt
 
 
-class ExamplesPerSecondCallback(tf.keras.callbacks.Callback):
-    """ExamplesPerSecond callback.
-    This callback records the average_examples_per_sec and
-    current_examples_per_sec during training.
-    """
-
-    def __init__(self, batch_size, every_n_steps=1, log_as_print=True, wandb_logger=None):
-        self.log_as_print = log_as_print
-        self.wandb_logger = wandb_logger
-        self._batch_size = batch_size
-        self._every_n_steps = every_n_steps
-        super(ExamplesPerSecondCallback, self).__init__()
-
-    def on_train_begin(self, logs=None):
-        self._first_batch = True
-        self._epoch_steps = 0
-        self._train_batches_average_examples_per_sec = []
-        # self._train_start_time = time.time()
-        # self._last_recorded_time = time.time()
-
-    def on_train_end(self, logs=None):
-        average_examples_per_sec = self.get_avg_examples_per_sec()
-        self._train_batches_average_examples_per_sec.append(average_examples_per_sec)
-
-    def get_train_batches_mean_of_avg_examples_per_sec(self):
-        if len(self._train_batches_average_examples_per_sec) > 0:
-            return np.mean(self._train_batches_average_examples_per_sec)
-        else:
-            return 0.0
-
-    def get_avg_examples_per_sec(self):
-        current_time = time.time()
-        average_examples_per_sec = self._batch_size * (
-            self._epoch_steps / (current_time - self._epoch_start_time)
-        )
-        return average_examples_per_sec
-
-    def on_train_batch_end(self, batch, logs=None):
-        # Discards the first batch, as it is used to compile the
-        # graph and affects the average
-        if self._first_batch:
-            self._epoch_steps = 0
-            self._first_batch = False
-            self._epoch_start_time = time.time()
-            self._last_recorded_time = time.time()
-            return
-
-        """Log the examples_per_sec metric every_n_steps."""
-        self._epoch_steps += 1
-        current_time = time.time()
-
-        if self._epoch_steps % self._every_n_steps == 0:
-            average_examples_per_sec = self.get_avg_examples_per_sec()
-            current_examples_per_sec = self._batch_size * (
-                self._every_n_steps / (current_time - self._last_recorded_time)
-            )
-
-            if self.log_as_print:
-                logging.info(
-                    f"[Examples/sec - Epoch step: {self._epoch_steps}] "
-                    f"current: {current_examples_per_sec:.2f}, avg: {average_examples_per_sec:.2f}"
-                )
-
-            self.wandb_logger.log(
-                {
-                    "current_examples_per_sec": current_examples_per_sec,
-                    "average_examples_per_sec": average_examples_per_sec,
-                }
-            )
-
-            self._last_recorded_time = current_time  # Update last_recorded_time
-
-
 def get_callbacks(train_batch_size=16, metrics_log_frequency=10, wandb_logger=None):
-    callbacks = [
-        ExamplesPerSecondCallback(
-            train_batch_size, every_n_steps=metrics_log_frequency, wandb_logger=wandb_logger
-        )
-    ]
+    callbacks = []
 
     if wandb_logger:
         wandb_callback = wandb_logger.get_callback(metrics_log_frequency=metrics_log_frequency)
         if wandb_callback:
             callbacks.append(wandb_callback)
 
+    callbacks.append(
+        ExamplesPerSecondCallback(
+            train_batch_size, every_n_steps=metrics_log_frequency, logger=wandb_logger
+        )
+    )
+
     return callbacks
-
-
-class WandbLogger:
-    def __init__(self, enabled, wandb_project="", config={}):
-        self.enabled = enabled
-        if self.enabled:
-            wandb.init(project=wandb_project, config=config)
-
-    def config(self, config={}):
-        if self.enabled:
-            wandb.config.update(config)
-
-    def log(self, metrics):
-        if self.enabled:
-            wandb.log(metrics)
-
-    def get_callback(self, metrics_log_frequency, save_model=False, save_graph=False):
-        callback = None
-        if self.enabled:
-            callback = wandb.keras.WandbCallback(
-                log_batch_frequency=metrics_log_frequency,
-                save_model=save_model,
-                save_graph=save_graph,
-            )
-        return callback
-
-    def teardown(self, exit_code=0):
-        wandb.finish(exit_code=exit_code)
 
 
 @dataclass
@@ -647,7 +547,9 @@ class RetrievalTrainEvalRunner:
 
         set_random_seed(self.random_seed)
 
-        self.wandb_logger.config(hparams)
+        if self.wandb_logger:
+            self.wandb_logger.config(hparams)
+            self.wandb_logger.init()
 
         # Marks W&B execution as failed by default
         exit_code = 1
@@ -708,12 +610,14 @@ class RetrievalTrainEvalRunner:
             final_metrics["avg_examples_per_sec"] = avg_examples_per_sec
 
             final_metrics = {f"{k}-final": v for k, v in final_metrics.items()}
-            self.wandb_logger.log(final_metrics)
+            if self.wandb_logger:
+                self.wandb_logger.log(final_metrics)
 
             # Marks W&B execution as successfully finished
             exit_code = 0
         finally:
-            self.wandb_logger.teardown(exit_code=exit_code)
+            if self.wandb_logger:
+                self.wandb_logger.teardown(exit_code=exit_code)
 
         return final_metrics
 
@@ -744,7 +648,8 @@ class RetrievalTrainEvalRunnerV2:
 
         set_random_seed(self.random_seed)
 
-        self.wandb_logger.config(hparams)
+        if self.wandb_logger:
+            self.wandb_logger.config(hparams)
 
         # Marks W&B execution as failed by default
         exit_code = 1
@@ -825,6 +730,7 @@ class RetrievalTrainEvalRunnerV2:
             # Marks W&B execution as successfully finished
             exit_code = 0
         finally:
-            self.wandb_logger.teardown(exit_code=exit_code)
+            if self.wandb_logger:
+                self.wandb_logger.teardown(exit_code=exit_code)
 
         return final_metrics
