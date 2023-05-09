@@ -58,6 +58,7 @@ from merlin.models.tf.core.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
     ElementwiseSumItemMulti,
+    SequenceAggregator,
     StackFeatures,
 )
 from merlin.models.tf.core.base import (
@@ -238,6 +239,7 @@ __all__ = [
     "Filter",
     "ParallelBlock",
     "StackFeatures",
+    "SequenceAggregator",
     "DotProductInteraction",
     "FMPairwiseInteraction",
     "FMBlock",

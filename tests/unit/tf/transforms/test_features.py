@@ -20,6 +20,7 @@ import tensorflow as tf
 from tensorflow.test import TestCase
 
 import merlin.models.tf as mm
+from merlin.dataloader.ops.embeddings import EmbeddingOperator
 from merlin.io import Dataset
 from merlin.models.tf.transforms.features import BroadcastToSequence, ContinuousPowers
 from merlin.models.tf.utils import testing_utils
@@ -1042,7 +1043,6 @@ def test_to_target_compute_output_schema():
 
 
 def test_loader_with_pretrained_embeddings_2d():
-    from merlin.dataloader.ops.embeddings import EmbeddingOperator
     from merlin.dtypes.shape import Shape
 
     MAX_CARDINALITY = 20
@@ -1104,14 +1104,13 @@ def test_loader_with_pretrained_embeddings_2d():
 
 
 def test_loader_with_pretrained_embeddings_seq_3d():
-    from merlin.dataloader.ops.embeddings import EmbeddingOperator
     from merlin.dtypes.shape import Dimension
     from merlin.schema import Tags
 
     MAX_CARDINALITY = 20
     schema = Schema(
         [
-            ColumnSchema("user_id", tags=[Tags.USER_ID, Tags.CATEGORICAL]),
+            ColumnSchema("user_id", tags=[Tags.USER_ID, Tags.CATEGORICAL], dims=(None,)),
             ColumnSchema(
                 "item_ids",
                 tags=[Tags.ITEM_ID, Tags.CATEGORICAL],
@@ -1176,8 +1175,6 @@ def test_loader_with_pretrained_embeddings_seq_3d():
 
 
 def get_loader_with_contextual_seq_pretrained_embeddings():
-    from merlin.dataloader.ops.embeddings import EmbeddingOperator
-
     MAX_CARDINALITY = 20
     schema = Schema(
         [
@@ -1186,6 +1183,15 @@ def get_loader_with_contextual_seq_pretrained_embeddings():
             ColumnSchema(
                 "user_id",
                 tags=[Tags.USER_ID],
+                dims=(None,),
+            ),
+            ColumnSchema(
+                "user_country",
+                dtype=np.int32,
+                tags=[Tags.USER, Tags.CATEGORICAL],
+                properties={
+                    "domain": {"name": "user_country", "min": 0, "max": MAX_CARDINALITY},
+                },
                 dims=(None,),
             ),
             ColumnSchema(
@@ -1217,8 +1223,20 @@ def get_loader_with_contextual_seq_pretrained_embeddings():
 
     input_df = pd.DataFrame(
         [
-            {"user_id": 1, "item_ids": [1, 2, 3], "item_categories": [3, 4, 5], "purchase": 1},
-            {"user_id": 2, "item_ids": [4, 5], "item_categories": [6, 7], "purchase": 0},
+            {
+                "user_id": 1,
+                "user_country": 10,
+                "item_ids": [1, 2, 3],
+                "item_categories": [3, 4, 5],
+                "purchase": 1,
+            },
+            {
+                "user_id": 2,
+                "user_country": 20,
+                "item_ids": [4, 5],
+                "item_categories": [6, 7],
+                "purchase": 0,
+            },
         ]
     )
     input_df = input_df[sorted(input_df.columns)]
@@ -1260,7 +1278,7 @@ def test_inputblock_with_pretrained_embeddings(broadcast_non_seq_features):
         seq_schema = schema.select_by_tag(Tags.SEQUENCE) + schema.select_by_name(
             "pretrained_item_id_embeddings"
         )
-        non_seq_schema = schema.select_by_name("pretrained_user_id_embeddings")
+        non_seq_schema = schema.select_by_name(["user_country", "pretrained_user_id_embeddings"])
         input_kwargs = {"post": mm.BroadcastToSequence(non_seq_schema, seq_schema)}
 
     input_block = mm.InputBlockV2(
@@ -1283,6 +1301,7 @@ def test_inputblock_with_pretrained_embeddings(broadcast_non_seq_features):
     input_batch = input_block(inputs)
     assert set(input_batch.keys()) == set(
         [
+            "user_country",
             "item_ids",
             "item_categories",
             "pretrained_item_id_embeddings",
@@ -1301,27 +1320,75 @@ def test_inputblock_with_pretrained_embeddings(broadcast_non_seq_features):
 
 @testing_utils.mark_run_eagerly_modes
 def test_model_with_pretrained_embeddings(run_eagerly: bool):
-    loader = get_loader_with_contextual_seq_pretrained_embeddings()
-    schema = loader.output_schema
-
-    seq_schema = schema.select_by_tag(Tags.SEQUENCE) + schema.select_by_name(
-        "pretrained_item_id_embeddings"
+    MAX_CARDINALITY = 20
+    schema = Schema(
+        [
+            # TODO: Check why dims / value_count cannot be None for scalar features
+            # otherwise EmbeddingOperator raises an error
+            ColumnSchema(
+                "user_id",
+                tags=[Tags.USER_ID],
+                dims=(None,),
+            ),
+            ColumnSchema(
+                "user_country",
+                dtype=np.int32,
+                tags=[Tags.USER, Tags.CATEGORICAL],
+                properties={
+                    "domain": {"name": "user_country", "min": 0, "max": MAX_CARDINALITY},
+                },
+                dims=(None,),
+            ),
+            ColumnSchema(
+                "purchase",
+                dtype=np.int32,
+                tags=[Tags.TARGET],
+                dims=(None,),
+            ),
+        ]
     )
-    non_seq_schema = schema.select_by_name("pretrained_user_id_embeddings")
+
+    input_df = pd.DataFrame(
+        [
+            {
+                "user_id": 1,
+                "user_country": 10,
+                "purchase": 1,
+            },
+            {
+                "user_id": 2,
+                "user_country": 20,
+                "purchase": 0,
+            },
+        ]
+    )
+    input_df = input_df[sorted(input_df.columns)]
+    dataset = Dataset(input_df, schema=schema)
+
+    np_emb_item_id = np.random.rand(MAX_CARDINALITY, 16)
+
+    loader = mm.Loader(
+        dataset,
+        batch_size=10,
+        transforms=[
+            EmbeddingOperator(
+                np_emb_item_id,
+                lookup_key="user_id",
+                embedding_name="pretrained_user_id_embeddings",
+            ),
+        ],
+    )
+
+    schema = loader.output_schema
 
     input_block = mm.InputBlockV2(
         schema,
-        embeddings=mm.Embeddings(
-            schema.select_by_tag(Tags.CATEGORICAL),
-            sequence_combiner=None,
-        ),
+        embeddings=mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL)),
         pretrained_embeddings=mm.PretrainedEmbeddings(
             schema.select_by_tag(Tags.EMBEDDING),
-            sequence_combiner="mean",
             normalizer="l2-norm",
-            output_dims={"pretrained_item_id_embeddings": 6},
+            output_dims={"pretrained_user_id_embeddings": 6},
         ),
-        post=mm.BroadcastToSequence(non_seq_schema, seq_schema),
     )
 
     model = mm.Model(
@@ -1335,10 +1402,9 @@ def test_model_with_pretrained_embeddings(run_eagerly: bool):
     assert set(history.history.keys()) == {
         "loss",
         "loss_batch",
-        "binary_output_loss",
-        "binary_output/precision",
-        "binary_output/recall",
-        "binary_output/binary_accuracy",
-        "binary_output/auc",
+        "precision",
+        "recall",
+        "binary_accuracy",
+        "auc",
         "regularization_loss",
     }

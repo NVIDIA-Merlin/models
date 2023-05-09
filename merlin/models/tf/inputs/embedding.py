@@ -28,6 +28,7 @@ import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
 from merlin.models.tf.blocks.mlp import InitializerType, MLPBlock, RegularizerType
+from merlin.models.tf.core.aggregation import SequenceAggregator
 from merlin.models.tf.core.base import Block, BlockType, NoOp, block_registry
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import (
@@ -648,7 +649,7 @@ def PretrainedEmbeddings(
         If a dict, only features provided in the dict will be mapped to the specified dim,
         for example {"feature_name": projection_dim, ...}. By default None
     sequence_combiner: Optional[Union[str, tf.keras.layers.Layer]], optional
-       A string ("mean", "sum", "max") or Layer specifying
+       A string ("mean", "sum", "max", "min") or Layer specifying
        how to combine the second dimension of
        the pre-trained embeddings if it is 3D.
        Default is None (no sequence combiner used)
@@ -690,11 +691,10 @@ def PretrainedEmbeddings(
                 tables[table_name] = MLPBlock([new_dim], activation=None)
 
         if sequence_combiner:
-            # TODO: Create a block for SequenceCombiner with compute_output_shape defined
-            combiner = tf.keras.layers.Lambda(
-                lambda x: process_sequence_combiner(x, sequence_combiner)
-            )
-            tables[table_name] = SequentialBlock([tables[table_name], combiner])
+            if isinstance(sequence_combiner, str):
+                sequence_combiner = SequenceAggregator(sequence_combiner)
+
+            tables[table_name] = SequentialBlock([tables[table_name], sequence_combiner])
 
         if normalizer:
             normalizer = block_registry.parse(normalizer)
@@ -1301,12 +1301,12 @@ def serialize_feature_config(feature_config: FeatureConfig) -> Dict[str, Any]:
     return outputs
 
 
-def process_sequence_combiner(self, inputs, combiner, **kwargs):
+def process_sequence_combiner(inputs, combiner, **kwargs):
     result = inputs
-    if len(input.get_shape()) > 2 and combiner:
+    if len(inputs.get_shape()) > 2 and combiner:
         if isinstance(combiner, tf.keras.layers.Layer):
             result = call_layer(combiner, inputs, **kwargs)
-        elif isinstance(self.sequence_combiner, str):
+        elif isinstance(combiner, str):
             result = process_str_sequence_combiner(inputs, combiner, **kwargs)
 
     return result
