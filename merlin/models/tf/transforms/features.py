@@ -192,13 +192,14 @@ class PrepareListFeatures(TabularBlock):
                             val = list_col_to_ragged(
                                 inputs[f"{name}__values"], inputs[f"{name}__offsets"]
                             )
+
                             del inputs[f"{name}__values"]
                             del inputs[f"{name}__offsets"]
                         else:
                             raise ValueError(f"Feature '{name}' was not found in the inputs")
 
                     if len(val.shape) == 2 and Tags.EMBEDDING not in self.schema[name].tags:
-                        # Only expands 2D sequential features  if
+                        # Only expands 2D sequential features if
                         # they are not pre-trained embeeddings
                         val = tf.expand_dims(val, axis=-1)
 
@@ -243,7 +244,10 @@ class PrepareListFeatures(TabularBlock):
                                 )
                             seq_length = int(col_schema_shape.dims[1].max)
 
-                        output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
+                        last_dim = 1
+                        if Tags.EMBEDDING in self.schema[name].tags:
+                            last_dim = col_schema_shape[-1].max
+                        output_shapes[name] = tf.TensorShape([batch_size, seq_length, last_dim])
 
                     else:
                         if (
@@ -358,6 +362,7 @@ class PrepareFeatures(TabularBlock):
             else:
                 out_targets = targets
             return (outputs, out_targets)
+
         return outputs
 
     def compute_output_shape(self, input_shapes):

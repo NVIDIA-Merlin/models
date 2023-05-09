@@ -1408,3 +1408,40 @@ def test_model_with_pretrained_embeddings(run_eagerly: bool):
         "auc",
         "regularization_loss",
     }
+
+
+@testing_utils.mark_run_eagerly_modes
+def test_model_with_pretrained_embeddings_seq_aggregation(run_eagerly: bool):
+    loader = get_loader_with_contextual_seq_pretrained_embeddings()
+    schema = loader.output_schema
+
+    input_block = mm.InputBlockV2(
+        schema,
+        embeddings=mm.Embeddings(
+            schema.select_by_tag(Tags.CATEGORICAL),
+            sequence_combiner="mean",
+        ),
+        pretrained_embeddings=mm.PretrainedEmbeddings(
+            schema.select_by_tag(Tags.EMBEDDING),
+            sequence_combiner="mean",
+            normalizer="l2-norm",
+        ),
+    )
+
+    model = mm.Model(
+        input_block,
+        mm.MLPBlock([4]),
+        mm.BinaryOutput("purchase"),
+    )
+
+    _, history = testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
+
+    assert set(history.history.keys()) == {
+        "loss",
+        "loss_batch",
+        "precision",
+        "recall",
+        "binary_accuracy",
+        "auc",
+        "regularization_loss",
+    }
