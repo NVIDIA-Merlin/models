@@ -107,6 +107,16 @@
           "item_id",
           "categorical",
           "item"
+        ],
+        "extraMetadata": [
+          {
+            "_dims": [
+              [
+                0.0,
+                null
+              ]
+            ]
+          }
         ]
       }
     },
