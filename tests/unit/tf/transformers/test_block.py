@@ -453,12 +453,14 @@ def test_transformer_model_with_masking_and_broadcast_to_sequence(
     target = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     item_id_name = schema.select_by_tag(Tags.ITEM_ID).first.properties["domain"]["name"]
 
+    item_id_emb_dim = 16
     input_block = mm.InputBlockV2(
         sequence_testing_data.schema,
         embeddings=mm.Embeddings(
             seq_schema.select_by_tag(Tags.CATEGORICAL)
             + context_schema.select_by_tag(Tags.CATEGORICAL),
             sequence_combiner=None,
+            dim={"item_id_seq": item_id_emb_dim},
         ),
         post=mm.BroadcastToSequence(context_schema, seq_schema),
     )
@@ -469,7 +471,7 @@ def test_transformer_model_with_masking_and_broadcast_to_sequence(
 
     dense_block = mm.SequentialBlock(input_block, mlp_block, transformer_block)
 
-    mlp_block2 = mm.MLPBlock([128, dmodel], activation="relu")
+    mlp_block2 = mm.MLPBlock([128, item_id_emb_dim], activation="relu")
 
     prediction_task = mm.CategoricalOutput(to_call=input_block["categorical"][item_id_name],)
     model = mm.Model(dense_block, mlp_block2, prediction_task)

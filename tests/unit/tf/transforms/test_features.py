@@ -881,7 +881,7 @@ def test_broadcast_to_sequence_input_block(sequence_testing_data: Dataset):
     assert set([tuple(list(v.shape)[:-1]) for v in input_batch.values()]) == set(
         [tuple([100, None])]
     )
-    assert list(input_batch["item_id_seq"].shape) == [100, None, 32]
+    assert list(input_batch["item_id_seq"].shape) == [100, None, 8]
     assert list(input_batch["categories"].shape) == [100, None, 16]
     assert list(input_batch["item_age_days_norm"].shape) == [100, None, 1]
     assert list(input_batch["user_age"].shape) == [100, None, 1]

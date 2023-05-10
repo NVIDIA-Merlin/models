@@ -497,7 +497,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Datase
     assert (
         emb_module.embedding_tables["user_id"].embeddings.shape[1]
         == embeddings["user_id"].shape[1]
-        == 20
+        == 10
     )
     assert (
         emb_module.embedding_tables["user_country"].embeddings.shape[1]
@@ -507,12 +507,12 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Datase
     assert (
         emb_module.embedding_tables["item_id"].embeddings.shape[1]
         == embeddings["item_id"].shape[1]
-        == 46
+        == 10
     )
     assert (
         emb_module.embedding_tables["categories"].embeddings.shape[1]
         == embeddings["categories"].shape[1]
-        == 13
+        == 9
     )
 
 
@@ -533,7 +533,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes_multiple_8(testing_d
     assert (
         emb_module.embedding_tables["user_id"].embeddings.shape[1]
         == embeddings["user_id"].shape[1]
-        == 24
+        == 16
     )
     assert (
         emb_module.embedding_tables["user_country"].embeddings.shape[1]
@@ -543,7 +543,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes_multiple_8(testing_d
     assert (
         emb_module.embedding_tables["item_id"].embeddings.shape[1]
         == embeddings["item_id"].shape[1]
-        == 48
+        == 16
     )
     assert (
         emb_module.embedding_tables["categories"].embeddings.shape[1]
@@ -579,12 +579,12 @@ def test_embedding_features_yoochoose_partially_infer_embedding_sizes(testing_da
     assert (
         emb_module.embedding_tables["item_id"].embeddings.shape[1]
         == embeddings["item_id"].shape[1]
-        == 46
+        == 10
     )
     assert (
         emb_module.embedding_tables["categories"].embeddings.shape[1]
         == embeddings["categories"].shape[1]
-        == 13
+        == 9
     )
 
 
