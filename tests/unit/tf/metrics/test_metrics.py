@@ -16,8 +16,30 @@
 
 import pytest
 import tensorflow as tf
+from tensorflow.keras.losses import binary_crossentropy
 
-from merlin.models.tf.metrics.evaluation import ItemCoverageAt, NoveltyAt, PopularityBiasAt
+from merlin.models.tf.metrics import metrics_registry
+from merlin.models.tf.metrics.evaluation import (
+    ItemCoverageAt,
+    LogLossMetric,
+    NoveltyAt,
+    PopularityBiasAt,
+)
+
+
+@pytest.mark.parametrize("metric", [LogLossMetric(), "logloss"])
+def test_logloss_metric(metric):
+    metric = metrics_registry.parse(metric)
+
+    y_pred = tf.convert_to_tensor([1.0, 0.5, 0.2, 2.3, 5.0], tf.float32)
+    y_true = tf.convert_to_tensor([0, 1, 0, 0, 1], tf.int32)
+
+    expected_result = binary_crossentropy(y_true, y_pred, from_logits=False)
+
+    metric.update_state(y_true, y_pred)
+    result = metric.result()
+
+    tf.debugging.assert_near(result, expected_result)
 
 
 @pytest.fixture

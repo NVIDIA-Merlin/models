@@ -19,6 +19,7 @@ from typing import Optional, Sequence, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
+from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras.metrics import Mean, Metric
 from tensorflow.keras.metrics import get as get_metric
 
@@ -37,6 +38,46 @@ METRIC_PARAMETERS_DOCSTRING = """
 """
 
 MetricType = Union[Metric, str]
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+@metrics_registry.register_with_multiple_names("logloss")
+class LogLossMetric(Mean):
+    """Log loss metric.
+    Keras offers the log loss (a.k.a. binary cross entropy), but it
+    may be affected by class weights, which you might not
+    want for the metric calculation).
+    This is the corresponding metric, that is useful to evaluate
+    the performance of binary classification tasks.
+
+    Parameters
+    ----------
+    name : str, optional
+        Name of the metric, by default "logloss"
+    from_logits : bool, optional
+        Whether the metric should expect the likelihood (e.g. sigmoid function in output)
+        or logits (False). By default False
+    dtype
+        Dtype of metric output, by default None
+    """
+
+    def __init__(self, name="logloss", from_logits=False, dtype=None):
+        self.from_logits = from_logits
+        super().__init__(name=name, dtype=dtype)
+
+    def update_state(
+        self,
+        y_true: tf.Tensor,
+        y_pred: tf.Tensor,
+        sample_weight: Optional[tf.Tensor] = None,
+    ):
+        result = binary_crossentropy(y_true, y_pred, from_logits=self.from_logits)
+        return super().update_state(result, sample_weight=sample_weight)
+
+    def get_config(self):
+        config = super().get_config()
+        config["from_logits"] = self.from_logits
+        return config
 
 
 def novelty_at(

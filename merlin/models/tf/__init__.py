@@ -91,6 +91,7 @@ from merlin.models.tf.inputs.embedding import (
 )
 from merlin.models.tf.loader import KerasSequenceValidator, Loader, sample_batch
 from merlin.models.tf.losses import LossType
+from merlin.models.tf.metrics.evaluation import LogLossMetric
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
     MRRAt,
@@ -301,4 +302,5 @@ __all__ = [
     "SequenceMaskRandom",
     "ReplaceMaskedEmbeddings",
     "Prediction",
+    "LogLossMetric",
 ]
