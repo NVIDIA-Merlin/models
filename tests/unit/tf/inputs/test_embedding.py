@@ -632,8 +632,8 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
 def test_embedding_features_yoochoose_pretrained_initializer(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    pretrained_emb_item_ids = np.random.random((51997, 64))
-    pretrained_emb_categories = np.random.random((332, 64))
+    pretrained_emb_item_ids = np.random.random((101, 64))
+    pretrained_emb_categories = np.random.random((71, 64))
 
     emb_module = mm.EmbeddingFeatures.from_schema(
         schema,

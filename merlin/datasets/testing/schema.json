@@ -6,7 +6,7 @@
       "intDomain": {
         "name": "user_id",
         "min": "1",
-        "max": "1797",
+        "max": "90",
         "isCategorical": true
       },
       "annotation": {
@@ -90,7 +90,6 @@
         "tag": [
           "continuous",
           "item"
-
         ]
       }
     },
@@ -100,7 +99,7 @@
       "intDomain": {
         "name": "item_id",
         "min": "1",
-        "max": "51996",
+        "max": "100",
         "isCategorical": true
       },
       "annotation": {
@@ -121,7 +120,7 @@
       "intDomain": {
         "name": "categories",
         "min": "1",
-        "max": "331",
+        "max": "70",
         "isCategorical": true
       },
       "annotation": {

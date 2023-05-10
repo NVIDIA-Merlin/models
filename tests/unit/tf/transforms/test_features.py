@@ -1221,6 +1221,10 @@ def get_loader_with_contextual_seq_pretrained_embeddings():
         ]
     )
 
+    from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
+
+    schema_to_tensorflow_metadata_json(schema, "sequential_with_pretrained_embeddings.json")
+
     input_df = pd.DataFrame(
         [
             {

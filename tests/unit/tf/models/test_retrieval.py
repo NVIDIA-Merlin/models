@@ -962,7 +962,7 @@ def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
 
     candidates = model.candidate_embeddings().compute()
     assert list(candidates.columns) == [str(i) for i in range(32)]
-    assert len(candidates.index) == 51997
+    assert len(candidates.index) == 101
 
     # Export the query embeddings is raising an error from dask, related to
     # the support of multi-hot input features.
@@ -987,7 +987,7 @@ def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly
     predict_next = mm.SequencePredictLast(schema=seq_schema, target=target)
 
     model = mm.YoutubeDNNRetrievalModelV2(
-        schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
+        schema=sequence_testing_data.schema, top_block=mm.MLPBlock([8]), num_sampled=10
     )
 
     dataloader = mm.Loader(sequence_testing_data, batch_size=50)
