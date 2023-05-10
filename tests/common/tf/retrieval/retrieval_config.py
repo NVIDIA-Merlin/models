@@ -16,10 +16,10 @@
 import fiddle as fdl
 
 from merlin.io import Dataset
+from merlin.models.tf.logging.callbacks import WandbLogger
 from tests.common.tf.retrieval.retrieval_utils import (
     RetrievalTrainEvalRunner,
     RetrievalTrainEvalRunnerV2,
-    WandbLogger,
     filter_schema,
     get_callbacks,
     get_dual_encoder_model,
@@ -59,7 +59,11 @@ def config_retrieval_train_eval_runner(
     wandb_project: str,
     retrieval_api_version: int,
 ):
-    wandb_logger_cfg = fdl.Config(WandbLogger, enabled=log_to_wandb, wandb_project=wandb_project)
+    wandb_logger_cfg = None
+    if log_to_wandb:
+        wandb_logger_cfg = fdl.Config(
+            WandbLogger, wandb_project=wandb_project, auto_init=log_to_wandb
+        )
 
     schema_cfg = fdl.Config(filter_schema, schema=train_ds.schema)
     optimizer = fdl.Config(get_optimizer)
