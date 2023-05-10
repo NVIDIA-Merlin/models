@@ -1413,6 +1413,7 @@ def test_model_with_pretrained_embeddings(run_eagerly: bool):
 @testing_utils.mark_run_eagerly_modes
 def test_model_with_pretrained_embeddings_seq_aggregation(run_eagerly: bool):
     loader = get_loader_with_contextual_seq_pretrained_embeddings()
+
     schema = loader.output_schema
 
     input_block = mm.InputBlockV2(
@@ -1425,12 +1426,12 @@ def test_model_with_pretrained_embeddings_seq_aggregation(run_eagerly: bool):
             schema.select_by_tag(Tags.EMBEDDING),
             sequence_combiner="mean",
             normalizer="l2-norm",
+            output_dims={"pretrained_item_id_embeddings": 6},
         ),
     )
 
     model = mm.Model(
         input_block,
-        mm.MLPBlock([4]),
         mm.BinaryOutput("purchase"),
     )
 

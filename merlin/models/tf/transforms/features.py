@@ -181,6 +181,11 @@ class PrepareListFeatures(TabularBlock):
                             val = inputs[name]
                         elif isinstance(val, tf.SparseTensor):
                             val = tf.RaggedTensor.from_sparse(val)
+                        else:
+                            if Tags.EMBEDDING in self.schema[name].tags:
+                                # This fix ensures that for pre-trained embeddings
+                                # the last dim is defined (not None) in graph mode
+                                val = tf.reshape(val, (-1, col_schema_shape.dims[-1].max))
                     else:
                         if col_schema_shape.is_ragged:
                             if f"{name}__values" not in inputs or f"{name}__offsets" not in inputs:
@@ -189,8 +194,16 @@ class PrepareListFeatures(TabularBlock):
                                     f"represented by two features in the inputs: '{name}__values' "
                                     f"and '{name}__offsets', but they were not found."
                                 )
+                            ragged_values = inputs[f"{name}__values"]
+                            if Tags.EMBEDDING in self.schema[name].tags:
+                                # This fix ensures that for pre-trained embeddings
+                                # the last dim is defined (not None) in graph mode
+                                ragged_values = tf.reshape(
+                                    ragged_values, (-1, col_schema_shape.dims[-1].max)
+                                )
                             val = list_col_to_ragged(
-                                inputs[f"{name}__values"], inputs[f"{name}__offsets"]
+                                ragged_values,
+                                inputs[f"{name}__offsets"],
                             )
 
                             del inputs[f"{name}__values"]
