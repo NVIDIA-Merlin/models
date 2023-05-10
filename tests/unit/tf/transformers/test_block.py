@@ -1,7 +1,6 @@
 import itertools
 
 import numpy as np
-import pandas as pd
 import pytest
 import tensorflow as tf
 from tensorflow.keras.utils import set_random_seed
@@ -19,7 +18,7 @@ from merlin.models.tf.transformers.block import (
     XLNetBlock,
 )
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import ColumnSchema, Schema, Tags
+from merlin.schema import Tags
 
 
 def test_import():
@@ -173,7 +172,7 @@ def test_transformer_as_classification_model(sequence_testing_data: Dataset, run
     testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
 
 
-def test_tranformer_with_prepare_module(sequence_testing_data):
+def test_tranformer_with_prepare_module():
     NUM_ROWS = 100
     SEQ_LENGTH = 10
     EMBED_DIM = 128
@@ -519,108 +518,61 @@ def test_transformer_encoder_with_contrastive_output(sequence_testing_data: Data
 
     inputs, _ = loader.peek()
     predictions = model(inputs)
-    assert list(predictions.shape) == [64, 51997]
+    assert list(predictions.shape) == [64, 101]
 
 
-def get_loader_with_contextual_seq_pretrained_embeddings():
-    MAX_CARDINALITY = 20
-    schema = Schema(
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_model_with_masking_broadcast_and_pretrained_emb(
+    sequence_testing_data, run_eagerly: bool
+):
+    sequence_testing_data.schema = sequence_testing_data.schema.select_by_name(
         [
-            # TODO: Check why dims / value_count cannot be None for scalar features
-            # otherwise EmbeddingOperator raises an error
-            ColumnSchema("user_id", tags=[Tags.USER_ID], dims=(None,),),
-            ColumnSchema(
-                "user_country",
-                dtype=np.int32,
-                tags=[Tags.USER, Tags.CATEGORICAL],
-                properties={"domain": {"name": "user_country", "min": 0, "max": MAX_CARDINALITY},},
-                dims=(None,),
-            ),
-            ColumnSchema(
-                "item_ids",
-                dtype=np.int32,
-                tags=[Tags.ITEM_ID, Tags.CATEGORICAL, Tags.SEQUENCE],
-                properties={"domain": {"name": "item_ids", "min": 0, "max": MAX_CARDINALITY},},
-                dims=(None, (1, 4)),
-            ),
-            ColumnSchema(
-                "item_categories",
-                dtype=np.int32,
-                tags=[Tags.ITEM, Tags.CATEGORICAL, Tags.SEQUENCE],
-                properties={
-                    "domain": {"name": "item_categories", "min": 0, "max": MAX_CARDINALITY},
-                },
-                dims=(None, (1, 4)),
-            ),
-            ColumnSchema("purchase", dtype=np.int32, tags=[Tags.TARGET], dims=(None,),),
+            "item_id_seq",
+            "categories",
+            "item_age_days_norm",
+            "test_user_id",
+            "user_country",
+            "user_age",
         ]
     )
 
-    input_df = pd.DataFrame(
-        [
-            {
-                "user_id": 1,
-                "user_country": 10,
-                "item_ids": [1, 2, 3],
-                "item_categories": [3, 4, 5],
-                "purchase": 1,
-            },
-            {
-                "user_id": 2,
-                "user_country": 20,
-                "item_ids": [4, 5],
-                "item_categories": [6, 7],
-                "purchase": 0,
-            },
-        ]
-    )
-    input_df = input_df[sorted(input_df.columns)]
-    dataset = Dataset(input_df, schema=schema)
-
-    np_emb_item_id = np.random.rand(MAX_CARDINALITY, 16)
+    item_cardinality = sequence_testing_data.schema["item_id_seq"].int_domain.max + 1
+    user_cardinality = sequence_testing_data.schema["test_user_id"].int_domain.max + 1
 
     loader = mm.Loader(
-        dataset,
+        sequence_testing_data,
         batch_size=10,
         transforms=[
             EmbeddingOperator(
-                np_emb_item_id,
-                lookup_key="user_id",
+                np.random.rand(user_cardinality, 12),
+                lookup_key="test_user_id",
                 embedding_name="pretrained_user_id_embeddings",
             ),
             EmbeddingOperator(
-                np_emb_item_id,
-                lookup_key="item_ids",
+                np.random.rand(item_cardinality, 16),
+                lookup_key="item_id_seq",
                 embedding_name="pretrained_item_id_embeddings",
             ),
         ],
     )
-    return loader
-
-
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_transformer_model_with_masking_broadcast_to_sequence_pretrained_emb(run_eagerly: bool):
-    loader = get_loader_with_contextual_seq_pretrained_embeddings()
-    loader.input_schema = loader.input_schema.remove_by_tag(Tags.TARGET)
 
     schema = loader.output_schema
     seq_schema = schema.select_by_name(
-        ["item_ids", "item_categories", "pretrained_item_id_embeddings"]
+        ["item_id_seq", "categories", "item_age_days_norm", "pretrained_item_id_embeddings"]
     )
-    context_schema = schema.select_by_name(["user_country", "pretrained_user_id_embeddings"])
+    context_schema = schema.select_by_name(
+        ["test_user_id", "user_country", "user_age", "pretrained_user_id_embeddings"]
+    )
 
     item_id_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    item_id_embedding_dim = 24
-
-    # schema = schema.select_by_name(["item_ids", "pretrained_item_id_embeddings"])
-    # loader.input_schema = loader.input_schema.select_by_name(["item_ids"])
+    item_id_embedding_dim = 16
 
     input_block = mm.InputBlockV2(
         schema,
         embeddings=mm.Embeddings(
             seq_schema.select_by_tag(Tags.CATEGORICAL)
             + context_schema.select_by_tag(Tags.CATEGORICAL),
-            dim={"item_ids": item_id_embedding_dim},
+            dim={"item_id_seq": item_id_embedding_dim},
             sequence_combiner=None,
         ),
         pretrained_embeddings=mm.PretrainedEmbeddings(
