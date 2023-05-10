@@ -601,3 +601,86 @@ def test_transformer_model_with_masking_broadcast_and_pretrained_emb(
         model, loader, run_eagerly=run_eagerly, reload_model=False, fit_kwargs={"pre": fit_pre},
     )
 
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_model_with_causal_language_modeling_and_pretrained_emb(
+    sequence_testing_data, run_eagerly: bool
+):
+    sequence_testing_data.schema = sequence_testing_data.schema.select_by_name(
+        [
+            "item_id_seq",
+            "categories",
+            "item_age_days_norm",
+            "test_user_id",
+            "user_country",
+            "user_age",
+        ]
+    )
+
+    item_cardinality = sequence_testing_data.schema["item_id_seq"].int_domain.max + 1
+    user_cardinality = sequence_testing_data.schema["test_user_id"].int_domain.max + 1
+
+    loader = mm.Loader(
+        sequence_testing_data,
+        batch_size=10,
+        transforms=[
+            EmbeddingOperator(
+                np.random.rand(user_cardinality, 12),
+                lookup_key="test_user_id",
+                embedding_name="pretrained_user_id_embeddings",
+            ),
+            EmbeddingOperator(
+                np.random.rand(item_cardinality, 16),
+                lookup_key="item_id_seq",
+                embedding_name="pretrained_item_id_embeddings",
+            ),
+        ],
+    )
+
+    schema = loader.output_schema
+    seq_schema = schema.select_by_name(
+        ["item_id_seq", "categories", "item_age_days_norm", "pretrained_item_id_embeddings"]
+    )
+    context_schema = schema.select_by_name(
+        ["test_user_id", "user_country", "user_age", "pretrained_user_id_embeddings"]
+    )
+
+    item_id_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    item_id_embedding_dim = 16
+
+    input_block = mm.InputBlockV2(
+        schema,
+        embeddings=mm.Embeddings(
+            seq_schema.select_by_tag(Tags.CATEGORICAL)
+            + context_schema.select_by_tag(Tags.CATEGORICAL),
+            dim={"item_id_seq": item_id_embedding_dim},
+            sequence_combiner=None,
+        ),
+        pretrained_embeddings=mm.PretrainedEmbeddings(
+            schema.select_by_tag(Tags.EMBEDDING), sequence_combiner=None,
+        ),
+        post=mm.BroadcastToSequence(context_schema, seq_schema),
+    )
+
+    dmodel = 32
+    mlp_block = mm.MLPBlock([128, dmodel], activation="relu")
+    transformer_block = mm.GPT2Block(d_model=dmodel, n_head=4, n_layer=2,)
+
+    dense_block = mm.SequentialBlock(input_block, mlp_block, transformer_block)
+
+    mlp_block2 = mm.MLPBlock([64, item_id_embedding_dim], activation="relu")
+
+    prediction_task = mm.CategoricalOutput(to_call=input_block["categorical"][item_id_name],)
+    model = mm.Model(dense_block, mlp_block2, prediction_task)
+
+    predict_next = mm.SequencePredictNext(
+        schema=seq_schema, target=item_id_name, transformer=transformer_block
+    )
+
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=False,
+        fit_kwargs={"pre": predict_next},
+    )
