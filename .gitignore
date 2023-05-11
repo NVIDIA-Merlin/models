@@ -105,3 +105,7 @@ dmypy.json
 
 # Experiment files
 _test.py
+
+
+# pytorch
+lightning_logs/
