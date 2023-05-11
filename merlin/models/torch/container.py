@@ -18,16 +18,12 @@ class BlockContainer(nn.Module):
         self.values = nn.ModuleList()
 
         for module in inputs:
-            self._append(module)
+            _module = self._check_link(module)
+            self.values.append(self.wrap_module(_module))
+        
         self._name: str = name
 
     def append(self, module: nn.Module, link: Optional[Union[Link, str]] = None):
-        _module = self._check_link(module, link=link)
-        self.values.append(self.wrap_module(_module))
-
-        return self
-
-    def _append(self, module: nn.Module, link: Optional[Union[Link, str]] = None):
         _module = self._check_link(module, link=link)
         self.values.append(self.wrap_module(_module))
 
@@ -111,6 +107,9 @@ class BlockContainer(nn.Module):
                     tree.add(repr(module))
 
         return tree
+    
+    def _repr_html_(self):
+        return self.__rich_repr__()
 
     def rich_print(self):
         rprint(self.__rich_repr__())
@@ -182,8 +181,10 @@ class BlockContainerDict(nn.ModuleDict):
     def unwrap(self) -> Dict[str, nn.ModuleList]:
         return {k: v.unwrap() for k, v in self.items()}
 
-    def __rich_repr__(self):
-        table = Table(title=self._get_name(), title_justify="left")
+    def __rich_repr__(self, title=None):
+        if not title:
+            title = self._get_name()
+        table = Table(title=title, title_justify="left")
         branch_row = []
 
         for branch_name, branch in self.items():

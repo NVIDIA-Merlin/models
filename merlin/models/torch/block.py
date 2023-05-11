@@ -150,6 +150,12 @@ class ParallelBlock(Block):
             return self.branches[idx]
 
         return self.values[idx].unwrap()
+    
+    def __rich_repr__(self):
+        if self.pre or self.post:
+            return super().__rich_repr__()
+        
+        return self.branches.__rich_repr__(self._get_name())
 
 
 Selection = Union[Schema, ColumnSchema, Callable[[Schema], Schema], Tags]
@@ -580,21 +586,3 @@ class DLRMInputBlock(TabularInputBlock):
 # outputs = OutputBlock(schema) # Block will output a dict of outputs
 # outputs.prepend_for_each(MLPBlock([512, 256]), copy=True)
 
-# class BinaryOutput(Block):
-#     def __init__(self, pre: Optional[nn.Module] = None, post: Optional[nn.Module] = None):
-#         module = nn.Sequential(nn.LazyLinear(1), nn.Sigmoid())
-
-#         super().__init__(module, pre=pre, post=post)
-#         self.register_buffer("target", torch.zeros(1, dtype=torch.float32))
-
-#     def forward(self, inputs, batch: Optional[Batch] = None):
-#         if self.training and batch is not None and "target" in batch.targets:
-#             self.target = batch.targets["target"]
-
-#         return self.module(inputs, batch=batch)
-
-#     def eval(self):
-#         # Reset target
-#         self.target = torch.zeros(1, dtype=torch.float32)
-
-#         return self.train(False)
