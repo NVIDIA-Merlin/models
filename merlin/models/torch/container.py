@@ -257,10 +257,13 @@ class BlockContainerDict(nn.ModuleDict):
             inputs = [{}]
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         if isinstance(inputs, tuple) and len(inputs) == 1 and isinstance(inputs[0], (list, tuple)):
             modules = inputs[0]
 >>>>>>> cbf7e956 (Adding BlockContainerDict)
+=======
+>>>>>>> 77ca69b4 (Adding ParallelBlock)
         if all(isinstance(x, dict) for x in inputs):
             modules = reduce(lambda a, b: dict(a, **b), inputs)  # type: ignore
 
