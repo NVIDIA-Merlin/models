@@ -29,7 +29,7 @@ from merlin.models.utils.registry import RegistryMixin
 
 
 class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
-    """A base-class that calls its modules sequentially.
+    """A base-class that calls it's modules sequentially.
 
     Parameters
     ----------
