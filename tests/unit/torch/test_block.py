@@ -86,6 +86,7 @@ class TestBlock:
         with pytest.raises(ValueError, match="n must be greater than 0"):
             block.repeat(0)
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     def test_repeat_with_link(self):
         block = Block(PlusOne())
@@ -113,6 +114,8 @@ class TestBlock:
 
         inputs = torch.randn(1, 3)
         assert torch.equal(block(inputs), inputs + 1)
+=======
+>>>>>>> 77ca69b4 (Adding ParallelBlock)
 
 
 class TestParallelBlock:
@@ -221,5 +224,8 @@ class TestParallelBlock:
 
         with pytest.raises(IndexError):
             pb["invalid_key"]
+<<<<<<< HEAD
 =======
 >>>>>>> f7011343 (Increase test-coverage)
+=======
+>>>>>>> 77ca69b4 (Adding ParallelBlock)
