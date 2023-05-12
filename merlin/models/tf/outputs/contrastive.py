@@ -223,10 +223,16 @@ class ContrastiveOutput(ModelOutput):
     def call_contrastive(self, inputs, features, targets, training=False, testing=False):
         if isinstance(inputs, dict) and self.query_name in inputs:
             query_embedding = inputs[self.query_name]
-        elif isinstance(inputs, tf.Tensor):
+        elif isinstance(inputs, (tf.Tensor, tf.RaggedTensor)):
             query_embedding = inputs
         else:
             raise ValueError("Couldn't infer query embedding")
+
+        is_ragged = isinstance(query_embedding, tf.RaggedTensor)
+        if is_ragged:
+            # Get flat values of the ragged tensor
+            original_query_embedding = query_embedding
+            query_embedding = query_embedding.flat_values
 
         if self.has_candidate_weights:
             positive_id = targets
@@ -236,6 +242,17 @@ class ContrastiveOutput(ModelOutput):
         else:
             positive_id = features[self.col_schema.name]
             positive_embedding = inputs[self.candidate_name]
+
+        if isinstance(positive_id, tf.RaggedTensor):
+            # Select positive candidates at masked positions
+            target_mask = positive_id._keras_mask.with_row_splits_dtype(
+                positive_id.row_splits.dtype
+            )
+            # Flatten target tensor to have the same shape as the query tensor
+            positive_id = tf.ragged.boolean_mask(positive_id, target_mask)
+            original_target = positive_id
+            positive_id = positive_id.flat_values
+            positive_embedding = tf.ragged.boolean_mask(positive_embedding, target_mask).flat_values
 
         positive = Candidate(id=positive_id, metadata={**features}).with_embedding(
             positive_embedding
@@ -248,7 +265,13 @@ class ContrastiveOutput(ModelOutput):
         ):
             negative = negative.with_embedding(self.embedding_lookup(negative.id))
 
-        return self.outputs(query_embedding, positive, negative)
+        logits = self.outputs(query_embedding, positive, negative)
+        if is_ragged:
+            logits.copy_with_updates(
+                outputs=original_query_embedding.with_flat_values(logits.outputs),
+                targets=original_target.with_flat_values(logits.targets),
+            )
+        return logits
 
     def outputs(
         self, query_embedding: tf.Tensor, positive: Candidate, negative: Candidate
@@ -382,7 +405,7 @@ class ContrastiveOutput(ModelOutput):
         return negatives, positive
 
     def embedding_lookup(self, ids: tf.Tensor):
-        return self.to_call.embedding_lookup(tf.squeeze(ids))
+        return self.to_call.embedding_lookup(tf.squeeze(ids, axis=-1))
 
     def to_dataset(self, gpu=None) -> merlin.io.Dataset:
         return merlin.io.Dataset(tf_utils.tensor_to_df(self.to_call.embeddings, gpu=gpu))
