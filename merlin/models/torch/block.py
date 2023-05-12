@@ -61,7 +61,7 @@ class Block(BlockContainer):
 
         return inputs
 
-    def repeat(self, n: int, name=None) -> "Block":
+    def repeat(self, n: int = 1, name=None) -> "Block":
         """
         Creates a new block by repeating the current block `n` times.
         Each repetition is a deep copy of the current block.
