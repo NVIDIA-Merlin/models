@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from merlin.models.torch.batch import Batch
+from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import Block
 
-__all__ = ["Batch", "Block"]
+__all__ = ["Batch", "Block", "Sequence"]
