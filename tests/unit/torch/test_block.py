@@ -81,6 +81,7 @@ class TestBlock:
 
         with pytest.raises(ValueError, match="n must be greater than 0"):
             block.repeat(0)
+<<<<<<< HEAD
 
 
 class TestParallelBlock:
@@ -189,3 +190,5 @@ class TestParallelBlock:
 
         with pytest.raises(IndexError):
             pb["invalid_key"]
+=======
+>>>>>>> f70113431 (Increase test-coverage)
