@@ -146,11 +146,6 @@ class TestBlockContainerDict:
         container = BlockContainerDict()
         assert len(container) == 0
 
-    def test_list_of_dict(self):
-        container = BlockContainerDict(({"test": self.module}))
-        assert len(container) == 1
-        assert "test" in container
-
     def test_not_module(self):
         with pytest.raises(ValueError):
             BlockContainerDict({"test": "not a module"})

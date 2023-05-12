@@ -21,7 +21,7 @@ import torch
 from torch import nn
 
 from merlin.models.torch.batch import Batch
-from merlin.models.torch.container import BlockContainer
+from merlin.models.torch.container import BlockContainer, BlockContainerDict
 
 
 class Block(BlockContainer):
@@ -98,3 +98,100 @@ class Block(BlockContainer):
             The copy of the current block.
         """
         return deepcopy(self)
+
+
+class ParallelBlock(Block):
+    def __init__(
+        self,
+        *inputs: Union[nn.Module, Dict[str, nn.Module]],
+        # TODO: Add agg
+    ):
+        pre = BlockContainer(name="pre")
+        branches = BlockContainerDict(*inputs)
+        post = BlockContainer(name="post")
+
+        super().__init__()
+
+        self.pre = pre
+        self.branches = branches
+        self.post = post
+
+    def forward(
+        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
+    ):
+        for module in self.pre.values:
+            inputs = module(inputs, batch=batch)
+
+        outputs = {}
+        for name, branch_container in self.branches.items():
+            branch = inputs
+            for module in branch_container.values:
+                branch = module(branch, batch=batch)
+
+            if isinstance(branch, torch.Tensor):
+                branch_dict = {name: branch}
+            elif torch.jit.isinstance(branch, Dict[str, torch.Tensor]):
+                branch_dict = branch
+            else:
+                raise TypeError(
+                    f"Branch output must be a tensor or a dictionary of tensors. Got {type(branch)}"
+                )
+
+            for key in branch_dict.keys():
+                if key in outputs:
+                    raise RuntimeError(f"Duplicate output name: {key}")
+
+            outputs.update(branch_dict)
+
+        for module in self.post.values:
+            outputs = module(outputs, batch=batch)
+
+        return outputs
+
+    def append(self, module: nn.Module):
+        self.post.append(module)
+
+        return self
+
+    def prepend(self, module: nn.Module):
+        self.pre.prepend(module)
+
+        return self
+
+    def append_to(self, name: str, module: nn.Module):
+        self.branches[name].append(module)
+
+        return self
+
+    def prepend_to(self, name: str, module: nn.Module):
+        self.branches[name].prepend(module)
+
+        return self
+
+    def append_for_each(self, module: nn.Module, shared=False):
+        self.branches.append_for_each(module, shared=shared)
+
+        return self
+
+    def prepend_for_each(self, module: nn.Module, shared=False):
+        self.branches.prepend_for_each(module, shared=shared)
+
+        return self
+
+    def __getitem__(self, idx: Union[slice, int]):
+        if isinstance(idx, str) and idx in self.branches:
+            return self.branches[idx]
+
+        if idx == 0:
+            return self.pre
+
+        if idx == -1 or idx == 2:
+            return self.post
+
+        raise IndexError(f"Index {idx} is out of range for {self.__class__.__name__}")
+
+    def __len__(self):
+        return len(self.branches)
+
+    def __contains__(self, name):
+        return name in self.branches

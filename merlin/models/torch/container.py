@@ -160,8 +160,6 @@ class BlockContainerDict(nn.ModuleDict):
         if not inputs:
             inputs = [{}]
 
-        if isinstance(inputs, tuple) and len(inputs) == 1 and isinstance(inputs[0], (list, tuple)):
-            modules = inputs[0]
         if all(isinstance(x, dict) for x in inputs):
             modules = reduce(lambda a, b: dict(a, **b), inputs)  # type: ignore
 
