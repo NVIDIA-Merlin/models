@@ -13,9 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+<<<<<<< HEAD
 from typing import Dict, Tuple
 
 import pytest
+=======
+
+>>>>>>> 2dfe2782 (Adding torch github-action + add copyright)
 import torch
 from torch import nn
 

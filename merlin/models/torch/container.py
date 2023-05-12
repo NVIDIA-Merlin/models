@@ -14,9 +14,13 @@
 # limitations under the License.
 #
 
+<<<<<<< HEAD
 from copy import deepcopy
 from functools import reduce
 from typing import Dict, Iterator, Optional, Union
+=======
+from typing import Iterator, Optional, Union
+>>>>>>> 2dfe2782 (Adding torch github-action + add copyright)
 
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
