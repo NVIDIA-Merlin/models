@@ -15,12 +15,18 @@
 #
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 from copy import deepcopy
 from functools import reduce
 from typing import Dict, Iterator, Optional, Union
 =======
 from typing import Iterator, Optional, Union
 >>>>>>> 2dfe2782 (Adding torch github-action + add copyright)
+=======
+from copy import deepcopy
+from functools import reduce
+from typing import Dict, Iterator, Optional, Union
+>>>>>>> cbf7e956 (Adding BlockContainerDict)
 
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
@@ -219,6 +225,7 @@ class BlockContainer(nn.Module):
     def _get_name(self) -> str:
         return super()._get_name() if self._name is None else self._name
 
+<<<<<<< HEAD
     def _check_link(self, module: nn.Module, link: Optional[LinkType] = None) -> nn.Module:
         if link:
             linked_module: Link = Link.parse(link)
@@ -242,18 +249,28 @@ class BlockContainerDict(nn.ModuleDict):
         An optional name for the BlockContainer.
     """
 
+=======
+
+class BlockContainerDict(nn.ModuleDict):
+>>>>>>> cbf7e956 (Adding BlockContainerDict)
     def __init__(
         self, *inputs: Union[nn.Module, Dict[str, nn.Module]], name: Optional[str] = None
     ) -> None:
         if not inputs:
             inputs = [{}]
 
+<<<<<<< HEAD
+=======
+        if isinstance(inputs, tuple) and len(inputs) == 1 and isinstance(inputs[0], (list, tuple)):
+            modules = inputs[0]
+>>>>>>> cbf7e956 (Adding BlockContainerDict)
         if all(isinstance(x, dict) for x in inputs):
             modules = reduce(lambda a, b: dict(a, **b), inputs)  # type: ignore
 
         super().__init__(modules)
         self._name: str = name
 
+<<<<<<< HEAD
     def append_to(
         self, name: str, module: nn.Module, link: Optional[LinkType] = None
     ) -> "BlockContainerDict":
@@ -373,6 +390,37 @@ class BlockContainerDict(nn.ModuleDict):
 
         return self
 
+=======
+    def append_to(self, name: str, module: nn.Module) -> "BlockContainerDict":
+        self._modules[name].append(module)
+
+        return self
+
+    def prepend_to(self, name: str, module: nn.Module) -> "BlockContainerDict":
+        self._modules[name].prepend(module)
+
+        return self
+
+    # Append to all branches, optionally copying
+    def append_for_each(self, module: nn.Module, shared=False) -> "BlockContainerDict":
+        for branch in self.values():
+            _module = module if shared else deepcopy(module)
+            branch.append(_module)
+
+        return self
+
+    def prepend_for_each(self, module: nn.Module, shared=False) -> "BlockContainerDict":
+        for branch in self.values():
+            _module = module if shared else deepcopy(module)
+            branch.prepend(_module)
+
+        return self
+
+    # This assumes same branches, we append it's content to each branch
+    # def append_parallel(self, module: "BlockContainerDict") -> "BlockContainerDict":
+    #     ...
+
+>>>>>>> cbf7e956 (Adding BlockContainerDict)
     def add_module(self, name: str, module: Optional[nn.Module]) -> None:
         if module and not isinstance(module, BlockContainer):
             module = BlockContainer(module, name=name[0].upper() + name[1:])
