@@ -27,11 +27,7 @@ from merlin.models.torch.registry import registry
 from merlin.models.utils.registry import RegistryMixin
 
 
-<<<<<<< HEAD
 class Block(BlockContainer, RegistryMixin):
-=======
-class Block(BlockContainer):
->>>>>>> 793f47ef (Adding improved doc-strings)
     """A base-class that calls it's modules sequentially.
 
     Parameters
