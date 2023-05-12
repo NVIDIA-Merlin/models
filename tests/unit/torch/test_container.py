@@ -18,14 +18,9 @@ import pytest
 import torch
 import torch.nn as nn
 
-<<<<<<< HEAD
 from merlin.models.torch import link
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import module_utils, torchscript_utils
-=======
-from merlin.models.torch.container import BlockContainer, BlockContainerDict
-from merlin.models.torch.utils import torchscript_utils
->>>>>>> cbf7e956 (Adding BlockContainerDict)
 
 
 class TestBlockContainer:
@@ -184,6 +179,7 @@ class TestBlockContainerDict:
         assert len(container) == 0
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     def test_list_of_dict(self):
         container = BlockContainerDict(({"test": self.module}))
@@ -191,6 +187,8 @@ class TestBlockContainerDict:
         assert "test" in container
 
 >>>>>>> cbf7e956 (Adding BlockContainerDict)
+=======
+>>>>>>> 77ca69b4 (Adding ParallelBlock)
     def test_not_module(self):
         with pytest.raises(ValueError):
             BlockContainerDict({"test": "not a module"})
