@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import pytest
 import torch
 from torch import nn
 
@@ -49,12 +50,22 @@ class TestBlock:
     def test_copy(self):
         block = Block(PlusOne())
 
-        assert isinstance(block.copy(), Block)
-        assert isinstance(block.copy()[0], PlusOne)
-        assert block.copy() != block
+        copied = block.copy()
+        assert isinstance(copied, Block)
+        assert isinstance(copied[0], PlusOne)
+        assert copied != block
+
+        copied.some_attribute = "new value"
+        assert not hasattr(block, "some_attribute")
 
     def test_repeat(self):
         block = Block(PlusOne())
 
         assert isinstance(block.repeat(2), Block)
         assert len(block.repeat(2)) == 2
+
+        with pytest.raises(TypeError, match="n must be an integer"):
+            block.repeat("invalid_input")
+
+        with pytest.raises(ValueError, match="n must be greater than 0"):
+            block.repeat(0)

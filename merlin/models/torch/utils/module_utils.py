@@ -164,9 +164,7 @@ def module_test(module: nn.Module, input_data, method="script", **kwargs):
         if original_output.targets is not None:
             _all_close_dict(original_output.targets, scripted_output.targets)
         if original_output.sequences is not None:
-            _all_close_dict(
-                original_output.sequences.seq_lengths, scripted_output.sequences.seq_lengths
-            )
+            _all_close_dict(original_output.sequences.lengths, scripted_output.sequences.lengths)
             if original_output.sequences.masks is not None:
                 _all_close_dict(original_output.sequences.masks, scripted_output.sequences.masks)
     else:

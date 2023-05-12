@@ -78,6 +78,9 @@ class Block(BlockContainer):
         Block
             The new block created by repeating the current block `n` times.
         """
+        if not isinstance(n, int):
+            raise TypeError("n must be an integer")
+
         if n < 1:
             raise ValueError("n must be greater than 0")
 

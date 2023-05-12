@@ -48,6 +48,48 @@ class TestSequence:
         with pytest.raises(ValueError):
             Sequence("not a tensor or dict", "not a tensor or dict")
 
+    def test_init_tensor_lengths(self):
+        # Test when lengths is a tensor
+        lengths = torch.tensor([1.0])
+        sequence = Sequence(lengths)
+
+        assert isinstance(sequence.lengths, dict)
+        assert "default" in sequence.lengths
+        assert torch.equal(sequence.lengths["default"], lengths)
+
+    def test_init_tensor_masks(self):
+        # Test when masks is a tensor
+        lengths = torch.tensor([1.0])
+        masks = torch.tensor([2.0])
+        sequence = Sequence(lengths, masks)
+
+        assert isinstance(sequence.masks, dict)
+        assert "default" in sequence.masks
+        assert torch.equal(sequence.masks["default"], masks)
+
+    def test_init_no_masks(self):
+        # Test when masks is None
+        lengths = torch.tensor([1.0])
+        sequence = Sequence(lengths)
+
+        assert isinstance(sequence.masks, dict)
+        assert len(sequence.masks) == 0
+
+    def test_init_invalid_lengths(self):
+        # Test when lengths is not a tensor nor a dictionary of tensors
+        lengths = "invalid_lengths"
+
+        with pytest.raises(ValueError, match="Lengths must be a tensor or a dictionary of tensors"):
+            Sequence(lengths)
+
+    def test_init_invalid_masks(self):
+        # Test when masks is not a tensor nor a dictionary of tensors
+        lengths = torch.tensor([1.0])
+        masks = "invalid_masks"
+
+        with pytest.raises(ValueError, match="Masks must be a tensor or a dictionary of tensors"):
+            Sequence(lengths, masks)
+
 
 class TestBatch:
     @pytest.fixture
@@ -76,6 +118,24 @@ class TestBatch:
         assert torch.equal(new_batch.features["feature1"], new_features["feature1"])
         assert torch.equal(new_batch.targets["target1"], new_targets["target1"])
         assert torch.equal(new_batch.sequences.length("feature1"), new_sequences.length("feature1"))
+
+    def test_batch_init_tensor_target(self):
+        # Test when targets is a tensor
+        features = torch.tensor([1.0])
+        targets = torch.tensor([2.0])
+        batch = Batch(features, targets)
+
+        assert isinstance(batch.targets, dict)
+        assert "default" in batch.targets
+        assert torch.equal(batch.targets["default"], targets)
+
+    def test_batch_init_invalid_targets(self):
+        # Test when targets is not a tensor nor a dictionary of tensors
+        features = torch.tensor([1.0])
+        targets = "invalid_target"
+
+        with pytest.raises(ValueError, match="Targets must be a tensor or a dictionary of tensors"):
+            Batch(features, targets)
 
     def test_feature(self, batch):
         assert torch.equal(batch.feature("feature1"), torch.tensor([1, 2]))

@@ -102,9 +102,7 @@ class Batch:
     ):
         default_key = "default"
 
-        if features is None:
-            _features = {}
-        elif isinstance(features, torch.Tensor):
+        if isinstance(features, torch.Tensor):
             _features = {default_key: features}
         elif torch.jit.isinstance(features, Dict[str, torch.Tensor]):
             _features = features
