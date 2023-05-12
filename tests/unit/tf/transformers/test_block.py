@@ -507,3 +507,46 @@ def test_transformer_model_with_masking_and_broadcast_to_sequence(
         reload_model=False,
         fit_kwargs={"pre": fit_pre},
     )
+
+
+@pytest.mark.parametrize("pre", [mm.SequenceMaskRandom, mm.SequencePredictNext])
+def test_transformer_encoder_with_contrastive_output(sequence_testing_data: Dataset, pre):
+    dmodel = 32
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+    target_schema = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID)
+    model_schema = seq_schema + target_schema
+    target = target_schema.column_names[0]
+
+    input_block = mm.InputBlockV2(
+        model_schema,
+        categorical=mm.Embeddings(
+            model_schema.select_by_tag(Tags.CATEGORICAL), dim=dmodel, sequence_combiner=None
+        ),
+    )
+    transformer_block = XLNetBlock(d_model=dmodel, n_head=4, n_layer=1)
+    session_encoder = mm.Encoder(
+        input_block,
+        mm.MLPBlock([dmodel]),
+        transformer_block,
+    )
+    output_block = mm.ContrastiveOutput(
+        to_call=target_schema,
+        negative_samplers=mm.PopularityBasedSamplerV2(
+            max_num_samples=10,
+            max_id=1000,
+            min_id=1,
+        ),
+        logq_sampling_correction=True,
+    )
+    model = mm.RetrievalModelV2(query=session_encoder, output=output_block)
+
+    sequence_testing_data.schema = model_schema
+    loader = Loader(sequence_testing_data, batch_size=64, shuffle=False)
+
+    fit_pre = pre(schema=seq_schema, target=target, transformer=transformer_block)
+    model.compile()
+    _ = model.fit(loader, pre=fit_pre)
+
+    inputs, _ = loader.peek()
+    predictions = model(inputs)
+    assert list(predictions.shape) == [64, 51997]
