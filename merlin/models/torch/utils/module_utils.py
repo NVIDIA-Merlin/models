@@ -6,6 +6,24 @@ import torch.nn as nn
 
 
 def is_tabular(module: torch.nn.Module) -> bool:
+    """
+    Checks if the provided module accepts a dictionary of tensors as input.
+
+    This function checks the first argument of the module's forward method.
+    If it is annotated as a dictionary of tensors, the function returns True.
+
+    Parameters
+    ----------
+    module : torch.nn.Module
+        The module to check.
+
+    Returns
+    -------
+    bool
+        True if the module's forward method accepts a dictionary of tensors
+        as input, False otherwise.
+    """
+
     # Get the forward method of the input module
     forward_method = module.forward
 
@@ -25,6 +43,23 @@ def is_tabular(module: torch.nn.Module) -> bool:
 
 
 def check_batch_arg(module: nn.Module) -> Tuple[bool, bool]:
+    """Checks if the provided module's forward method accepts and/or requires a 'batch' argument.
+
+    This function analyzes the signature of the module's forward method to see if it contains
+    a 'batch' argument. It then checks if this argument has a default value to determine
+    whether it is required or optional.
+
+    Parameters
+    ----------
+    module : torch.nn.Module
+        The module to check.
+
+    Returns
+    -------
+    Tuple[bool, bool]
+        A tuple of two booleans. The first indicates whether the module accepts a 'batch'
+        argument, and the second indicates whether this argument is required.
+    """
     accepts_batch = False
     requires_batch = False
 
@@ -42,7 +77,41 @@ def check_batch_arg(module: nn.Module) -> Tuple[bool, bool]:
     return False, False
 
 
-def module_test(module, input_data, method="script", **kwargs):
+def module_test(module: nn.Module, input_data, method="script", **kwargs):
+    """
+    Tests a given PyTorch module for TorchScript compatibility by scripting or tracing it,
+    and then comparing the output of the original and the scripted/traced module.
+
+    This function first tests if the module can be called with the provided inputs. It then
+    scripts or traces the module based on the specified method. Finally, it compares the
+    output of the original and scripted/traced modules. If the outputs are not the same,
+    it raises a ValueError.
+
+    Parameters
+    ----------
+    module : torch.nn.Module
+        The PyTorch module to test.
+    input_data : Any
+        The input data to be fed to the module.
+    method : str, optional
+        The method to use for scripting or tracing the module. Defaults to "script".
+    **kwargs
+        Additional keyword arguments to be passed to the module call.
+
+    Returns
+    -------
+    Any
+        The output of the original module.
+
+    Raises
+    ------
+    RuntimeError
+        If the module cannot be called with the provided inputs or scripted/traced.
+    ValueError
+        If the outputs of the original and scripted/traced modules are not
+        the same, or if an unknown method is provided.
+    """
+
     from merlin.models.torch.batch import Batch
 
     # Check if the module can be called with the provided inputs

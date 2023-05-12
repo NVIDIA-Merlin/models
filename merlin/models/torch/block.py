@@ -9,8 +9,7 @@ from merlin.models.torch.container import BlockContainer
 
 
 class Block(BlockContainer):
-    """
-    A class for building neural network blocks that inherits from `BlockContainer`.
+    """A base-class that calls it's modules sequentially.
 
     Parameters
     ----------
@@ -49,6 +48,7 @@ class Block(BlockContainer):
     def repeat(self, n: int, name=None) -> "Block":
         """
         Creates a new block by repeating the current block `n` times.
+        Each repetition is a deep copy of the current block.
 
         Parameters
         ----------

@@ -61,9 +61,8 @@ class Sequence:
 
 @torch.jit.script
 class Batch:
-
     """
-    A PyTorch scriptable class representing a batch of tabular data.
+    A PyTorch scriptable class representing a batch of data.
 
     Attributes:
         features (Dict[str, torch.Tensor]): A dictionary mapping feature names to their
@@ -116,6 +115,25 @@ class Batch:
         targets: Optional[Dict[str, torch.Tensor]] = None,
         sequences: Optional[Sequence] = None,
     ) -> "Batch":
+        """
+        Create a new `Batch` instance, replacing specified attributes with new values.
+
+        Parameters
+        ----------
+        features : Optional[Dict[str, torch.Tensor]]
+            A dictionary of tensors representing the features of the batch. Default is None.
+        targets : Optional[Dict[str, torch.Tensor]]
+            A dictionary of tensors representing the targets of the batch. Default is None.
+        sequences : Optional[Sequence]
+            An instance of the Sequence class representing sequence lengths and masks for the
+            batch. Default is None.
+
+        Returns
+        -------
+        Batch
+            A new Batch object with replaced attributes.
+        """
+
         return Batch(
             features=features if features is not None else self.features,
             targets=targets if targets is not None else self.targets,
@@ -123,12 +141,48 @@ class Batch:
         )
 
     def feature(self, name: str = "default") -> torch.Tensor:
+        """Retrieve a feature tensor from the batch by its name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the feature tensor to return. Default is "default".
+
+        Returns
+        -------
+        torch.Tensor
+            The feature tensor of the specified name.
+
+        Raises
+        ------
+        ValueError
+            If the specified name does not exist in the features attribute.
+        """
+
         if name in self.features:
             return self.features[name]
 
         raise ValueError("Batch has multiple features, please specify a feature name")
 
     def target(self, name: str = "default") -> torch.Tensor:
+        """Retrieve a target tensor from the batch by its name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the target tensor to return. Default is "default".
+
+        Returns
+        -------
+        torch.Tensor
+            The target tensor of the specified name.
+
+        Raises
+        ------
+        ValueError
+            If the specified name does not exist in the targets attribute.
+        """
+
         if name in self.targets:
             return self.targets[name]
 

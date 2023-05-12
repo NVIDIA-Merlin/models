@@ -8,6 +8,32 @@ from merlin.models.torch.utils import module_utils
 
 
 class TorchScriptWrapper(nn.Module):
+    """
+    A wrapper class for PyTorch `nn.Module` to make it compatible with TorchScript.
+
+    It checks and determines the appropriate input format
+    (tensor or dictionary) and batch requirements for the wrapped module,
+    ensuring that these are fulfilled and appropriately passed for TorchScript's
+    static typing system.
+
+    Parameters
+    ----------
+    to_wrap : nn.Module
+        The PyTorch module to be wrapped.
+
+    Attributes
+    ----------
+    accepts_batch : bool
+        A boolean indicating whether the wrapped module accepts batch as an argument.
+    requires_batch : bool
+        A boolean indicating whether the wrapped module requires batch as an argument.
+    accepts_dict : bool
+        A boolean indicating whether the wrapped module can take a dictionary as input.
+    to_wrap : nn.Module
+        The PyTorch module to be wrapped.
+
+    """
+
     accepts_batch: Final[bool]
     requires_batch: Final[bool]
     accepts_dict: Final[bool]
@@ -25,6 +51,21 @@ class TorchScriptWrapper(nn.Module):
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ):
+        """
+
+        Parameters
+        ----------
+        inputs : Union[torch.Tensor, Dict[str, torch.Tensor]]
+            The input tensor(s) for the model.
+        batch : Optional[Batch]
+            An optional batch object.
+
+        Returns
+        -------
+        torch.Tensor or Dict[str, torch.Tensor]
+            The output of the model.
+        """
+
         if self.accepts_batch:
             if self.requires_batch:
                 if batch is None:
@@ -64,6 +105,12 @@ class TorchScriptWrapper(nn.Module):
             return self.to_wrap(x)
 
     def unwrap(self) -> nn.Module:
+        """
+        Returns
+        -------
+        nn.Module
+            The original PyTorch module.
+        """
         return self.to_wrap
 
     def __getattr__(self, name: str):

@@ -7,6 +7,18 @@ from merlin.models.torch.utils import torchscript_utils
 
 
 class BlockContainer(nn.Module):
+    """A container class for PyTorch `nn.Module` that allows for manipulation and traversal
+    of multiple sub-modules as if they were a list. The modules are automatically wrapped
+    in a TorchScriptWrapper for TorchScript compatibility.
+
+    Parameters
+    ----------
+    *inputs : nn.Module
+        One or more PyTorch modules to be added to the container.
+    name : Optional[str]
+        An optional name for the BlockContainer.
+    """
+
     def __init__(self, *inputs: nn.Module, name: Optional[str] = None):
         super().__init__()
         self.values = nn.ModuleList()
@@ -17,14 +29,50 @@ class BlockContainer(nn.Module):
         self._name: str = name
 
     def append(self, module: nn.Module):
+        """Appends a given module to the end of the list.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The PyTorch module to be appended.
+
+        Returns
+        -------
+        self
+        """
         self.values.append(self.wrap_module(module))
 
         return self
 
     def prepend(self, module: nn.Module):
+        """Prepends a given module to the beginning of the list.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The PyTorch module to be prepended.
+
+        Returns
+        -------
+        self
+        """
         return self.insert(0, module)
 
     def insert(self, index: int, module: nn.Module):
+        """Inserts a given module at the specified index.
+
+        Parameters
+        ----------
+        index : int
+            The index at which the module is to be inserted.
+        module : nn.Module
+            The PyTorch module to be inserted.
+
+        Returns
+        -------
+        self
+        """
+
         self.values.insert(index, self.wrap_module(module))
 
         return self
