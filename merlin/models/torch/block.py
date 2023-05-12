@@ -28,11 +28,7 @@ from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin
 from merlin.models.utils.registry import RegistryMixin
 
 
-<<<<<<< HEAD
 class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
-=======
-class Block(BlockContainer):
->>>>>>> 793f47ef (Adding improved doc-strings)
     """A base-class that calls it's modules sequentially.
 
     Parameters
