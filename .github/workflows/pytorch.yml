@@ -51,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install "torch${{ matrix.torch-version }}"
-          python -m pip install .[torch-dev]
+          python -m pip install .[pytorch-dev]
       - name: Build
         run: |
           python setup.py develop
