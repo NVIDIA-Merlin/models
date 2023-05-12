@@ -57,7 +57,10 @@ class TestSequence:
         assert isinstance(sequence.lengths, dict)
         assert "default" in sequence.lengths
         assert torch.equal(sequence.lengths["default"], lengths)
+<<<<<<< HEAD
         assert sequence.device() == lengths.device
+=======
+>>>>>>> f7011343 (Increase test-coverage)
 
     def test_init_tensor_masks(self):
         # Test when masks is a tensor
@@ -92,12 +95,15 @@ class TestSequence:
         with pytest.raises(ValueError, match="Masks must be a tensor or a dictionary of tensors"):
             Sequence(lengths, masks)
 
+<<<<<<< HEAD
     def test_device(self):
         empty_seq = Sequence({})
 
         with pytest.raises(ValueError, match="Sequence is empty"):
             empty_seq.device()
 
+=======
+>>>>>>> f7011343 (Increase test-coverage)
 
 class TestBatch:
     @pytest.fixture
@@ -136,7 +142,10 @@ class TestBatch:
         assert isinstance(batch.targets, dict)
         assert "default" in batch.targets
         assert torch.equal(batch.targets["default"], targets)
+<<<<<<< HEAD
         assert batch.device() == features.device
+=======
+>>>>>>> f7011343 (Increase test-coverage)
 
     def test_batch_init_invalid_targets(self):
         # Test when targets is not a tensor nor a dictionary of tensors

@@ -85,6 +85,7 @@ class TestBlock:
 
         with pytest.raises(ValueError, match="n must be greater than 0"):
             block.repeat(0)
+<<<<<<< HEAD
 
     def test_repeat_with_link(self):
         block = Block(PlusOne())
@@ -220,3 +221,5 @@ class TestParallelBlock:
 
         with pytest.raises(IndexError):
             pb["invalid_key"]
+=======
+>>>>>>> f7011343 (Increase test-coverage)
