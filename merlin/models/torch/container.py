@@ -47,13 +47,18 @@ class BlockContainer(nn.Module):
 
         self._name: str = name
 
+<<<<<<< HEAD
     def append(self, module: nn.Module, link: Optional[Link] = None):
+=======
+    def append(self, module: nn.Module):
+>>>>>>> 793f47ef (Adding improved doc-strings)
         """Appends a given module to the end of the list.
 
         Parameters
         ----------
         module : nn.Module
             The PyTorch module to be appended.
+<<<<<<< HEAD
         link : Optional[LinkType]
             The link to use for the module. If None, no link is used.
             This can either be a Module or a string, options are:
@@ -61,11 +66,14 @@ class BlockContainer(nn.Module):
                 - "shortcut": Adds a shortcut connection to the module.
                 - "shortcut-concat": Adds a shortcut connection by concatenating
                 the input and output.
+=======
+>>>>>>> 793f47ef (Adding improved doc-strings)
 
         Returns
         -------
         self
         """
+<<<<<<< HEAD
         _module = self._check_link(module, link=link)
         self.values.append(self.wrap_module(_module))
 
@@ -93,6 +101,27 @@ class BlockContainer(nn.Module):
         return self.insert(0, module, link=link)
 
     def insert(self, index: int, module: nn.Module, link: Optional[Link] = None):
+=======
+        self.values.append(self.wrap_module(module))
+
+        return self
+
+    def prepend(self, module: nn.Module):
+        """Prepends a given module to the beginning of the list.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The PyTorch module to be prepended.
+
+        Returns
+        -------
+        self
+        """
+        return self.insert(0, module)
+
+    def insert(self, index: int, module: nn.Module):
+>>>>>>> 793f47ef (Adding improved doc-strings)
         """Inserts a given module at the specified index.
 
         Parameters
@@ -101,6 +130,7 @@ class BlockContainer(nn.Module):
             The index at which the module is to be inserted.
         module : nn.Module
             The PyTorch module to be inserted.
+<<<<<<< HEAD
         link : Optional[LinkType]
             The link to use for the module. If None, no link is used.
             This can either be a Module or a string, options are:
@@ -108,13 +138,20 @@ class BlockContainer(nn.Module):
                 - "shortcut": Adds a shortcut connection to the module.
                 - "shortcut-concat": Adds a shortcut connection by concatenating
                 the input and output.
+=======
+>>>>>>> 793f47ef (Adding improved doc-strings)
 
         Returns
         -------
         self
         """
+<<<<<<< HEAD
         _module = self._check_link(module, link=link)
         self.values.insert(index, self.wrap_module(_module))
+=======
+
+        self.values.insert(index, self.wrap_module(module))
+>>>>>>> 793f47ef (Adding improved doc-strings)
 
         return self
 
