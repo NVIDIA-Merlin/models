@@ -13,12 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-<<<<<<< HEAD
-=======
-
-from merlin.models.torch.batch import Batch
-from merlin.models.torch.block import Block
->>>>>>> 2dfe2782 (Adding torch github-action + add copyright)
 
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import Block, ParallelBlock
