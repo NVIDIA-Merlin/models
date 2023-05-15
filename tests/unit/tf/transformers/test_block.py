@@ -120,7 +120,8 @@ def test_transformer_encoder_with_list_to_dense():
     inputs = tf.RaggedTensor.from_tensor(tf.random.uniform((NUM_ROWS, SEQ_LENGTH, EMBED_DIM)))
 
     transformer_encod = mm.TransformerBlock(
-        transformer=BertConfig(hidden_size=EMBED_DIM, num_attention_heads=16), pre=mm.ToDense(),
+        transformer=BertConfig(hidden_size=EMBED_DIM, num_attention_heads=16),
+        pre=mm.ToDense(),
     )
     outputs = transformer_encod(inputs)
 
@@ -149,7 +150,11 @@ def test_hf_tranformers_blocks(encoder):
     SEQ_LENGTH = 10
     EMBED_DIM = 128
     inputs = tf.random.uniform((NUM_ROWS, SEQ_LENGTH, EMBED_DIM))
-    transformer_encod = encoder(d_model=EMBED_DIM, n_head=8, n_layer=2,)
+    transformer_encod = encoder(
+        d_model=EMBED_DIM,
+        n_head=8,
+        n_layer=2,
+    )
     outputs = transformer_encod(inputs)
     assert list(outputs.shape) == [NUM_ROWS, SEQ_LENGTH, EMBED_DIM]
 
@@ -160,9 +165,19 @@ def test_transformer_as_classification_model(sequence_testing_data: Dataset, run
     loader, schema = classification_loader(sequence_testing_data)
 
     model = mm.Model(
-        mm.InputBlockV2(schema, categorical=mm.Embeddings(schema, sequence_combiner=None),),
-        BertBlock(d_model=EMBED_DIM, n_head=8, n_layer=2, transformer_post="pooler_output",),
-        mm.CategoricalOutput(to_call=schema["user_country"],),
+        mm.InputBlockV2(
+            schema,
+            categorical=mm.Embeddings(schema, sequence_combiner=None),
+        ),
+        BertBlock(
+            d_model=EMBED_DIM,
+            n_head=8,
+            n_layer=2,
+            transformer_post="pooler_output",
+        ),
+        mm.CategoricalOutput(
+            to_call=schema["user_country"],
+        ),
     )
 
     batch = loader.peek()[0]
@@ -207,9 +222,10 @@ def classification_loader(sequence_testing_data: Dataset):
         ["item_id_seq", "categories", "user_country"]
     )
     sequence_testing_data.schema = schema
-    dataloader = mm.Loader(sequence_testing_data, batch_size=64,).map(
-        mm.ToTarget(schema, "user_country", one_hot=True)
-    )
+    dataloader = mm.Loader(
+        sequence_testing_data,
+        batch_size=64,
+    ).map(mm.ToTarget(schema, "user_country", one_hot=True))
     return dataloader, dataloader.output_schema
 
 
@@ -332,7 +348,8 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
         mm.MLPBlock([transformer_input_dim]),
         transformer_block,
         mm.CategoricalOutput(
-            seq_schema.select_by_name(target), default_loss="categorical_crossentropy",
+            seq_schema.select_by_name(target),
+            default_loss="categorical_crossentropy",
         ),
     )
     seq_mask_random = mm.SequenceMaskRandom(
@@ -387,7 +404,8 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
         mm.MLPBlock([transformer_input_dim]),
         transformer_block,
         mm.CategoricalOutput(
-            seq_schema.select_by_name(target), default_loss="categorical_crossentropy",
+            seq_schema.select_by_name(target),
+            default_loss="categorical_crossentropy",
         ),
     )
     seq_mask_random = mm.SequenceMaskRandom(
@@ -467,13 +485,19 @@ def test_transformer_model_with_masking_and_broadcast_to_sequence(
 
     dmodel = 32
     mlp_block = mm.MLPBlock([128, dmodel], activation="relu")
-    transformer_block = mm.GPT2Block(d_model=dmodel, n_head=4, n_layer=2,)
+    transformer_block = mm.GPT2Block(
+        d_model=dmodel,
+        n_head=4,
+        n_layer=2,
+    )
 
     dense_block = mm.SequentialBlock(input_block, mlp_block, transformer_block)
 
     mlp_block2 = mm.MLPBlock([128, item_id_emb_dim], activation="relu")
 
-    prediction_task = mm.CategoricalOutput(to_call=input_block["categorical"][item_id_name],)
+    prediction_task = mm.CategoricalOutput(
+        to_call=input_block["categorical"][item_id_name],
+    )
     model = mm.Model(dense_block, mlp_block2, prediction_task)
 
     fit_pre = mm.SequenceMaskRandom(
@@ -503,10 +527,18 @@ def test_transformer_encoder_with_contrastive_output(sequence_testing_data: Data
         ),
     )
     transformer_block = XLNetBlock(d_model=dmodel, n_head=4, n_layer=1)
-    session_encoder = mm.Encoder(input_block, mm.MLPBlock([dmodel]), transformer_block,)
+    session_encoder = mm.Encoder(
+        input_block,
+        mm.MLPBlock([dmodel]),
+        transformer_block,
+    )
     output_block = mm.ContrastiveOutput(
         to_call=target_schema,
-        negative_samplers=mm.PopularityBasedSamplerV2(max_num_samples=10, max_id=1000, min_id=1,),
+        negative_samplers=mm.PopularityBasedSamplerV2(
+            max_num_samples=10,
+            max_id=1000,
+            min_id=1,
+        ),
         logq_sampling_correction=True,
     )
     model = mm.RetrievalModelV2(query=session_encoder, output=output_block)
@@ -578,27 +610,38 @@ def test_transformer_model_with_masking_broadcast_and_pretrained_emb(
             sequence_combiner=None,
         ),
         pretrained_embeddings=mm.PretrainedEmbeddings(
-            schema.select_by_tag(Tags.EMBEDDING), sequence_combiner=None,
+            schema.select_by_tag(Tags.EMBEDDING),
+            sequence_combiner=None,
         ),
         post=mm.BroadcastToSequence(context_schema, seq_schema),
     )
 
     dmodel = 32
     mlp_block = mm.MLPBlock([128, dmodel], activation="relu")
-    transformer_block = mm.GPT2Block(d_model=dmodel, n_head=4, n_layer=2,)
+    transformer_block = mm.GPT2Block(
+        d_model=dmodel,
+        n_head=4,
+        n_layer=2,
+    )
 
     dense_block = mm.SequentialBlock(input_block, mlp_block, transformer_block)
 
     mlp_block2 = mm.MLPBlock([64, item_id_embedding_dim], activation="relu")
 
-    prediction_task = mm.CategoricalOutput(to_call=input_block["categorical"][item_id_name],)
+    prediction_task = mm.CategoricalOutput(
+        to_call=input_block["categorical"][item_id_name],
+    )
     model = mm.Model(dense_block, mlp_block2, prediction_task)
 
     fit_pre = mm.SequenceMaskRandom(
         schema=seq_schema, target=item_id_name, masking_prob=0.3, transformer=transformer_block
     )
     testing_utils.model_test(
-        model, loader, run_eagerly=run_eagerly, reload_model=False, fit_kwargs={"pre": fit_pre},
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=False,
+        fit_kwargs={"pre": fit_pre},
     )
 
 
@@ -657,20 +700,27 @@ def test_transformer_model_with_causal_language_modeling_and_pretrained_emb(
             sequence_combiner=None,
         ),
         pretrained_embeddings=mm.PretrainedEmbeddings(
-            schema.select_by_tag(Tags.EMBEDDING), sequence_combiner=None,
+            schema.select_by_tag(Tags.EMBEDDING),
+            sequence_combiner=None,
         ),
         post=mm.BroadcastToSequence(context_schema, seq_schema),
     )
 
     dmodel = 32
     mlp_block = mm.MLPBlock([128, dmodel], activation="relu")
-    transformer_block = mm.GPT2Block(d_model=dmodel, n_head=4, n_layer=2,)
+    transformer_block = mm.GPT2Block(
+        d_model=dmodel,
+        n_head=4,
+        n_layer=2,
+    )
 
     dense_block = mm.SequentialBlock(input_block, mlp_block, transformer_block)
 
     mlp_block2 = mm.MLPBlock([64, item_id_embedding_dim], activation="relu")
 
-    prediction_task = mm.CategoricalOutput(to_call=input_block["categorical"][item_id_name],)
+    prediction_task = mm.CategoricalOutput(
+        to_call=input_block["categorical"][item_id_name],
+    )
     model = mm.Model(dense_block, mlp_block2, prediction_task)
 
     predict_next = mm.SequencePredictNext(
