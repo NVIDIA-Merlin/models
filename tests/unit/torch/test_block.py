@@ -86,6 +86,20 @@ class TestBlock:
 =======
 >>>>>>> 77ca69b43 (Adding ParallelBlock)
 
+    def test_from_registry(self):
+        @Block.registry.register("my_block")
+        class MyBlock(Block):
+            def forward(self, inputs):
+                _inputs = inputs + 1
+
+                return super().forward(_inputs)
+
+        block = Block.parse("my_block")
+        assert block.__class__ == MyBlock
+
+        inputs = torch.randn(1, 3)
+        assert torch.equal(block(inputs), inputs + 1)
+
 
 class TestParallelBlock:
     def test_init(self):
