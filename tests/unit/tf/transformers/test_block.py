@@ -169,6 +169,7 @@ def test_transformer_as_classification_model(sequence_testing_data: Dataset, run
             schema,
             categorical=mm.Embeddings(schema, sequence_combiner=None),
         ),
+        mm.MLPBlock([EMBED_DIM]),
         BertBlock(
             d_model=EMBED_DIM,
             n_head=8,
@@ -536,7 +537,7 @@ def test_transformer_encoder_with_contrastive_output(sequence_testing_data: Data
         to_call=target_schema,
         negative_samplers=mm.PopularityBasedSamplerV2(
             max_num_samples=10,
-            max_id=1000,
+            max_id=100,
             min_id=1,
         ),
         logq_sampling_correction=True,
