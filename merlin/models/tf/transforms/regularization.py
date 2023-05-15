@@ -34,7 +34,7 @@ class L2Norm(TabularBlock):
         if isinstance(inputs, dict):
             inputs = {key: self._l2_norm(inp, axis=axis) for key, inp in inputs.items()}
         else:
-            inputs = self._l2_norm(inputs)
+            inputs = self._l2_norm(inputs, axis=axis)
 
         return inputs
 

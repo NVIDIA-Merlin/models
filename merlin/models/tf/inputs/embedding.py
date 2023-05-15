@@ -664,7 +664,7 @@ def PretrainedEmbeddings(
     aggregation: Optional[TabularAggregationType], optional
         Transformation block to apply for aggregating the inputs, by default None
     block_name: str, optional
-        Name of the block, by default "embeddings"
+        Name of the block, by default "pretrained_embeddings"
     Returns
     -------
     ParallelBlock
@@ -1339,7 +1339,7 @@ def process_str_sequence_combiner(
         combiner = tf.keras.layers.Lambda(lambda x: tf.reduce_max(x, axis=1))
     else:
         raise ValueError(
-            "Only 'mean' and 'sum' str combiners is implemented for dense"
+            "Only 'mean', 'sum', and 'max' str combiners is implemented for dense"
             " list/multi-hot embedded features. You can also"
             " provide a tf.keras.layers.Layer instance as a sequence combiner."
         )
