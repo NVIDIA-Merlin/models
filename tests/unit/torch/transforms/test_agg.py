@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from merlin.models.torch.block import Block
-from merlin.models.torch.transforms.agg import Concat, Stack
+from merlin.models.torch.transforms.agg import Concat, MaybeAgg, Stack
 from merlin.models.torch.utils import module_utils
 
 
@@ -43,7 +43,7 @@ class TestConcat:
             "a": torch.randn(2, 3),
             "b": torch.randn(2, 4),
         }
-        output = block(input_tensors)
+        output = module_utils.module_test(block, input_tensors)
         assert output.shape == (2, 7)
 
 
@@ -84,3 +84,38 @@ class TestStack:
         }
         output = block(input_tensors)
         assert output.shape == (2, 2, 3)
+
+
+class TestMaybeAgg:
+    def test_with_single_tensor(self):
+        tensor = torch.tensor([1, 2, 3])
+        stack = Stack(dim=0)
+        maybe_agg = MaybeAgg(agg=stack)
+
+        output = module_utils.module_test(maybe_agg, tensor)
+        assert torch.equal(output, tensor)
+
+    def test_with_dict(self):
+        stack = Stack(dim=0)
+        maybe_agg = MaybeAgg(agg=stack)
+
+        tensor1 = torch.tensor([[1, 2], [3, 4]])
+        tensor2 = torch.tensor([[5, 6], [7, 8]])
+        input_dict = {"tensor1": tensor1, "tensor2": tensor2}
+        expected_output = torch.tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+        output = module_utils.module_test(maybe_agg, input_dict)
+
+        assert torch.equal(output, expected_output)
+
+    def test_with_incompatible_dict(self):
+        concat = Concat(dim=0)
+        maybe_agg = MaybeAgg(agg=concat)
+
+        tensor1 = torch.tensor([1, 2, 3])
+        tensor2 = torch.tensor([4, 5])
+        input_dict = {"tensor1": (tensor1, tensor2)}
+
+        with pytest.raises(
+            RuntimeError, match="Inputs must be either a dictionary of tensors or a single tensor"
+        ):
+            maybe_agg(input_dict)
