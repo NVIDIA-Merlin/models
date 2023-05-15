@@ -748,7 +748,7 @@
 <span class="sd">    aggregation: Optional[TabularAggregationType], optional</span>
 <span class="sd">        Transformation block to apply for aggregating the inputs, by default None</span>
 <span class="sd">    block_name: str, optional</span>
-<span class="sd">        Name of the block, by default &quot;embeddings&quot;</span>
+<span class="sd">        Name of the block, by default &quot;pretrained_embeddings&quot;</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    ParallelBlock</span>
@@ -1423,7 +1423,7 @@
         <span class="n">combiner</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Lambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Only &#39;mean&#39; and &#39;sum&#39; str combiners is implemented for dense&quot;</span>
+            <span class="s2">&quot;Only &#39;mean&#39;, &#39;sum&#39;, and &#39;max&#39; str combiners is implemented for dense&quot;</span>
             <span class="s2">&quot; list/multi-hot embedded features. You can also&quot;</span>
             <span class="s2">&quot; provide a tf.keras.layers.Layer instance as a sequence combiner.&quot;</span>
         <span class="p">)</span>
