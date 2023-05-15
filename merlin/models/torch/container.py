@@ -21,6 +21,7 @@ from typing import Dict, Iterator, Optional, Union
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
 
+from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.utils import torchscript_utils
 
 
@@ -46,7 +47,7 @@ class BlockContainer(nn.Module):
 
         self._name: str = name
 
-    def append(self, module: nn.Module):
+    def append(self, module: nn.Module, link: Optional[Link] = None):
         """Appends a given module to the end of the list.
 
         Parameters
@@ -58,11 +59,12 @@ class BlockContainer(nn.Module):
         -------
         self
         """
-        self.values.append(self.wrap_module(module))
+        _module = self._check_link(module, link=link)
+        self.values.append(self.wrap_module(_module))
 
         return self
 
-    def prepend(self, module: nn.Module):
+    def prepend(self, module: nn.Module, link: Optional[Link] = None):
         """Prepends a given module to the beginning of the list.
 
         Parameters
@@ -74,9 +76,9 @@ class BlockContainer(nn.Module):
         -------
         self
         """
-        return self.insert(0, module)
+        return self.insert(0, module, link=link)
 
-    def insert(self, index: int, module: nn.Module):
+    def insert(self, index: int, module: nn.Module, link: Optional[Link] = None):
         """Inserts a given module at the specified index.
 
         Parameters
@@ -90,8 +92,8 @@ class BlockContainer(nn.Module):
         -------
         self
         """
-
-        self.values.insert(index, self.wrap_module(module))
+        _module = self._check_link(module, link=link)
+        self.values.insert(index, self.wrap_module(_module))
 
         return self
 
@@ -151,6 +153,15 @@ class BlockContainer(nn.Module):
 
     def _get_name(self) -> str:
         return super()._get_name() if self._name is None else self._name
+
+    def _check_link(self, module: nn.Module, link: Optional[LinkType] = None) -> nn.Module:
+        if link:
+            linked_module: Link = Link.parse(link)
+            linked_module.setup_link(module)
+
+            return linked_module
+
+        return module
 
 
 class BlockContainerDict(nn.ModuleDict):
@@ -215,6 +226,17 @@ class BlockContainerDict(nn.ModuleDict):
         """
 
         self._modules[name].prepend(module)
+    def append_to(
+        self, name: str, module: nn.Module, link: Optional[LinkType] = None
+    ) -> "BlockContainerDict":
+        self._modules[name].append(module, link=link)
+
+        return self
+
+    def prepend_to(
+        self, name: str, module: nn.Module, link: Optional[LinkType] = None
+    ) -> "BlockContainerDict":
+        self._modules[name].prepend(module, link=link)
 
         return self
 
@@ -236,9 +258,12 @@ class BlockContainerDict(nn.ModuleDict):
             The current object itself.
         """
 
+    def append_for_each(
+        self, module: nn.Module, shared=False, link: Optional[LinkType] = None
+    ) -> "BlockContainerDict":
         for branch in self.values():
             _module = module if shared else deepcopy(module)
-            branch.append(_module)
+            branch.append(_module, link=link)
 
         return self
 
@@ -259,9 +284,12 @@ class BlockContainerDict(nn.ModuleDict):
             The current object itself.
         """
 
+    def prepend_for_each(
+        self, module: nn.Module, shared=False, link: Optional[LinkType] = None
+    ) -> "BlockContainerDict":
         for branch in self.values():
             _module = module if shared else deepcopy(module)
-            branch.prepend(_module)
+            branch.prepend(_module, link=link)
 
         return self
 
