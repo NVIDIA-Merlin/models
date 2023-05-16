@@ -17,6 +17,7 @@
 from typing import Dict, Optional, Union
 
 import torch
+import torch.nn
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset

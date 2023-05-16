@@ -1,18 +1,10 @@
 import pytest
 
-<<<<<<< HEAD
 from merlin.models.torch.utils.selection_utils import Selectable, select_schema, selection_name
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
 class TestSelectSchema:
-=======
-from merlin.models.torch.utils.selection_utils import select_schema, selection_name
-from merlin.schema import ColumnSchema, Schema, Tags
-
-
-class Test_select_schema:
->>>>>>> a2644079 (Add selection_utils)
     @pytest.fixture(autouse=True)
     def setup_method(self, music_streaming_data):
         self.schema: Schema = music_streaming_data.schema
@@ -43,10 +35,14 @@ class Test_select_schema:
         output = select_schema(self.schema, column)
         output_2 = select_schema(self.schema, ColumnSchema("user_id"))
 <<<<<<< HEAD
+<<<<<<< HEAD
         assert output == output_2 == Schema([column])
 =======
         assert output == column == output_2
 >>>>>>> a2644079 (Add selection_utils)
+=======
+        assert output == output_2 == Schema([column])
+>>>>>>> 89a6f043 (Increase test-coverage)
 
     def test_exceptions(self):
         with pytest.raises(ValueError, match="is not valid"):
