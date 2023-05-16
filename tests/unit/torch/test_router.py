@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from typing import Dict
 
 import pytest
@@ -119,11 +120,22 @@ class TestRouterBlock:
         outputs = module_utils.module_test(nested, self.batch.features)
         assert list(outputs.keys()) == ["user_age"]
         assert "user_age" in nested.output_schema().column_names
+=======
+import pytest
+
+from merlin.models.torch.router import RouterBlock, SelectKeys
+from merlin.schema import Schema
+
+
+class TestRouterBlock:
+    ...
+>>>>>>> a2644079 (Add selection_utils)
 
 
 class TestSelectKeys:
     @pytest.fixture(autouse=True)
     def setup_method(self, music_streaming_data):
+<<<<<<< HEAD
         self.batch: Batch = sample_batch(music_streaming_data, batch_size=10)
         self.schema: Schema = music_streaming_data.schema
         self.user_schema: Schema = mm.select_schema(self.schema, Tags.USER)
@@ -151,3 +163,11 @@ class TestSelectKeys:
         select_user = mm.SelectKeys()
         select_user.setup_schema(self.user_schema["user_id"])
         assert select_user.schema == Schema([self.user_schema["user_id"]])
+=======
+        self.data = music_streaming_data
+        self.schema = music_streaming_data.schema
+        self.select_keys = SelectKeys(music_streaming_data.schema)
+
+    def test_forward(self):
+        ...
+>>>>>>> a2644079 (Add selection_utils)
