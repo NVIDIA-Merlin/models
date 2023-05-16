@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 
@@ -280,6 +280,7 @@ class Batch:
     def __bool__(self) -> bool:
         return bool(self.features)
 
+<<<<<<< HEAD
     def device(self) -> torch.device:
         """Retrieves the device of the tensors in the Batch object.
 
@@ -301,6 +302,14 @@ def sample_batch(
     batch_size: Optional[int] = None,
     shuffle: Optional[bool] = False,
 ) -> Batch:
+=======
+
+def sample_batch(
+    dataset_or_loader: Union[Dataset, Loader],
+    batch_size: Optional[int] = None,
+    shuffle: Optional[bool] = False,
+) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+>>>>>>> d00e67a4 (Adding sample_batch & sample_features)
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
     Parameters
@@ -320,6 +329,7 @@ def sample_batch(
         dictionary of target tensors.
     """
 
+<<<<<<< HEAD
     if isinstance(data, Dataset):
         if not batch_size:
             raise ValueError("Either use 'Loader' or specify 'batch_size'")
@@ -328,16 +338,32 @@ def sample_batch(
         loader = data
     else:
         raise ValueError(f"Expected Dataset or Loader instance, got: {data}")
+=======
+    if isinstance(dataset_or_loader, Dataset):
+        if not batch_size:
+            raise ValueError("Either use 'Loader' or specify 'batch_size'")
+        loader = Loader(dataset_or_loader, batch_size=batch_size, shuffle=shuffle)
+    else:
+        loader = dataset_or_loader
+>>>>>>> d00e67a4 (Adding sample_batch & sample_features)
 
     batch = loader.peek()
     # batch could be of type Prediction, so we can't unpack directly
     inputs, targets = batch[0], batch[1]
 
+<<<<<<< HEAD
     return Batch(inputs, targets)
 
 
 def sample_features(
     data: Union[Dataset, Loader],
+=======
+    return inputs, targets
+
+
+def sample_features(
+    dataset_or_loader: Union[Dataset, Loader],
+>>>>>>> d00e67a4 (Adding sample_batch & sample_features)
     batch_size: Optional[int] = None,
     shuffle: Optional[bool] = False,
 ) -> Dict[str, torch.Tensor]:
@@ -358,4 +384,8 @@ def sample_features(
         dictionary of feature tensors.
     """
 
+<<<<<<< HEAD
     return sample_batch(data, batch_size, shuffle).features
+=======
+    return sample_batch(dataset_or_loader, batch_size, shuffle)[0]
+>>>>>>> d00e67a4 (Adding sample_batch & sample_features)
