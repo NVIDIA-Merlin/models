@@ -524,7 +524,9 @@
 <span class="sd">                default_optimizer=tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001),</span>
 <span class="sd">                optimizers_and_blocks=[</span>
 <span class="sd">                    ml.OptimizerBlocks(&quot;ftrl&quot;, wide_model),</span>
-<span class="sd">                    ml.OptimizerBlocks(tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001), deep_model),</span>
+<span class="sd">                    ml.OptimizerBlocks(</span>
+<span class="sd">                    tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001), deep_model</span>
+<span class="sd">                    ),</span>
 <span class="sd">                    ],</span>
 <span class="sd">            )</span>
 <span class="sd">        ```</span>

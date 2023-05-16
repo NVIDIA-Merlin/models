@@ -244,7 +244,9 @@ For example:
         default_optimizer=tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001),
         optimizers_and_blocks=[
             ml.OptimizerBlocks(&quot;ftrl&quot;, wide_model),
-            ml.OptimizerBlocks(tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001), deep_model),
+            ml.OptimizerBlocks(
+            tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001), deep_model
+            ),
             ],
     )
 ```
