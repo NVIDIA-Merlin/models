@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Union
 
 import torch
 
@@ -213,7 +213,7 @@ def sample_batch(
     dataset_or_loader: Union[Dataset, Loader],
     batch_size: Optional[int] = None,
     shuffle: Optional[bool] = False,
-) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+) -> Batch:
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
     Parameters
@@ -244,7 +244,7 @@ def sample_batch(
     # batch could be of type Prediction, so we can't unpack directly
     inputs, targets = batch[0], batch[1]
 
-    return inputs, targets
+    return Batch(inputs, targets)
 
 
 def sample_features(
@@ -269,4 +269,4 @@ def sample_features(
         dictionary of feature tensors.
     """
 
-    return sample_batch(dataset_or_loader, batch_size, shuffle)[0]
+    return sample_batch(dataset_or_loader, batch_size, shuffle).features
