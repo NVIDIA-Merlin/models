@@ -437,11 +437,11 @@ def WideAndDeepModel(
             deep_model = model.blocks[0].parallel_layers["deep"]
 
             multi_optimizer = ml.MultiOptimizer(
-                default_optimizer="adagrad",
+                default_optimizer=tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001),
                 optimizers_and_blocks=[
                     ml.OptimizerBlocks("ftrl", wide_model),
-                    ml.OptimizerBlocks("adagrad", deep_model),
-                ],
+                    ml.OptimizerBlocks(tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001), deep_model),
+                    ],
             )
         ```
 

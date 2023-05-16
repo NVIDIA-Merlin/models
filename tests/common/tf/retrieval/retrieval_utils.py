@@ -493,7 +493,7 @@ def get_optimizer(
             clipvalue=opt_clip_value,
         )
     elif optimizer == "adagrad":
-        opt = tf.keras.optimizers.Adagrad(
+        opt = tf.keras.optimizers.legacy.Adagrad(
             learning_rate=lerning_rate,
             clipnorm=opt_clip_norm,
             clipvalue=opt_clip_value,

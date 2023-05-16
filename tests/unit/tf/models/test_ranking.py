@@ -466,10 +466,10 @@ def test_wide_deep_model_wide_feature_interaction_multi_optimizer(ecommerce_data
     deep_model = model.blocks[0].parallel_layers["deep"]
 
     multi_optimizer = mm.MultiOptimizer(
-        default_optimizer="adagrad",
+        default_optimizer=tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001),
         optimizers_and_blocks=[
             mm.OptimizerBlocks("ftrl", wide_model),
-            mm.OptimizerBlocks("adagrad", deep_model),
+            mm.OptimizerBlocks(tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001), deep_model),
         ],
     )
     testing_utils.model_test(
