@@ -33,7 +33,7 @@ def select_schema(schema: Schema, selection: Selection) -> Schema:
     if isinstance(selection, Schema):
         selected = selection
     elif isinstance(selection, ColumnSchema):
-        selected = schema[selection.name]
+        selected = Schema([schema[selection.name]])
     elif callable(selection):
         selected = selection(schema)
     elif isinstance(selection, Tags):

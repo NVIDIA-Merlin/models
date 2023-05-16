@@ -34,7 +34,7 @@ class Test_select_schema:
 
         output = select_schema(self.schema, column)
         output_2 = select_schema(self.schema, ColumnSchema("user_id"))
-        assert output == column == output_2
+        assert output == output_2 == Schema([column])
 
     def test_exceptions(self):
         with pytest.raises(ValueError, match="is not valid"):

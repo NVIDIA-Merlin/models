@@ -15,19 +15,64 @@ from merlin.schema import ColumnSchema, Schema
 
 
 class RouterBlock(ParallelBlock, Selectable):
+    """A block that routes features by selecting them from a selectable object.
+
+    Example usage::
+        router = RouterBlock(schema)
+        router.add_route(Tags.CONTINUOUS)
+        router.add_route(Tags.CATEGORICAL, Embeddings(dim=64))
+        router.add_route(Tags.EMBEDDING, MLPBlock([64, 32]))
+
+    Parameters
+    ----------
+    selectable : Selectable
+        The selectable object from which to select features.
+
+    Attributes
+    ----------
+    selectable : Selectable
+        The selectable object from which to select features.
+    """
+
     def __init__(self, selectable: Selectable):
         super().__init__()
-        self.selectable = selectable
+        if isinstance(selectable, Schema):
+            selectable = SelectKeys(selectable)
 
-    def add(
+        self.selectable: Selectable = selectable
+
+    def add_route(
         self,
         selection: Selection,
         module: Optional[nn.Module] = None,
         name: Optional[str] = None,
     ) -> "RouterBlock":
+        """Add a new routing path for a given selection.
+
+        Example usage::
+            router.add_route(Tags.CONTINUOUS)
+
+        Example usage with module::
+            router.add_route(Tags.CONTINUOUS, MLPBlock([64, 32]]))
+
+        Parameters
+        ----------
+        selection : Selection
+            The selection to apply to the selectable.
+        module : nn.Module, optional
+            The module to append to the branch after selection.
+        name : str, optional
+            The name of the branch. Default is the name of the selection.
+
+        Returns
+        -------
+        RouterBlock
+            The router block with the new route added.
+        """
+
         routing_module = self.selectable.select(selection)
-        branch = Block(routing_module)
         if module is not None:
+            branch = Block(routing_module)
             if isinstance(module, ParallelBlock):
                 branch = module.prepend(routing_module)
 
@@ -45,10 +90,32 @@ class RouterBlock(ParallelBlock, Selectable):
 
         return self
 
-    def add_for_each(self, selection: Selection, module: nn.Module, shared=False) -> "RouterBlock":
+    def add_route_for_each(
+        self, selection: Selection, module: nn.Module, shared=False
+    ) -> "RouterBlock":
+        """Add a new route for each column in a selection.
+
+        Example usage::
+            router.add_route_for_each(Tags.EMBEDDING, MLPBlock([64, 32]]))
+
+        Parameters
+        ----------
+        selection : Selection
+            The selections to apply to the selectable.
+        module : nn.Module
+            The module to append to each branch after selection.
+        shared : bool, optional
+            Whether to use the same module instance for each selection.
+
+        Returns
+        -------
+        RouterBlock
+            The router block with the new routes added.
+        """
+
         if isinstance(selection, (list, tuple)):
             for sel in selection:
-                self.add_for_each(sel, module, shared=shared)
+                self.add_route_for_each(sel, module, shared=shared)
 
             return self
 
@@ -56,17 +123,55 @@ class RouterBlock(ParallelBlock, Selectable):
 
         for col in selected:
             col_module = module if shared else deepcopy(module)
-            if hasattr(col_module, "setup_schema"):
-                col_module.setup_schema(selected)
-
-            self.add(col, col_module, name=col.name)
+            self.add_route(col, col_module, name=col.name)
 
         return self
 
-    def to_router(self) -> "RouterBlock":
+    def nested_router(self) -> "RouterBlock":
+        """Create a new nested router block.
+
+        This method is useful for creating hierarchical routing structures.
+        For example, you might want to route continuous and categorical features differently,
+        and then within each of these categories, route user- and item-features differently.
+        This can be achieved by calling `nested_router` to create a second level of routing.
+
+        This approach allows for constructing networks with shared computation,
+        such as shared embedding tables (like for instance user_genres and item_genres columns).
+        This can improve performance and efficiency.
+
+        Example usage::
+            router = RouterBlock(selectable)
+            # First level of routing: separate continuous and categorical features
+            router.add_route(Tags.CONTINUOUS)
+            router.add_route(Tags.CATEGORICAL, categorical_module)
+
+            # Second level of routing: separate user- and item-features
+            two_tower = router.nested_router()
+            two_tower.add_route(Tags.USER, user_module)
+            two_tower.add_route(Tags.ITEM, item_module)
+
+        Returns
+        -------
+        RouterBlock
+            A new router block with the current block as its selectable.
+        """
+
         return RouterBlock(self)
 
     def select(self, selection: Selection) -> "RouterBlock":
+        """Select a subset of the branches based on the provided selection.
+
+        Parameters
+        ----------
+        selection : Selection
+            The selection to apply to the branches.
+
+        Returns
+        -------
+        RouterBlock
+            A new router block with the selected branches.
+        """
+
         selected_branches = {}
         for key, val in self.branches.items():
             if len(val) == 1:
@@ -78,11 +183,37 @@ class RouterBlock(ParallelBlock, Selectable):
         for key, val in selected_branches.items():
             selectable.branches[key] = val
 
-        # TODO: Add pre/post
+        selectable.pre = self.pre
+        selectable.post = self.post
+
         return selectable
 
 
 class SelectKeys(nn.Module, Selectable):
+    """Filter tabular data based on a defined schema.
+
+    Example usage::
+    >>> select_keys = SelectKeys(Schema(["user_id", "item_id"]))
+    >>> inputs = {
+    ...     "user_id": torch.tensor([1, 2, 3]),
+    ...     "item_id": torch.tensor([4, 5, 6]),
+    ...     "other_key": torch.tensor([7, 8, 9]),
+    ... }
+    >>> outputs = select_keys(inputs)
+    >>> print(outputs.keys())
+    dict_keys(['user_id', 'item_id'])
+
+    Parameters
+    ----------
+    schema : Schema, optional
+        The schema to use for selection. Default is None.
+
+    Attributes
+    ----------
+    col_names : list
+        List of column names in the schema.
+    """
+
     def __init__(self, schema: Optional[Schema] = None):
         super().__init__()
         if schema:
@@ -96,14 +227,46 @@ class SelectKeys(nn.Module, Selectable):
 
         self.col_names: List[str] = schema.column_names
 
-    def select(self, selection: Selection) -> Selectable:
+    def select(self, selection: Selection) -> "SelectKeys":
+        """Select a subset of the schema based on the provided selection.
+
+        Parameters
+        ----------
+        selection : Selection
+            The selection to apply to the schema.
+
+        Returns
+        -------
+        SelectKeys
+            A new SelectKeys instance with the selected schema.
+        """
+
         return SelectKeys(select_schema(self.schema, selection))
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        """Only keep the inputs that are present in the schema.
+
+        Parameters
+        ----------
+        inputs : dict
+            A dictionary of torch.Tensor objects.
+
+        Returns
+        -------
+        dict
+            A dictionary of torch.Tensor objects after selection.
+        """
+
         outputs = {}
 
         for key, val in inputs.items():
-            if key in self.col_names:
+            _key = key
+            if key.endswith("__values"):
+                _key = key[: -len("__values")]
+            elif key.endswith("__offsets"):
+                _key = key[: -len("__offsets")]
+
+            if _key in self.col_names:
                 outputs[key] = val
 
         return outputs
