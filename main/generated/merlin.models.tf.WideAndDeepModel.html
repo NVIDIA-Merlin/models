@@ -241,11 +241,13 @@ For example:
     deep_model = model.blocks[0].parallel_layers[&quot;deep&quot;]
 
     multi_optimizer = ml.MultiOptimizer(
-        default_optimizer=&quot;adagrad&quot;,
+        default_optimizer=tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001),
         optimizers_and_blocks=[
             ml.OptimizerBlocks(&quot;ftrl&quot;, wide_model),
-            ml.OptimizerBlocks(&quot;adagrad&quot;, deep_model),
-        ],
+            ml.OptimizerBlocks(
+            tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001), deep_model
+            ),
+            ],
     )
 ```
 </pre></div>

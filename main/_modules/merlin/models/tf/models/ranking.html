@@ -521,11 +521,13 @@
 <span class="sd">            deep_model = model.blocks[0].parallel_layers[&quot;deep&quot;]</span>
 
 <span class="sd">            multi_optimizer = ml.MultiOptimizer(</span>
-<span class="sd">                default_optimizer=&quot;adagrad&quot;,</span>
+<span class="sd">                default_optimizer=tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001),</span>
 <span class="sd">                optimizers_and_blocks=[</span>
 <span class="sd">                    ml.OptimizerBlocks(&quot;ftrl&quot;, wide_model),</span>
-<span class="sd">                    ml.OptimizerBlocks(&quot;adagrad&quot;, deep_model),</span>
-<span class="sd">                ],</span>
+<span class="sd">                    ml.OptimizerBlocks(</span>
+<span class="sd">                    tf.keras.optimizers.legacy.Adagrad(learning_rate=0.001), deep_model</span>
+<span class="sd">                    ),</span>
+<span class="sd">                    ],</span>
 <span class="sd">            )</span>
 <span class="sd">        ```</span>
 
