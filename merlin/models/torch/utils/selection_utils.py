@@ -34,10 +34,14 @@ def select_schema(schema: Schema, selection: Selection) -> Schema:
         selected = selection
     elif isinstance(selection, ColumnSchema):
 <<<<<<< HEAD
+<<<<<<< HEAD
         selected = Schema([schema[selection.name]])
 =======
         selected = schema[selection.name]
 >>>>>>> a2644079 (Add selection_utils)
+=======
+        selected = Schema([schema[selection.name]])
+>>>>>>> 89a6f043 (Increase test-coverage)
     elif callable(selection):
         selected = selection(schema)
     elif isinstance(selection, Tags):
