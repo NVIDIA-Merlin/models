@@ -17,7 +17,8 @@
 import pytest
 import torch
 
-from merlin.models.torch.batch import Batch, Sequence
+from merlin.dataloader.torch import Loader
+from merlin.models.torch.batch import Batch, Sequence, sample_batch, sample_features
 
 
 class TestSequence:
@@ -155,3 +156,46 @@ class TestBatch:
     def test_with_incorrect_types(self):
         with pytest.raises(ValueError):
             Batch("not a tensor or dict", "not a tensor or dict", "not a sequence")
+
+
+class Test_sample_batch:
+    def test_loader(self, music_streaming_data):
+        loader = Loader(music_streaming_data, batch_size=2)
+
+        features, targets = sample_batch(loader)
+
+        assert isinstance(features, dict)
+        assert len(list(features.keys())) == 12
+        for key, val in features.items():
+            if not key.endswith("__values") and not key.endswith("__offsets"):
+                assert val.shape[0] == 2
+
+        assert isinstance(targets, dict)
+        assert list(targets.keys()) == ["click", "play_percentage", "like"]
+        for val in targets.values():
+            assert val.shape[0] == 2
+
+    def test_dataset(self, music_streaming_data):
+        features, targets = sample_batch(music_streaming_data, batch_size=2)
+
+        assert isinstance(features, dict)
+        assert len(list(features.keys())) == 12
+        for key, val in features.items():
+            if not key.endswith("__values") and not key.endswith("__offsets"):
+                assert val.shape[0] == 2
+
+        assert isinstance(targets, dict)
+        assert list(targets.keys()) == ["click", "play_percentage", "like"]
+        for val in targets.values():
+            assert val.shape[0] == 2
+
+
+class Test_sample_features:
+    def test_no_targets(self, music_streaming_data):
+        features = sample_features(music_streaming_data, batch_size=2)
+
+        assert isinstance(features, dict)
+        assert len(list(features.keys())) == 12
+        for key, val in features.items():
+            if not key.endswith("__values") and not key.endswith("__offsets"):
+                assert val.shape[0] == 2

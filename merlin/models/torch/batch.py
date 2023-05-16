@@ -14,9 +14,12 @@
 # limitations under the License.
 #
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 
 import torch
+
+from merlin.dataloader.torch import Loader
+from merlin.io import Dataset
 
 
 @torch.jit.script
@@ -204,3 +207,66 @@ class Batch:
 
     def __bool__(self) -> bool:
         return bool(self.features)
+
+
+def sample_batch(
+    dataset_or_loader: Union[Dataset, Loader],
+    batch_size: Optional[int] = None,
+    shuffle: Optional[bool] = False,
+) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+    """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
+
+    Parameters
+    ----------
+    data: merlin.io.dataset
+        A Dataset object.
+    batch_size: int
+        Number of samples to return.
+    shuffle: bool
+        Whether to sample a random batch or not, by default False.
+
+    Returns:
+    -------
+    features: Dict[torch.Tensor]
+        dictionary of feature tensors.
+    targets: Dict[torch.Tensor]
+        dictionary of target tensors.
+    """
+
+    if isinstance(dataset_or_loader, Dataset):
+        if not batch_size:
+            raise ValueError("Either use 'Loader' or specify 'batch_size'")
+        loader = Loader(dataset_or_loader, batch_size=batch_size, shuffle=shuffle)
+    else:
+        loader = dataset_or_loader
+
+    batch = loader.peek()
+    # batch could be of type Prediction, so we can't unpack directly
+    inputs, targets = batch[0], batch[1]
+
+    return inputs, targets
+
+
+def sample_features(
+    dataset_or_loader: Union[Dataset, Loader],
+    batch_size: Optional[int] = None,
+    shuffle: Optional[bool] = False,
+) -> Dict[str, torch.Tensor]:
+    """Util function to generate a dict of feature tensors from a merlin.io.Dataset instance
+
+    Parameters
+    ----------
+    data: merlin.io.dataset
+        A Dataset object.
+    batch_size: int
+        Number of samples to return.
+    shuffle: bool
+        Whether to sample a random batch or not, by default False.
+
+    Returns:
+    -------
+    features: Dict[torch.Tensor]
+        dictionary of feature tensors.
+    """
+
+    return sample_batch(dataset_or_loader, batch_size, shuffle)[0]
