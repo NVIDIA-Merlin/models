@@ -20,8 +20,8 @@ class RouterBlock(ParallelBlock, Selectable):
     Example usage::
         router = RouterBlock(schema)
         router.add_route(Tags.CONTINUOUS)
-        router.add_route(Tags.CATEGORICAL, Embeddings(dim=64))
-        router.add_route(Tags.EMBEDDING, MLPBlock([64, 32]))
+        router.add_route(Tags.CATEGORICAL, mm.Embeddings(dim=64))
+        router.add_route(Tags.EMBEDDING, mm.MLPBlock([64, 32]))
 
     Parameters
     ----------
@@ -96,7 +96,7 @@ class RouterBlock(ParallelBlock, Selectable):
         """Add a new route for each column in a selection.
 
         Example usage::
-            router.add_route_for_each(Tags.EMBEDDING, MLPBlock([64, 32]]))
+            router.add_route_for_each(Tags.EMBEDDING, mm.MLPBlock([64, 32]]))
 
         Parameters
         ----------
@@ -143,12 +143,12 @@ class RouterBlock(ParallelBlock, Selectable):
             router = RouterBlock(selectable)
             # First level of routing: separate continuous and categorical features
             router.add_route(Tags.CONTINUOUS)
-            router.add_route(Tags.CATEGORICAL, categorical_module)
+            router.add_route(Tags.CATEGORICAL, mm.Embeddings())
 
             # Second level of routing: separate user- and item-features
             two_tower = router.nested_router()
-            two_tower.add_route(Tags.USER, user_module)
-            two_tower.add_route(Tags.ITEM, item_module)
+            two_tower.add_route(Tags.USER, mm.MLPBlock([64, 32]))
+            two_tower.add_route(Tags.ITEM, mm.MLPBlock([64, 32]))
 
         Returns
         -------
@@ -193,15 +193,15 @@ class SelectKeys(nn.Module, Selectable):
     """Filter tabular data based on a defined schema.
 
     Example usage::
-    >>> select_keys = SelectKeys(Schema(["user_id", "item_id"]))
-    >>> inputs = {
-    ...     "user_id": torch.tensor([1, 2, 3]),
-    ...     "item_id": torch.tensor([4, 5, 6]),
-    ...     "other_key": torch.tensor([7, 8, 9]),
-    ... }
-    >>> outputs = select_keys(inputs)
-    >>> print(outputs.keys())
-    dict_keys(['user_id', 'item_id'])
+        >>> select_keys = mm.SelectKeys(Schema(["user_id", "item_id"]))
+        >>> inputs = {
+        ...     "user_id": torch.tensor([1, 2, 3]),
+        ...     "item_id": torch.tensor([4, 5, 6]),
+        ...     "other_key": torch.tensor([7, 8, 9]),
+        ... }
+        >>> outputs = select_keys(inputs)
+        >>> print(outputs.keys())
+        dict_keys(['user_id', 'item_id'])
 
     Parameters
     ----------
