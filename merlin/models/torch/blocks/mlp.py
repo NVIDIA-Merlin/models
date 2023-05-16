@@ -65,7 +65,7 @@ class MLPBlock(Block):
         for dim in units:
             modules.append(nn.LazyLinear(dim))
             if activation is not None:
-                modules.append(activation())
+                modules.append(activation if isinstance(activation, nn.Module) else activation())
 
             if normalization:
                 if normalization == "batchnorm":
