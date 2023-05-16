@@ -90,7 +90,7 @@ class MultiOptimizer(keras_optimizers.Optimizer):
       model = ml.Model(three_tower,  ml.BinaryClassificationTask("click"))
 
       # The third_tower would be assigned the default_optimizer ("adagrad" in this example)
-      optimizer = ml.MultiOptimizer(default_optimizer="adagrad",
+      optimizer = ml.MultiOptimizer(default_optimizer=tf.keras.optimizers.legacy.Adagrad(),
         optimizers_and_blocks=[
           ml.OptimizerBlocks(tf.keras.optimizers.legacy.SGD(), user_tower),
           ml.OptimizerBlocks(tf.keras.optimizers.legacy.Adam(), item_tower),
