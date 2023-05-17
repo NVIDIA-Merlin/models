@@ -98,6 +98,7 @@ class RouterBlock(ParallelBlock, Selectable):
         """Add a new route for each column in a selection.
 
         Example usage::
+
             router.add_route_for_each(Tags.EMBEDDING, mm.MLPBlock([64, 32]]))
 
         Parameters
@@ -199,6 +200,7 @@ class SelectKeys(nn.Module, Selectable):
     """Filter tabular data based on a defined schema.
 
     Example usage::
+
         >>> select_keys = mm.SelectKeys(Schema(["user_id", "item_id"]))
         >>> inputs = {
         ...     "user_id": torch.tensor([1, 2, 3]),
