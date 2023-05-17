@@ -20,6 +20,7 @@ import tensorflow as tf
 from tensorflow.keras import regularizers
 
 import merlin.models.tf as mm
+from merlin.dataloader.ops.embeddings import EmbeddingOperator
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 from merlin.models.tf.transforms.features import expected_input_cols_from_schema
@@ -162,6 +163,47 @@ def test_dcn_model(music_streaming_data, stacked, run_eagerly):
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_dcn_model_with_pretrained_embeddings(music_streaming_data: Dataset, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "item_category", "user_age", "click"]
+    )
+
+    cardinality = music_streaming_data.schema["item_category"].int_domain.max + 1
+    pretrained_embedding = np.random.rand(cardinality, 12)
+
+    loader = mm.Loader(
+        music_streaming_data,
+        batch_size=10,
+        transforms=[
+            EmbeddingOperator(
+                pretrained_embedding,
+                lookup_key="item_category",
+                embedding_name="pretrained_category_embeddings",
+            ),
+        ],
+    )
+    schema = loader.output_schema
+
+    pretrained_embeddings = mm.PretrainedEmbeddings(
+        schema.select_by_tag(Tags.EMBEDDING),
+        output_dims=16,
+    )
+
+    input_block = mm.InputBlockV2(schema, pretrained_embeddings=pretrained_embeddings)
+
+    model = mm.DCNModel(
+        schema,
+        input_block=input_block,
+        depth=1,
+        deep_block=mm.MLPBlock([2]),
+        stacked=True,
+        prediction_tasks=mm.BinaryOutput("click"),
+    )
+
+    testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

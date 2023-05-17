@@ -266,6 +266,7 @@ class Loader(merlin.dataloader.tensorflow.Loader):
         sparse_max=None,
         sparse_as_dense=False,
         schema=None,
+        **loader_kwargs,
     ):
         dataset = _validate_dataset(
             paths_or_dataset, batch_size, buffer_size, engine, device, reader_kwargs
@@ -320,6 +321,7 @@ class Loader(merlin.dataloader.tensorflow.Loader):
             global_size=global_size,
             global_rank=global_rank,
             drop_last=drop_last,
+            **loader_kwargs,
         )
 
         # Override these parameters after initializing the parent dataloader
@@ -406,7 +408,7 @@ def sample_batch(
     inputs, targets = batch[0], batch[1]
 
     if prepare_features:
-        pf = PrepareFeatures(loader.schema)
+        pf = PrepareFeatures(loader.output_schema)
         if targets is not None:
             inputs, targets = pf(inputs, targets=targets)
         else:

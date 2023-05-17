@@ -58,6 +58,7 @@ from merlin.models.tf.core.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
     ElementwiseSumItemMulti,
+    SequenceAggregator,
     StackFeatures,
 )
 from merlin.models.tf.core.base import (
@@ -86,6 +87,7 @@ from merlin.models.tf.inputs.embedding import (
     Embeddings,
     EmbeddingTable,
     FeatureConfig,
+    PretrainedEmbeddings,
     SequenceEmbeddingFeatures,
     TableConfig,
 )
@@ -215,6 +217,7 @@ __all__ = [
     "EmbeddingTable",
     "AverageEmbeddingsByWeightFeature",
     "Embeddings",
+    "PretrainedEmbeddings",
     "FeatureConfig",
     "TableConfig",
     "ParallelPredictionBlock",
@@ -236,6 +239,7 @@ __all__ = [
     "Filter",
     "ParallelBlock",
     "StackFeatures",
+    "SequenceAggregator",
     "DotProductInteraction",
     "FMPairwiseInteraction",
     "FMBlock",

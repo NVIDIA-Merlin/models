@@ -29,6 +29,7 @@ from merlin.models.tf.inputs.embedding import (
     EmbeddingFeatures,
     EmbeddingOptions,
     Embeddings,
+    PretrainedEmbeddings,
     SequenceEmbeddingFeatures,
 )
 from merlin.schema import Schema, Tags, TagsType
@@ -206,6 +207,7 @@ def InputBlock(
 INPUT_TAG_TO_BLOCK: Dict[Tags, Callable[[Schema], Layer]] = {
     Tags.CONTINUOUS: Continuous,
     Tags.CATEGORICAL: Embeddings,
+    Tags.EMBEDDING: PretrainedEmbeddings,
 }
 
 
@@ -213,6 +215,7 @@ def InputBlockV2(
     schema: Optional[Schema] = None,
     categorical: Union[Tags, Layer] = Tags.CATEGORICAL,
     continuous: Union[Tags, Layer] = Tags.CONTINUOUS,
+    pretrained_embeddings: Union[Tags, Layer] = Tags.EMBEDDING,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = "concat",
@@ -262,11 +265,15 @@ def InputBlockV2(
     categorical : Union[Tags, Layer], defaults to `Tags.CATEGORICAL`
         A block or column-selector to use for categorical-features.
         If a column-selector is provided (either a schema or tags), the selector
-        will be passed to `Embeddings` to infer the embedding tables from the column-selector.
+        will be passed to `Embeddings()` to infer the embedding tables from the column-selector.
     continuous : Union[Tags, Layer], defaults to `Tags.CONTINUOUS`
         A block to use for continuous-features.
         If a column-selector is provided (either a schema or tags), the selector
-        will be passed to `Continuous` to infer the features from the column-selector.
+        will be passed to `Continuous()` to infer the features from the column-selector.
+    pretrained_embeddings : Union[Tags, Layer], defaults to `Tags.EMBEDDING`
+        A block to use for pre-trained embeddings
+        If a column-selector is provided (either a schema or tags), the selector
+        will be passed to `PretrainedEmbeddings()` to infer the features from the column-selector.
     pre : Optional[BlockType], optional
         Transformation block to apply before the embeddings lookup, by default None
     post : Optional[BlockType], optional
@@ -297,7 +304,12 @@ def InputBlockV2(
         )
         categorical = branches["embeddings"]
 
-    unparsed = {"categorical": categorical, "continuous": continuous, **branches}
+    unparsed = {
+        "categorical": categorical,
+        "continuous": continuous,
+        "pretrained_embeddings": pretrained_embeddings,
+        **branches,
+    }
     parsed = {}
     for name, branch in unparsed.items():
         if isinstance(branch, Layer):

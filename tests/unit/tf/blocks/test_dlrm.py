@@ -14,9 +14,11 @@
 # limitations under the License.
 #
 
+import numpy as np
 import pytest
 
 import merlin.models.tf as mm
+from merlin.dataloader.ops.embeddings import EmbeddingOperator
 from merlin.io import Dataset
 from merlin.schema import Tags
 
@@ -29,11 +31,11 @@ def test_dlrm_block(testing_data: Dataset):
         bottom_block=mm.MLPBlock([64]),
         top_block=mm.DenseResidualBlock(),
     )
-    features = mm.sample_batch(testing_data, batch_size=100, include_targets=False)
+    features = mm.sample_batch(testing_data, batch_size=10, include_targets=False)
     outputs = dlrm(features)
     num_features = len(schema.select_by_tag(Tags.CATEGORICAL)) + 1
     dot_product_dim = (num_features - 1) * num_features // 2
-    assert list(outputs.shape) == [100, dot_product_dim + 64]
+    assert list(outputs.shape) == [10, dot_product_dim + 64]
 
 
 def test_dlrm_block_no_top_block(testing_data: Dataset):
@@ -43,19 +45,19 @@ def test_dlrm_block_no_top_block(testing_data: Dataset):
         embedding_dim=64,
         bottom_block=mm.MLPBlock([64]),
     )
-    outputs = dlrm(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+    outputs = dlrm(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
     num_features = len(schema.select_by_tag(Tags.CATEGORICAL)) + 1
     dot_product_dim = (num_features - 1) * num_features // 2
 
-    assert list(outputs.shape) == [100, dot_product_dim]
+    assert list(outputs.shape) == [10, dot_product_dim]
 
 
 def test_dlrm_block_no_continuous_features(testing_data: Dataset):
     schema = testing_data.schema.remove_by_tag(Tags.CONTINUOUS)
     dlrm = mm.DLRMBlock(schema, embedding_dim=64, top_block=mm.MLPBlock([32]))
-    outputs = dlrm(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+    outputs = dlrm(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
 
-    assert list(outputs.shape) == [100, 32]
+    assert list(outputs.shape) == [10, 32]
 
 
 def test_dlrm_block_no_categ_features(testing_data: Dataset):
@@ -70,9 +72,9 @@ def test_dlrm_block_no_categ_features(testing_data: Dataset):
 def test_dlrm_block_single_categ_feature(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag([Tags.ITEM_ID])
     dlrm = mm.DLRMBlock(schema, embedding_dim=64, top_block=mm.MLPBlock([32]))
-    outputs = dlrm(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+    outputs = dlrm(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
 
-    assert list(outputs.shape) == [100, 32]
+    assert list(outputs.shape) == [10, 32]
 
 
 def test_dlrm_block_no_schema():
@@ -120,6 +122,43 @@ def test_dlrm_with_embeddings(testing_data: Dataset):
         bottom_block=mm.MLPBlock([embedding_dim]),
         top_block=mm.MLPBlock([top_dim]),
     )
-    outputs = dlrm(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+    outputs = dlrm(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
 
-    assert list(outputs.shape) == [100, 4]
+    assert list(outputs.shape) == [10, 4]
+
+
+def test_dlrm_with_pretrained_embeddings(testing_data: Dataset):
+    embedding_dim = 12
+    top_dim = 4
+
+    item_cardinality = testing_data.schema["item_id"].int_domain.max + 1
+    pretrained_embedding = np.random.rand(item_cardinality, 12)
+
+    loader = mm.Loader(
+        testing_data,
+        batch_size=10,
+        transforms=[
+            EmbeddingOperator(
+                pretrained_embedding,
+                lookup_key="item_id",
+                embedding_name="pretrained_item_embeddings",
+            ),
+        ],
+    )
+    schema = loader.output_schema
+
+    embeddings = mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim)
+    pretrained_embeddings = mm.PretrainedEmbeddings(
+        schema.select_by_tag(Tags.EMBEDDING),
+        output_dims=embedding_dim,
+    )
+
+    dlrm = mm.DLRMBlock(
+        schema,
+        embeddings=mm.ParallelBlock(embeddings, pretrained_embeddings),
+        bottom_block=mm.MLPBlock([embedding_dim]),
+        top_block=mm.MLPBlock([top_dim]),
+    )
+    outputs = dlrm(mm.sample_batch(loader, include_targets=False))
+
+    assert list(outputs.shape) == [10, 4]
