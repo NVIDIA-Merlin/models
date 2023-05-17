@@ -1,6 +1,6 @@
 import pytest
 
-from merlin.models.torch.utils.selection_utils import select_schema, selection_name
+from merlin.models.torch.utils.selection_utils import Selectable, select_schema, selection_name
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -70,3 +70,16 @@ class Test_selection_name:
 
         assert selection_name(column) == column.name
         assert selection_name(ColumnSchema("user_id")) == column.name
+
+    def test_exception(self):
+        with pytest.raises(ValueError, match="is not valid"):
+            selection_name(1)
+
+
+class TestSelectable:
+    def test_exception(self):
+        selectable = Selectable()
+
+        assert hasattr(selectable, "setup_schema")
+        with pytest.raises(NotImplementedError):
+            selectable.select(1)

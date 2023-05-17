@@ -75,14 +75,13 @@ class RouterBlock(ParallelBlock, Selectable):
 
         routing_module = self.selectable.select(selection)
         if module is not None:
-            branch = Block(routing_module)
-            if isinstance(module, ParallelBlock):
-                branch = module.prepend(routing_module)
-
             if hasattr(module, "setup_schema"):
                 module.setup_schema(routing_module.schema)
 
-            branch.append(module)
+            if isinstance(module, ParallelBlock):
+                branch = module.prepend(routing_module)
+            else:
+                branch = Block(routing_module, module)
         else:
             branch = routing_module
 
