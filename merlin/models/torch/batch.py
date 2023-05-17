@@ -281,7 +281,6 @@ class Batch:
     def __bool__(self) -> bool:
         return bool(self.features)
 
-<<<<<<< HEAD
     def device(self) -> torch.device:
         """Retrieves the device of the tensors in the Batch object.
 
@@ -303,14 +302,6 @@ def sample_batch(
     batch_size: Optional[int] = None,
     shuffle: Optional[bool] = False,
 ) -> Batch:
-=======
-
-def sample_batch(
-    dataset_or_loader: Union[Dataset, Loader],
-    batch_size: Optional[int] = None,
-    shuffle: Optional[bool] = False,
-) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
->>>>>>> d00e67a4 (Adding sample_batch & sample_features)
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
     Parameters
@@ -331,6 +322,7 @@ def sample_batch(
     """
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     if isinstance(data, Dataset):
         if not batch_size:
             raise ValueError("Either use 'Loader' or specify 'batch_size'")
@@ -340,6 +332,11 @@ def sample_batch(
     else:
         raise ValueError(f"Expected Dataset or Loader instance, got: {data}")
 =======
+=======
+    if not isinstance(dataset_or_loader, (Dataset, Loader)):
+        raise ValueError(f"Expected Dataset or Loader instance, got {dataset_or_loader}")
+
+>>>>>>> 519159b5 (Increasing test-coverage)
     if isinstance(dataset_or_loader, Dataset):
         if not batch_size:
             raise ValueError("Either use 'Loader' or specify 'batch_size'")

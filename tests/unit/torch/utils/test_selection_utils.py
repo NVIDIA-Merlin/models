@@ -83,6 +83,9 @@ class Test_selection_name:
         assert selection_name(column) == column.name
         assert selection_name(ColumnSchema("user_id")) == column.name
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 9434c6bd (Increasing test-coverage)
 
     def test_exception(self):
         with pytest.raises(ValueError, match="is not valid"):
@@ -96,5 +99,8 @@ class TestSelectable:
         assert hasattr(selectable, "setup_schema")
         with pytest.raises(NotImplementedError):
             selectable.select(1)
+<<<<<<< HEAD
 =======
 >>>>>>> a2644079 (Add selection_utils)
+=======
+>>>>>>> 9434c6bd (Increasing test-coverage)
