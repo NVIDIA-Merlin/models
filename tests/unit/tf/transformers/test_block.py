@@ -7,6 +7,7 @@ from tensorflow.keras.utils import set_random_seed
 from transformers import BertConfig
 
 import merlin.models.tf as mm
+from merlin.dataloader.ops.embeddings import EmbeddingOperator
 from merlin.io import Dataset
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.transformers.block import (
@@ -70,14 +71,14 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     )
 
     predictions = model.predict(loader)
-    assert list(predictions.shape) == [100, 51997]
+    assert list(predictions.shape) == [100, 101]
 
     query_embeddings = query_encoder.predict(loader)
     assert list(query_embeddings.shape) == [100, d_model]
 
     item_embeddings = model.candidate_embeddings().compute().to_numpy()
 
-    assert list(item_embeddings.shape) == [51997, d_model]
+    assert list(item_embeddings.shape) == [101, d_model]
     predicitons_2 = np.dot(query_embeddings, item_embeddings.T)
 
     np.testing.assert_allclose(predictions, predicitons_2, atol=1e-6)
@@ -168,6 +169,7 @@ def test_transformer_as_classification_model(sequence_testing_data: Dataset, run
             schema,
             categorical=mm.Embeddings(schema, sequence_combiner=None),
         ),
+        mm.MLPBlock([EMBED_DIM]),
         BertBlock(
             d_model=EMBED_DIM,
             n_head=8,
@@ -186,7 +188,7 @@ def test_transformer_as_classification_model(sequence_testing_data: Dataset, run
     testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
 
 
-def test_tranformer_with_prepare_module(sequence_testing_data):
+def test_tranformer_with_prepare_module():
     NUM_ROWS = 100
     SEQ_LENGTH = 10
     EMBED_DIM = 128
@@ -309,13 +311,13 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
 
     batch = next(iter(loader))[0]
     outputs = model(batch)
-    assert list(outputs.shape) == [8, 51997]
+    assert list(outputs.shape) == [8, 101]
 
     metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=predict_next)
     assert len(metrics) > 0
 
     predictions = model.predict(loader, batch_size=8, steps=1)
-    assert predictions.shape == (8, 51997)
+    assert predictions.shape == (8, 101)
 
     predict_last = mm.SequencePredictLast(
         schema=seq_schema, target=target, transformer=transformer_block
@@ -358,7 +360,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
     inputs, targets = loader.peek()
 
     outputs = model(inputs, targets=targets, training=True)
-    assert list(outputs.shape) == [8, 4, 51997]
+    assert list(outputs.shape) == [8, 4, 101]
     testing_utils.model_test(
         model,
         loader,
@@ -375,7 +377,7 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
 
     # Get predictions for next-item position
     predictions = model.predict(loader, batch_size=8, steps=1)
-    assert predictions.shape == (8, 51997)
+    assert predictions.shape == (8, 101)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -417,12 +419,12 @@ def test_transformer_with_masked_language_modeling_check_eval_masked(
         run_eagerly=run_eagerly,
         reload_model=True,
         fit_kwargs={"pre": seq_mask_random},
-        metrics=[mm.RecallAt(5000), mm.NDCGAt(5000, seed=4)],
+        metrics=[mm.RecallAt(50), mm.NDCGAt(50, seed=4)],
     )
 
     inputs = itertools.islice(iter(loader), 1)
     outputs = model.predict(inputs, pre=seq_mask_random)
-    assert list(outputs.shape) == [8, 51997]
+    assert list(outputs.shape) == [8, 101]
 
     # This transform only extracts targets, but without applying mask
     seq_target_as_input_no_mask = mm.SequenceTargetAsInput(schema=seq_schema, target=target)
@@ -470,12 +472,14 @@ def test_transformer_model_with_masking_and_broadcast_to_sequence(
     target = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     item_id_name = schema.select_by_tag(Tags.ITEM_ID).first.properties["domain"]["name"]
 
+    item_id_emb_dim = 16
     input_block = mm.InputBlockV2(
         sequence_testing_data.schema,
         embeddings=mm.Embeddings(
             seq_schema.select_by_tag(Tags.CATEGORICAL)
             + context_schema.select_by_tag(Tags.CATEGORICAL),
             sequence_combiner=None,
+            dim={"item_id_seq": item_id_emb_dim},
         ),
         post=mm.BroadcastToSequence(context_schema, seq_schema),
     )
@@ -490,7 +494,7 @@ def test_transformer_model_with_masking_and_broadcast_to_sequence(
 
     dense_block = mm.SequentialBlock(input_block, mlp_block, transformer_block)
 
-    mlp_block2 = mm.MLPBlock([128, dmodel], activation="relu")
+    mlp_block2 = mm.MLPBlock([128, item_id_emb_dim], activation="relu")
 
     prediction_task = mm.CategoricalOutput(
         to_call=input_block["categorical"][item_id_name],
@@ -533,7 +537,7 @@ def test_transformer_encoder_with_contrastive_output(sequence_testing_data: Data
         to_call=target_schema,
         negative_samplers=mm.PopularityBasedSamplerV2(
             max_num_samples=10,
-            max_id=1000,
+            max_id=100,
             min_id=1,
         ),
         logq_sampling_correction=True,
@@ -549,4 +553,185 @@ def test_transformer_encoder_with_contrastive_output(sequence_testing_data: Data
 
     inputs, _ = loader.peek()
     predictions = model(inputs)
-    assert list(predictions.shape) == [64, 51997]
+    assert list(predictions.shape) == [64, 101]
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_model_with_masking_broadcast_and_pretrained_emb(
+    sequence_testing_data, run_eagerly: bool
+):
+    sequence_testing_data.schema = sequence_testing_data.schema.select_by_name(
+        [
+            "item_id_seq",
+            "categories",
+            "item_age_days_norm",
+            "test_user_id",
+            "user_country",
+            "user_age",
+        ]
+    )
+
+    item_cardinality = sequence_testing_data.schema["item_id_seq"].int_domain.max + 1
+    user_cardinality = sequence_testing_data.schema["test_user_id"].int_domain.max + 1
+
+    loader = mm.Loader(
+        sequence_testing_data,
+        batch_size=10,
+        transforms=[
+            EmbeddingOperator(
+                np.random.rand(user_cardinality, 12),
+                lookup_key="test_user_id",
+                embedding_name="pretrained_user_id_embeddings",
+            ),
+            EmbeddingOperator(
+                np.random.rand(item_cardinality, 16),
+                lookup_key="item_id_seq",
+                embedding_name="pretrained_item_id_embeddings",
+            ),
+        ],
+    )
+
+    schema = loader.output_schema
+    seq_schema = schema.select_by_name(
+        ["item_id_seq", "categories", "item_age_days_norm", "pretrained_item_id_embeddings"]
+    )
+    context_schema = schema.select_by_name(
+        ["test_user_id", "user_country", "user_age", "pretrained_user_id_embeddings"]
+    )
+
+    item_id_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    item_id_embedding_dim = 16
+
+    input_block = mm.InputBlockV2(
+        schema,
+        embeddings=mm.Embeddings(
+            seq_schema.select_by_tag(Tags.CATEGORICAL)
+            + context_schema.select_by_tag(Tags.CATEGORICAL),
+            dim={"item_id_seq": item_id_embedding_dim},
+            sequence_combiner=None,
+        ),
+        pretrained_embeddings=mm.PretrainedEmbeddings(
+            schema.select_by_tag(Tags.EMBEDDING),
+            sequence_combiner=None,
+        ),
+        post=mm.BroadcastToSequence(context_schema, seq_schema),
+    )
+
+    dmodel = 32
+    mlp_block = mm.MLPBlock([128, dmodel], activation="relu")
+    transformer_block = mm.GPT2Block(
+        d_model=dmodel,
+        n_head=4,
+        n_layer=2,
+    )
+
+    dense_block = mm.SequentialBlock(input_block, mlp_block, transformer_block)
+
+    mlp_block2 = mm.MLPBlock([64, item_id_embedding_dim], activation="relu")
+
+    prediction_task = mm.CategoricalOutput(
+        to_call=input_block["categorical"][item_id_name],
+    )
+    model = mm.Model(dense_block, mlp_block2, prediction_task)
+
+    fit_pre = mm.SequenceMaskRandom(
+        schema=seq_schema, target=item_id_name, masking_prob=0.3, transformer=transformer_block
+    )
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=False,
+        fit_kwargs={"pre": fit_pre},
+    )
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_model_with_causal_language_modeling_and_pretrained_emb(
+    sequence_testing_data, run_eagerly: bool
+):
+    sequence_testing_data.schema = sequence_testing_data.schema.select_by_name(
+        [
+            "item_id_seq",
+            "categories",
+            "item_age_days_norm",
+            "test_user_id",
+            "user_country",
+            "user_age",
+        ]
+    )
+
+    item_cardinality = sequence_testing_data.schema["item_id_seq"].int_domain.max + 1
+    user_cardinality = sequence_testing_data.schema["test_user_id"].int_domain.max + 1
+
+    loader = mm.Loader(
+        sequence_testing_data,
+        batch_size=10,
+        transforms=[
+            EmbeddingOperator(
+                np.random.rand(user_cardinality, 12),
+                lookup_key="test_user_id",
+                embedding_name="pretrained_user_id_embeddings",
+            ),
+            EmbeddingOperator(
+                np.random.rand(item_cardinality, 16),
+                lookup_key="item_id_seq",
+                embedding_name="pretrained_item_id_embeddings",
+            ),
+        ],
+    )
+
+    schema = loader.output_schema
+    seq_schema = schema.select_by_name(
+        ["item_id_seq", "categories", "item_age_days_norm", "pretrained_item_id_embeddings"]
+    )
+    context_schema = schema.select_by_name(
+        ["test_user_id", "user_country", "user_age", "pretrained_user_id_embeddings"]
+    )
+
+    item_id_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    item_id_embedding_dim = 16
+
+    input_block = mm.InputBlockV2(
+        schema,
+        embeddings=mm.Embeddings(
+            seq_schema.select_by_tag(Tags.CATEGORICAL)
+            + context_schema.select_by_tag(Tags.CATEGORICAL),
+            dim={"item_id_seq": item_id_embedding_dim},
+            sequence_combiner=None,
+        ),
+        pretrained_embeddings=mm.PretrainedEmbeddings(
+            schema.select_by_tag(Tags.EMBEDDING),
+            sequence_combiner=None,
+        ),
+        post=mm.BroadcastToSequence(context_schema, seq_schema),
+    )
+
+    dmodel = 32
+    mlp_block = mm.MLPBlock([128, dmodel], activation="relu")
+    transformer_block = mm.GPT2Block(
+        d_model=dmodel,
+        n_head=4,
+        n_layer=2,
+    )
+
+    dense_block = mm.SequentialBlock(input_block, mlp_block, transformer_block)
+
+    mlp_block2 = mm.MLPBlock([64, item_id_embedding_dim], activation="relu")
+
+    prediction_task = mm.CategoricalOutput(
+        to_call=input_block["categorical"][item_id_name],
+    )
+    model = mm.Model(dense_block, mlp_block2, prediction_task)
+
+    predict_next = mm.SequencePredictNext(
+        schema=seq_schema, target=item_id_name, transformer=transformer_block
+    )
+
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=False,
+        fit_kwargs={"pre": predict_next},
+    )

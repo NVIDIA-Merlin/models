@@ -96,7 +96,12 @@ def MLPBlock(
 
     for idx, dim in enumerate(dimensions):
         dropout_layer = None
-        activation_idx = activation if isinstance(activation, str) else activation[idx]
+        activation = activation or "linear"
+        if isinstance(activation, str):
+            activation_idx = activation
+        else:
+            activation_idx = activation[idx]
+
         if no_activation_last_layer and idx == len(dimensions) - 1:
             activation_idx = "linear"
         else:

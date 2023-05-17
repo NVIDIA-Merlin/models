@@ -147,7 +147,7 @@ class PopularityBasedSamplerV2(CandidateSampler):
         tf.Tensor
             Probabilities of each item to be sampled
         """
-        log_indices = tf.math.log(tf.range(1.0, self.max_id - self.min_id + 2.0, 1.0))
+        log_indices = tf.math.log(tf.range(1.0, self.max_id - self.min_id + 3.0, 1.0))
         sampling_probs = (log_indices[1:] - log_indices[:-1]) / log_indices[-1]
 
         if self.unique:

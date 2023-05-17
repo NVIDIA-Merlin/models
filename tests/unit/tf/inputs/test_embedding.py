@@ -472,7 +472,7 @@ def test_embeddings_with_regularization(testing_data: Dataset):
         schema, dim=dim, embeddings_regularizer=tf.keras.regularizers.L2(0.2)
     )
 
-    inputs = mm.sample_batch(testing_data, batch_size=100, include_targets=False)
+    inputs = mm.sample_batch(testing_data, batch_size=20, include_targets=False)
     _ = embeddings_wo_reg(inputs)
     _ = embeddings_batch_reg(inputs)
     _ = embeddings_table_reg(inputs)
@@ -497,7 +497,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Datase
     assert (
         emb_module.embedding_tables["user_id"].embeddings.shape[1]
         == embeddings["user_id"].shape[1]
-        == 20
+        == 10
     )
     assert (
         emb_module.embedding_tables["user_country"].embeddings.shape[1]
@@ -507,12 +507,12 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Datase
     assert (
         emb_module.embedding_tables["item_id"].embeddings.shape[1]
         == embeddings["item_id"].shape[1]
-        == 46
+        == 10
     )
     assert (
         emb_module.embedding_tables["categories"].embeddings.shape[1]
         == embeddings["categories"].shape[1]
-        == 13
+        == 9
     )
 
 
@@ -533,7 +533,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes_multiple_8(testing_d
     assert (
         emb_module.embedding_tables["user_id"].embeddings.shape[1]
         == embeddings["user_id"].shape[1]
-        == 24
+        == 16
     )
     assert (
         emb_module.embedding_tables["user_country"].embeddings.shape[1]
@@ -543,7 +543,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes_multiple_8(testing_d
     assert (
         emb_module.embedding_tables["item_id"].embeddings.shape[1]
         == embeddings["item_id"].shape[1]
-        == 48
+        == 16
     )
     assert (
         emb_module.embedding_tables["categories"].embeddings.shape[1]
@@ -579,12 +579,12 @@ def test_embedding_features_yoochoose_partially_infer_embedding_sizes(testing_da
     assert (
         emb_module.embedding_tables["item_id"].embeddings.shape[1]
         == embeddings["item_id"].shape[1]
-        == 46
+        == 10
     )
     assert (
         emb_module.embedding_tables["categories"].embeddings.shape[1]
         == embeddings["categories"].shape[1]
-        == 13
+        == 9
     )
 
 
@@ -632,8 +632,8 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
 def test_embedding_features_yoochoose_pretrained_initializer(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    pretrained_emb_item_ids = np.random.random((51997, 64))
-    pretrained_emb_categories = np.random.random((332, 64))
+    pretrained_emb_item_ids = np.random.random((101, 64))
+    pretrained_emb_categories = np.random.random((71, 64))
 
     emb_module = mm.EmbeddingFeatures.from_schema(
         schema,

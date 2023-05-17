@@ -116,7 +116,7 @@ def test_last_item_prediction(sequence_testing_data: Dataset, run_eagerly):
     for target in predictions:
         model = mm.Model(
             mm.InputBlockV2(schema, categorical=embeddings),
-            mm.MLPBlock([32]),
+            mm.MLPBlock([8]),
             mm.CategoricalOutput(target),
         )
         testing_utils.model_test(model, dataloader, run_eagerly=run_eagerly)
