@@ -33,8 +33,8 @@ tests-tf-integration:
 
 tests-torch:
 	coverage run -m pytest -rsx tests -m "torch" || exit 1
-	coverage report --include 'merlin/models/*'
-	coverage html --include 'merlin/models/*'
+	coverage report --include 'merlin/models/torch/*'
+	coverage html --include 'merlin/models/torch/*'
 
 tests-implicit:
 	coverage run -m pytest -rsx tests -m "implicit" || exit 1
