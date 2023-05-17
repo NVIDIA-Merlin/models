@@ -154,6 +154,18 @@ class BlockContainer(nn.Module):
 
 
 class BlockContainerDict(nn.ModuleDict):
+    """A container class for PyTorch `nn.Module` that allows for manipulation and traversal
+    of multiple sub-modules as if they were a dictionary. The modules are automatically wrapped
+    in a TorchScriptWrapper for TorchScript compatibility.
+
+    Parameters
+    ----------
+    *inputs : nn.Module
+        One or more PyTorch modules to be added to the container.
+    name : Optional[str]
+        An optional name for the BlockContainer.
+    """
+
     def __init__(
         self, *inputs: Union[nn.Module, Dict[str, nn.Module]], name: Optional[str] = None
     ) -> None:
@@ -167,17 +179,63 @@ class BlockContainerDict(nn.ModuleDict):
         self._name: str = name
 
     def append_to(self, name: str, module: nn.Module) -> "BlockContainerDict":
+        """Appends a module to a specified name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the branch.
+        module : nn.Module
+            The module to append.
+
+        Returns
+        -------
+        BlockContainerDict
+            The current object itself.
+        """
+
         self._modules[name].append(module)
 
         return self
 
     def prepend_to(self, name: str, module: nn.Module) -> "BlockContainerDict":
+        """Prepends a module to a specified name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the branch.
+        module : nn.Module
+            The module to prepend.
+
+        Returns
+        -------
+        BlockContainerDict
+            The current object itself.
+        """
+
         self._modules[name].prepend(module)
 
         return self
 
     # Append to all branches, optionally copying
     def append_for_each(self, module: nn.Module, shared=False) -> "BlockContainerDict":
+        """Appends a module to each branch.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The module to prepend.
+        shared : bool, default=False
+            If True, the same module is shared across all elements.
+            Otherwise a deep copy of the module is used in each element.
+
+        Returns
+        -------
+        BlockContainerDict
+            The current object itself.
+        """
+
         for branch in self.values():
             _module = module if shared else deepcopy(module)
             branch.append(_module)
@@ -185,6 +243,22 @@ class BlockContainerDict(nn.ModuleDict):
         return self
 
     def prepend_for_each(self, module: nn.Module, shared=False) -> "BlockContainerDict":
+        """Prepends a module to each branch.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The module to prepend.
+        shared : bool, default=False
+            If True, the same module is shared across all elements.
+            Otherwise a deep copy of the module is used in each element.
+
+        Returns
+        -------
+        BlockContainerDict
+            The current object itself.
+        """
+
         for branch in self.values():
             _module = module if shared else deepcopy(module)
             branch.prepend(_module)
