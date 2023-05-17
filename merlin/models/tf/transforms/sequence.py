@@ -161,9 +161,9 @@ class SequenceTransform(TabularBlock):
         }
 
         seq_shapes = list(seq_inputs_shapes.values())
-        if not all(x == seq_shapes[0] for x in seq_shapes):
+        if not all(x[:2] == seq_shapes[0][:2] for x in seq_shapes):
             raise ValueError(
-                "The sequential inputs must have the same shape, but the shapes "
+                "The sequential inputs must have the first two dims equal, but they "
                 f"are different: {seq_inputs_shapes}"
             )
 

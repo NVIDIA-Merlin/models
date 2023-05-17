@@ -107,7 +107,7 @@ def test_mlp_model_with_sequential_features_and_combiner(
     assert len(metrics) > 0
 
     predictions = model.predict(loader, steps=1)
-    assert predictions.shape == (8, 51997)
+    assert predictions.shape == (8, 101)
 
 
 @pytest.mark.parametrize("no_activation_last_layer", [False, True])

@@ -414,8 +414,10 @@ class SequenceAggregator(Block):
                     outputs[k] = v
             return outputs
         else:
-            assert len(inputs.shape) == 3, "Tensor inputs should be 3-D"
-            return combiner(inputs, axis=self.axis, **kwargs)
+            if inputs.get_shape().rank > self.axis + 1:
+                return combiner(inputs, axis=self.axis, **kwargs)
+            else:
+                return inputs
 
     def parse_combiner(self, combiner):
         if isinstance(combiner, str):
@@ -441,8 +443,12 @@ class SequenceAggregator(Block):
                     outputs[k] = v
             return outputs
         else:
-            batch_size, _, last_dim = input_shape
-            return batch_size, last_dim
+            if len(input_shape) > self.axis + 1:
+                return tf.TensorShape(
+                    list(input_shape)[: self.axis] + list(input_shape)[self.axis + 1 :]
+                )
+            else:
+                return input_shape
 
     def get_config(self):
         config = super().get_config()

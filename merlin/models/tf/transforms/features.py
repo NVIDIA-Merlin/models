@@ -181,6 +181,11 @@ class PrepareListFeatures(TabularBlock):
                             val = inputs[name]
                         elif isinstance(val, tf.SparseTensor):
                             val = tf.RaggedTensor.from_sparse(val)
+                        else:
+                            if Tags.EMBEDDING in self.schema[name].tags:
+                                # This fix ensures that for pre-trained embeddings
+                                # the last dim is defined (not None) in graph mode
+                                val = tf.reshape(val, (-1, col_schema_shape.dims[-1].max))
                     else:
                         if col_schema_shape.is_ragged:
                             if f"{name}__values" not in inputs or f"{name}__offsets" not in inputs:
@@ -189,15 +194,26 @@ class PrepareListFeatures(TabularBlock):
                                     f"represented by two features in the inputs: '{name}__values' "
                                     f"and '{name}__offsets', but they were not found."
                                 )
+                            ragged_values = inputs[f"{name}__values"]
+                            if Tags.EMBEDDING in self.schema[name].tags:
+                                # This fix ensures that for pre-trained embeddings
+                                # the last dim is defined (not None) in graph mode
+                                ragged_values = tf.reshape(
+                                    ragged_values, (-1, col_schema_shape.dims[-1].max)
+                                )
                             val = list_col_to_ragged(
-                                inputs[f"{name}__values"], inputs[f"{name}__offsets"]
+                                ragged_values,
+                                inputs[f"{name}__offsets"],
                             )
+
                             del inputs[f"{name}__values"]
                             del inputs[f"{name}__offsets"]
                         else:
                             raise ValueError(f"Feature '{name}' was not found in the inputs")
 
-                    if len(val.shape) == 2:
+                    if len(val.shape) == 2 and Tags.EMBEDDING not in self.schema[name].tags:
+                        # Only expands 2D sequential features if
+                        # they are not pre-trained embeeddings
                         val = tf.expand_dims(val, axis=-1)
 
                     if self.list_as_dense:
@@ -241,10 +257,16 @@ class PrepareListFeatures(TabularBlock):
                                 )
                             seq_length = int(col_schema_shape.dims[1].max)
 
-                        output_shapes[name] = tf.TensorShape([batch_size, seq_length, 1])
+                        last_dim = 1
+                        if Tags.EMBEDDING in self.schema[name].tags:
+                            last_dim = col_schema_shape[-1].max
+                        output_shapes[name] = tf.TensorShape([batch_size, seq_length, last_dim])
 
                     else:
-                        if len(input_shapes[name]) == 2:
+                        if (
+                            len(input_shapes[name]) == 2
+                            and Tags.EMBEDDING not in self.schema[name].tags
+                        ):
                             output_shapes[name] = input_shapes[name] + (1,)
 
                 elif name in input_shapes:
@@ -316,7 +338,7 @@ class PrepareFeatures(TabularBlock):
                 if name in inputs:
                     val = inputs[name]
 
-                    if not self.schema[name].shape.is_list:
+                    if not self.schema[name].shape.is_list and val.get_shape().rank == 1:
                         # Expanding / setting last dim of non-list input features to be 2D
                         val = tf.reshape(val, (-1, 1))
 
@@ -325,7 +347,7 @@ class PrepareFeatures(TabularBlock):
                 if isinstance(targets, dict) and name in targets:
                     val = targets[name]
 
-                    if not self.schema[name].shape.is_list:
+                    if not self.schema[name].shape.is_list and val.get_shape().rank == 1:
                         # Expanding / setting last dim of non-list target features to be 2D
                         val = tf.reshape(val, (-1, 1))
 
@@ -353,6 +375,7 @@ class PrepareFeatures(TabularBlock):
             else:
                 out_targets = targets
             return (outputs, out_targets)
+
         return outputs
 
     def compute_output_shape(self, input_shapes):
