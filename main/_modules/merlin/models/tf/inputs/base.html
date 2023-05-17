@@ -113,6 +113,7 @@
     <span class="n">EmbeddingFeatures</span><span class="p">,</span>
     <span class="n">EmbeddingOptions</span><span class="p">,</span>
     <span class="n">Embeddings</span><span class="p">,</span>
+    <span class="n">PretrainedEmbeddings</span><span class="p">,</span>
     <span class="n">SequenceEmbeddingFeatures</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span><span class="p">,</span> <span class="n">TagsType</span>
@@ -290,6 +291,7 @@
 <span class="n">INPUT_TAG_TO_BLOCK</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Schema</span><span class="p">],</span> <span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">:</span> <span class="n">Continuous</span><span class="p">,</span>
     <span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
+    <span class="n">Tags</span><span class="o">.</span><span class="n">EMBEDDING</span><span class="p">:</span> <span class="n">PretrainedEmbeddings</span><span class="p">,</span>
 <span class="p">}</span>
 
 
@@ -297,6 +299,7 @@
     <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">categorical</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">,</span>
     <span class="n">continuous</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span>
+    <span class="n">pretrained_embeddings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="n">Tags</span><span class="o">.</span><span class="n">EMBEDDING</span><span class="p">,</span>
     <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span>
@@ -346,11 +349,15 @@
 <span class="sd">    categorical : Union[Tags, Layer], defaults to `Tags.CATEGORICAL`</span>
 <span class="sd">        A block or column-selector to use for categorical-features.</span>
 <span class="sd">        If a column-selector is provided (either a schema or tags), the selector</span>
-<span class="sd">        will be passed to `Embeddings` to infer the embedding tables from the column-selector.</span>
+<span class="sd">        will be passed to `Embeddings()` to infer the embedding tables from the column-selector.</span>
 <span class="sd">    continuous : Union[Tags, Layer], defaults to `Tags.CONTINUOUS`</span>
 <span class="sd">        A block to use for continuous-features.</span>
 <span class="sd">        If a column-selector is provided (either a schema or tags), the selector</span>
-<span class="sd">        will be passed to `Continuous` to infer the features from the column-selector.</span>
+<span class="sd">        will be passed to `Continuous()` to infer the features from the column-selector.</span>
+<span class="sd">    pretrained_embeddings : Union[Tags, Layer], defaults to `Tags.EMBEDDING`</span>
+<span class="sd">        A block to use for pre-trained embeddings</span>
+<span class="sd">        If a column-selector is provided (either a schema or tags), the selector</span>
+<span class="sd">        will be passed to `PretrainedEmbeddings()` to infer the features from the column-selector.</span>
 <span class="sd">    pre : Optional[BlockType], optional</span>
 <span class="sd">        Transformation block to apply before the embeddings lookup, by default None</span>
 <span class="sd">    post : Optional[BlockType], optional</span>
@@ -381,7 +388,12 @@
         <span class="p">)</span>
         <span class="n">categorical</span> <span class="o">=</span> <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;embeddings&quot;</span><span class="p">]</span>
 
-    <span class="n">unparsed</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;categorical&quot;</span><span class="p">:</span> <span class="n">categorical</span><span class="p">,</span> <span class="s2">&quot;continuous&quot;</span><span class="p">:</span> <span class="n">continuous</span><span class="p">,</span> <span class="o">**</span><span class="n">branches</span><span class="p">}</span>
+    <span class="n">unparsed</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;categorical&quot;</span><span class="p">:</span> <span class="n">categorical</span><span class="p">,</span>
+        <span class="s2">&quot;continuous&quot;</span><span class="p">:</span> <span class="n">continuous</span><span class="p">,</span>
+        <span class="s2">&quot;pretrained_embeddings&quot;</span><span class="p">:</span> <span class="n">pretrained_embeddings</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">branches</span><span class="p">,</span>
+    <span class="p">}</span>
     <span class="n">parsed</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">unparsed</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">Layer</span><span class="p">):</span>
