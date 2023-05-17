@@ -101,10 +101,27 @@ class Block(BlockContainer):
 
 
 class ParallelBlock(Block):
+    """A base-class that calls it's modules in parallel.
+
+    A ParallelBlock contains multiple branches that will be executed
+    in parallel. Each branch can contain multiple modules, and
+    the outputs of all branches are collected into a dictionary.
+
+    If a branch returns a dictionary of tensors instead of a single tensor,
+    it will be flattened into the output dictionary. This ensures the output-type
+    is always Dict[str, torch.Tensor].
+
+    Parameters
+    ----------
+    *module : nn.Module
+        Variable length argument list of PyTorch modules to be contained in the block.
+    name : Optional[str], default = None
+        The name of the block. If None, no name is assigned.
+    """
+
     def __init__(
         self,
         *inputs: Union[nn.Module, Dict[str, nn.Module]],
-        # TODO: Add agg
     ):
         pre = BlockContainer(name="pre")
         branches = BlockContainerDict(*inputs)
@@ -119,6 +136,42 @@ class ParallelBlock(Block):
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ):
+        """Forward pass through the block.
+
+        The steps are as follows:
+        1. Pre-processing stage: Applies each module in the pre-processing stage sequentially.
+        2. Branching stage: Applies each module in each branch sequentially.
+        3. Post-processing stage: Applies each module in the post-processing stage sequentially.
+
+        If a branch returns a dictionary of tensors instead of a single tensor,
+        it will be flattened into the output dictionary. This ensures the output-type
+        is always Dict[str, torch.Tensor].
+
+        Example usage::
+            >>> parallel_block = ParallelBlock({"a": nn.LazyLinear(2), "b": nn.LazyLinear(2)})
+            >>> x = torch.randn(2, 2)
+            >>> output = parallel_block(x)
+            >>> # The output is a dictionary containing the output of each branch
+            >>> print(output)
+            {
+                'a': tensor([[-0.0801,  0.0436],
+                            [ 0.1235, -0.0318]]),
+                'b': tensor([[ 0.0918, -0.0274],
+                            [-0.0652,  0.0381]])
+            }
+
+        Parameters
+        ----------
+        inputs : Union[torch.Tensor, Dict[str, torch.Tensor]]
+            The input tensor or dictionary of tensors.
+        batch : Optional[Batch], default=None
+            An optional batch of data.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            The output tensors.
+        """
         for module in self.pre.values:
             inputs = module(inputs, batch=batch)
 
@@ -149,31 +202,118 @@ class ParallelBlock(Block):
         return outputs
 
     def append(self, module: nn.Module):
+        """Appends a module to the post-processing stage.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The module to append.
+
+        Returns
+        -------
+        ParallelBlock
+            The current object itself.
+        """
+
         self.post.append(module)
 
         return self
 
     def prepend(self, module: nn.Module):
+        """Prepends a module to the pre-processing stage.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The module to prepend.
+
+        Returns
+        -------
+        ParallelBlock
+            The current object itself.
+        """
+
         self.pre.prepend(module)
 
         return self
 
     def append_to(self, name: str, module: nn.Module):
+        """Appends a module to a specified branch.
+
+        Parameters
+        ----------
+        name : str
+            The name of the branch.
+        module : nn.Module
+            The module to append.
+
+        Returns
+        -------
+        ParallelBlock
+            The current object itself.
+        """
+
         self.branches[name].append(module)
 
         return self
 
     def prepend_to(self, name: str, module: nn.Module):
+        """Prepends a module to a specified branch.
+
+        Parameters
+        ----------
+        name : str
+            The name of the branch.
+        module : nn.Module
+            The module to prepend.
+
+        Returns
+        -------
+        ParallelBlock
+            The current object itself.
+        """
         self.branches[name].prepend(module)
 
         return self
 
     def append_for_each(self, module: nn.Module, shared=False):
+        """Appends a module to each branch.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The module to append.
+        shared : bool, default=False
+            If True, the same module is shared across all branches.
+            Otherwise a deep copy of the module is used in each branch.
+
+        Returns
+        -------
+        ParallelBlock
+            The current object itself.
+        """
+
         self.branches.append_for_each(module, shared=shared)
 
         return self
 
     def prepend_for_each(self, module: nn.Module, shared=False):
+        """Prepends a module to each branch.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The module to prepend.
+        shared : bool, default=False
+            If True, the same module is shared across all branches.
+            Otherwise a deep copy of the module is used in each branch.
+
+        Returns
+        -------
+        ParallelBlock
+            The current object itself.
+        """
+
         self.branches.prepend_for_each(module, shared=shared)
 
         return self
