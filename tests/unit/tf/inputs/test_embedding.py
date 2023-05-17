@@ -472,7 +472,7 @@ def test_embeddings_with_regularization(testing_data: Dataset):
         schema, dim=dim, embeddings_regularizer=tf.keras.regularizers.L2(0.2)
     )
 
-    inputs = mm.sample_batch(testing_data, batch_size=100, include_targets=False)
+    inputs = mm.sample_batch(testing_data, batch_size=20, include_targets=False)
     _ = embeddings_wo_reg(inputs)
     _ = embeddings_batch_reg(inputs)
     _ = embeddings_table_reg(inputs)
