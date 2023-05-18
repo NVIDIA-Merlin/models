@@ -70,9 +70,6 @@ def MatrixFactorizationModel(
     logits_temperature: float
         Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
-    loss: Optional[LossType]
-        Loss function.
-        Defaults to `bpr`.
     samplers: List[ItemSampler]
         List of samplers for negative sampling, by default `[InBatchSampler()]`
 
