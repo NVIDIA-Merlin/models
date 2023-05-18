@@ -1558,8 +1558,13 @@ class BaseModel(tf.keras.Model):
 class Model(BaseModel):
     """Merlin Model class
 
+    `Model` is the main base class that represents a model in Merlin Models.
+    It can be configured with a number of pre and post processing blocks and can manage a context.
+
     Parameters
     ----------
+    blocks : list
+        List of `Block` instances in the model
     context : Optional[ModelContext], optional
         ModelContext is used to store/retrieve public variables across blocks,
         by default None.
@@ -1585,6 +1590,7 @@ class Model(BaseModel):
         prep_features: Optional[bool] = True,
         **kwargs,
     ):
+        """Creates a new `Model` instance."""
         super(Model, self).__init__(**kwargs)
 
         context = context or ModelContext()
@@ -1734,6 +1740,27 @@ class Model(BaseModel):
         self.built = True
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
+        """
+        Method for forward pass of the model.
+
+        Parameters
+        ----------
+        inputs : Tensor or dict of Tensor
+            Input Tensor(s) for the model
+        targets : Tensor or dict of Tensor, optional
+            Target Tensor(s) for the model
+        training : bool, optional
+            Flag to indicate whether the model is in training phase
+        testing : bool, optional
+            Flag to indicate whether the model is in testing phase
+        output_context : bool, optional
+            Flag to indicate whether to return the context along with the output
+
+        Returns
+        -------
+        Tensor or tuple of Tensor and ModelContext
+            Output of the model, and optionally the context
+        """
         outputs = inputs
         features = self._prepare_features(inputs, targets=targets)
         if isinstance(features, tuple):
@@ -1794,10 +1821,30 @@ class Model(BaseModel):
 
     @property
     def first(self):
+        """
+        The first `Block` in the model.
+    
+        This property provides a simple way to quickly access the first `Block` in the model's sequence of blocks.
+    
+        Returns
+        -------
+        Block
+            The first `Block` in the model.
+        """
         return self.blocks[0]
 
     @property
     def last(self):
+        """
+        The last `Block` in the model.
+    
+        This property provides a simple way to quickly access the last `Block` in the model's sequence of blocks.
+    
+        Returns
+        -------
+        Block
+            The last `Block` in the model.
+        """
         return self.blocks[-1]
 
     @classmethod
@@ -1846,6 +1893,23 @@ class Model(BaseModel):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
+        """
+        Creates a model from its config.
+
+        This method recreates a model instance from a configuration dictionary and optional custom objects.
+
+        Parameters
+        ----------
+        config : dict
+            The configuration dictionary representing the model.
+        custom_objects : dict, optional
+            Dictionary mapping names to custom classes or functions to be considered during deserialization.
+
+        Returns
+        -------
+        Model
+            The created `Model` instance.
+        """
         pre = config.pop("pre", None)
         post = config.pop("post", None)
         schema = config.pop("schema", None)
@@ -1882,6 +1946,21 @@ class Model(BaseModel):
         return model
 
     def get_sample_inputs(self, batch_size=None):
+        """
+        Generates sample inputs for the model.
+    
+        This method creates a dictionary of sample inputs for each input feature, useful for testing or initializing the model.
+    
+        Parameters
+        ----------
+        batch_size : int, optional
+            The batch size for the sample inputs. If not specified, defaults to 2.
+    
+        Returns
+        -------
+        dict
+            A dictionary mapping feature names to sample input tensors.
+        """
         batch_size = batch_size or 2
         if self.input_schema is not None:
             inputs = {}
@@ -1927,6 +2006,18 @@ class Model(BaseModel):
             return inputs
 
     def get_config(self):
+        """
+        Returns the model configuration as a dictionary.
+    
+        This method returns a dictionary containing the configuration of the model.
+        The dictionary includes the configuration of each block in the model, 
+        as well as additional properties such as `pre` and `post` layers, and the `schema`.
+    
+        Returns
+        -------
+        dict
+            The configuration of the model.
+        """
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         for i, layer in enumerate(self.blocks):
