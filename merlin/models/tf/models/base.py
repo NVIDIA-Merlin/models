@@ -22,7 +22,17 @@ import sys
 import warnings
 from collections.abc import Sequence as SequenceCollection
 from functools import partial
-from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Union, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Union,
+    runtime_checkable,
+)
 
 import six
 import tensorflow as tf
@@ -105,7 +115,13 @@ LOSS_PARAMETERS_DOCSTRINGS = """Can be either a single loss (str or tf.keras.los
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
-    """Callback that handles when to compute metrics."""
+    """Callback that handles when to compute metrics."
+
+    Parameters
+    ----------
+    train_metrics_steps : int, optional
+        Frequency (number of steps) to compute train metrics, by default 1
+    """
 
     def __init__(self, train_metrics_steps=1, **kwargs):
         self.train_metrics_steps = train_metrics_steps
@@ -166,7 +182,15 @@ def get_output_schema(export_path: str) -> Schema:
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ModelBlock(Block, tf.keras.Model):
-    """Block that extends `tf.keras.Model` to make it saveable."""
+    """Block that extends `tf.keras.Model` to make it saveable.
+
+    Parameters
+    ----------
+    block : Block
+        Block to be turned into a model
+    prep_features : Optional[bool], optional
+        Whether features need to be prepared or not, by default True
+    """
 
     def __init__(self, block: Block, prep_features: Optional[bool] = True, **kwargs):
         super().__init__(**kwargs)
@@ -2084,6 +2108,8 @@ class Model(BaseModel):
 
 @runtime_checkable
 class RetrievalBlock(Protocol):
+    """Protocol class for a RetrievalBlock"""
+
     def query_block(self) -> Block:
         ...
 
@@ -2487,7 +2513,26 @@ class RetrievalModelV2(Model):
         return topk_model
 
 
-def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
+def _maybe_convert_merlin_dataset(
+    data: Any, batch_size: int, shuffle: bool = True, **kwargs
+) -> Any:
+    """Converts the Dataset to a Loader with the given
+    batch_size and shuffle options
+
+    Parameters
+    ----------
+    data
+        Dataset instance
+    batch_size : int
+        Batch size
+    shuffle : bool, optional
+        Enables data shuffling during loading, by default True
+
+    Returns
+    -------
+    Any
+        Returns a Loader instance if a Dataset, otherwise returns the data
+    """
     # Check if merlin-dataset is passed
     if hasattr(data, "to_ddf"):
         if not batch_size:
