@@ -135,14 +135,15 @@ class ItemRetrievalScorer(Block):
     """Block for ItemRetrieval, which expects query/user and item embeddings as input and
     uses dot product to score the positive item (inputs["item"]) and also sampled negative
     items (during training).
+
     Parameters
     ----------
-    samplers : List[ItemSampler], optional
+    samplers: List[ItemSampler], optional
         List of item samplers that provide negative samples when `training=True`
-    sampling_downscore_false_negatives : bool, optional
+    sampling_downscore_false_negatives: bool, optional
         Identify false negatives (sampled item ids equal to the positive item and downscore them
         to the `sampling_downscore_false_negatives_value`), by default True
-    sampling_downscore_false_negatives_value : int, optional
+    sampling_downscore_false_negatives_value: int, optional
         Value to be used to downscore false negatives when
         `sampling_downscore_false_negatives=True`, by default `np.finfo(np.float32).min / 100.0`
     item_id_feature_name: str
@@ -174,6 +175,7 @@ class ItemRetrievalScorer(Block):
         store_negative_ids: bool = False,
         **kwargs,
     ):
+        """Initializes the `ItemRetrievalScorer` class."""
         super().__init__(**kwargs)
 
         self.downscore_false_negatives = sampling_downscore_false_negatives
@@ -193,6 +195,13 @@ class ItemRetrievalScorer(Block):
         self.set_required_features()
 
     def build(self, input_shapes):
+        """Builds the block.
+
+        Parameters
+        ----------
+        input_shapes: tuple or dict
+            Shape of the input tensor.
+        """
         if isinstance(input_shapes, dict):
             query_shape = input_shapes[self.query_name]
             self.context.add_weight(
@@ -206,6 +215,13 @@ class ItemRetrievalScorer(Block):
         super().build(input_shapes)
 
     def _check_input_from_two_tower(self, inputs):
+        """Checks if the inputs from the two towers (query and item) are correctly provided.
+
+        Parameters
+        ----------
+        inputs: dict
+            Dictionary of inputs.
+        """
         if set(inputs.keys()) != set([self.query_name, self.item_name]):
             raise ValueError(
                 f"Wrong input-names, expected: {[self.query_name, self.item_name]} "
@@ -223,6 +239,7 @@ class ItemRetrievalScorer(Block):
             the positive item (inputs["item"]).
             For the sampled-softmax mode, logits are computed by multiplying the query vector
             and the item embeddings matrix (self.context.get_embedding(self.item_domain))
+
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -230,6 +247,7 @@ class ItemRetrievalScorer(Block):
             where embeddings are 2D tensors (batch size, embedding size)
         training : bool, optional
             Flag that indicates whether in training mode, by default True
+
         Returns
         -------
         tf.Tensor
@@ -273,6 +291,7 @@ class ItemRetrievalScorer(Block):
     ) -> "PredictionOutput":
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item and also sampled negative items (during training).
+
         Parameters
         ----------
         inputs : TabularData
@@ -280,6 +299,7 @@ class ItemRetrievalScorer(Block):
             where embeddings are 2D tensors (batch size, embedding size)
         training : bool, optional
             Flag that indicates whether in training mode, by default True
+
         Returns
         -------
         [tf.Tensor,tf.Tensor]
@@ -431,6 +451,7 @@ class ItemRetrievalScorer(Block):
         return predictions
 
     def set_required_features(self):
+        """Sets the required features for the samplers."""
         required_features = set()
         if self.downscore_false_negatives:
             required_features.add(self.item_id_feature_name)
@@ -442,6 +463,13 @@ class ItemRetrievalScorer(Block):
         self._required_features = list(required_features)
 
     def get_config(self):
+        """Returns the configuration of the model as a dictionary.
+
+        Returns
+        -------
+        dict
+            The configuration of the model.
+        """
         config = super().get_config()
         config = maybe_serialize_keras_objects(self, config, ["samplers"])
         config["sampling_downscore_false_negatives"] = self.downscore_false_negatives
@@ -458,6 +486,17 @@ class ItemRetrievalScorer(Block):
 
     @classmethod
     def from_config(cls, config):
+        """Creates a new instance of the class from its config.
+
+        Parameters
+        ----------
+        config: dict
+            A dictionary, typically the output of get_config.
+
+        Returns
+        -------
+        A new instance of the `ItemRetrievalScorer` class.
+        """
         config = maybe_deserialize_keras_objects(config, ["samplers"])
 
         return super().from_config(config)
