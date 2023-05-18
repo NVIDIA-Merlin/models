@@ -116,7 +116,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         store_negative_ids: bool = False,
         **kwargs,
     ):
-        """Returns a SequentialBlock ofItemRetrievalScorer() and LogitsTemperatureScaler()"""
+        """Returns a SequentialBlock of ItemRetrievalScorer() and LogitsTemperatureScaler()"""
         if samplers is None or len(samplers) == 0:
             samplers = (InBatchSampler(),)
 
