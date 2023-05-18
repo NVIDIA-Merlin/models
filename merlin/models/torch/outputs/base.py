@@ -26,36 +26,54 @@ from merlin.schema import ColumnSchema, Schema
 class ModelOutput(Block):
     """A base class for prediction tasks.
 
+    Example usage::
+        >>> schema = ColumnSchema(
+        ...    "target",
+        ...    properties={"domain": {"min": 0, "max": 1}},
+        ...    tags=[Tags.CATEGORICAL, Tags.TARGET]
+        ... )
+        >>> model_output = ModelOutput(
+        ...    nn.LazyLinear(1),
+        ...    nn.Sigmoid(),
+        ...    schema=schema
+        ... )
+        >>> input = torch.randn(3, 2)
+        >>> output = model_output(input)
+        >>> print(output)
+        tensor([[0.5529],
+                [0.3562],
+                [0.7478]], grad_fn=<SigmoidBackward0>)
+
     Parameters
     ----------
+    schema: Optional[ColumnSchema]
+        The schema defining the column properties.
     loss: nn.Module
         The loss function used for training.
     metrics: Sequence[Metric]
         The metrics used for evaluation.
     name: Optional[str]
         The name of the model output.
-    schema: Optional[ColumnSchema]
-        The schema defining the column properties.
     """
 
     def __init__(
         self,
         *module: nn.Module,
-        loss: nn.Module,
+        schema: Optional[ColumnSchema] = None,
+        loss: Optional[nn.Module] = None,
         metrics: Sequence[Metric] = (),
         name: Optional[str] = None,
-        schema: Optional[ColumnSchema] = None,
     ):
         """Initializes a ModelOutput object."""
         super().__init__(*module, name=name)
 
         self.loss = loss
         self.metrics = metrics
-        self._output_schema = None
+        self.output_schema: Schema = Schema()
 
         if schema:
             self.setup_schema(schema)
-        self.register_buffer("target", torch.zeros(1, dtype=torch.float32))
+        self.create_target_buffer()
 
     def setup_schema(self, schema: Optional[ColumnSchema]):
         """Set up the schema for the output.
@@ -65,18 +83,10 @@ class ModelOutput(Block):
         schema: ColumnSchema or None
             The schema defining the column properties.
         """
-        self._output_schema = Schema([schema])
+        self.output_schema = Schema([schema])
 
-    @property
-    def output_schema(self):
-        """The schema of the output.
-
-        Returns
-        -------
-        Schema or None
-            The schema defining the column properties.
-        """
-        return self._output_schema
+    def create_target_buffer(self):
+        self.register_buffer("target", torch.zeros(1, dtype=torch.float32))
 
     def eval(self):
         """Sets the module in evaluation mode.

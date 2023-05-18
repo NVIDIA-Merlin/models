@@ -32,7 +32,7 @@ class TestModelOutput:
         assert isinstance(model_output, mm.ModelOutput)
         assert model_output.loss is loss
         assert model_output.metrics == ()
-        assert model_output.output_schema is None
+        assert model_output.output_schema == Schema()
 
     def test_identity(self):
         block = mm.Block()

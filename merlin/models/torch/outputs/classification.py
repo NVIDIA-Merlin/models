@@ -28,35 +28,33 @@ class BinaryOutput(ModelOutput):
 
     Parameters
     ----------
+    schema: Optional[ColumnSchema])
+        The schema defining the column properties. Default is None.
     loss: nn.Module
         The loss function used for training. Default is nn.BCEWithLogitsLoss().
     metrics: Sequence[Metric]
         The metrics used for evaluation. Default includes Accuracy, AUROC, Precision, and Recall.
-    schema: Optional[ColumnSchema])
-        The schema defining the column properties. Default is None.
     """
 
     def __init__(
         self,
-        loss=nn.BCEWithLogitsLoss(),
+        schema: Optional[ColumnSchema] = None,
+        loss: nn.Module = nn.BCEWithLogitsLoss(),
         metrics: Sequence[Metric] = (
             Accuracy(task="binary"),
             AUROC(task="binary"),
             Precision(task="binary"),
             Recall(task="binary"),
         ),
-        schema: Optional[ColumnSchema] = None,
     ):
         """Initializes a BinaryOutput object."""
         super().__init__(
             nn.LazyLinear(1),
             nn.Sigmoid(),
+            schema=schema,
             loss=loss,
             metrics=metrics,
-            schema=schema,
         )
-        if schema:
-            self.setup_schema(schema)
 
     def setup_schema(self, target: Optional[ColumnSchema]):
         """Set up the schema for the output.
@@ -72,4 +70,4 @@ class BinaryOutput(ModelOutput):
                 {"domain": {"min": 0, "max": 1, "name": _target.name}},
             )
 
-        self._output_schema = Schema([_target])
+        self.output_schema = Schema([_target])
