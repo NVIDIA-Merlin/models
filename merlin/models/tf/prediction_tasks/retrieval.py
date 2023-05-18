@@ -39,10 +39,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             The schema object including features to use and their properties.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
-        post_logits: Optional[PredictionBlock]
-            Optional extra pre-call block for post-processing the logits, by default None.
-            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`
-            for populariy sampling correction.
         target_name: Optional[str]
             If specified, name of the target tensor to retrieve from dataloader.
             Defaults to None.
@@ -52,9 +48,17 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         task_block: Block
             The `Block` that applies additional layers op to inputs.
             Defaults to None.
+        post_logits: Optional[PredictionBlock]
+            Optional extra pre-call block for post-processing the logits, by default None.
+            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`
+            for populariy sampling correction.
         logits_temperature: float
             Parameter used to reduce the model overconfidence, so that logits / T.
             Defaults to 1.
+        cache_query: bool
+            Add query embeddings to the context block, by default False
+        store_negative_ids: bool
+            Returns negative items ids as part of the output, by default False
     Returns
     -------
         PredictionTask
@@ -112,6 +116,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         store_negative_ids: bool = False,
         **kwargs,
     ):
+        """Returns a SequentialBlock ofItemRetrievalScorer() and LogitsTemperatureScaler()"""
         if samplers is None or len(samplers) == 0:
             samplers = (InBatchSampler(),)
 
@@ -134,6 +139,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     @property
     def retrieval_scorer(self):
         def find_retrieval_scorer_block(block):
+            """Returns the ItemRetrievalScorer layer"""
             if isinstance(block, ItemRetrievalScorer):
                 return block
 
@@ -156,6 +162,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         self.retrieval_scorer.cache_query = value
 
     def get_config(self):
+        """Return a Python dict containing the configuration of the model."""
         config = super(ItemRetrievalTask, self).get_config()
         del config["pre"]
         if self.samplers:
