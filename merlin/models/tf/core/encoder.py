@@ -526,23 +526,90 @@ class TopKEncoder(Encoder, BaseModel):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingEncoder(Encoder):
+    """Creates an Encoder from an EmbeddingTable.
+    Typically used with RetrievalModelV2.
+    Parameters
+    ----------
+    schema : Union[ColumnSchema, Schema]
+        The ColumnSchema of the column for which the
+        embedding table needs to be created.
+        If a Schema is passed, only the first column
+        is considered
+    dim : int
+        Dimension of the embeddings
+    embeddings_initializer : Union[str, tf.keras.layers.Layer], optional
+        Initializer for the `embeddings`
+        matrix (see `keras.initializers`). By default "uniform"
+    embeddings_regularizer : Union[str, tf.keras.layers.Layer], optional
+        Regularizer function applied to
+        the `embeddings` matrix (see `keras.regularizers`)., by default None
+    activity_regularizer : Union[str, tf.keras.layers.Layer], optional
+        Sets a layer that applies an update to the cost function based
+        input activity, by default None
+    embeddings_constraint : Union[str, tf.keras.layers.Layer], optional
+        Constraint function applied to
+        the `embeddings` matrix (see `keras.constraints`), by default None
+    mask_zero : bool, optional
+        Whether or not the input value 0 is a special "padding"
+        value that should be masked out.
+        This is useful when using recurrent layers
+        which may take variable length input.
+        If this is `True`, then all subsequent layers
+        in the model need to support masking or an exception will be raised.
+        If mask_zero is set to True, as a consequence, index 0 cannot be
+        used in the vocabulary (input_dim should equal size of
+        vocabulary + 1), by default False
+    input_length : int, optional
+        This argument is required if you are going to connect
+        `Flatten` then `Dense` layers upstream
+        (without it, the shape of the dense outputs cannot be computed),
+        by default None
+    sequence_combiner : Optional[CombinerType], optional
+        A string specifying how to combine embedding results for each
+        entry ("mean", "sqrtn" and "sum" are supported) or a layer.
+        Default is None (no combiner used), by default None
+    trainable : bool, optional
+        Whether the layer's variables should be trainable, by default True
+    name : str, optional
+        String name of the layer, by default None
+    dtype : optional
+        The dtype of the layer's computations and weights. Can also be a
+        `tf.keras.mixed_precision.Policy`, which allows the computation and weight
+        dtype to differ. Default of `None` means to use
+        `tf.keras.mixed_precision.global_policy()`, which is a float32 policy
+        unless set to different value., by default None
+    dynamic : bool, optional
+        Set this to `True` if your layer should only be run eagerly, and
+        should not be used to generate a static computation graph.
+        This would be the case for a Tree-RNN or a recursive network,
+        for example, or generally for any layer that manipulates tensors
+        using Python control flow. If `False`, we assume that the layer can
+        safely be used to generate a static computation graph., by default False
+    embeddings_l2_batch_regularization : Optional[Union[float, Dict[str, float]]], optional
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        by default 0.0, by default 0.0
+    post : Optional[tf.keras.layers.Layer], optional
+        _description_, by default None
+    **kwargs: Forwarded Encoder parameters
+    """
+
     def __init__(
         self,
         schema: Union[ColumnSchema, Schema],
         dim: int,
-        embeddings_initializer="uniform",
-        embeddings_regularizer=None,
-        activity_regularizer=None,
-        embeddings_constraint=None,
-        mask_zero=False,
-        input_length=None,
+        embeddings_initializer: Optional[Union[str, tf.keras.layers.Layer]] = "uniform",
+        embeddings_regularizer: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        activity_regularizer: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        embeddings_constraint: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        mask_zero: bool = False,
+        input_length: int = None,
         sequence_combiner: Optional[CombinerType] = None,
-        trainable=True,
-        name=None,
+        trainable: bool = True,
+        name: str = None,
         dtype=None,
-        dynamic=False,
-        post: Optional[tf.keras.layers.Layer] = None,
+        dynamic: bool = False,
         embeddings_l2_batch_regularization: Optional[Union[float, Dict[str, float]]] = 0.0,
+        post: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):
         if isinstance(schema, ColumnSchema):

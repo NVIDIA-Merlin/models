@@ -1259,6 +1259,25 @@ def ContinuousEmbedding(
     name: str = "continuous",
     **kwargs,
 ) -> SequentialBlock:
+    """Concatenates all numerical features and project then using the
+        specified Block.
+    Parameters
+    ----------
+    inputs : Block
+        Expects a ParallelBlock with a number of features
+    embedding_block : Block
+        Block to project the continuous features
+    aggregation : optional
+        Aggregation combining continuous feature switch the other features, by default None
+    continuous_aggregation : str, optional
+        Aggregation for continuous features, by default "concat"
+    name : str, optional
+        Name of the projected continuous block, by default "continuous"
+    Returns
+    -------
+    SequentialBlock
+        A block that contains the projected continuous features along with the other features
+    """
     continuous_embedding = Filter(Tags.CONTINUOUS, aggregation=continuous_aggregation).connect(
         embedding_block
     )
@@ -1271,6 +1290,16 @@ def ContinuousEmbedding(
 
 
 def serialize_table_config(table_config: TableConfig) -> Dict[str, Any]:
+    """Serializes a TableConfig instance
+    Parameters
+    ----------
+    table_config : TableConfig
+        Configuration data for one embedding table
+    Returns
+    -------
+    Dict[str, Any]
+        A dict with the serialized embedding "initializer" and "optimizer"
+    """
     table = deepcopy(table_config.__dict__)
     if "initializer" in table:
         table["initializer"] = tf.keras.initializers.serialize(table["initializer"])
@@ -1281,6 +1310,17 @@ def serialize_table_config(table_config: TableConfig) -> Dict[str, Any]:
 
 
 def deserialize_table_config(table_params: Dict[str, Any]) -> TableConfig:
+    """Deserializes a TableConfig from the serialized
+    embedding "initializer" and "optimizer"
+    Parameters
+    ----------
+    table_params : Dict[str, Any]
+        Dict with the serialized values
+    Returns
+    -------
+    TableConfig
+        An instance of the TableConfig
+    """
     if "initializer" in table_params and table_params["initializer"]:
         table_params["initializer"] = tf.keras.initializers.deserialize(table_params["initializer"])
     if "optimizer" in table_params and table_params["optimizer"]:
@@ -1291,6 +1331,16 @@ def deserialize_table_config(table_params: Dict[str, Any]) -> TableConfig:
 
 
 def serialize_feature_config(feature_config: FeatureConfig) -> Dict[str, Any]:
+    """Serializes a FeatureConfig instance
+    Parameters
+    ----------
+    feature_config : FeatureConfig
+        Configuration data for one embedding feature
+    Returns
+    -------
+    Dict[str, Any]
+        Dict with FeatureConfig properties set
+    """
     outputs = {}
 
     for key, val in feature_config.items():

@@ -224,6 +224,37 @@ class _Dense(tf.keras.layers.Layer):
         dense=None,
         **kwargs,
     ):
+        """A Dense layer that aggregates features before projection
+        Parameters
+        ----------
+        units : _type_
+            _description_
+        activation : Optional[Union[str,tf.keras.layers.Layer]], optional
+            The activation function to use. By default None
+        use_bias : bool, optional
+            Whether to use a bias in the MLP, by default True
+        kernel_initializer: InitializerType
+            Initializer for the kernel weights matrix. Defaults to "glorot_uniform".
+        bias_initializer: InitializerType
+            Initializer for the bias vector. Default to "zeros".
+        kernel_regularizer: Optional[RegularizerType]
+            Regularizer function applied to the kernel weights matrix. Default to None.
+        bias_regularizer: Optional[RegularizerType]
+            Regularizer function applied to the bias vector.  Default to None.
+        activity_regularizer : optional
+            Regularizer function applied to the output of the layer (its "activation"),
+            by default None
+        kernel_constraint : optional
+            Constraint function applied to the kernel weights matrix, by default None
+        bias_constraint : optional
+            Constraint function applied to the bias vector, by default None
+        pre_aggregation : str, optional
+            If provided, aggregates inputs before the dense projection, by default "concat"
+        dense : _type_, optional
+            A tf.keras.layers.Layer that can be used to project the inputs.
+            Typically used when deserializing the layer. By default None
+        """
+
         super(_Dense, self).__init__(**kwargs)
         self.dense = dense or tf.keras.layers.Dense(
             units,

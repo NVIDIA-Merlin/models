@@ -44,7 +44,7 @@ class ModelOutput(Layer):
         The layer to call in the forward-pass of the model
     default_loss: Union[str, tf.keras.losses.Loss]
         Default loss to set if the user does not specify one
-    get_default_metrics: Callable
+    default_metrics_fn: Callable
         A function returning the list of default metrics to set
         if the user does not specify any
     name: Optional[Text], optional
@@ -253,7 +253,17 @@ class ModelOutput(Layer):
         return config
 
     @classmethod
-    def get_task_name(cls, target_name):
+    def get_task_name(cls, target_name: str) -> str:
+        """Returns the name of the task
+        Parameters
+        ----------
+        target_name : str
+            Name of the target
+        Returns
+        -------
+        str
+            Returns the task name, which includes the target name
+        """
         base_name = to_snake_case(cls.__name__)
         return name_fn(target_name, base_name) if target_name else base_name
 
