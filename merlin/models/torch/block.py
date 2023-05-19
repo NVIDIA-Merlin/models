@@ -318,7 +318,7 @@ class ParallelBlock(Block):
 
         return self
 
-    def __getitem__(self, idx: Union[slice, int]):
+    def __getitem__(self, idx: Union[slice, int, str]):
         if isinstance(idx, str) and idx in self.branches:
             return self.branches[idx]
 

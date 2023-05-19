@@ -225,7 +225,7 @@ class BlockContainerDict(nn.ModuleDict):
         Parameters
         ----------
         module : nn.Module
-            The module to prepend.
+            The module to append to each branch.
         shared : bool, default=False
             If True, the same module is shared across all elements.
             Otherwise a deep copy of the module is used in each element.
@@ -248,7 +248,7 @@ class BlockContainerDict(nn.ModuleDict):
         Parameters
         ----------
         module : nn.Module
-            The module to prepend.
+            The module to prepend to each branch.
         shared : bool, default=False
             If True, the same module is shared across all elements.
             Otherwise a deep copy of the module is used in each element.
