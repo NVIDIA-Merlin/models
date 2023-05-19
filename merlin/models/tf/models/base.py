@@ -308,6 +308,10 @@ class ModelBlock(Block, tf.keras.Model):
 
 
 class BaseModel(tf.keras.Model):
+    """Base model, that overrides Keras model methods
+    to compile, compute metrics and loss and also
+    to compute the train, eval, predict steps"""
+
     def __init__(self, **kwargs):
         super(BaseModel, self).__init__(**kwargs)
 
@@ -684,6 +688,9 @@ class BaseModel(tf.keras.Model):
 
     @property
     def prediction_tasks(self) -> List[PredictionTask]:
+        """Returns the Prediction tasks in the model.
+        Going to be deprecated in favor of model_outputs()
+        """
         from merlin.models.tf.prediction_tasks.base import PredictionTask
 
         results = find_all_instances_in_layers(self, PredictionTask)
@@ -717,6 +724,7 @@ class BaseModel(tf.keras.Model):
 
     @property
     def model_outputs(self) -> List[ModelOutput]:
+        """Returns a list with the ModelOutput in the model"""
         results = find_all_instances_in_layers(self, ModelOutput)
         # Ensures tasks are sorted by name, so that they match the metrics
         # which are sorted the same way by Keras
@@ -725,6 +733,7 @@ class BaseModel(tf.keras.Model):
         return results
 
     def outputs_by_name(self) -> Dict[str, ModelOutput]:
+        """Returns the task names from the model outputs"""
         return {task.full_name: task for task in self.model_outputs}
 
     def outputs_by_target(self) -> Dict[str, List[ModelOutput]]:
@@ -1199,6 +1208,7 @@ class BaseModel(tf.keras.Model):
         return metrics
 
     def predict_step(self, data):
+        """Custom predict step to obtain the outputs"""
         x, _, _ = unpack_x_y_sample_weight(data)
 
         if getattr(self, "predict_pre", None):

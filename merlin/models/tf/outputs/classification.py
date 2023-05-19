@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import logging
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -34,16 +34,31 @@ from merlin.schema import ColumnSchema, Schema
 LOG = logging.getLogger("merlin_models")
 
 
-def default_binary_metrics():
+def default_binary_metrics() -> List[tf.keras.metrics.Metric]:
+    """Returns the default binary metrics
+
+    Returns
+    -------
+    List[tf.keras.metrics.Metric]
+        List with metrics for binary classification
+    """
     return (
         tf.keras.metrics.Precision(name="precision"),
         tf.keras.metrics.Recall(name="recall"),
         tf.keras.metrics.BinaryAccuracy(name="binary_accuracy"),
-        tf.keras.metrics.AUC(name="auc"),
+        tf.keras.metrics.AUC(name="auc", num_thresholds=int(1e5)),
     )
 
 
 def default_categorical_prediction_metrics(k=10):
+    """Returns the default top-k metrics for
+    categorical classification
+
+    Returns
+    -------
+    List[tf.keras.metrics.Metric]
+        List with top-k metrics for categorical classification
+    """
     return (
         RecallAt(k),
         MRRAt(k),
@@ -70,8 +85,6 @@ class BinaryOutput(ModelOutput):
         by default None
     name: str, optional
         The name of the task.
-    task_block: Block, optional
-        The block to use for the task.
     logits_temperature: float, optional
         Parameter used to reduce model overconfidence, so that logits / T.
         by default 1.
