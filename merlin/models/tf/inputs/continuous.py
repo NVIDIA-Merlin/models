@@ -98,9 +98,39 @@ class ContinuousFeatures(TabularBlock):
 
     @classmethod
     def from_features(cls, features, **kwargs):
+        """Class method for creating an instance of ContinuousFeatures.
+        
+        Parameters
+        ----------
+        features: list
+            List of continuous features to include in this module.
+        kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        ContinuousFeatures
+            An instance of ContinuousFeatures class.
+        """
         return cls(features, **kwargs)
 
     def call(self, inputs, *args, **kwargs):
+        """Processes the specified continuous features from the inputs.
+
+        Parameters
+        ----------
+        inputs: dict
+            The input tensors, as a dictionary of string feature name to tensor.
+        args: tuple
+            Additional arguments, not used.
+        kwargs: dict
+            Additional keyword arguments, not used.
+
+        Returns
+        -------
+        dict
+            A dictionary of the processed continuous features.
+        """
         cont_features = self.filter_features(inputs)
         cont_features = {
             k: tf.expand_dims(v, -1) if len(v.shape) == 1 else v for k, v in cont_features.items()
@@ -108,6 +138,18 @@ class ContinuousFeatures(TabularBlock):
         return cont_features
 
     def compute_call_output_shape(self, input_shapes):
+        """Calculates the output shapes of the processed continuous features.
+
+        Parameters
+        ----------
+        input_shapes: dict
+            The shapes of the input tensors.
+
+        Returns
+        -------
+        dict
+            A dictionary of the output shapes of the processed continuous features.
+        """
         cont_features_sizes = self.filter_features.compute_output_shape(input_shapes)
         cont_features_sizes = {
             k: tf.TensorShape(list(v) + [1]) if len(v) == 1 else v
@@ -116,6 +158,13 @@ class ContinuousFeatures(TabularBlock):
         return cont_features_sizes
 
     def get_config(self):
+        """Returns a dictionary containing the configuration of the ContinuousFeatures block.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the configuration of the ContinuousFeatures block.
+        """
         config = super().get_config()
 
         config["features"] = self.filter_features.feature_names
@@ -123,10 +172,31 @@ class ContinuousFeatures(TabularBlock):
         return config
 
     def _get_name(self):
+        """Returns the name of the module.
+
+        Returns
+        -------
+        str
+            The name of the module.
+        """
         return "ContinuousFeatures"
 
     def repr_ignore(self) -> List[str]:
+        """Returns a list of module properties to ignore when creating a string representation of the module.
+
+        Returns
+        -------
+        List[str]
+            A list of module properties to ignore in the string representation.
+        """
         return ["filter_features"]
 
     def repr_extra(self):
+        """Returns a string of additional details to display in the string representation of the module.
+
+        Returns
+        -------
+        str
+            Additional details for the string representation of the module.
+        """
         return ", ".join(sorted(self.filter_features.feature_names))
