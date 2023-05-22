@@ -973,10 +973,29 @@ class ReplaceMaskedEmbeddings(Block):
     """
 
     def __init__(self, **kwargs):
+        """Initializes the block."""
         super().__init__(**kwargs)
         self.supports_masking = True
 
     def build(self, input_shape):
+        """Builds the block's internal variables.
+
+        This method creates a trainable embedding to replace masked interactions in the input.
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape
+            Shape of the input tensor.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError
+            If the last dimension of the input shape is None.
+        """
         self.hidden_size = input_shape[-1]
         if self.hidden_size is None:
             raise ValueError("The last dim of inputs cannot be None")
