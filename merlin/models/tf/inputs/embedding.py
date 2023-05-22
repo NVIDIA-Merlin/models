@@ -732,6 +732,25 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
         self.weight_feature_name = weight_feature_name
 
     def call(self, inputs, features):
+        """Performs the weighted average calculation.
+
+        Parameters
+        ----------
+        inputs: tf.Tensor
+            Input tensor.
+        features: dict
+            Dictionary of features, must include the weight feature.
+
+        Returns
+        -------
+        Tensor
+            Output tensor after applying the weighted average calculation.
+
+        Raises
+        ------
+        ValueError
+            If the inputs is a tf.RaggedTensor, the weight feature should also be a tf.RaggedTensor.
+        """
         weight_feature = features[self.weight_feature_name]
         if isinstance(inputs, tf.RaggedTensor) and not isinstance(weight_feature, tf.RaggedTensor):
             raise ValueError(
@@ -751,6 +770,18 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
         return output
 
     def compute_output_shape(self, input_shape):
+        """Computes the output shape.
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape
+            Shape of the input.
+
+        Returns
+        -------
+        tf.TensorShape
+            Shape of the output, which is the same as the input shape in this case.
+        """
         return input_shape
 
     @staticmethod
@@ -791,6 +822,13 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
         return seq_combiners
 
     def get_config(self):
+        """Returns the configuration of the layer.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the configuration of the layer.
+        """
         config = super().get_config()
         config["axis"] = self.axis
         config["weight_feature_name"] = self.weight_feature_name
