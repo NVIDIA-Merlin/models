@@ -111,6 +111,19 @@ class ParallelBlock(Block):
     it will be flattened into the output dictionary. This ensures the output-type
     is always Dict[str, torch.Tensor].
 
+    Example usage::
+        >>> parallel_block = ParallelBlock({"a": nn.LazyLinear(2), "b": nn.LazyLinear(2)})
+        >>> x = torch.randn(2, 2)
+        >>> output = parallel_block(x)
+        >>> # The output is a dictionary containing the output of each branch
+        >>> print(output)
+        {
+            'a': tensor([[-0.0801,  0.0436],
+                        [ 0.1235, -0.0318]]),
+            'b': tensor([[ 0.0918, -0.0274],
+                        [-0.0652,  0.0381]])
+        }
+
     Parameters
     ----------
     *module : nn.Module
@@ -146,19 +159,6 @@ class ParallelBlock(Block):
         If a branch returns a dictionary of tensors instead of a single tensor,
         it will be flattened into the output dictionary. This ensures the output-type
         is always Dict[str, torch.Tensor].
-
-        Example usage::
-            >>> parallel_block = ParallelBlock({"a": nn.LazyLinear(2), "b": nn.LazyLinear(2)})
-            >>> x = torch.randn(2, 2)
-            >>> output = parallel_block(x)
-            >>> # The output is a dictionary containing the output of each branch
-            >>> print(output)
-            {
-                'a': tensor([[-0.0801,  0.0436],
-                            [ 0.1235, -0.0318]]),
-                'b': tensor([[ 0.0918, -0.0274],
-                            [-0.0652,  0.0381]])
-            }
 
         Parameters
         ----------
