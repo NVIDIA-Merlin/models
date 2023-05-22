@@ -140,7 +140,7 @@ class Encoder(tf.keras.Model):
             Dataset to predict on.
         batch_size: int
             Batch size to use for prediction.
-            
+
         Returns
         -------
         merlin.io.Dataset

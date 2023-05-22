@@ -99,7 +99,7 @@ class ContinuousFeatures(TabularBlock):
     @classmethod
     def from_features(cls, features, **kwargs):
         """Class method for creating an instance of ContinuousFeatures.
-        
+
         Parameters
         ----------
         features: list

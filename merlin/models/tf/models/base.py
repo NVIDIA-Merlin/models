@@ -1823,9 +1823,9 @@ class Model(BaseModel):
     def first(self):
         """
         The first `Block` in the model.
-    
+
         This property provides a simple way to quickly access the first `Block` in the model's sequence of blocks.
-    
+
         Returns
         -------
         Block
@@ -1837,9 +1837,9 @@ class Model(BaseModel):
     def last(self):
         """
         The last `Block` in the model.
-    
+
         This property provides a simple way to quickly access the last `Block` in the model's sequence of blocks.
-    
+
         Returns
         -------
         Block
@@ -1948,14 +1948,14 @@ class Model(BaseModel):
     def get_sample_inputs(self, batch_size=None):
         """
         Generates sample inputs for the model.
-    
+
         This method creates a dictionary of sample inputs for each input feature, useful for testing or initializing the model.
-    
+
         Parameters
         ----------
         batch_size : int, optional
             The batch size for the sample inputs. If not specified, defaults to 2.
-    
+
         Returns
         -------
         dict
@@ -2008,11 +2008,11 @@ class Model(BaseModel):
     def get_config(self):
         """
         Returns the model configuration as a dictionary.
-    
+
         This method returns a dictionary containing the configuration of the model.
-        The dictionary includes the configuration of each block in the model, 
+        The dictionary includes the configuration of each block in the model,
         as well as additional properties such as `pre` and `post` layers, and the `schema`.
-    
+
         Returns
         -------
         dict
