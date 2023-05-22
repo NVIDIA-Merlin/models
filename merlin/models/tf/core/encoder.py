@@ -199,7 +199,7 @@ class Encoder(tf.keras.Model):
 
         Returns
         -------
-        A tensor or dict of tensors correspoding to the result of calling the layer.
+        A tensor or dict of tensors corresponding to the result of calling the layer.
         """
         inputs = self._prepare_features(inputs, targets=targets)
         if isinstance(inputs, tuple):
@@ -215,7 +215,7 @@ class Encoder(tf.keras.Model):
         )
 
     def __call__(self, inputs, **kwargs):
-        """Overrrides the default __call__ method to remove "features" from inputs.
+        """Overrides the default __call__ method to remove "features" from inputs.
 
         Parameters
         ----------
@@ -224,7 +224,7 @@ class Encoder(tf.keras.Model):
 
         Returns
         -------
-        A tensor or dict of tensors correspoding to the result of calling the layer.
+        A tensor or dict of tensors corresponding to the result of calling the layer.
         """
         # We remove features here since we don't expect them at inference time
         # Inside the `call` method, we will add them back by assuming inputs=features
