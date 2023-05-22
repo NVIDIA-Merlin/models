@@ -15,6 +15,6 @@
 #
 
 from merlin.models.torch.batch import Batch, Sequence
-from merlin.models.torch.block import Block
+from merlin.models.torch.block import Block, ParallelBlock
 
-__all__ = ["Batch", "Block", "Sequence"]
+__all__ = ["Batch", "Block", "ParallelBlock", "Sequence"]
