@@ -156,50 +156,44 @@ class EmbeddingTable(EmbeddingTableBase):
     and tf.SparseTensor which might be 2D (batch_size, 1) for scalars
     or 3d (batch_size, seq_length, 1) for sequential features
 
-     Parameters
-     ----------
-     dim: Dimension of the dense embedding.
-     col_schema: ColumnSchema
-         Schema of the column. This is used to infer the cardinality.
-     embeddings_initializer: Initializer for the `embeddings`
-       matrix (see `keras.initializers`).
-     embeddings_regularizer: Regularizer function applied to
-       the `embeddings` matrix (see `keras.regularizers`).
-     embeddings_constraint: Constraint function applied to
-       the `embeddings` matrix (see `keras.constraints`).
-     mask_zero: Boolean, whether or not the input value 0 is a special "padding"
-       value that should be masked out.
-       This is useful when using recurrent layers
-       which may take variable length input.
-       If this is `True`, then all subsequent layers
-       in the model need to support masking or an exception will be raised.
-       If mask_zero is set to True, as a consequence, index 0 cannot be
-       used in the vocabulary (input_dim should equal size of
-       vocabulary + 1).
-     input_length: Length of input sequences, when it is constant.
-       This argument is required if you are going to connect
-       `Flatten` then `Dense` layers upstream
-       (without it, the shape of the dense outputs cannot be computed).
-    combiner: A string specifying how to combine embedding results for each
-       entry ("mean", "sqrtn" and "sum" are supported) or a layer.
-       Default is None (no combiner used)
-    trainable: Boolean, whether the layer's variables should be trainable.
-    name: String name of the layer.
-    dtype: The dtype of the layer's computations and weights. Can also be a
-       `tf.keras.mixed_precision.Policy`, which allows the computation and weight
-       dtype to differ. Default of `None` means to use
-       `tf.keras.mixed_precision.global_policy()`, which is a float32 policy
-       unless set to different value.
-    dynamic: Set this to `True` if your layer should only be run eagerly, and
-       should not be used to generate a static computation graph.
-       This would be the case for a Tree-RNN or a recursive network,
-       for example, or generally for any layer that manipulates tensors
-       using Python control flow. If `False`, we assume that the layer can
-       safely be used to generate a static computation graph.
-    l2_batch_regularization_factor: float, optional
-        Factor for L2 regularization of the embeddings vectors (from the current batch only)
-        by default 0.0
-    **kwargs: Forwarded Keras Layer parameters
+    Parameters
+    ----------
+    dim : int
+        The dimension of the dense embedding.
+    col_schemas : ColumnSchema
+        The schema of the column(s) used to infer the cardinality.
+    embeddings_initializer : str, optional
+        The initializer for the `embeddings` matrix (see `keras.initializers`), by default "uniform".
+    embeddings_regularizer : str, optional
+        The regularizer function applied to the `embeddings` matrix (see `keras.regularizers`),
+        by default None.
+    embeddings_constraint : str, optional
+        The constraint function applied to the `embeddings` matrix (see `keras.constraints`),
+        by default None.
+    mask_zero : bool, optional
+        Whether or not the input value 0 is a special "padding" value that should be masked out.
+        This is useful when using recurrent layers which may take variable length input, by default False.
+    input_length : int, optional
+        The length of input sequences when it is constant, by default None.
+    sequence_combiner : CombinerType, optional
+        A string specifying how to combine embedding results for each entry ("mean", "sqrtn"
+        and "sum" are supported) or a layer. Default is None (no combiner used).
+    trainable : bool, optional
+        Whether the layer's variables should be trainable, by default True.
+    name : str, optional
+        The name of the layer, by default None.
+    dtype : str, optional
+        The data type of the layer's computations and weights. It can also be a
+        `tf.keras.mixed_precision.Policy`, which allows the computation and weight
+        dtype to differ, by default None.
+    dynamic : bool, optional
+        Set this to `True` if the layer should only be run eagerly and should not be used
+        to generate a static computation graph, by default False.
+    l2_batch_regularization_factor : float, optional
+        The factor for L2 regularization of the embeddings vectors (from the current batch only),
+        by default 0.0.
+    **kwargs:
+        Other keyword arguments forwarded to the Keras Layer.
     """
 
     def __init__(
@@ -353,9 +347,33 @@ class EmbeddingTable(EmbeddingTableBase):
         )
 
     def to_dataset(self, gpu=None) -> merlin.io.Dataset:
+        """Converts the EmbeddingTable to a merlin.io.Dataset.
+
+        Parameters
+        ----------
+        gpu: bool
+            Whether to use gpu.
+
+        Returns
+        -------
+        merlin.io.Dataset
+            The dataset representation of the EmbeddingTable.
+        """
         return merlin.io.Dataset(self.to_df(gpu=gpu))
 
     def to_df(self, gpu=None):
+        """Converts the EmbeddingTable to a DataFrame.
+
+        Parameters
+        ----------
+        gpu: bool
+            Whether to use gpu.
+
+        Returns
+        -------
+        cudf or pandas DataFrame
+            The DataFrame representation of the EmbeddingTable.
+        """
         return tensor_to_df(self.table.embeddings, gpu=gpu)
 
     def _maybe_build(self, inputs):
@@ -367,6 +385,13 @@ class EmbeddingTable(EmbeddingTableBase):
         return super(EmbeddingTable, self)._maybe_build(inputs)
 
     def build(self, input_shapes):
+        """Builds the EmbeddingTable based on the input shapes.
+
+        Parameters
+        ----------
+        input_shapes: tf.TensorShape or dictionary of shapes.
+            The shapes of the input tensors.
+        """
         if not self.table.built:
             self.table.build(input_shapes)
         return super(EmbeddingTable, self).build(input_shapes)
@@ -395,6 +420,13 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def _call_table(self, inputs, **kwargs):
+        """Performs the lookup operation for the inputs in the embedding table.
+
+        Parameters
+        ----------
+        inputs : tf.Tensor, tf.RaggedTensor, or tf.SparseTensor
+            The input tensors for the lookup operation.
+        """
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
                 if isinstance(inputs, tf.RaggedTensor):
@@ -439,6 +471,18 @@ class EmbeddingTable(EmbeddingTableBase):
     def compute_output_shape(
         self, input_shape: Union[tf.TensorShape, Dict[str, tf.TensorShape]]
     ) -> Union[tf.TensorShape, Dict[str, tf.TensorShape]]:
+        """Computes the shape of the output tensors.
+
+        Parameters
+        ----------
+        input_shape : Union[tf.TensorShape, Dict[str, tf.TensorShape]]
+            The shape of the input tensors.
+
+        Returns
+        -------
+        Union[tf.TensorShape, Dict[str, tf.TensorShape]]
+            The shape of the output tensors.
+        """
         if isinstance(input_shape, dict):
             output_shapes = {}
             for feature_name in self.schema.column_names:
@@ -454,6 +498,18 @@ class EmbeddingTable(EmbeddingTableBase):
     def _compute_output_shape_table(
         self, input_shape: Union[tf.TensorShape, tuple]
     ) -> tf.TensorShape:
+        """Helper method to compute the output shape of a single input tensor.
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape
+            The shape of the input tensor.
+
+        Returns
+        -------
+        tf.TensorShape
+            The shape of the output tensor.
+        """
         first_dims = input_shape
 
         if input_shape.rank > 1:
@@ -468,10 +524,36 @@ class EmbeddingTable(EmbeddingTableBase):
         return output_shapes
 
     def compute_call_output_shape(self, input_shapes):
+        """Computes the shape of the output of a call to this layer.
+
+        Parameters
+        ----------
+        input_shapes: tf.TensorShape or dictionary of shapes.
+            The shapes of the input tensors.
+
+        Returns
+        -------
+        Union[tf.TensorShape, Dict[str, tf.TensorShape]]
+            The shape of the output of a call to this layer.
+        """
         return self.compute_output_shape(input_shapes)
 
     @classmethod
     def from_config(cls, config, table=None):
+        """Creates an EmbeddingTable from its configuration.
+
+        Parameters
+        ----------
+        config : dict
+            Configuration dictionary.
+        table : tf.keras.layers.Embedding, optional
+            An optional embedding layer.
+
+        Returns
+        -------
+        EmbeddingTable
+            A newly created EmbeddingTable.
+        """
         if table:
             config["table"] = table
         else:
@@ -482,6 +564,13 @@ class EmbeddingTable(EmbeddingTableBase):
         return super().from_config(config)
 
     def get_config(self):
+        """Returns the configuration of this EmbeddingTable.
+
+        Returns
+        -------
+        dict
+            Configuration dictionary.
+        """
         config = super().get_config()
         config["table"] = tf.keras.layers.serialize(self.table)
         if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
@@ -1294,6 +1383,7 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         """
         return super(SequenceEmbeddingFeatures, self).lookup_feature(
             name, val, output_sequence=True
+        )
 
     def compute_call_output_shape(self, input_shapes):
         """Computes the output shapes given the input shapes.
