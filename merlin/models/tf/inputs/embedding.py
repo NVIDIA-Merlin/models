@@ -163,7 +163,8 @@ class EmbeddingTable(EmbeddingTableBase):
     col_schemas : ColumnSchema
         The schema of the column(s) used to infer the cardinality.
     embeddings_initializer : str, optional
-        The initializer for the `embeddings` matrix (see `keras.initializers`), by default "uniform".
+        The initializer for the `embeddings` matrix (see `keras.initializers`),
+        by default "uniform".
     embeddings_regularizer : str, optional
         The regularizer function applied to the `embeddings` matrix (see `keras.regularizers`),
         by default None.
@@ -172,7 +173,8 @@ class EmbeddingTable(EmbeddingTableBase):
         by default None.
     mask_zero : bool, optional
         Whether or not the input value 0 is a special "padding" value that should be masked out.
-        This is useful when using recurrent layers which may take variable length input, by default False.
+        This is useful when using recurrent layers which may take variable length input,
+        by default False.
     input_length : int, optional
         The length of input sequences when it is constant, by default None.
     sequence_combiner : CombinerType, optional
@@ -1339,20 +1341,6 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
             embedding_pre = [Filter(list(feature_config.keys()))]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
 
-        super().__init__(
-            feature_config=feature_config,
-            pre=pre,
-            post=post,
-            aggregation=aggregation,
-            name=name,
-            schema=schema,
-            add_default_pre=False,
-            **kwargs,
-        )
-        self.padding_idx = padding_idx
-        self.mask_zero = mask_zero
-
-    def lookup_feature(self, name, val, **kwargs):
         super().__init__(
             feature_config=feature_config,
             pre=pre,

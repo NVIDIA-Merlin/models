@@ -182,7 +182,8 @@ class ContinuousFeatures(TabularBlock):
         return "ContinuousFeatures"
 
     def repr_ignore(self) -> List[str]:
-        """Returns a list of module properties to ignore when creating a string representation of the module.
+        """Returns a list of module properties to ignore when creating a string representation
+        of the module.
 
         Returns
         -------
@@ -192,7 +193,8 @@ class ContinuousFeatures(TabularBlock):
         return ["filter_features"]
 
     def repr_extra(self):
-        """Returns a string of additional details to display in the string representation of the module.
+        """Returns a string of additional details to display in the string representation
+        of the module.
 
         Returns
         -------

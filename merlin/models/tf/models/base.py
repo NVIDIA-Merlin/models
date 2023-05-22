@@ -1824,7 +1824,8 @@ class Model(BaseModel):
         """
         The first `Block` in the model.
 
-        This property provides a simple way to quickly access the first `Block` in the model's sequence of blocks.
+        This property provides a simple way to quickly access the first `Block` in the model's
+        sequence of blocks.
 
         Returns
         -------
@@ -1838,7 +1839,8 @@ class Model(BaseModel):
         """
         The last `Block` in the model.
 
-        This property provides a simple way to quickly access the last `Block` in the model's sequence of blocks.
+        This property provides a simple way to quickly access the last `Block` in the model's
+        sequence of blocks.
 
         Returns
         -------
@@ -1896,14 +1898,16 @@ class Model(BaseModel):
         """
         Creates a model from its config.
 
-        This method recreates a model instance from a configuration dictionary and optional custom objects.
+        This method recreates a model instance from a configuration dictionary and
+        optional custom objects.
 
         Parameters
         ----------
         config : dict
             The configuration dictionary representing the model.
         custom_objects : dict, optional
-            Dictionary mapping names to custom classes or functions to be considered during deserialization.
+            Dictionary mapping names to custom classes or functions to be considered
+            during deserialization.
 
         Returns
         -------
@@ -1949,7 +1953,8 @@ class Model(BaseModel):
         """
         Generates sample inputs for the model.
 
-        This method creates a dictionary of sample inputs for each input feature, useful for testing or initializing the model.
+        This method creates a dictionary of sample inputs for each input feature, useful for
+        testing or initializing the model.
 
         Parameters
         ----------
