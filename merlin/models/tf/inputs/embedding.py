@@ -1217,12 +1217,19 @@ class EmbeddingFeatures(TabularBlock):
 class SequenceEmbeddingFeatures(EmbeddingFeatures):
     """Input block for embedding-lookups for categorical features. This module produces 3-D tensors,
     this is useful for sequential models like transformers.
+
     Parameters
     ----------
-    {embedding_features_parameters}
+    feature_config: Dict[str, FeatureConfig]
+        This specifies what TableConfig to use for each feature. For shared embeddings, the same
+        TableConfig can be used for multiple features.
+    mask_zero: bool
+       Whether or not the input value 0 is a special "padding" value that should be masked out.
     padding_idx: int
         The symbol to use for padding.
     {tabular_module_parameters}
+    add_default_pre: bool, default True
+        Whether or not to add a default preprocessing block.
     """
 
     def __init__(
@@ -1238,6 +1245,7 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         add_default_pre=True,
         **kwargs,
     ):
+        """Initializes the block."""
         if add_default_pre:
             embedding_pre = [Filter(list(feature_config.keys()))]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
@@ -1256,11 +1264,50 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         self.mask_zero = mask_zero
 
     def lookup_feature(self, name, val, **kwargs):
+        super().__init__(
+            feature_config=feature_config,
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+            name=name,
+            schema=schema,
+            add_default_pre=False,
+            **kwargs,
+        )
+        self.padding_idx = padding_idx
+        self.mask_zero = mask_zero
+
+    def lookup_feature(self, name, val, **kwargs):
+        """Looks up the embedding for a specific feature from the pre-trained embedding tables.
+
+        Parameters
+        ----------
+        name: str
+            The name of the feature to lookup.
+        val: tf.Tensor
+            The tensor of feature values to look up in the embedding tables.
+
+        Returns
+        -------
+        tf.Tensor
+            The corresponding embedding tensor.
+        """
         return super(SequenceEmbeddingFeatures, self).lookup_feature(
             name, val, output_sequence=True
-        )
 
     def compute_call_output_shape(self, input_shapes):
+        """Computes the output shapes given the input shapes.
+
+        Parameters
+        ----------
+        input_shapes: dict
+            Dictionary mapping input names to their shapes.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping output names to their shapes.
+        """
         batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
         sequence_length = input_shapes[list(self.feature_config.keys())[0]][1]
 
@@ -1273,6 +1320,20 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         return output_shapes
 
     def compute_mask(self, inputs, mask=None):
+        """Computes a mask tensor from the inputs.
+
+        Parameters
+        ----------
+        inputs: dict
+            Dictionary mapping input names to their values.
+        mask: tf.Tensor, optional
+            An optional mask to apply to the inputs.
+
+        Returns
+        -------
+        dict or None
+            A mask tensor, or None if `mask_zero` is False.
+        """
         if not self.mask_zero:
             return None
         outputs = {}
@@ -1282,6 +1343,13 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         return outputs
 
     def get_config(self):
+        """Gets the configuration dictionary for this block.
+
+        Returns
+        -------
+        dict
+            The configuration dictionary.
+        """
         config = super().get_config()
         config["mask_zero"] = self.mask_zero
         config["padding_idx"] = self.padding_idx
