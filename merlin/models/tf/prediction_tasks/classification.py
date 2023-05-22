@@ -99,12 +99,39 @@ class BinaryClassificationTask(PredictionTask):
         )
 
     def call(self, inputs, training=False, **kwargs):
+        """Projects the input with the output layer to a single logit
+
+        Parameters
+        ----------
+        inputs : tf.Tensor
+            Input tensor
+        training : bool, optional
+            Flag that indicates whether it is training or not, by default False
+
+        Returns
+        -------
+        tf.Tensor
+            Tensor with the classification probabilities
+        """
         return self.output_activation(self.output_layer(inputs))
 
     def compute_output_shape(self, input_shape):
+        """Computes the output shape based on the input shape
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape
+            The input shape
+
+        Returns
+        -------
+        tf.TensorShape
+            The output shape
+        """
         return self.output_layer.compute_output_shape(input_shape)
 
     def get_config(self):
+        """Return a Python dict containing the configuration of the model."""
         config = super().get_config()
         config = maybe_serialize_keras_objects(
             self,

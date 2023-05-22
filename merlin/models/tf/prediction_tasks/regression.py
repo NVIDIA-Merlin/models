@@ -105,9 +105,22 @@ class RegressionTask(PredictionTask):
         return self.output_activation(self.output_layer(inputs))
 
     def compute_output_shape(self, input_shape):
+        """Computes the output shape based on the input shape
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape
+            The input shape
+
+        Returns
+        -------
+        tf.TensorShape
+            The output shape
+        """
         return self.output_layer.compute_output_shape(input_shape)
 
     def get_config(self):
+        """Return a Python dict containing the configuration of the model."""
         config = super().get_config()
         config = maybe_serialize_keras_objects(
             self, config, {"output_layer": tf.keras.layers.serialize}
