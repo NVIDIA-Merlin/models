@@ -1,0 +1,278 @@
+{
+  "feature": [
+    {
+      "name": "movieId",
+      "type": "INT",
+      "intDomain": {
+        "name": "movieId",
+        "min": "1",
+        "max": "1680",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "categorical",
+          "item_id"
+        ],
+        "extraMetadata": [
+          {
+            "_dims": [
+              [
+                0.0,
+                null
+              ]
+            ],
+            "dtype_item_size": 32.0,
+            "freq_threshold": 0.0,
+            "is_ragged": false,
+            "max_size": 0.0,
+            "is_list": false,
+            "embedding_sizes": {
+              "dimension": 102.0,
+              "cardinality": 1680.0
+            },
+            "cat_path": ".//categories/unique.movieId.parquet",
+            "num_buckets": null,
+            "start_index": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "name": "userId",
+      "type": "INT",
+      "intDomain": {
+        "name": "userId",
+        "max": "943",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "user",
+          "user_id"
+        ],
+        "extraMetadata": [
+          {
+            "embedding_sizes": {
+              "cardinality": 943.0,
+              "dimension": 74.0
+            },
+            "num_buckets": null,
+            "is_ragged": false,
+            "max_size": 0.0,
+            "dtype_item_size": 32.0,
+            "is_list": false,
+            "start_index": 0.0,
+            "freq_threshold": 0.0,
+            "cat_path": ".//categories/unique.userId.parquet"
+          }
+        ]
+      }
+    },
+    {
+      "name": "genres",
+      "type": "INT",
+      "intDomain": {
+        "name": "genres",
+        "max": "216",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "categorical"
+        ],
+        "extraMetadata": [
+          {
+            "max_size": 0.0,
+            "start_index": 0.0,
+            "dtype_item_size": 32.0,
+            "num_buckets": null,
+            "freq_threshold": 0.0,
+            "embedding_sizes": {
+              "cardinality": 216.0,
+              "dimension": 32.0
+            },
+            "cat_path": ".//categories/unique.genres.parquet",
+            "is_list": false,
+            "is_ragged": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "TE_movieId_rating",
+      "type": "FLOAT",
+      "annotation": {
+        "tag": [
+          "continuous"
+        ],
+        "extraMetadata": [
+          {
+            "is_list": false,
+            "dtype_item_size": 64.0,
+            "is_ragged": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "userId_count",
+      "type": "FLOAT",
+      "annotation": {
+        "tag": [
+          "continuous"
+        ],
+        "extraMetadata": [
+          {
+            "is_list": false,
+            "dtype_item_size": 32.0,
+            "is_ragged": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "gender",
+      "type": "INT",
+      "intDomain": {
+        "name": "gender",
+        "max": "2",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "user"
+        ],
+        "extraMetadata": [
+          {
+            "max_size": 0.0,
+            "dtype_item_size": 32.0,
+            "is_list": false,
+            "is_ragged": false,
+            "freq_threshold": 0.0,
+            "embedding_sizes": {
+              "dimension": 16.0,
+              "cardinality": 2.0
+            },
+            "num_buckets": null,
+            "start_index": 0.0,
+            "cat_path": ".//categories/unique.gender.parquet"
+          }
+        ]
+      }
+    },
+    {
+      "name": "zip_code",
+      "type": "INT",
+      "intDomain": {
+        "name": "zip_code",
+        "max": "795",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "user"
+        ],
+        "extraMetadata": [
+          {
+            "embedding_sizes": {
+              "cardinality": 795.0,
+              "dimension": 67.0
+            },
+            "freq_threshold": 0.0,
+            "max_size": 0.0,
+            "cat_path": ".//categories/unique.zip_code.parquet",
+            "is_ragged": false,
+            "is_list": false,
+            "start_index": 0.0,
+            "dtype_item_size": 32.0,
+            "num_buckets": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rating",
+      "type": "INT",
+      "annotation": {
+        "tag": [
+          "regression",
+          "target"
+        ],
+        "extraMetadata": [
+          {
+            "is_list": false,
+            "dtype_item_size": 64.0,
+            "is_ragged": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "rating_binary",
+      "type": "INT",
+      "annotation": {
+        "tag": [
+          "target",
+          "binary_classification"
+        ],
+        "extraMetadata": [
+          {
+            "dtype_item_size": 32.0,
+            "is_list": false,
+            "is_ragged": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "age",
+      "type": "INT",
+      "intDomain": {
+        "name": "age",
+        "max": "8",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "user"
+        ],
+        "extraMetadata": [
+          {
+            "dtype_item_size": 32.0,
+            "embedding_sizes": {
+              "dimension": 16.0,
+              "cardinality": 8.0
+            },
+            "max_size": 0.0,
+            "start_index": 0.0,
+            "num_buckets": null,
+            "cat_path": ".//categories/unique.age.parquet",
+            "is_list": false,
+            "freq_threshold": 0.0,
+            "is_ragged": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "title",
+      "type": "BYTES",
+      "annotation": {
+        "extraMetadata": [
+          {
+            "is_list": false,
+            "is_ragged": false,
+            "dtype_item_size": 64.0
+          }
+        ]
+      }
+    }
+  ]
+}
