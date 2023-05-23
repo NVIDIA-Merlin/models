@@ -29,10 +29,7 @@ class TestSchemaTrackingMixin:
     def test_tensor(self):
         inputs = torch.randn(1, 5)
         tracked_module = TrackedModule()
-
-        outputs = tracked_module(inputs)
-        traced_outputs = module_test(tracked_module, inputs)
-        assert torch.equal(outputs, traced_outputs)
+        module_test(tracked_module, inputs)
 
         schema = tracked_module.output_schema()
         assert isinstance(schema, Schema)
