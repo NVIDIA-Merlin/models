@@ -17,7 +17,7 @@
 import pytest
 import torch.nn as nn
 
-from merlin.models.torch.container import BlockContainer
+from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import torchscript_utils
 
 
@@ -129,3 +129,59 @@ class TestBlockContainer:
 
     def test_get_name(self):
         assert self.block_container._get_name() == "test_container"
+
+
+class TestBlockContainerDict:
+    def setup_method(self):
+        self.module = nn.Module()
+        self.container = BlockContainerDict({"test": self.module}, name="test")
+        self.block_container = BlockContainer(name="test_container")
+
+    def test_init(self):
+        assert isinstance(self.container, BlockContainerDict)
+        assert self.container._get_name() == "test"
+        assert isinstance(self.container.unwrap()["test"], nn.ModuleList)
+
+    def test_empty(self):
+        container = BlockContainerDict()
+        assert len(container) == 0
+
+    def test_not_module(self):
+        with pytest.raises(ValueError):
+            BlockContainerDict({"test": "not a module"})
+
+    def test_append_to(self):
+        self.container.append_to("test", self.module)
+        assert "test" in self.container._modules
+
+    def test_prepend_to(self):
+        self.container.prepend_to("test", self.module)
+        assert "test" in self.container._modules
+
+    def test_append_for_each(self):
+        container = BlockContainerDict({"a": nn.Module(), "b": nn.Module()})
+
+        to_add = nn.Module()
+        container.append_for_each(to_add)
+        assert len(container["a"]) == 2
+        assert len(container["b"]) == 2
+        assert container["a"][-1] != container["b"][-1]
+
+        container.append_for_each(to_add, shared=True)
+        assert len(container["a"]) == 3
+        assert len(container["b"]) == 3
+        assert container["a"][-1] == container["b"][-1]
+
+    def test_prepend_for_each(self):
+        container = BlockContainerDict({"a": nn.Module(), "b": nn.Module()})
+
+        to_add = nn.Module()
+        container.prepend_for_each(to_add)
+        assert len(container["a"]) == 2
+        assert len(container["b"]) == 2
+        assert container["a"][0] != container["b"][0]
+
+        container.prepend_for_each(to_add, shared=True)
+        assert len(container["a"]) == 3
+        assert len(container["b"]) == 3
+        assert container["a"][0] == container["b"][0]
