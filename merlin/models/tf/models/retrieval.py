@@ -70,9 +70,6 @@ def MatrixFactorizationModel(
     logits_temperature: float
         Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
-    loss: Optional[LossType]
-        Loss function.
-        Defaults to `bpr`.
     samplers: List[ItemSampler]
         List of samplers for negative sampling, by default `[InBatchSampler()]`
 
@@ -543,6 +540,8 @@ def YoutubeDNNRetrievalModelV2(
         By default None
     post: Optional[tf.keras.layers.Layer], optional
         The optional layer to apply on top of the query encoder.
+    outputs : Union[ModelOutput, List[ModelOutput]], optional
+        Specifies the model's outputs. If not specified, the outputs will be inferred.
     logits_temperature: float, optional
         Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
@@ -556,6 +555,11 @@ def YoutubeDNNRetrievalModelV2(
         encoded ids, which are usually reserved for <nulls>,
         out-of-vocabulary or padding.
         By default 0.
+
+    Returns
+    --------
+    RetrievalModelV2
+        The constructed Youtube-DNN based retrieval model
     """
     if not inputs:
         inputs = schema

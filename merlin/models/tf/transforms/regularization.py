@@ -31,6 +31,21 @@ class L2Norm(TabularBlock):
         super(L2Norm, self).__init__(**kwargs)
 
     def call(self, inputs: Union[tf.Tensor, TabularData], axis: int = -1, **kwargs):
+        """
+        Invokes the L2 normalization on the input tensor or dictionary of tensors.
+
+        Parameters
+        ----------
+        inputs: Union[tf.Tensor, TabularData]
+            A Tensor or TabularData input to normalize.
+        axis: int, optional
+            The axis on which to normalize, by default -1.
+
+        Returns
+        -------
+        Union[tf.Tensor, TabularData]
+            The L2-normalized tensor or dictionary of tensors.
+        """
         if isinstance(inputs, dict):
             inputs = {key: self._l2_norm(inp, axis=axis) for key, inp in inputs.items()}
         else:
@@ -67,4 +82,17 @@ class L2Norm(TabularBlock):
         )
 
     def compute_output_shape(self, input_shape):
+        """
+        Compute the output shape of the tensor after normalization.
+
+        Parameters
+        ----------
+        input_shape : tuple
+            A tuple indicating the shape of the input tensor.
+
+        Returns
+        -------
+        tuple
+            The shape of the tensor after L2 normalization.
+        """
         return input_shape
