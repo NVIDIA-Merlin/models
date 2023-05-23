@@ -245,9 +245,9 @@
         <span class="p">}</span>
 
         <span class="n">seq_shapes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">seq_inputs_shapes</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">seq_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">seq_shapes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">seq_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">seq_shapes</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;The sequential inputs must have the same shape, but the shapes &quot;</span>
+                <span class="s2">&quot;The sequential inputs must have the first two dims equal, but they &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;are different: </span><span class="si">{</span><span class="n">seq_inputs_shapes</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
