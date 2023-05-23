@@ -297,7 +297,7 @@ class Batch:
 
 
 def sample_batch(
-    dataset_or_loader: Union[Dataset, Loader],
+    data: Union[Dataset, Loader],
     batch_size: Optional[int] = None,
     shuffle: Optional[bool] = False,
 ) -> Batch:
@@ -320,14 +320,14 @@ def sample_batch(
         dictionary of target tensors.
     """
 
-    if isinstance(dataset_or_loader, Dataset):
+    if isinstance(data, Dataset):
         if not batch_size:
             raise ValueError("Either use 'Loader' or specify 'batch_size'")
-        loader = Loader(dataset_or_loader, batch_size=batch_size, shuffle=shuffle)
-    elif isinstance(dataset_or_loader, Loader):
-        loader = dataset_or_loader
+        loader = Loader(data, batch_size=batch_size, shuffle=shuffle)
+    elif isinstance(data, Loader):
+        loader = data
     else:
-        raise ValueError(f"Expected Dataset or Loader instance, got: {dataset_or_loader}")
+        raise ValueError(f"Expected Dataset or Loader instance, got: {data}")
 
     batch = loader.peek()
     # batch could be of type Prediction, so we can't unpack directly
@@ -337,7 +337,7 @@ def sample_batch(
 
 
 def sample_features(
-    dataset_or_loader: Union[Dataset, Loader],
+    data: Union[Dataset, Loader],
     batch_size: Optional[int] = None,
     shuffle: Optional[bool] = False,
 ) -> Dict[str, torch.Tensor]:
@@ -358,4 +358,4 @@ def sample_features(
         dictionary of feature tensors.
     """
 
-    return sample_batch(dataset_or_loader, batch_size, shuffle).features
+    return sample_batch(data, batch_size, shuffle).features
