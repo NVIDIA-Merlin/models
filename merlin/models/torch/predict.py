@@ -1,5 +1,4 @@
-import merlin.models.tf.prediction_tasks.base
-import merlin.table
+import re
 from typing import Dict, Optional, Union, overload
 
 import numpy as np
@@ -7,7 +6,9 @@ import pandas as pd
 import torch
 from torch import nn
 
-from merlin.core.dispatch import get_lib, DataFrameType, concat_columns
+import merlin.models.tf.prediction_tasks.base
+import merlin.table
+from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.predict import ModelEncode
@@ -15,22 +16,19 @@ from merlin.models.torch.batch import Batch, Sequence
 from merlin.schema import Schema
 from merlin.table import TensorTable
 
-
 OUT_KEY = "output"
-
-
 
 
 class EncodedBatch(Batch):
     def __init__(
-        self, 
+        self,
         features: Union[torch.Tensor, Dict[str, torch.Tensor]],
         targets: Union[torch.Tensor, Dict[str, torch.Tensor]],
         predictions: Union[torch.Tensor, Dict[str, torch.Tensor]],
         sequences: Optional[Sequence] = None,
     ):
         super().__init__(features, targets, sequences)
-        
+
         default_key = "output"
 
         if isinstance(predictions, torch.Tensor):
@@ -39,62 +37,130 @@ class EncodedBatch(Batch):
             _predictions = predictions
         else:
             raise ValueError("Predictions must be a tensor or a dictionary of tensors")
-        
+
         self.predictions: Dict[str, torch.Tensor] = _predictions
-        
+
         # TODO: Add to_tables etc.
-        
+
+    def to_df(self):
+        if len(self.features) == 1:
+            output_dict = {"feature": self.features["default"]}
+        else:
+            output_dict = {**self.features}
+
+        if len(self.targets) == 1:
+            output_dict.update({"target": self.targets["default"]})
+        else:
+            output_dict.update(self.targets)
+
+        if len(self.predictions) == 1:
+            output_dict.update(self.predictions)
+        else:
+            output_dict.update({f"output_{key}": val for key, val in self.predictions.items()})
+
+        return TensorTable(output_dict).to_df()
 
 
-def encode(
-    module: nn.Module,
-    loader: Loader,
-    index=None # Of type Selection
-):
+def encode(module: nn.Module, loader: Loader, index=None):  # Of type Selection
     dataset = loader.dataset.to_ddf()
-    
-    def partition_mapper(partition):
-        outputs = []
-        part_loader = Loader(partition, batch_size=loader.batch_size)
-        
-        for batch in part_loader:
-            out = module(batch[0])
-            
-            if isinstance(out, dict):
-                table = TensorTable(out)
+    output_df = dataset.map_partitions(Encoder(module), batch_size=loader.batch_size)
+
+
+class Predictor:
+    def __init__(self, module: nn.Module):
+        self.module = module
+
+    @classmethod
+    def from_loader(cls, module, loader):
+        dataset = loader.dataset.to_ddf()
+
+        predictor = cls(module)
+        output_df = dataset.map_partitions(predictor.batched, batch_size=loader.batch_size)
+
+        return output_df
+
+    def __call__(self, inputs, targets=None) -> EncodedBatch:
+        if not isinstance(inputs, dict):
+            ...
+
+        predictions = self.module(inputs)
+
+        return EncodedBatch(inputs, targets, predictions)
+
+    def call_df(self, partition, batch_size):
+        output_df = None
+        for batch in Loader(partition, batch_size=batch_size):
+            if output_df is None:
+                output_df = self(batch).to_df()
             else:
-                table = TensorTable({OUT_KEY: out})
-        
-            outputs.append(table.to_df())
-            
+                output_df = concat_columns([output_df, self(batch).to_df()])
+
+        return output_df
+
+
+class Encoder:
+    def __init__(self, module):
+        self.module = module
+
+    def __call__(self, partition, batch_size=None):
+        if not batch_size:
+            return self.forward(partition)
+
+        outputs = []
+        for batch in Loader(partition, batch_size=batch_size):
+            outputs.append(self.forward(batch))
+
         output_df = concat_columns(outputs)
-        
+
         # TODO: Add index column
         # TODO: Optionally add input columns
-        
+
         return output_df
-    
-    output_df = dataset.map_partitions(partition_mapper)
+
+    def forward(self, batch):
+        out = self.module(batch[0])
+
+        if isinstance(out, dict):
+            table = TensorTable(out)
+        else:
+            table = TensorTable({OUT_KEY: out})
+
+        return table.to_df()
+
+
+# def partition_mapper(partition):
+#     outputs = []
+#     part_loader = Loader(partition, batch_size=loader.batch_size)
+
+#     for batch in part_loader:
+#         out = module(batch[0])
+
+#         if isinstance(out, dict):
+#             table = TensorTable(out)
+#         else:
+#             table = TensorTable({OUT_KEY: out})
+
+#         outputs.append(table.to_df())
+
+#     output_df = concat_columns(outputs)
+
+#     # TODO: Add index column
+#     # TODO: Optionally add input columns
+
+#     return output_df
 
 
 class ModuleEncoder:
-    def __init__(
-        self, 
-        module: nn.Module,
-        loader: Loader
-    ):
+    def __init__(self, module: nn.Module, loader: Loader):
         self.module = module
         self.loader = loader
-        
-    
-
 
 
 class TabularModule(nn.Module):
     def __init__(self):
         super().__init__()
         self.register_forward_pre_hook(self._hook)
-        
+
 
 # loader = Loader(..., batch_size=128)
 
@@ -136,12 +202,14 @@ def batch_predict(
     Dataset
         The output dataset after prediction.
     """
-    
+
     if hasattr(module, "output_schema"):
         module_output_schema = module.output_schema
     elif module_output_schema is None:
-        raise ValueError("module_output_schema must be provided if the model does not have an output_schema attribute.")
-    
+        raise ValueError(
+            "module_output_schema must be provided if the model does not have an output_schema attribute."
+        )
+
     data_iterator_func = ModelEncode.create_data_iterator_func(Loader, batch_size=batch_size)
     encoder = ModelEncode(
         module,
@@ -156,11 +224,11 @@ def batch_predict(
 
 
 def module_encode(
-    module: nn.Module, 
+    module: nn.Module,
     inputs,
 ) -> DataFrameType:
-    """Encode the inputs using the model. 
-    
+    """Encode the inputs using the model.
+
     This function handles the cases when the model outputs a NamedTuple or a dict.
 
     Parameters
@@ -180,12 +248,12 @@ def module_encode(
     ValueError
         If the model outputs a type that is not handled.
     """
-    
+
     # TODO: How to handle list outputs?
 
     features = inputs[0] if isinstance(inputs, tuple) else inputs
     batch = Batch(*inputs) if isinstance(inputs, tuple) else Batch(inputs)
-    
+
     module.eval()
     module.to(batch.device())
     with torch.no_grad():
@@ -205,8 +273,8 @@ def module_encode(
 
 def encode_output(output: torch.Tensor) -> np.ndarray:
     """
-    Convert the output tensor from a PyTorch model to a numpy array. 
-    This function handles the case when the output tensor has a 
+    Convert the output tensor from a PyTorch model to a numpy array.
+    This function handles the case when the output tensor has a
     shape of (N, 1) by squeezing it to (N,).
 
     Parameters
@@ -219,7 +287,7 @@ def encode_output(output: torch.Tensor) -> np.ndarray:
     np.ndarray
         The output converted to a numpy array.
     """
-    
+
     if len(output.shape) == 2 and output.shape[1] == 1:
         output = torch.squeeze(output)
 
