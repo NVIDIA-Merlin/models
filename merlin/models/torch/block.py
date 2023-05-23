@@ -22,9 +22,11 @@ from torch import nn
 
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
+from merlin.models.torch.registry import registry
+from merlin.models.utils.registry import RegistryMixin
 
 
-class Block(BlockContainer):
+class Block(BlockContainer, RegistryMixin):
     """A base-class that calls it's modules sequentially.
 
     Parameters
@@ -34,6 +36,8 @@ class Block(BlockContainer):
     name : Optional[str], default = None
         The name of the block. If None, no name is assigned.
     """
+
+    registry = registry
 
     def __init__(self, *module: nn.Module, name: Optional[str] = None):
         super().__init__(*module, name=name)
