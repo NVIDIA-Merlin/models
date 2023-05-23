@@ -6,7 +6,6 @@ import pandas as pd
 import torch
 from torch import nn
 
-import merlin.models.tf.prediction_tasks.base
 import merlin.table
 from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
 from merlin.dataloader.torch import Loader
