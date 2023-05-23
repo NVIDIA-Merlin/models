@@ -82,6 +82,20 @@ class TestBlock:
         with pytest.raises(ValueError, match="n must be greater than 0"):
             block.repeat(0)
 
+    def test_from_registry(self):
+        @Block.registry.register("my_block")
+        class MyBlock(Block):
+            def forward(self, inputs):
+                _inputs = inputs + 1
+
+                return super().forward(_inputs)
+
+        block = Block.parse("my_block")
+        assert block.__class__ == MyBlock
+
+        inputs = torch.randn(1, 3)
+        assert torch.equal(block(inputs), inputs + 1)
+
 
 class TestParallelBlock:
     def test_init(self):
