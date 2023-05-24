@@ -515,7 +515,7 @@ def Embeddings(
     ----------
     schema: Schema
         Schema of the input data. This Schema object will be automatically generated using
-        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
+        [NVTabular](https://nvidia-merlin.github.io/NVTabular/stable/Introduction.html).
         Next to this, it's also possible to construct it manually.
     dim: Optional[Union[Dict[str, int], int]], optional
         A dim to use for all features, or a
