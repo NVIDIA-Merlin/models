@@ -121,7 +121,8 @@ def get_output_block(schema, args, input_block=None):
         )
     else:
         outputs = mm.CategoricalOutput(
-            to_call=to_call, logits_temperature=args.logits_temperature, post=post
+            to_call=to_call,
+            logits_temperature=args.logits_temperature,
         )
     return outputs
 
@@ -309,9 +310,7 @@ def main(args):
     transformer_block = get_sequential_block(args)
 
     # get output block
-    output_block = get_output_block(
-        train_ds.schema, args, input_block=input_block, train_ds=train_ds
-    )
+    output_block = get_output_block(train_ds.schema, args, input_block=input_block)
 
     # Define the session encoder
     if args.weight_tying:
