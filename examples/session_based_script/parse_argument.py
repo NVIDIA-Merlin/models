@@ -203,7 +203,22 @@ def build_arg_parser():
         " which are usually reserved for <nulls>, OOV",
     )
     # TODO add log-q correction
-
+    parser.add_argument(
+        "--sampled_softmax",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Enables sampled softmax training",
+    )
+    parser.add_argument(
+        "--logq_correction",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Enables log-q correction when sampled softmax is used",
+    )
     # Training / Eval tasks args
     parser.add_argument(
         "--masking_probability",

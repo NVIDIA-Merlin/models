@@ -2,6 +2,7 @@ import logging
 import math
 import os
 
+import cupy
 import tensorflow as tf
 from parse_argument import parse_arguments
 from run_logging import WandbLogger, get_callbacks
@@ -19,6 +20,8 @@ from merlin.models.tf.transforms.sequence import (
 from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 from merlin.schema.tags import Tags
+from merlin.models.utils import schema_utils
+from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
 
 # set logger
 info_logger = logging.getLogger(__name__)
@@ -90,7 +93,6 @@ def get_input_block(schema, args):
 
 
 def get_output_block(schema, args, input_block=None):
-    # TODO: define post blocks such as logq-correction
     candidate = schema.select_by_tag(Tags.ITEM_ID)
     if not candidate:
         raise ValueError(f"The schema should contain a feature tagged as `{Tags.ITEM_ID}`")
@@ -106,7 +108,7 @@ def get_output_block(schema, args, input_block=None):
     else:
         to_call = candidate
 
-    if args.task.startswith("contrastive"):
+    if args.sampled_softmax:
         outputs = mm.ContrastiveOutput(
             to_call=to_call,
             logits_temperature=args.logits_temperature,
@@ -115,11 +117,11 @@ def get_output_block(schema, args, input_block=None):
                 max_id=num_classes - 1,
                 min_id=args.min_sampled_id,
             ),
+            logq_sampling_correction=args.logq_correction,
         )
     else:
         outputs = mm.CategoricalOutput(
-            to_call=to_call,
-            logits_temperature=args.logits_temperature,
+            to_call=to_call, logits_temperature=args.logits_temperature, post=post
         )
     return outputs
 
@@ -307,7 +309,9 @@ def main(args):
     transformer_block = get_sequential_block(args)
 
     # get output block
-    output_block = get_output_block(train_ds.schema, args, input_block=input_block)
+    output_block = get_output_block(
+        train_ds.schema, args, input_block=input_block, train_ds=train_ds
+    )
 
     # Define the session encoder
     if args.weight_tying:
