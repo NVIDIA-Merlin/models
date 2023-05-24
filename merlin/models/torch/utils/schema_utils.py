@@ -6,14 +6,17 @@ from merlin.schema import ColumnSchema, Schema, Tags
 class SchemaTrackingMixin:
     """
     A mixin class for PyTorch modules to track the output shapes and dtypes
-    of the forward pass. It registers a hook to capture this information and
+    of the forward pass. This is used in order to automatically generate
+    the output-schema.
+
+    It registers a hook to capture this information and
     provides methods to access the output schema, as well as to set the module
     in training or evaluation mode.
     """
 
     def __init__(self):
         super().__init__()
-        self._register_hook()
+        self._register_schema_tracking_hook()
 
     def _post_forward_hook(self, module, input, output):
         """Hook function to be called after the forward pass of the module.
@@ -38,7 +41,7 @@ class SchemaTrackingMixin:
             module._forward_called = True
             module._handle.remove()
 
-    def _register_hook(self):
+    def _register_schema_tracking_hook(self):
         """
         Register the post forward hook to the module.
         """
@@ -64,6 +67,11 @@ class SchemaTrackingMixin:
             If forward() has not been called before calling this method.
         """
 
+        if not hasattr(self, "_output_shapes"):
+            raise RuntimeError(
+                "Schema-tracking hook not registered, use `_register_schema_tracking_hook`."
+            )
+
         if not self._forward_called:
             raise RuntimeError("forward() must be called before output_schema() can be called.")
 
@@ -82,9 +90,9 @@ class SchemaTrackingMixin:
         return Schema(columns)
 
     def train(self, mode=True):
-        self._register_hook()
+        self._register_schema_tracking_hook()
         return super().train(mode)
 
     def eval(self):
-        self._register_hook()
+        self._register_schema_tracking_hook()
         return super().eval()
