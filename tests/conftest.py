@@ -85,11 +85,11 @@ except ModuleNotFoundError:
 
 
 BACKEND_ALIASES = {
-    "tensorflow": "tf",
+    "tf": "tensorflow",
     "torch": "torch",
     "implicit": "implicit",
     "lightfm": "lightfm",
-    "xgboost": "xgb",
+    "xgb": "xgboost",
 }
 
 OTHER_MARKERS = {"unit", "integration", "datasets", "horovod", "transformers"}
