@@ -1,293 +1,346 @@
-import re
-from typing import Dict, Optional, Union, overload
+from functools import partial, reduce
+from typing import Dict, Optional, TypeVar, Union, overload
 
-import numpy as np
-import pandas as pd
 import torch
 from torch import nn
 
-import merlin.table
-from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
+from merlin.core.dispatch import DataFrameLike, concat, concat_columns
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
-from merlin.models.predict import ModelEncode
-from merlin.models.torch.batch import Batch, Sequence
+from merlin.models.torch.utils.schema_utils import Selection, select_schema
 from merlin.schema import Schema
 from merlin.table import TensorTable
 
 OUT_KEY = "output"
-
-
-class EncodedBatch(Batch):
-    def __init__(
-        self,
-        features: Union[torch.Tensor, Dict[str, torch.Tensor]],
-        targets: Union[torch.Tensor, Dict[str, torch.Tensor]],
-        predictions: Union[torch.Tensor, Dict[str, torch.Tensor]],
-        sequences: Optional[Sequence] = None,
-    ):
-        super().__init__(features, targets, sequences)
-
-        default_key = "output"
-
-        if isinstance(predictions, torch.Tensor):
-            _predictions = {default_key: predictions}
-        elif torch.jit.isinstance(predictions, Dict[str, torch.Tensor]):
-            _predictions = predictions
-        else:
-            raise ValueError("Predictions must be a tensor or a dictionary of tensors")
-
-        self.predictions: Dict[str, torch.Tensor] = _predictions
-
-        # TODO: Add to_tables etc.
-
-    def to_df(self):
-        if len(self.features) == 1:
-            output_dict = {"feature": self.features["default"]}
-        else:
-            output_dict = {**self.features}
-
-        if len(self.targets) == 1:
-            output_dict.update({"target": self.targets["default"]})
-        else:
-            output_dict.update(self.targets)
-
-        if len(self.predictions) == 1:
-            output_dict.update(self.predictions)
-        else:
-            output_dict.update({f"output_{key}": val for key, val in self.predictions.items()})
-
-        return TensorTable(output_dict).to_df()
-
-
-def encode(module: nn.Module, loader: Loader, index=None):  # Of type Selection
-    dataset = loader.dataset.to_ddf()
-    output_df = dataset.map_partitions(Encoder(module), batch_size=loader.batch_size)
-
-
-class Predictor:
-    def __init__(self, module: nn.Module):
-        self.module = module
-
-    @classmethod
-    def from_loader(cls, module, loader):
-        dataset = loader.dataset.to_ddf()
-
-        predictor = cls(module)
-        output_df = dataset.map_partitions(predictor.batched, batch_size=loader.batch_size)
-
-        return output_df
-
-    def __call__(self, inputs, targets=None) -> EncodedBatch:
-        if not isinstance(inputs, dict):
-            ...
-
-        predictions = self.module(inputs)
-
-        return EncodedBatch(inputs, targets, predictions)
-
-    def call_df(self, partition, batch_size):
-        output_df = None
-        for batch in Loader(partition, batch_size=batch_size):
-            if output_df is None:
-                output_df = self(batch).to_df()
-            else:
-                output_df = concat_columns([output_df, self(batch).to_df()])
-
-        return output_df
+DFType = TypeVar("DFType", bound=DataFrameLike)
 
 
 class Encoder:
-    def __init__(self, module):
+    """Encode various forms of data using a specified PyTorch module.
+
+    Supporting multiple data formats like Datasets, Loaders, DataFrames,
+    and PyTorch tensors.
+
+    Example usage for encoding with an index & selection::
+        >>> dataset = Dataset(...)
+        >>> model = mm.TwoTowerModel(dataset.schema)
+
+        # `selection=Tags.USER` ensures that only the sub-module(s) of the model
+        # that processes features tagged as user is used during encoding.
+        # Additionally, it filters out all other features that aren't tagged as user.
+        >>> user_encoder = Encoder(model[0], selection=Tags.USER)
+
+        # The index is used in the resulting DataFrame after encoding
+        # Setting unique=True (default value) ensures that any duplicate rows
+        # in the DataFrame, based on the index, are dropped, leaving only the
+        # first occurrence.
+        >>> user_embs = user_encoder(dataset, batch_size=128, index=Tags.USER_ID)
+        >>> print(user_embs.compute())
+        user_id    0         1         2    ...   37        38        39        40
+        0       ...  0.1231     0.4132    0.5123  ...  0.9132    0.8123    0.1123
+        1       ...  0.1521     0.5123    0.6312  ...  0.7321    0.6123    0.2213
+        ...     ...  ...        ...       ...     ...  ...       ...       ...
+
+    Parameters
+    ----------
+    module : nn.Module
+        The PyTorch module used for encoding.
+    selection : Optional[Selection], optional
+        The data selection used for encoding, by default None.
+    """
+
+    def __init__(self, module: nn.Module, selection: Optional[Selection] = None):
         self.module = module
+        self.selection = selection
 
-    def __call__(self, partition, batch_size=None):
-        if not batch_size:
-            return self.forward(partition)
+    @overload  # pragma: no cover
+    def __call__(
+        self, data: Dataset, batch_size=None, index: Optional[Selection] = None, unique: bool = True
+    ):
+        ...
 
-        outputs = []
-        for batch in Loader(partition, batch_size=batch_size):
-            outputs.append(self.forward(batch))
+    @overload  # pragma: no cover
+    def __call__(self, data: Loader, index: Optional[Selection] = None, unique: bool = True):
+        ...
 
-        output_df = concat_columns(outputs)
+    @overload  # pragma: no cover
+    def __call__(self, data: DataFrameLike, batch_size=None):
+        ...
 
-        # TODO: Add index column
-        # TODO: Optionally add input columns
+    @overload  # pragma: no cover
+    def __call__(self, data: torch.Tensor):
+        ...
+
+    @overload  # pragma: no cover
+    def __call__(self, data: Dict[str, torch.Tensor]):
+        ...
+
+    def __call__(self, data, batch_size=None, index=None, unique=True):
+        """Encode a Dataset, Loader, DataFrame, or Tensor(s).
+
+        Parameters
+        ----------
+        data : Dataset, Loader, DataFrameLike, torch.Tensor or Dict[str, torch.Tensor]
+            The data to be encoded.
+        batch_size : int, optional
+            The batch size for the encoding, by default None.
+        index : Optional[Selection], optional
+            The data selection used for the encoding, by default None.
+        unique : bool, optional
+            If True, duplicate rows in the DataFrame are removed, by default True.
+        """
+        if isinstance(data, (Dataset, Loader)):
+            return self.encode_dataset(data, batch_size, index=index, unique=unique)
+        if isinstance(data, DataFrameLike):
+            return self.encode_df(data, batch_size)
+        if isinstance(data, (dict, torch.Tensor)):
+            return self.encode_tensors(data)
+
+        raise ValueError("data must be a DataFrameLike, a Dataset, or a Loader")
+
+    def encode_dataset(
+        self,
+        data: Union[Dataset, Loader],
+        batch_size: Optional[int] = None,
+        index: Optional[Selection] = None,
+        unique: bool = True,
+    ) -> Dataset:
+        """Encode a Dataset or Loader through Dask.
+
+        Encoding happens in 3 steps:
+        1. Partition Mapping
+            This step uses Dask to break down the DataFrame into several partitions,
+            making large datasets computationally manageable.
+            The `call_df` function is applied to each partition independently,
+            facilitating efficient distributed computation.
+        2. DataFrame Processing
+            In this step, each partition, which is a DataFrame, is transformed directly
+            into a Loader with a determined batch size. This Loader then efficiently
+            converts the data into batches of PyTorch tensors, which are subsequently
+            processed by the PyTorch module using the `call_tensors` function.
+        3. Tensor Processing
+            Here, each batch derived from the Loader is processed by a PyTorch module for encoding.
+            If the inputs are dictionary-like and a passthrough_schema is provided, supplementary
+            columns might be included in the output DataFrame.
+
+        Parameters
+        ----------
+        data : Union[Dataset, Loader]
+            The data to be encoded.
+        batch_size : Optional[int], optional
+            The batch size for the encoding, by default None.
+        index : Optional[Selection], optional
+            The data selection used for the encoding, by default None.
+        unique : bool, optional
+            If True, duplicate rows in the DataFrame are removed, by default True.
+        """
+        if isinstance(data, Loader):
+            batch_size = data.batch_size
+            schema = data.input_schema
+            dataset: Dataset = data.dataset
+        elif isinstance(data, Dataset):
+            if not batch_size:
+                raise ValueError("batch_size must be provided if a Dataset is passed")
+            schema = data.schema
+            dataset: Dataset = data
+        else:
+            raise ValueError("data must be a DataFrameLike, a Dataset, or a Loader")
+
+        if self.selection:
+            schema = select_schema(schema, self.selection)
+            dataset = Dataset(dataset.to_ddf(), schema=schema)
+            ddf = dataset.to_ddf()[schema.column_names]
+        else:
+            ddf = dataset.to_ddf()
+
+        index_schema = None
+        if index:
+            index_schema = select_schema(schema, index)
+
+            if unique:
+                ddf = ddf.drop_duplicates(index_schema.column_names, keep="first")
+
+        output = ddf.map_partitions(
+            self.encode_df,
+            batch_size=batch_size,
+            input_schema=schema,
+            passthrough_schema=index_schema,
+        )
+        if index:
+            output = output.set_index(index_schema.column_names)
+
+        return Dataset(output)
+
+    def encode_df(
+        self,
+        df: DFType,
+        batch_size: Optional[int] = None,
+        input_schema: Optional[Schema] = None,
+        passthrough_schema: Optional[Schema] = None,
+    ) -> DFType:
+        """Encode a DataFrame, either from Pandas or CuDF.
+
+        Parameters
+        ----------
+        df : DFType
+            The DataFrame to be encoded.
+        batch_size : Optional[int], optional
+            The batch size for the encoding, by default None.
+        input_schema : Optional[Schema], optional
+            The schema of the input DataFrame, by default None.
+        passthrough_schema : Optional[Schema], optional
+            The schema that should pass through the encoding, by default None.
+        """
+        dataset = Dataset(df, schema=input_schema)
+        loader = Loader(dataset, batch_size=batch_size or len(df))
+        apply = partial(self.encode_tensors, passthrough_schema=passthrough_schema)
+        output_df = reduce(self.reduce, loader.map(apply))
 
         return output_df
 
-    def forward(self, batch):
-        out = self.module(batch[0])
+    def encode_tensors(
+        self, inputs, targets=None, passthrough_schema: Optional[Schema] = None
+    ) -> DFType:
+        """Encode a batch of Pytorch tensor(s).
 
-        if isinstance(out, dict):
-            table = TensorTable(out)
+        Parameters
+        ----------
+        inputs
+            The inputs to be encoded.
+        targets, optional
+            The targets to be encoded, by default None.
+        passthrough_schema : Optional[Schema], optional
+            The schema that should pass through the encoding, by default None.
+        """
+        del targets
+        output_df = to_tensor_table(self.module(inputs)).to_df()
+
+        if passthrough_schema and isinstance(inputs, dict):
+            col_names = passthrough_schema.column_names
+            index_dict = {n: inputs[n] for n in col_names}
+            index_df = to_tensor_table(index_dict).to_df()
+
+            output_df = concat_columns([index_df, output_df])
+
+        return output_df
+
+    def reduce(self, left: DFType, right: DFType):
+        """
+        Concatenate two DataFrames along the index axis.
+
+        Parameters
+        ----------
+        left : DFType
+            The first DataFrame.
+        right : DFType
+            The second DataFrame.
+        """
+        return concat([left, right])
+
+
+class Predictor(Encoder):
+    """Prediction on various forms of data using a specified PyTorch module.
+
+    This is especially useful when you want to keep track of both the original data and
+    the predictions in one place, or when you need to perform further computations using
+    both inputs and predictions.
+
+    Example usage::
+        >>> dataset = Dataset(...)
+        >>> model = mm.TwoTowerModel(dataset.schema)
+        >>> predictor = Predictor(model)
+        >>> predictions = predictor(dataset, batch_size=128)
+        >>> print(predictions.compute())
+        user_id  user_age  item_id  item_category  click  click_prediction
+        0        24        101      1             1      0.6312
+        1        35        102      2             0      0.7321
+        ...      ...       ...      ...           ...    ...
+
+
+    Parameters
+    ----------
+    module : nn.Module
+        The PyTorch module used to transform the input tensors.
+    selection : Selection, optional
+        Selection of features to encode, if not provided, all features will be encoded.
+    prediction_suffix : str, optional
+        The suffix to add to the prediction columns in the output DataFrame.
+    """
+
+    def __init__(
+        self,
+        module: nn.Module,
+        selection: Optional[Selection] = None,
+        prediction_suffix: str = "_prediction",
+    ):
+        super().__init__(module, selection)
+        self.prediction_suffix = prediction_suffix
+
+    def encode_tensors(self, inputs, targets=None, **kwargs) -> DFType:
+        """Encode a batch of Pytorch tensor(s), outputs include both inputs and predictions.
+
+        Parameters
+        ----------
+        inputs :
+            Input tensors to be transformed.
+        targets : optional
+            Target tensors.
+
+        Returns
+        -------
+        output_df : DFType
+            The output DataFrame.
+        """
+
+        del kwargs  # Unused since we pass-through everything
+
+        input_df = to_tensor_table(inputs, "input").to_df()
+        if targets is not None:
+            target_df = to_tensor_table(targets, "target").to_df()
+            output_df = safe_concat_columns(input_df, target_df, rename_suffix="_target")
         else:
-            table = TensorTable({OUT_KEY: out})
+            output_df = input_df
 
-        return table.to_df()
+        module_df = to_tensor_table(self.module(inputs)).to_df()
+        output_df = safe_concat_columns(output_df, module_df, self.prediction_suffix)
 
-
-# def partition_mapper(partition):
-#     outputs = []
-#     part_loader = Loader(partition, batch_size=loader.batch_size)
-
-#     for batch in part_loader:
-#         out = module(batch[0])
-
-#         if isinstance(out, dict):
-#             table = TensorTable(out)
-#         else:
-#             table = TensorTable({OUT_KEY: out})
-
-#         outputs.append(table.to_df())
-
-#     output_df = concat_columns(outputs)
-
-#     # TODO: Add index column
-#     # TODO: Optionally add input columns
-
-#     return output_df
+        return output_df
 
 
-class ModuleEncoder:
-    def __init__(self, module: nn.Module, loader: Loader):
-        self.module = module
-        self.loader = loader
+def to_tensor_table(
+    data: Union[torch.Tensor, Dict[str, torch.Tensor]], default_key: str = OUT_KEY
+) -> TensorTable:
+    if isinstance(data, dict):
+        return TensorTable(data)
+    else:
+        return TensorTable({default_key: data})
 
 
-class TabularModule(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.register_forward_pre_hook(self._hook)
+def safe_concat_columns(left: DFType, right: DFType, rename_suffix: str = "_") -> DFType:
+    """Safely concatenate columns from two dataframes.
 
-
-# loader = Loader(..., batch_size=128)
-
-
-# model(ddf)
-# model(df)
-
-# BatchPredictor(model)(loader)
-
-
-def batch_predict(
-    module: nn.Module,
-    dataset: Dataset,
-    batch_size: int,
-    module_output_schema: Optional[Schema] = None,
-    add_inputs: bool = True,
-    index=None,
-) -> Dataset:
-    """
-    Predict the outputs for a given dataset in batches using a PyTorch module (model).
+    If the column names overlap, the ones in the output_df are renamed
+    by appending a suffix.
 
     Parameters
     ----------
-    module : nn.Module
-        The PyTorch module (model) to be used for prediction.
-    dataset : Dataset
-        The dataset to be predicted.
-    batch_size : int
-        The size of the batches to be used for prediction.
-    module_output_schema : Optional[Schema], default None
-        The schema of the output produced by the module. If None, the default schema is used.
-    add_inputs : bool, default True
-        Whether to concatenate the input dataset with the module's output.
-    index : str or None, default None
-        The name of the column in the input dataset to be added to the output dataframe.
-
-    Returns
-    -------
-    Dataset
-        The output dataset after prediction.
-    """
-
-    if hasattr(module, "output_schema"):
-        module_output_schema = module.output_schema
-    elif module_output_schema is None:
-        raise ValueError(
-            "module_output_schema must be provided if the model does not have an output_schema attribute."
-        )
-
-    data_iterator_func = ModelEncode.create_data_iterator_func(Loader, batch_size=batch_size)
-    encoder = ModelEncode(
-        module,
-        output_schema=module_output_schema,
-        data_iterator_func=data_iterator_func,
-        model_encode_func=module_encode,
-    )
-
-    output = encoder.encode_dataset(dataset, index=index, add_inputs=add_inputs)
-
-    return output
-
-
-def module_encode(
-    module: nn.Module,
-    inputs,
-) -> DataFrameType:
-    """Encode the inputs using the model.
-
-    This function handles the cases when the model outputs a NamedTuple or a dict.
-
-    Parameters
-    ----------
-    module : nn.Module
-        The PyTorch model to be used for encoding.
-    inputs : iterable
-        The inputs to be encoded.
+    input_df : DataFrameType
+        Input dataframe.
+    output_df : DataFrameType
+        Output dataframe.
+    rename_suffix : str, optional
+        Suffix to append to the column names in the output_df, by default "_"
 
     Returns
     -------
     DataFrameType
-        The encoded output in the form of a DataFrame.
-
-    Raises
-    ------
-    ValueError
-        If the model outputs a type that is not handled.
+        Concatenated dataframe.
     """
 
-    # TODO: How to handle list outputs?
+    left_col_set = set(left.columns)
 
-    features = inputs[0] if isinstance(inputs, tuple) else inputs
-    batch = Batch(*inputs) if isinstance(inputs, tuple) else Batch(inputs)
+    _to_rename = [col for col in right.columns if col in left_col_set]
+    if _to_rename:
+        right = right.rename(columns={col: f"{col}{rename_suffix}" for col in _to_rename})
 
-    module.eval()
-    module.to(batch.device())
-    with torch.no_grad():
-        model_outputs = module(features)
-
-    # handle when the model outputs a NamedTuple
-    if hasattr(model_outputs, "to_df"):
-        return model_outputs.to_df()
-    elif hasattr(model_outputs, "_asdict"):
-        model_outputs = model_outputs._asdict()
-
-    if isinstance(model_outputs, dict):
-        return get_lib().DataFrame({key: encode_output(val) for key, val in model_outputs.items()})
-
-    return encode_output(model_outputs)
-
-
-def encode_output(output: torch.Tensor) -> np.ndarray:
-    """
-    Convert the output tensor from a PyTorch model to a numpy array.
-    This function handles the case when the output tensor has a
-    shape of (N, 1) by squeezing it to (N,).
-
-    Parameters
-    ----------
-    output : torch.Tensor
-        The output tensor from a PyTorch model.
-
-    Returns
-    -------
-    np.ndarray
-        The output converted to a numpy array.
-    """
-
-    if len(output.shape) == 2 and output.shape[1] == 1:
-        output = torch.squeeze(output)
-
-    return output.cpu().numpy()
+    return concat_columns([left, right])

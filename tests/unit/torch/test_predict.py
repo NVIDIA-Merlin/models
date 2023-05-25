@@ -1,88 +1,94 @@
 import pandas as pd
-import numpy as np
+import pytest
 import torch
 from torch import nn
 
-from merlin.models.torch.predict import (
-    module_encode,
-    encode_output
-)
 from merlin.dataloader.torch import Loader
-from merlin.table import TensorTable
+from merlin.models.torch.predict import Encoder, Predictor
+from merlin.schema import Tags
 
 
 class TensorOutputModel(nn.Module):
     def forward(self, x):
-        return x * 2
+        return x["position"] * 2
 
 
 class DictOutputModel(nn.Module):
+    def __init__(self, output_name: str = "testing"):
+        super().__init__()
+        self.name = output_name
+
     def forward(self, x):
-        return {'testing': x * 2}
-    
-    
-class Test_batch_predict:
-    def test_something(self, music_streaming_data):
-        loader = Loader(music_streaming_data, batch_size=128)
-        
-        # For batch-predict we have the following steps:
-        # 1. Call map_partitions on loader.dataset
-        # 2. For each partition, create a new instance of Loader with the partition
-        
-        input_table = TensorTable(loader.peek()[0])
-        output_table = TensorTable(loader.peek()[1])
-        
-        b = None
-        
+        return {self.name: x["user_id"] * 2}
 
 
-class Test_module_encode:
-    def test_with_tensor_output(self):
-        module = TensorOutputModel()
-        inputs = torch.tensor([1, 2, 3, 4])
-        output = module_encode(module, inputs)
-        
-        np.testing.assert_array_equal(output, np.array([2, 4, 6, 8]))
+class TestEncoder:
+    def test_loader(self, music_streaming_data):
+        loader = Loader(music_streaming_data, batch_size=10)
 
-    def test_with_dict_output(self):
-        module = DictOutputModel()
-        inputs = torch.tensor([1, 2, 3, 4])
-        output = module_encode(module, inputs)
-        
-        if hasattr(output, "to_pandas"):
-            output = output.to_pandas()
-        
-        expected_output = pd.DataFrame({'testing': [2, 4, 6, 8]})
-        pd.testing.assert_frame_equal(output, expected_output)
+        ddf = music_streaming_data.to_ddf()
+        num_items = ddf["item_id"].nunique().compute()
+
+        encoder = Encoder(TensorOutputModel())
+        outputs = encoder(loader, index=Tags.ITEM_ID).compute()
+
+        assert outputs.index.name == "item_id"
+        assert len(outputs) == num_items
+
+    def test_dataset(self, music_streaming_data):
+        encoder = Encoder(DictOutputModel(), selection=Tags.USER)
+
+        with pytest.raises(ValueError):
+            encoder(music_streaming_data)
+
+        outputs = encoder(music_streaming_data, batch_size=10).compute()
+        assert len(outputs) == 100
+
+    def test_tensor_dict(self):
+        encoder = Encoder(TensorOutputModel())
+        outputs = encoder({"position": torch.tensor([1, 2, 3, 4])})
+
+        assert len(outputs) == 4
+        assert hasattr(outputs, "columns")
+
+    def test_tensor(self):
+        encoder = Encoder(nn.Identity())
+        outputs = encoder(torch.tensor([1, 2, 3, 4]))
+
+        assert len(outputs) == 4
+        assert hasattr(outputs, "columns")
+
+    def test_df(self):
+        encoder = Encoder(nn.Identity())
+        outputs = encoder(pd.DataFrame({"a": [1, 2, 3, 4]}))
+
+        assert len(outputs) == 4
+        assert hasattr(outputs, "columns")
+
+    def test_exceptions(self):
+        encoder = Encoder(DictOutputModel())
+
+        with pytest.raises(ValueError):
+            encoder("")
+
+        with pytest.raises(ValueError):
+            encoder.encode_dataset(torch.tensor([1, 2, 3]))
 
 
-class Test_encode_output:
-    def test_1d_tensor(self):
-        tensor = torch.tensor([1, 2, 3, 4])
-        expected_output = np.array([1, 2, 3, 4])
-        np.testing.assert_array_equal(encode_output(tensor), expected_output)
+class TestPredictor:
+    def test_dataset(self, music_streaming_data):
+        predictor = Predictor(DictOutputModel("click"), prediction_suffix="_")
+        outputs = predictor(music_streaming_data, batch_size=10).compute()
+        assert len(outputs) == 100
 
-    def test_2d_tensor_single_column(self):
-        tensor = torch.tensor([[1], [2], [3], [4]])
-        expected_output = np.array([1, 2, 3, 4])
-        np.testing.assert_array_equal(encode_output(tensor), expected_output)
+        for col in music_streaming_data.schema.column_names:
+            assert col in outputs.columns
 
-    def test_2d_tensor_multi_columns(self):
-        tensor = torch.tensor([[1, 2], [3, 4], [5, 6], [7, 8]])
-        expected_output = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-        np.testing.assert_array_equal(encode_output(tensor), expected_output)
+        assert "click_" in outputs.columns
 
-    def test_3d_tensor(self):
-        tensor = torch.tensor([[[1], [2]], [[3], [4]]])
-        expected_output = np.array([[[1], [2]], [[3], [4]]])
-        np.testing.assert_array_equal(encode_output(tensor), expected_output)
+    def test_no_targets(self):
+        predictor = Predictor(TensorOutputModel())
+        outputs = predictor.encode_tensors({"position": torch.tensor([1, 2, 3, 4])})
 
-    def test_float_tensor(self):
-        tensor = torch.tensor([1.0, 2.0, 3.0, 4.0])
-        expected_output = np.array([1.0, 2.0, 3.0, 4.0])
-        np.testing.assert_array_equal(encode_output(tensor), expected_output)
-
-    def test_device_tensor(self):
-        tensor = torch.tensor([1, 2, 3, 4], device='cuda')
-        expected_output = np.array([1, 2, 3, 4])
-        np.testing.assert_array_equal(encode_output(tensor), expected_output)
+        assert len(outputs) == 4
+        assert hasattr(outputs, "columns")
