@@ -22,7 +22,7 @@ jobs:
       - name: Get changed backends
         run: python ci/get_changed_backends.py > changed_backends.txt
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: changed-backends
           path: changed_backends.txt
