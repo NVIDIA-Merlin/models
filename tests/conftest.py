@@ -18,6 +18,7 @@
 from __future__ import absolute_import
 
 from pathlib import Path
+from typing import Set
 
 import distributed
 import pytest
@@ -83,28 +84,72 @@ except ModuleNotFoundError:
     pass
 
 
+BACKEND_ALIASES = {
+    "tensorflow": "tf",
+    "torch": "torch",
+    "implicit": "implicit",
+    "lightfm": "lightfm",
+    "xgboost": "xgb",
+}
+
+OTHER_MARKERS = {"unit", "integration", "datasets", "horovod", "transformers"}
+
+SHARED = {
+    "merlin/datasets/" "merlin/models/config/",
+    "merlin/models/utils/",
+    "merlin/models/io.py",
+}
+
+
+def get_changed_backends() -> Set[str]:
+    try:
+        from git import Repo
+
+        repo = Repo()
+
+        changed_files = {item.a_path for item in repo.index.diff("HEAD")}
+        untracked_files = {file for file in repo.untracked_files}
+
+        # Use the git diff command to get unstaged changes
+        unstaged_files = repo.git.diff(None, name_only=True).split()
+
+        all_changed_files = changed_files.union(untracked_files, unstaged_files)
+
+        changed_backends = set()
+        for file in all_changed_files:
+            try:
+                # If shared file is updated, we need to run all backends
+                for shared in SHARED:
+                    if shared in file:
+                        return set(BACKEND_ALIASES.keys())
+
+                name = file.split("/")[2]
+                if name in BACKEND_ALIASES:
+                    changed_backends.add(name)
+            except IndexError:
+                continue
+
+        return changed_backends
+    except ImportError:
+        return set()
+
+
 def pytest_collection_modifyitems(items):
+    changed_backends = get_changed_backends()
+
     for item in items:
         path = item.location[0]
-        if "/integration/" in path:
-            item.add_marker(pytest.mark.integration)
-        if "/unit/" in path:
-            item.add_marker(pytest.mark.unit)
-        if "/tf/" in path:
-            item.add_marker(pytest.mark.tensorflow)
-        if "/examples/" in path:
-            item.add_marker(pytest.mark.example)
-        if "/torch/" in path:
-            item.add_marker(pytest.mark.torch)
-        if "/implicit/" in path:
-            item.add_marker(pytest.mark.implicit)
-        if "/lightfm/" in path:
-            item.add_marker(pytest.mark.lightfm)
-        if "/xgb/" in path:
-            item.add_marker(pytest.mark.xgboost)
-        if "/datasets/" in path:
-            item.add_marker(pytest.mark.datasets)
-        if "/transformers/" in path:
-            item.add_marker(pytest.mark.transformers)
-        if "/horovod/" in path:
-            item.add_marker(pytest.mark.horovod)
+
+        for key, value in BACKEND_ALIASES.items():
+            if f"/{key}/" in path:
+                item.add_marker(getattr(pytest.mark, value))
+
+        for marker in OTHER_MARKERS:
+            if f"/{marker}/" in path:
+                item.add_marker(getattr(pytest.mark, marker))
+
+        for changed in changed_backends:
+            if f"/{changed}/" in path:
+                item.add_marker(pytest.mark.changed)
+            else:
+                item.add_marker(pytest.mark.unchanged)
