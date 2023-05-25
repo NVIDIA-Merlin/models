@@ -1,3 +1,4 @@
+import os
 from typing import Set
 
 from git import Repo
@@ -24,7 +25,8 @@ def get_changed_backends() -> Set[str]:
     """Check which backends need to be tested based on the changed files in the current branch."""
     repo = Repo()
 
-    if repo.active_branch.name == "main":
+    # If on the main branch, everything is changed
+    if os.environ.get("GITHUB_REF", "") == "refs/heads/main":
         return set(BACKEND_ALIASES.keys())
 
     commit = repo.head.commit  # Current branch last commit
