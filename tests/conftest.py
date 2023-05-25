@@ -95,11 +95,11 @@ BACKEND_ALIASES = {
 OTHER_MARKERS = {"unit", "integration", "datasets", "horovod", "transformers"}
 
 SHARED = {
-    "merlin/datasets/" "merlin/models/config/",
-    "merlin/models/utils/",
-    "merlin/models/io.py",
+    "/datasets/",
+    "/models/config/",
+    "/models/utils/",
+    "/models/io.py",
 }
-ALWAYS = {"/unit/config"}
 
 
 def get_changed_backends() -> Set[str]:
@@ -155,7 +155,13 @@ def pytest_collection_modifyitems(items):
             else:
                 item.add_marker(pytest.mark.unchanged)
 
-        for always in ALWAYS:
-            if always in path:
+        for always in SHARED:
+            if always.startswith("/models/"):
+                always = always[len("/models/") :]
+
+            if "/unit/" + always in path:
                 item.add_marker(pytest.mark.changed)
-                break
+                for value in BACKEND_ALIASES.values():
+                    item.add_marker(getattr(pytest.mark, value))
+                for marker in OTHER_MARKERS:
+                    item.add_marker(getattr(pytest.mark, marker))
