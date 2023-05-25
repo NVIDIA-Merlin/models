@@ -13,9 +13,10 @@ jupyter
 markupsafe==2.0.1
 scikit-learn
 testbook
-# fiddle pinned due to use of functools.cache (added in Python 3.9) 
+# fiddle pinned due to use of functools.cache (added in Python 3.9)
 fiddle==0.2.2
 wandb
 optuna
 plotly
 GitPython
+asvdb@git+https://github.com/rapidsai/asvdb.git@main

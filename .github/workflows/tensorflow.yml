@@ -74,6 +74,7 @@ jobs:
           python -m pip install "tensorflow${{ matrix.tensorflow-version }}"
           python -m pip install ".[tensorflow-dev]"
           pip install "tritonclient[all]"
+          pip install git+https://github.com/rapidsai/asvdb.git
       - name: Build
         run: |
           python setup.py develop
@@ -134,6 +135,7 @@ jobs:
           python -m pip install "tensorflow${{ matrix.tensorflow-version }}"
           python -m pip install ".[tensorflow-dev]"
           pip install "tritonclient[all]"
+          pip install git+https://github.com/rapidsai/asvdb.git
       - name: Build
         run: |
           python setup.py develop

@@ -22,6 +22,8 @@ def test_next_item_prediction(tb, tmpdir):
     tb.inject(
         f"""
         import os, random
+        os.environ["INPUT_DATA_DIR"] = "{tmpdir}"
+        os.environ["OUTPUT_DATA_DIR"] = "{tmpdir}"
         from datetime import datetime, timedelta
         from merlin.datasets.synthetic import generate_data
         ds = generate_data('booking.com-raw', 10000)
@@ -36,12 +38,8 @@ def test_next_item_prediction(tb, tmpdir):
         df.to_csv('{tmpdir}/train_set.csv')
         """
     )
-    tb.cells[4].source = tb.cells[4].source.replace("get_booking('/workspace/data')", "")
-    tb.cells[4].source = tb.cells[4].source.replace(
-        "read_csv('/workspace/data/train_set.csv'", f"read_csv('{tmpdir}/train_set.csv'"
-    )
-    tb.cells[31].source = tb.cells[31].source.replace("epochs=5", "epochs=1")
-    tb.cells[37].source = tb.cells[37].source.replace("/workspace/ensemble", f"{tmpdir}/ensemble")
+    tb.cells.pop(6)
+    tb.cells[29].source = tb.cells[29].source.replace("epochs=5", "epochs=1")
     tb.execute_cell(list(range(0, 38)))
 
     with utils.run_triton_server(f"{tmpdir}/ensemble", grpc_port=8001):
