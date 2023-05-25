@@ -92,7 +92,7 @@ BACKEND_ALIASES = {
     "xgb": "xgboost",
 }
 
-OTHER_MARKERS = {"unit", "integration", "datasets", "horovod", "transformers"}
+OTHER_MARKERS = {"unit", "integration", "example", "datasets", "horovod", "transformers"}
 
 SHARED = {
     "/datasets/",
@@ -152,8 +152,6 @@ def pytest_collection_modifyitems(items):
         for changed in changed_backends:
             if f"/{changed}/" in path:
                 item.add_marker(pytest.mark.changed)
-            else:
-                item.add_marker(pytest.mark.unchanged)
 
         for always in SHARED:
             if always.startswith("/models/"):
