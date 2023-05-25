@@ -22,7 +22,7 @@ jobs:
           name: changed-backends
       - name: Check if backend changed
         id: check
-        run: echo "name=changed::$(grep -q 'lightfm' changed_backends.txt && echo 'true' || echo 'false') >> $GITHUB_OUTPUT"
+        run: echo "name=$(grep -q 'lightfm' changed_backends.txt && echo true || echo false)" >> $GITHUB_OUTPUT
       - name: Set up Python ${{ matrix.python-version }}
         if: steps.check.outputs.changed == 'true'
         uses: actions/setup-python@v4
