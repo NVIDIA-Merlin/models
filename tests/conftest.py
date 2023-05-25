@@ -157,7 +157,8 @@ def pytest_collection_modifyitems(items):
             if always.startswith("/models/"):
                 always = always[len("/models/") :]
 
-            if "/unit/" + always in path:
+            if f"/unit/{always}" in path:
+                item.add_marker(pytest.mark.always)
                 item.add_marker(pytest.mark.changed)
                 for value in BACKEND_ALIASES.values():
                     item.add_marker(getattr(pytest.mark, value))

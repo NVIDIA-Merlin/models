@@ -37,7 +37,7 @@ tests-tf-integration:
 	coverage html --include 'merlin/models/*'
 
 tests-tf-changed:
-	coverage run -m pytest --durations=100 --dist=loadfile --numprocesses=auto -rsx tests -m "tensorflow and changed and not (integration or example)" || exit 1
+	coverage run -m pytest --durations=100 --dist=loadfile --numprocesses=auto -rsx tests -m "tensorflow and changed and not (integration or example) or always" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
