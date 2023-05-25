@@ -99,6 +99,7 @@ SHARED = {
     "merlin/models/utils/",
     "merlin/models/io.py",
 }
+ALWAYS = {"/unit/config"}
 
 
 def get_changed_backends() -> Set[str]:
@@ -153,3 +154,8 @@ def pytest_collection_modifyitems(items):
                 item.add_marker(pytest.mark.changed)
             else:
                 item.add_marker(pytest.mark.unchanged)
+
+        for always in ALWAYS:
+            if always in path:
+                item.add_marker(pytest.mark.changed)
+                break
