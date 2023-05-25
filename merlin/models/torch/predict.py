@@ -7,7 +7,7 @@ from torch import nn
 from merlin.core.dispatch import DataFrameLike, concat, concat_columns
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
-from merlin.models.torch.utils.schema_utils import Selection, select_schema
+from merlin.models.utils.schema_utils import Selection, select_schema
 from merlin.schema import Schema
 from merlin.table import TensorTable
 
