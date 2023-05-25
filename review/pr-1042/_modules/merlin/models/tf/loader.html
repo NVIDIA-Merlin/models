@@ -350,6 +350,7 @@
         <span class="n">sparse_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">sparse_as_dense</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">schema</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">loader_kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">_validate_dataset</span><span class="p">(</span>
             <span class="n">paths_or_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">buffer_size</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">reader_kwargs</span>
@@ -404,6 +405,7 @@
             <span class="n">global_size</span><span class="o">=</span><span class="n">global_size</span><span class="p">,</span>
             <span class="n">global_rank</span><span class="o">=</span><span class="n">global_rank</span><span class="p">,</span>
             <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">loader_kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Override these parameters after initializing the parent dataloader</span>
@@ -490,7 +492,7 @@
     <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">prepare_features</span><span class="p">:</span>
-        <span class="n">pf</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+        <span class="n">pf</span> <span class="o">=</span> <span class="n">PrepareFeatures</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">output_schema</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">pf</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
