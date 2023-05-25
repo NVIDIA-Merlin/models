@@ -132,7 +132,7 @@ def get_changed_backends() -> Set[str]:
 
         return changed_backends
     except ImportError:
-        return set()
+        return set(BACKEND_ALIASES.keys())
 
 
 def pytest_collection_modifyitems(items):
