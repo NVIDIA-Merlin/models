@@ -1,3 +1,4 @@
+import argparse
 import os
 from typing import Set
 
@@ -64,5 +65,19 @@ def get_changed_backends() -> Set[str]:
     return changed_backends
 
 
+def backend_has_changed(backend_name) -> bool:
+    changed_backends = get_changed_backends()
+    return backend_name in changed_backends
+
+
 if __name__ == "__main__":
-    print(" ".join(get_changed_backends()))
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--backend", type=str, required=False, help="specific backend to check for changes"
+    )
+    args = parser.parse_args()
+
+    if args.backend:
+        print(str(backend_has_changed(args.backend)).lower())
+    else:
+        print(" ".join(get_changed_backends()))
