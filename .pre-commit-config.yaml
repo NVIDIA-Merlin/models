@@ -28,7 +28,7 @@ repos:
     rev: v3.0.0-alpha.4
     hooks:
       - id: prettier
-        types: [yaml]
+        types_or: [yaml, markdown]
         exclude: ^conda
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.2
