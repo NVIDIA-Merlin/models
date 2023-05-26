@@ -3,8 +3,7 @@ name: "\U0001F680 Feature request"
 about: Submit a proposal/request for a new Merlin Models feature
 title: "[FEA]"
 labels: "status/needs-triage, kind/feature-request"
-assignees: ''
-
+assignees: ""
 ---
 
 # 🚀 Feature request
