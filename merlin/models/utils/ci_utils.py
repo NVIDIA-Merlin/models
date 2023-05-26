@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os
 from typing import Set
 
 from git import Repo
@@ -54,10 +53,6 @@ def get_changed_backends() -> Set[str]:
     """
 
     repo = Repo()
-
-    # If on the main branch, everything is changed
-    if os.environ.get("GITHUB_REF", "") == "refs/heads/main":
-        return set(BACKEND_ALIASES.keys())
 
     commit = repo.head.commit  # Current branch last commit
     diffs = commit.diff(repo.index.diff("HEAD"))
