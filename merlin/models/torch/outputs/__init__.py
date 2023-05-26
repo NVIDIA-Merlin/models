@@ -13,16 +13,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from merlin.models.torch.batch import Batch, Sequence
-from merlin.models.torch.block import Block
-from merlin.models.torch.outputs.base import ModelOutput
-from merlin.models.torch.outputs.classification import BinaryOutput
-
-__all__ = [
-    "Batch",
-    "BinaryOutput",
-    "Block",
-    "ModelOutput",
-    "Sequence",
-]

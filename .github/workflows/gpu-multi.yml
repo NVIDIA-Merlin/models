@@ -31,10 +31,10 @@ jobs:
       - name: Get changed backends
         id: backend_check
         run: |
-          echo "changed=$(python ci/get_changed_backends.py --backend tensorflow --branch ${{github.base_ref}})" >> $GITHUB_OUTPUT
+          echo "changed=$(python ci/get_changed_backends.py --backend tensorflow --branch ${{github.base_ref}})" >> "$GITHUB_OUTPUT"
     outputs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
-  
+
   tensorflow:
     needs: check-changes-tf
     if: ${{needs.check-changes-tf.outputs.needs_testing == 'true' || github.ref == 'refs/heads/main'}}
@@ -48,7 +48,6 @@ jobs:
       run: |
         ref_type=${{ github.ref_type }}
         branch=main
-        pr_flag="false"
         if [[ $ref_type == "tag"* ]]
         then
           git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
