@@ -1,4 +1,4 @@
-name: Packages
+name: packages
 
 on:
   workflow_dispatch:
@@ -11,7 +11,6 @@ on:
 
 jobs:
   build-pypi:
-    name: Build PyPI Package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -36,7 +35,6 @@ jobs:
           path: dist
 
   build-conda:
-    name: Build Conda Package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -67,7 +65,6 @@ jobs:
           path: ${{ steps.conda_build.outputs.conda_package }}
 
   release-pypi:
-    name: Release PyPI
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [build-pypi]
@@ -93,7 +90,6 @@ jobs:
           twine upload dist/*
 
   release-conda:
-    name: Release Conda
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [build-conda]

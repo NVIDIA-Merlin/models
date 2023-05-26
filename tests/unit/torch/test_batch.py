@@ -17,7 +17,8 @@
 import pytest
 import torch
 
-from merlin.models.torch.batch import Batch, Sequence
+from merlin.dataloader.torch import Loader
+from merlin.models.torch.batch import Batch, Sequence, sample_batch, sample_features
 
 
 class TestSequence:
@@ -56,6 +57,7 @@ class TestSequence:
         assert isinstance(sequence.lengths, dict)
         assert "default" in sequence.lengths
         assert torch.equal(sequence.lengths["default"], lengths)
+        assert sequence.device() == lengths.device
 
     def test_init_tensor_masks(self):
         # Test when masks is a tensor
@@ -89,6 +91,12 @@ class TestSequence:
 
         with pytest.raises(ValueError, match="Masks must be a tensor or a dictionary of tensors"):
             Sequence(lengths, masks)
+
+    def test_device(self):
+        empty_seq = Sequence({})
+
+        with pytest.raises(ValueError, match="Sequence is empty"):
+            empty_seq.device()
 
 
 class TestBatch:
@@ -128,6 +136,7 @@ class TestBatch:
         assert isinstance(batch.targets, dict)
         assert "default" in batch.targets
         assert torch.equal(batch.targets["default"], targets)
+        assert batch.device() == features.device
 
     def test_batch_init_invalid_targets(self):
         # Test when targets is not a tensor nor a dictionary of tensors
@@ -155,3 +164,74 @@ class TestBatch:
     def test_with_incorrect_types(self):
         with pytest.raises(ValueError):
             Batch("not a tensor or dict", "not a tensor or dict", "not a sequence")
+
+    def test_sample(self, music_streaming_data):
+        batch = Batch.sample_from(music_streaming_data)
+        assert isinstance(batch, Batch)
+
+        assert isinstance(batch.features, dict)
+        assert len(list(batch.features.keys())) == 12
+        for key, val in batch.features.items():
+            if not key.endswith("__values") and not key.endswith("__offsets"):
+                assert val.shape[0] == 32
+
+        assert isinstance(batch.targets, dict)
+        assert list(batch.targets.keys()) == ["click", "play_percentage", "like"]
+        for val in batch.targets.values():
+            assert val.shape[0] == 32
+
+    def test_device(self):
+        empty_batch = Batch({}, {})
+
+        with pytest.raises(ValueError, match="Batch is empty"):
+            empty_batch.device()
+
+
+class Test_sample_batch:
+    def test_loader(self, music_streaming_data):
+        loader = Loader(music_streaming_data, batch_size=2)
+
+        batch = sample_batch(loader)
+
+        assert isinstance(batch.features, dict)
+        assert len(list(batch.features.keys())) == 12
+        for key, val in batch.features.items():
+            if not key.endswith("__values") and not key.endswith("__offsets"):
+                assert val.shape[0] == 2
+
+        assert isinstance(batch.targets, dict)
+        assert list(batch.targets.keys()) == ["click", "play_percentage", "like"]
+        for val in batch.targets.values():
+            assert val.shape[0] == 2
+
+    def test_dataset(self, music_streaming_data):
+        batch = sample_batch(music_streaming_data, batch_size=2)
+
+        assert isinstance(batch.features, dict)
+        assert len(list(batch.features.keys())) == 12
+        for key, val in batch.features.items():
+            if not key.endswith("__values") and not key.endswith("__offsets"):
+                assert val.shape[0] == 2
+
+        assert isinstance(batch.targets, dict)
+        assert list(batch.targets.keys()) == ["click", "play_percentage", "like"]
+        for val in batch.targets.values():
+            assert val.shape[0] == 2
+
+    def test_exceptions(self, music_streaming_data):
+        with pytest.raises(ValueError, match="specify 'batch_size'"):
+            sample_batch(music_streaming_data)
+
+        with pytest.raises(ValueError, match="Expected Dataset or Loader instance"):
+            sample_batch(torch.tensor([1, 2, 3]))
+
+
+class Test_sample_features:
+    def test_no_targets(self, music_streaming_data):
+        features = sample_features(music_streaming_data, batch_size=2)
+
+        assert isinstance(features, dict)
+        assert len(list(features.keys())) == 12
+        for key, val in features.items():
+            if not key.endswith("__values") and not key.endswith("__offsets"):
+                assert val.shape[0] == 2
