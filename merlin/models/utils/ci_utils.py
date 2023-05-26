@@ -55,7 +55,19 @@ def get_changed_backends() -> Set[str]:
     repo = Repo()
 
     commit = repo.head.commit  # Current branch last commit
-    diffs = commit.diff(repo.branches["main"])
+
+    main_branch = repo.branches["main"]
+
+    # If on the main branch or main branch doesn't exist, use the default branch
+    if repo.head.ref == main_branch or main_branch not in repo.branches:
+        default_branch = get_default_branch(repo)
+        if default_branch:
+            main_branch = default_branch
+        else:
+            # Default branch not found, return empty set
+            return set()
+
+    diffs = commit.diff(main_branch)
 
     changed_files = set()
     for change_type in ["A", "D", "R", "M", "T"]:
@@ -87,6 +99,14 @@ def get_changed_backends() -> Set[str]:
             continue
 
     return changed_backends
+
+
+def get_default_branch(repo):
+    """Get the default branch of the repository."""
+    for remote in repo.remotes:
+        for ref in remote.refs:
+            if ref.remote_head == repo.head.ref.remote_head:
+                return ref
 
 
 def backend_has_changed(backend_name: str) -> bool:
