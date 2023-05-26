@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  check:
+  check-changes:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -28,8 +28,8 @@ jobs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
   
   tests:
-    needs: check
-    if: ${{needs.check.outputs.needs_testing == 'true'}}
+    needs: check-changes
+    if: ${{needs.check-changes.outputs.needs_testing == 'true'}}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

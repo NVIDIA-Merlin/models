@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-tf:
+  check-changes-tf:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -36,8 +36,8 @@ jobs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
   
   tf-multi-gpu:
-    needs: check-tf
-    if: ${{needs.check-tf.outputs.needs_testing == 'true'}}
+    needs: check-changes-tf
+    if: ${{needs.check-changes-tf.outputs.needs_testing == 'true'}}
     runs-on: 2GPU
 
     steps:
