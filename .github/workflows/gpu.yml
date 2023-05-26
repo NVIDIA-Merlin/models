@@ -32,8 +32,7 @@ jobs:
           git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
           branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
         fi
-        if [[ "${{ github.event_name }}" == "pull_request" ]]
-        then
-          pr_flag="true"
+        if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+            extra_pytest_markers="and changed"
         fi
-        TOX_BRANCH=$branch TOX_PR_FLAG=$pr_flag cd ${{ github.workspace }}; tox -e py38-gpu
+        EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch cd ${{ github.workspace }}; tox -e py38-gpu
