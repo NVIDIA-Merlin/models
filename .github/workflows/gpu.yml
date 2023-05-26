@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  all-unit-tests:
+  gpu-ci:
     runs-on: 1GPU
 
     steps:
