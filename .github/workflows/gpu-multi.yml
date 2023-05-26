@@ -28,14 +28,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install GitPython
           pip install . --no-deps
-      - name: Track main branch
-        run: |
-          git fetch origin main
-          git branch --track main origin/main || true
       - name: Get changed backends
         id: backend_check
         run: |
-          echo "changed=$(python ci/get_changed_backends.py --backend tensorflow)" >> $GITHUB_OUTPUT
+          echo "changed=$(python ci/get_changed_backends.py --backend tensorflow --branch $${{github.base_ref}})" >> $GITHUB_OUTPUT
     outputs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
   
@@ -61,4 +57,4 @@ jobs:
         if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
             extra_pytest_markers="and changed"
         fi
-        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch tox -e py38-multi-gpu
+        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-multi-gpu

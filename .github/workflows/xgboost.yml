@@ -24,14 +24,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install GitPython
           pip install . --no-deps
-      - name: Track main branch
-        run: |
-          git fetch origin main
-          git branch --track main origin/main || true
       - name: Get changed backends
         id: backend_check
         run: |
-          echo "changed=$(python ci/get_changed_backends.py --backend xgboost)" >> $GITHUB_OUTPUT
+          echo "changed=$(python ci/get_changed_backends.py --backend xgboost --branch $${{github.base_ref}})" >> $GITHUB_OUTPUT
     outputs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
   
