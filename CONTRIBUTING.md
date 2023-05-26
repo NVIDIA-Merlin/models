@@ -65,7 +65,7 @@ and help categorize the PR in our change log:
   repository or the project.
 
 By default, an unlabeled PR is listed at the top of the change log and is not
-grouped under a heading like *Features* that groups similar PRs.
+grouped under a heading like _Features_ that groups similar PRs.
 Labeling the PRs so we can categorize them is preferred.
 
 If, for some reason, you do not believe your PR should be included in the change
