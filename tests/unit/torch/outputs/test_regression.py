@@ -20,7 +20,7 @@ from torchmetrics import MeanAbsoluteError, MeanAbsolutePercentageError, MeanSqu
 import merlin.dtypes as md
 import merlin.models.torch as mm
 from merlin.models.torch.utils import module_utils
-from merlin.schema import ColumnSchema, Schema
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 class TestRegressionOutput:
@@ -47,6 +47,7 @@ class TestRegressionOutput:
         assert isinstance(reg_output.output_schema, Schema)
         assert reg_output.output_schema.first.name == "foo"
         assert reg_output.output_schema.first.dtype == md.float32
+        assert Tags.CONTINUOUS in reg_output.output_schema.first.tags
 
     def test_default_loss(self):
         reg_output = mm.RegressionOutput()

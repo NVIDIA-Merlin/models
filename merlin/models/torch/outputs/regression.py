@@ -20,7 +20,7 @@ from torchmetrics import MeanSquaredError, Metric
 
 import merlin.dtypes as md
 from merlin.models.torch.outputs.base import ModelOutput
-from merlin.schema import ColumnSchema, Schema
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 class RegressionOutput(ModelOutput):
@@ -58,6 +58,6 @@ class RegressionOutput(ModelOutput):
         target: Optional[ColumnSchema]
             The schema defining the column properties.
         """
-        _target = target.with_dtype(md.float32)
+        _target = target.with_dtype(md.float32).with_tags([Tags.CONTINUOUS])
 
         self.output_schema = Schema([_target])
