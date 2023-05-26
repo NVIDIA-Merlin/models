@@ -58,8 +58,6 @@ def get_changed_backends() -> Set[str]:
 
     if "main" in repo.branches:
         main_branch = repo.branches["main"]
-    elif "heads/main" in repo.refs:
-        main_branch = repo.refs["heads/main"]
     else:
         raise ValueError("Could not find main branch")
     diffs = commit.diff(main_branch)
