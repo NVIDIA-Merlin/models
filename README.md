@@ -2,7 +2,7 @@
 
 [![PyPI version shields.io](https://img.shields.io/pypi/v/merlin-models.svg)](https://pypi.python.org/pypi/merlin-models/)
 ![GitHub License](https://img.shields.io/github/license/NVIDIA-Merlin/models)
-[![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://nvidia-merlin.github.io/models/stable/)
+[![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://nvidia-merlin.github.io/models/)
 
 The Merlin Models library provides standard models for recommender systems with an aim for high-quality implementations
 that range from classic machine learning models to highly-advanced deep learning models.
