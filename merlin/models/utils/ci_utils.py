@@ -60,7 +60,11 @@ def get_changed_backends(compare_branch: str = COMPARE_BRANCH) -> Set[str]:
     commit = repo.head.commit  # Current branch last commit
 
     if compare_branch not in repo.branches:
-        repo.remotes.origin.fetch()
+        origin = repo.remotes.origin
+        origin.fetch("main")
+        ref = getattr(origin.refs, compare_branch)
+        local_branch = repo.create_head(compare_branch, ref)
+        local_branch.set_tracking_branch(ref)
 
     if compare_branch in repo.branches:
         comparison = repo.branches[compare_branch]
