@@ -36,7 +36,7 @@ jobs:
   
   tests:
     needs: check-changes
-    if: ${{needs.check-changes.outputs.needs_testing == 'true'}}
+    if: ${{needs.check-changes.outputs.needs_testing == 'true' || github.ref == 'refs/heads/main'}}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

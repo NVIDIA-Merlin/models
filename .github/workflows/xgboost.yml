@@ -33,7 +33,7 @@ jobs:
   
   tests:
     needs: check-changes
-    if: ${{needs.check-changes.outputs.needs_testing == 'true'}}
+    if: ${{needs.check-changes.outputs.needs_testing == 'true' || github.ref == 'refs/heads/main'}}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -73,4 +73,8 @@ jobs:
           python setup.py develop
       - name: Run unittests
         run: |
-          make tests-xgboost
+          if [[ "${{ github.ref }}" == 'refs/heads/main' ]]; then
+            make tests-xgboost
+          else
+            make tests-xgboost-changed
+          fi
