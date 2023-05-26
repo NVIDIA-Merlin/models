@@ -55,6 +55,9 @@ def get_changed_backends(compare_branch: str = COMPARE_BRANCH) -> Set[str]:
         changed files in the current branch of the repository.
     """
 
+    if not compare_branch:
+        compare_branch = COMPARE_BRANCH
+
     repo = Repo()
 
     commit = repo.head.commit  # Current branch last commit
