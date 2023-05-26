@@ -55,7 +55,7 @@ def get_changed_backends() -> Set[str]:
     repo = Repo()
 
     commit = repo.head.commit  # Current branch last commit
-    diffs = commit.diff(repo.index.diff("HEAD"))
+    diffs = commit.diff(repo.branches["main"])
 
     changed_files = set()
     for change_type in ["A", "D", "R", "M", "T"]:
