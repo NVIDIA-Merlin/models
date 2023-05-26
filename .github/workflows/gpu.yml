@@ -35,4 +35,4 @@ jobs:
         if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
             extra_pytest_markers="and changed"
         fi
-        EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch cd ${{ github.workspace }}; tox -e py38-gpu
+        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch tox -e py38-gpu
