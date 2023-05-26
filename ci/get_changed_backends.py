@@ -34,4 +34,4 @@ if __name__ == "__main__":
     if args.backend:
         print(str(backend_has_changed(args.backend, args.branch)).lower())
     else:
-        print(" ".join(get_changed_backends()))
+        print(" ".join(get_changed_backends(args.branch)))
