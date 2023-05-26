@@ -13,7 +13,7 @@ Here are some guidelines to help the review process go smoothly.
 3. If your pull request is ready to be reviewed without requiring additional
    work on top of it, then remove the `status/work-in-progress` label (if present) and replace
    it with `status/needs-review`. The additional changes then can be implemented on top of the
-   same PR. 
+   same PR.
 
 4. Once all work has been done and review has taken place please do not add
    features or make changes out of the scope of those requested by the reviewer
@@ -33,12 +33,15 @@ Many thanks in advance for your cooperation!
 Fixes # (issue)
 
 ### Goals :soccer:
+
 <!-- List the high-level objectives of this pull request. -->
 <!-- Include any relevant context. -->
 
 ### Implementation Details :construction:
+
 <!-- Explain the reasoning behind any architectural changes. -->
 <!-- Highlight any new functionality. -->
 
 ### Testing Details :mag:
+
 <!-- Describe what tests you've added for your changes. -->
