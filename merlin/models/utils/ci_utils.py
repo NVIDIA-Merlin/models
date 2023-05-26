@@ -83,11 +83,11 @@ def get_changed_backends() -> Set[str]:
             # If shared file is updated, we need to run all backends
             for shared in SHARED_MODULES:
                 if shared in file:
-                    return BACKEND_ALIASES.keys()
+                    return set(BACKEND_ALIASES.values())
 
             name = file.split("/")[2]
             if name in BACKEND_ALIASES:
-                changed_backends.add(name)
+                changed_backends.add(BACKEND_ALIASES[name])
         except IndexError:
             continue
 
