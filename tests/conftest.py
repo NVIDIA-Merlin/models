@@ -18,7 +18,6 @@
 from __future__ import absolute_import
 
 from pathlib import Path
-from typing import Set
 
 import distributed
 import pytest
@@ -26,6 +25,7 @@ import pytest
 from merlin.core.utils import Distributed
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
+from merlin.models.utils import ci_utils
 
 REPO_ROOT = Path(__file__).parent.parent
 
@@ -84,68 +84,17 @@ except ModuleNotFoundError:
     pass
 
 
-BACKEND_ALIASES = {
-    "tf": "tensorflow",
-    "torch": "torch",
-    "implicit": "implicit",
-    "lightfm": "lightfm",
-    "xgb": "xgboost",
-}
-
-OTHER_MARKERS = {"unit", "integration", "example", "datasets", "horovod", "transformers"}
-
-SHARED = {
-    "/datasets/",
-    "/models/config/",
-    "/models/utils/",
-    "/models/io.py",
-}
-
-
-def get_changed_backends() -> Set[str]:
-    try:
-        from git import Repo
-
-        repo = Repo()
-
-        changed_files = {item.a_path for item in repo.index.diff("HEAD")}
-        untracked_files = {file for file in repo.untracked_files}
-
-        # Use the git diff command to get unstaged changes
-        unstaged_files = repo.git.diff(None, name_only=True).split()
-
-        all_changed_files = changed_files.union(untracked_files, unstaged_files)
-
-        changed_backends = set()
-        for file in all_changed_files:
-            try:
-                # If shared file is updated, we need to run all backends
-                for shared in SHARED:
-                    if shared in file:
-                        return set(BACKEND_ALIASES.keys())
-
-                name = file.split("/")[2]
-                if name in BACKEND_ALIASES:
-                    changed_backends.add(name)
-            except IndexError:
-                continue
-
-        return changed_backends
-    except ImportError:
-        return set(BACKEND_ALIASES.keys())
-
-
 def pytest_collection_modifyitems(items):
-    changed_backends = get_changed_backends()
+    changed_backends = ci_utils.get_changed_backends()
 
     for item in items:
         path = item.location[0]
 
-        for key, value in BACKEND_ALIASES.items():
+        for key, value in ci_utils.BACKEND_ALIASES.items():
             if f"/{key}/" in path:
                 item.add_marker(getattr(pytest.mark, value))
 
-        for marker in OTHER_MARKERS:
+        for marker in ci_utils.OTHER_MARKERS:
             if f"/{marker}/" in path:
                 item.add_marker(getattr(pytest.mark, marker))
 
@@ -153,14 +102,14 @@ def pytest_collection_modifyitems(items):
             if f"/{changed}/" in path:
                 item.add_marker(pytest.mark.changed)
 
-        for always in SHARED:
+        for always in ci_utils.SHARED:
             if always.startswith("/models/"):
                 always = always[len("/models/") :]
 
             if f"/unit/{always}" in path:
                 item.add_marker(pytest.mark.always)
                 item.add_marker(pytest.mark.changed)
-                for value in BACKEND_ALIASES.values():
+                for value in ci_utils.BACKEND_ALIASES.values():
                     item.add_marker(getattr(pytest.mark, value))
-                for marker in OTHER_MARKERS:
+                for marker in ci_utils.OTHER_MARKERS:
                     item.add_marker(getattr(pytest.mark, marker))
