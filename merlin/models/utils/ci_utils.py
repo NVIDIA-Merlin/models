@@ -20,7 +20,24 @@ SHARED_MODULES = {
 
 
 def get_changed_backends() -> Set[str]:
-    """Check which backends need to be tested based on the changed files in the current branch."""
+    """
+    Check which backends need to be tested based on the changed files in the current branch.
+
+    This function scans the current branch of a repository and identifies files that have changed.
+    If a change is detected in a backend file, the corresponding backend alias is added to a set.
+    If a change is detected in a shared file, all backend aliases are returned.
+
+    Example usage::
+        >>> get_changed_backends()
+        {'backend1', 'backend2'}
+
+    Returns
+    -------
+    set
+        A set of backends that need to be tested. The backends are identified based on the
+        changed files in the current branch of the repository.
+    """
+
     repo = Repo()
 
     # If on the main branch, everything is changed
@@ -62,6 +79,23 @@ def get_changed_backends() -> Set[str]:
     return changed_backends
 
 
-def backend_has_changed(backend_name) -> bool:
+def backend_has_changed(backend_name: str) -> bool:
+    """
+    Check if a specific backend needs to be tested based on the changed files in the current branch.
+
+    This function utilizes the get_changed_backends function to check if a specific backend has
+    experienced changes and hence requires testing.
+
+    Parameters
+    ----------
+    backend_name : str
+        The name of the backend to check for changes.
+
+    Returns
+    -------
+    bool
+        Returns True if the backend has changed and needs testing, False otherwise.
+
+    """
     changed_backends = get_changed_backends()
     return backend_name in changed_backends
