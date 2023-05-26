@@ -31,13 +31,13 @@ jobs:
       - name: Get changed backends
         id: backend_check
         run: |
-            echo "changed=$(python ci/get_changed_backends.py --backend tensorflow)" >> $GITHUB_OUTPUT
+          echo "changed=$(python ci/get_changed_backends.py --backend tensorflow --branch ${{github.base_ref}})" >> $GITHUB_OUTPUT
     outputs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
   
   tensorflow:
     needs: check-changes-tf
-    if: ${{needs.check-changes.outputs.needs_testing == 'true' || github.ref == 'refs/heads/main'}}
+    if: ${{needs.check-changes-tf.outputs.needs_testing == 'true' || github.ref == 'refs/heads/main'}}
     runs-on: 2GPU
 
     steps:
@@ -57,4 +57,4 @@ jobs:
         if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
             extra_pytest_markers="and changed"
         fi
-        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch tox -e py38-multi-gpu
+        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-multi-gpu

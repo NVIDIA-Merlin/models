@@ -27,7 +27,7 @@ jobs:
       - name: Get changed backends
         id: backend_check
         run: |
-            echo "changed=$(python ci/get_changed_backends.py --backend pytorch)" >> $GITHUB_OUTPUT
+          echo "changed=$(python ci/get_changed_backends.py --backend torch --branch  ${{github.base_ref}})" >> $GITHUB_OUTPUT
     outputs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
   
