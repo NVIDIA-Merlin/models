@@ -56,7 +56,12 @@ def get_changed_backends() -> Set[str]:
 
     commit = repo.head.commit  # Current branch last commit
 
-    main_branch = repo.branches["main"] if "main" in repo.branches else get_default_branch(repo)
+    if "main" in repo.branches:
+        main_branch = repo.branches["main"]
+    elif "refs/heads/main" in repo.refs:
+        main_branch = repo.refs["refs/heads/main"]
+    else:
+        raise ValueError("Could not find main branch")
     diffs = commit.diff(main_branch)
 
     changed_files = set()
