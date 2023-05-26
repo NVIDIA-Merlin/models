@@ -27,7 +27,6 @@ jobs:
         ref_type=${{ github.ref_type }}
         branch=main
         pr_flag="false"
-        base_ref = ${{ github.base_ref }}
         if [[ $ref_type == "tag"* ]]
         then
           git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
@@ -36,4 +35,4 @@ jobs:
         if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
             extra_pytest_markers="and changed"
         fi
-        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch COMPARE_BRANCH=$base_ref tox -e py38-gpu
+        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-gpu
