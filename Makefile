@@ -16,6 +16,11 @@ tests:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
+tests-changed:
+	coverage run -m pytest -rsx -m "changed" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
 tests-tf:
 	coverage run -m pytest --durations=100 --dist=loadfile --numprocesses=auto -rsx tests -m "tensorflow and not (integration or example)" || exit 1
 	coverage report --include 'merlin/models/*'
@@ -31,8 +36,29 @@ tests-tf-integration:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
+tests-tf-changed:
+	coverage run -m pytest --durations=100 --dist=loadfile --numprocesses=auto -rsx tests -m "tensorflow and changed and not (integration or example) or always" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-tf-examples-changed:
+	coverage run -m pytest -rsx tests -m "tensorflow and changed and example" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-tf-integration-changed:
+	coverage run -m pytest -rsx tests -m "tensorflow and changed and integration" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+
 tests-torch:
 	coverage run -m pytest -rsx tests -m "torch" || exit 1
+	coverage report --include 'merlin/models/torch/*'
+	coverage html --include 'merlin/models/torch/*'
+
+tests-torch-changed:
+	coverage run -m pytest -rsx tests -m "torch and changed" || exit 1
 	coverage report --include 'merlin/models/torch/*'
 	coverage html --include 'merlin/models/torch/*'
 
@@ -41,8 +67,18 @@ tests-implicit:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
+tests-implicit-changed:
+	coverage run -m pytest -rsx tests -m "implicit and changed" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
 tests-lightfm:
 	coverage run -m pytest -rsx tests -m "lightfm" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-lightfm-changed:
+	coverage run -m pytest -rsx tests -m "lightfm and changed" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
@@ -51,8 +87,18 @@ tests-xgboost:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
+tests-xgboost-changed:
+	coverage run -m pytest -rsx tests -m "xgboost and changed" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
 tests-datasets:
 	coverage run -m pytest -rsx tests -m "datasets" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-datasets-changed:
+	coverage run -m pytest -rsx tests -m "datasets and changed" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 

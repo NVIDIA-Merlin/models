@@ -25,6 +25,7 @@ import pytest
 from merlin.core.utils import Distributed
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
+from merlin.models.utils import ci_utils
 
 REPO_ROOT = Path(__file__).parent.parent
 
@@ -84,27 +85,31 @@ except ModuleNotFoundError:
 
 
 def pytest_collection_modifyitems(items):
+    changed_backends = ci_utils.get_changed_backends()
+
     for item in items:
         path = item.location[0]
-        if "/integration/" in path:
-            item.add_marker(pytest.mark.integration)
-        if "/unit/" in path:
-            item.add_marker(pytest.mark.unit)
-        if "/tf/" in path:
-            item.add_marker(pytest.mark.tensorflow)
-        if "/examples/" in path:
-            item.add_marker(pytest.mark.example)
-        if "/torch/" in path:
-            item.add_marker(pytest.mark.torch)
-        if "/implicit/" in path:
-            item.add_marker(pytest.mark.implicit)
-        if "/lightfm/" in path:
-            item.add_marker(pytest.mark.lightfm)
-        if "/xgb/" in path:
-            item.add_marker(pytest.mark.xgboost)
-        if "/datasets/" in path:
-            item.add_marker(pytest.mark.datasets)
-        if "/transformers/" in path:
-            item.add_marker(pytest.mark.transformers)
-        if "/horovod/" in path:
-            item.add_marker(pytest.mark.horovod)
+
+        for key, value in ci_utils.BACKEND_ALIASES.items():
+            if f"/{key}/" in path:
+                item.add_marker(getattr(pytest.mark, value))
+
+        for marker in ci_utils.OTHER_MARKERS:
+            if f"/{marker}/" in path:
+                item.add_marker(getattr(pytest.mark, marker))
+
+        for changed in changed_backends:
+            if f"/{changed}/" in path:
+                item.add_marker(pytest.mark.changed)
+
+        for always in ci_utils.SHARED_MODULES:
+            if always.startswith("/models/"):
+                always = always[len("/models/") :]
+
+            if f"/unit/{always}" in path:
+                item.add_marker(pytest.mark.always)
+                item.add_marker(pytest.mark.changed)
+                for value in ci_utils.BACKEND_ALIASES.values():
+                    item.add_marker(getattr(pytest.mark, value))
+                for marker in ci_utils.OTHER_MARKERS:
+                    item.add_marker(getattr(pytest.mark, marker))

@@ -61,4 +61,6 @@ markers = [
     "example",
     "integration",
     "unit",
+    "changed",
+    "unchanged"
 ]
