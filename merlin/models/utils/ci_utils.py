@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 from typing import Set
 
 from git import Repo
@@ -32,8 +33,10 @@ SHARED_MODULES = {
     "/models/io.py",
 }
 
+COMPARE_BRANCH = os.environ.get("COMPARE_BRANCH", "main")
 
-def get_changed_backends() -> Set[str]:
+
+def get_changed_backends(compare_branch: str = COMPARE_BRANCH) -> Set[str]:
     """
     Check which backends need to be tested based on the changed files in the current branch.
 
@@ -56,11 +59,15 @@ def get_changed_backends() -> Set[str]:
 
     commit = repo.head.commit  # Current branch last commit
 
-    if "main" in repo.branches:
-        main_branch = repo.branches["main"]
+    if compare_branch not in repo.branches:
+        origin = repo.remote(name="origin")
+        origin.fetch(compare_branch)
+
+    if compare_branch in repo.branches:
+        comparison = repo.branches[compare_branch]
     else:
-        raise ValueError("Could not find main branch")
-    diffs = commit.diff(main_branch)
+        raise ValueError("Could not find comparison branch")
+    diffs = commit.diff(comparison)
 
     changed_files = set()
     for change_type in ["A", "D", "R", "M", "T"]:
@@ -97,15 +104,7 @@ def get_changed_backends() -> Set[str]:
     return changed_backends
 
 
-def get_default_branch(repo):
-    """Get the default branch of the repository."""
-    for remote in repo.remotes:
-        for ref in remote.refs:
-            if ref.remote_head == repo.head.ref.remote_head:
-                return ref
-
-
-def backend_has_changed(backend_name: str) -> bool:
+def backend_has_changed(backend_name: str, compare_branch: str = COMPARE_BRANCH) -> bool:
     """
     Check if a specific backend needs to be tested based on the changed files in the current branch.
 
@@ -123,7 +122,7 @@ def backend_has_changed(backend_name: str) -> bool:
         Returns True if the backend has changed and needs testing, False otherwise.
 
     """
-    changed_backends = get_changed_backends()
+    changed_backends = get_changed_backends(compare_branch)
     output: bool = False
 
     for backend in backend_name.split("|"):
