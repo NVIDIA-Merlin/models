@@ -83,7 +83,10 @@ def get_changed_backends() -> Set[str]:
             # If shared file is updated, we need to run all backends
             for shared in SHARED_MODULES:
                 if shared in file:
-                    return set(BACKEND_ALIASES.values()) + {"datasets", "horovod", "transformers"}
+                    output = set(BACKEND_ALIASES.values())
+                    output = output.union({"datasets", "horovod", "transformers"})
+
+                    return output
 
             name = file.split("/")[2]
             if name in BACKEND_ALIASES:
