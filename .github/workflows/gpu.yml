@@ -22,6 +22,10 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
+    - name: Track main branch
+      run: |
+        git fetch origin main
+        git branch --track main origin/main || true
     - name: Run tests
       run: |
         ref_type=${{ github.ref_type }}
