@@ -27,7 +27,7 @@ jobs:
       - name: Get changed backends
         id: backend_check
         run: |
-            echo "changed=$(python ci/get_changed_backends.py --backend tensorflow)" >> "$GITHUB_OUTPUT"
+          echo "changed=$(python ci/get_changed_backends.py --backend tensorflow --branch ${{github.base_ref}})" >> "$GITHUB_OUTPUT"
     outputs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
 
@@ -72,4 +72,4 @@ jobs:
           if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
               extra_pytest_markers="and changed"
           fi
-          EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH="$merlin_branch" tox -e py38-horovod-cpu
+         EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH="$merlin_branch" COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-horovod-cpu
