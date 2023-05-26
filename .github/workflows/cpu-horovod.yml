@@ -72,4 +72,4 @@ jobs:
           if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
               extra_pytest_markers="and changed"
           fi
-         EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH="$merlin_branch" COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-horovod-cpu
+          EXTRA_PYTEST_MARKERS="$extra_pytest_markers" MERLIN_BRANCH="$merlin_branch" COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-horovod-cpu
