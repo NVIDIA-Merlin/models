@@ -61,7 +61,7 @@ def get_changed_backends(compare_branch: str = COMPARE_BRANCH) -> Set[str]:
 
     if compare_branch not in repo.branches:
         origin = repo.remotes.origin
-        origin.fetch("main")
+        origin.fetch(compare_branch)
         ref = getattr(origin.refs, compare_branch)
         local_branch = repo.create_head(compare_branch, ref)
         local_branch.set_tracking_branch(ref)
