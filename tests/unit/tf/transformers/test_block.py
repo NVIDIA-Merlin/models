@@ -79,9 +79,9 @@ def test_retrieval_transformer(sequence_testing_data: Dataset, run_eagerly):
     item_embeddings = model.candidate_embeddings().compute().to_numpy()
 
     assert list(item_embeddings.shape) == [101, d_model]
-    predicitons_2 = np.dot(query_embeddings, item_embeddings.T)
+    predictions_2 = tf.matmul(query_embeddings, tf.transpose(item_embeddings)).numpy()
 
-    np.testing.assert_allclose(predictions, predicitons_2, atol=1e-4)
+    np.testing.assert_allclose(predictions, predictions_2, atol=1e-4)
 
 
 def test_transformer_encoder():
