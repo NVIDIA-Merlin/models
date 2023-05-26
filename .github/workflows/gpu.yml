@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   all-unit-tests:
-    runs-on: 2GPU
+    runs-on: 1GPU
 
     steps:
     - uses: actions/checkout@v3
