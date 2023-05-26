@@ -54,6 +54,13 @@ class BlockContainer(nn.Module):
         ----------
         module : nn.Module
             The PyTorch module to be appended.
+        link : Optional[LinkType]
+            The link to use for the module. If None, no link is used.
+            This can either be a Module or a string, options are:
+                - "residual": Adds a residual connection to the module.
+                - "shortcut": Adds a shortcut connection to the module.
+                - "shortcut-concat": Adds a shortcut connection by concatenating
+                the input and output.
 
         Returns
         -------
@@ -71,6 +78,13 @@ class BlockContainer(nn.Module):
         ----------
         module : nn.Module
             The PyTorch module to be prepended.
+        link : Optional[LinkType]
+            The link to use for the module. If None, no link is used.
+            This can either be a Module or a string, options are:
+                - "residual": Adds a residual connection to the module.
+                - "shortcut": Adds a shortcut connection to the module.
+                - "shortcut-concat": Adds a shortcut connection by concatenating
+                the input and output.
 
         Returns
         -------
@@ -87,6 +101,13 @@ class BlockContainer(nn.Module):
             The index at which the module is to be inserted.
         module : nn.Module
             The PyTorch module to be inserted.
+        link : Optional[LinkType]
+            The link to use for the module. If None, no link is used.
+            This can either be a Module or a string, options are:
+                - "residual": Adds a residual connection to the module.
+                - "shortcut": Adds a shortcut connection to the module.
+                - "shortcut-concat": Adds a shortcut connection by concatenating
+                the input and output.
 
         Returns
         -------
@@ -189,7 +210,9 @@ class BlockContainerDict(nn.ModuleDict):
         super().__init__(modules)
         self._name: str = name
 
-    def append_to(self, name: str, module: nn.Module) -> "BlockContainerDict":
+    def append_to(
+        self, name: str, module: nn.Module, link: Optional[LinkType] = None
+    ) -> "BlockContainerDict":
         """Appends a module to a specified name.
 
         Parameters
@@ -198,6 +221,13 @@ class BlockContainerDict(nn.ModuleDict):
             The name of the branch.
         module : nn.Module
             The module to append.
+        link : Optional[LinkType]
+            The link to use for the module. If None, no link is used.
+            This can either be a Module or a string, options are:
+                - "residual": Adds a residual connection to the module.
+                - "shortcut": Adds a shortcut connection to the module.
+                - "shortcut-concat": Adds a shortcut connection by concatenating
+                the input and output.
 
         Returns
         -------
@@ -205,11 +235,13 @@ class BlockContainerDict(nn.ModuleDict):
             The current object itself.
         """
 
-        self._modules[name].append(module)
+        self._modules[name].append(module, link=link)
 
         return self
 
-    def prepend_to(self, name: str, module: nn.Module) -> "BlockContainerDict":
+    def prepend_to(
+        self, name: str, module: nn.Module, link: Optional[LinkType] = None
+    ) -> "BlockContainerDict":
         """Prepends a module to a specified name.
 
         Parameters
@@ -218,6 +250,13 @@ class BlockContainerDict(nn.ModuleDict):
             The name of the branch.
         module : nn.Module
             The module to prepend.
+        link : Optional[LinkType]
+            The link to use for the module. If None, no link is used.
+            This can either be a Module or a string, options are:
+                - "residual": Adds a residual connection to the module.
+                - "shortcut": Adds a shortcut connection to the module.
+                - "shortcut-concat": Adds a shortcut connection by concatenating
+                the input and output.
 
         Returns
         -------
@@ -225,23 +264,11 @@ class BlockContainerDict(nn.ModuleDict):
             The current object itself.
         """
 
-        self._modules[name].prepend(module)
-    def append_to(
-        self, name: str, module: nn.Module, link: Optional[LinkType] = None
-    ) -> "BlockContainerDict":
-        self._modules[name].append(module, link=link)
-
-        return self
-
-    def prepend_to(
-        self, name: str, module: nn.Module, link: Optional[LinkType] = None
-    ) -> "BlockContainerDict":
         self._modules[name].prepend(module, link=link)
 
-        return self
-
-    # Append to all branches, optionally copying
-    def append_for_each(self, module: nn.Module, shared=False) -> "BlockContainerDict":
+    def append_for_each(
+        self, module: nn.Module, shared=False, link: Optional[LinkType] = None
+    ) -> "BlockContainerDict":
         """Appends a module to each branch.
 
         Parameters
@@ -251,6 +278,13 @@ class BlockContainerDict(nn.ModuleDict):
         shared : bool, default=False
             If True, the same module is shared across all elements.
             Otherwise a deep copy of the module is used in each element.
+        link : Optional[LinkType]
+            The link to use for the module. If None, no link is used.
+            This can either be a Module or a string, options are:
+                - "residual": Adds a residual connection to the module.
+                - "shortcut": Adds a shortcut connection to the module.
+                - "shortcut-concat": Adds a shortcut connection by concatenating
+                the input and output.
 
         Returns
         -------
@@ -258,16 +292,15 @@ class BlockContainerDict(nn.ModuleDict):
             The current object itself.
         """
 
-    def append_for_each(
-        self, module: nn.Module, shared=False, link: Optional[LinkType] = None
-    ) -> "BlockContainerDict":
         for branch in self.values():
             _module = module if shared else deepcopy(module)
             branch.append(_module, link=link)
 
         return self
 
-    def prepend_for_each(self, module: nn.Module, shared=False) -> "BlockContainerDict":
+    def prepend_for_each(
+        self, module: nn.Module, shared=False, link: Optional[LinkType] = None
+    ) -> "BlockContainerDict":
         """Prepends a module to each branch.
 
         Parameters
@@ -277,25 +310,24 @@ class BlockContainerDict(nn.ModuleDict):
         shared : bool, default=False
             If True, the same module is shared across all elements.
             Otherwise a deep copy of the module is used in each element.
+        link : Optional[LinkType]
+            The link to use for the module. If None, no link is used.
+            This can either be a Module or a string, options are:
+                - "residual": Adds a residual connection to the module.
+                - "shortcut": Adds a shortcut connection to the module.
+                - "shortcut-concat": Adds a shortcut connection by concatenating
+                the input and output.
 
         Returns
         -------
         BlockContainerDict
             The current object itself.
         """
-
-    def prepend_for_each(
-        self, module: nn.Module, shared=False, link: Optional[LinkType] = None
-    ) -> "BlockContainerDict":
         for branch in self.values():
             _module = module if shared else deepcopy(module)
             branch.prepend(_module, link=link)
 
         return self
-
-    # This assumes same branches, we append it's content to each branch
-    # def append_parallel(self, module: "BlockContainerDict") -> "BlockContainerDict":
-    #     ...
 
     def add_module(self, name: str, module: Optional[nn.Module]) -> None:
         if module and not isinstance(module, BlockContainer):
