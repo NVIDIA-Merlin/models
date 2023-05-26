@@ -48,9 +48,16 @@ jobs:
       run: |
         ref_type=${{ github.ref_type }}
         branch=main
+        pr_flag="false"
         if [[ $ref_type == "tag"* ]]
         then
           git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
           branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
         fi
-        cd ${{ github.workspace }}; tox -e py38-multi-gpu -- $branch
+        if [[ "${{ github.event_name }}" == "pull_request" ]]
+        then
+          pr_flag="true"
+        fi
+        echo "TOX_BRANCH=$branch" >> $GITHUB_ENV
+        echo "TOX_PR_FLAG=$pr_flag" >> $GITHUB_ENV
+        cd ${{ github.workspace }}; tox -e py38-multi-gpu
