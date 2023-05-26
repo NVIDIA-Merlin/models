@@ -102,7 +102,7 @@ def pytest_collection_modifyitems(items):
             if f"/{changed}/" in path:
                 item.add_marker(pytest.mark.changed)
 
-        for always in ci_utils.SHARED:
+        for always in ci_utils.SHARED_MODULES:
             if always.startswith("/models/"):
                 always = always[len("/models/") :]
 
