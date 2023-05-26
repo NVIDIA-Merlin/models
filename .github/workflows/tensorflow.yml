@@ -93,8 +93,8 @@ jobs:
           path: dist
 
   examples:
-    needs: check
-    if: ${{needs.check.outputs.needs_testing == 'true'}}
+    needs: check-changes
+    if: ${{needs.check-changes.outputs.needs_testing == 'true'}}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
