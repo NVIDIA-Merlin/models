@@ -1,4 +1,4 @@
-name: horovod (2GPU)
+name: multi-GPU
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: GPU CI
+name: GPU
 
 on:
   workflow_dispatch:

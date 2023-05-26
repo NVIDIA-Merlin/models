@@ -1,4 +1,4 @@
-name: horovod (cpu)
+name: horovod
 
 on:
   push:
