@@ -1,4 +1,4 @@
-name: systems
+name: gpu-multi
 
 on:
   workflow_dispatch:
@@ -8,13 +8,14 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  check-changes:
+  check-changes-tf:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -30,41 +31,30 @@ jobs:
       - name: Get changed backends
         id: backend_check
         run: |
-          echo "changed=$(python ci/get_changed_backends.py --backend datasets --branch ${{github.base_ref}})" >> $GITHUB_OUTPUT
+          echo "changed=$(python ci/get_changed_backends.py --backend tensorflow --branch ${{github.base_ref}})" >> $GITHUB_OUTPUT
     outputs:
       needs_testing: ${{ steps.backend_check.outputs.changed }}
   
-  tests:
-    needs: check-changes
-    if: ${{needs.check-changes.outputs.needs_testing == 'true' || github.ref == 'refs/heads/main'}}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        python-version: [3.8]
-        os: [ubuntu-latest]
+  tensorflow:
+    needs: check-changes-tf
+    if: ${{needs.check-changes-tf.outputs.needs_testing == 'true' || github.ref == 'refs/heads/main'}}
+    runs-on: 2GPU
 
     steps:
     - uses: actions/checkout@v3
       with:
-       fetch-depth: 0
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install Ubuntu packages
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y protobuf-compiler
-    - name: Install and upgrade python packages
-      run: |
-        python -m pip install --upgrade pip setuptools==59.4.0 wheel tox
+        fetch-depth: 0
     - name: Run tests
       run: |
         ref_type=${{ github.ref_type }}
         branch=main
+        pr_flag="false"
         if [[ $ref_type == "tag"* ]]
         then
           git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
           branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
         fi
-        GIT_COMMIT=`git rev-parse HEAD` tox -e py38-systems-cpu -- $branch
+        if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+            extra_pytest_markers="and changed"
+        fi
+        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-multi-gpu

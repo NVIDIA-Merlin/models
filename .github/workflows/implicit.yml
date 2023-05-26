@@ -11,7 +11,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install GitPython
+          pip install . --no-deps
+      - name: Get changed backends
+        id: backend_check
+        run: |
+          echo "changed=$(python ci/get_changed_backends.py --backend implicit --branch ${{github.base_ref}})" >> $GITHUB_OUTPUT
+    outputs:
+      needs_testing: ${{ steps.backend_check.outputs.changed }}
+  
   tests:
+    needs: check-changes
+    if: ${{needs.check-changes.outputs.needs_testing == 'true' || github.ref == 'refs/heads/main'}}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -51,4 +73,8 @@ jobs:
           python setup.py develop
       - name: Run unittests
         run: |
-          make tests-implicit
+          if [[ "${{ github.ref }}" == 'refs/heads/main' ]]; then
+            make tests-implicit
+          else
+            make tests-implicit-changed
+          fi
