@@ -18,3 +18,4 @@ fiddle==0.2.2
 wandb
 optuna
 plotly
+GitPython
