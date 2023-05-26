@@ -1,9 +1,9 @@
-name: Require Development Base Branch
+name: branches
 
 on:
   pull_request:
     types: [synchronize, opened, reopened, labeled, unlabeled]
 
 jobs:
-  check:
+  require-base-branch:
     uses: NVIDIA-Merlin/.github/.github/workflows/check-base-branch.yml@main

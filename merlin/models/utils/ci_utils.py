@@ -98,4 +98,9 @@ def backend_has_changed(backend_name: str) -> bool:
 
     """
     changed_backends = get_changed_backends()
-    return backend_name in changed_backends
+    output: bool = False
+
+    for backend in backend_name.split("|"):
+        output |= backend in changed_backends
+
+    return output
