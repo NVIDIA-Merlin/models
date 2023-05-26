@@ -1,4 +1,4 @@
-name: pre-commit
+name: linting
 
 on:
   pull_request:
@@ -27,3 +27,14 @@ jobs:
           pip install nbstripout
           find . -type f -name "*.ipynb" -exec nbstripout "{}" +
       - uses: pre-commit/action@v3.0.0
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check workflow files
+        run: |
+          echo "::add-matcher::.github/actionlint-matcher.json"
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/fd7ba3c382e13dcc0248e425b4cbc3f1185fa3ee/scripts/download-actionlint.bash)
+          ./actionlint
+        shell: bash

@@ -1,4 +1,4 @@
-name: Set Stable Branch
+name: branches
 
 on:
   workflow_dispatch:
@@ -6,5 +6,5 @@ on:
     types: [published, deleted]
 
 jobs:
-  set-stable-branch:
+  set-stable:
     uses: NVIDIA-Merlin/.github/.github/workflows/set-stable-branch.yaml@main

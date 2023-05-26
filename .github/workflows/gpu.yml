@@ -1,4 +1,4 @@
-name: horovod (2GPU)
+name: gpu-ci
 
 on:
   workflow_dispatch:
@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  multi-gpu-ci:
-    runs-on: 2GPU
+  gpu-ci:
+    runs-on: 1GPU
 
     steps:
     - uses: actions/checkout@v3
@@ -31,4 +31,7 @@ jobs:
           git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
           branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
         fi
-        cd ${{ github.workspace }}; tox -e py38-multi-gpu -- $branch
+        if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+            extra_pytest_markers="and changed"
+        fi
+        cd ${{ github.workspace }}; EXTRA_PYTEST_MARKERS=$extra_pytest_markers MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-gpu
