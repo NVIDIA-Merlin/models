@@ -22,6 +22,7 @@ from torch import nn
 
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
+from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
 from merlin.models.utils.registry import RegistryMixin
 
@@ -65,7 +66,7 @@ class Block(BlockContainer, RegistryMixin):
 
         return inputs
 
-    def repeat(self, n: int = 1, name=None) -> "Block":
+    def repeat(self, n: int = 1, link: Optional[LinkType] = None, name=None) -> "Block":
         """
         Creates a new block by repeating the current block `n` times.
         Each repetition is a deep copy of the current block.
@@ -89,6 +90,9 @@ class Block(BlockContainer, RegistryMixin):
             raise ValueError("n must be greater than 0")
 
         repeats = [self.copy() for _ in range(n - 1)]
+        if link:
+            parsed_link = Link.parse(link)
+            repeats = [parsed_link.copy().setup_link(repeat) for repeat in repeats]
 
         return Block(self, *repeats, name=name)
 
@@ -205,7 +209,7 @@ class ParallelBlock(Block):
 
         return outputs
 
-    def append(self, module: nn.Module):
+    def append(self, module: nn.Module, link: Optional[LinkType] = None):
         """Appends a module to the post-processing stage.
 
         Parameters
@@ -219,29 +223,16 @@ class ParallelBlock(Block):
             The current object itself.
         """
 
-        self.post.append(module)
+        self.post.append(module, link=link)
 
         return self
 
     def prepend(self, module: nn.Module):
-        """Prepends a module to the pre-processing stage.
-
-        Parameters
-        ----------
-        module : nn.Module
-            The module to prepend.
-
-        Returns
-        -------
-        ParallelBlock
-            The current object itself.
-        """
-
         self.pre.prepend(module)
 
         return self
 
-    def append_to(self, name: str, module: nn.Module):
+    def append_to(self, name: str, module: nn.Module, link: Optional[LinkType] = None):
         """Appends a module to a specified branch.
 
         Parameters
@@ -257,11 +248,11 @@ class ParallelBlock(Block):
             The current object itself.
         """
 
-        self.branches[name].append(module)
+        self.branches[name].append(module, link=link)
 
         return self
 
-    def prepend_to(self, name: str, module: nn.Module):
+    def prepend_to(self, name: str, module: nn.Module, link: Optional[LinkType] = None):
         """Prepends a module to a specified branch.
 
         Parameters
@@ -276,11 +267,11 @@ class ParallelBlock(Block):
         ParallelBlock
             The current object itself.
         """
-        self.branches[name].prepend(module)
+        self.branches[name].prepend(module, link=link)
 
         return self
 
-    def append_for_each(self, module: nn.Module, shared=False):
+    def append_for_each(self, module: nn.Module, shared=False, link: Optional[LinkType] = None):
         """Appends a module to each branch.
 
         Parameters
@@ -297,11 +288,11 @@ class ParallelBlock(Block):
             The current object itself.
         """
 
-        self.branches.append_for_each(module, shared=shared)
+        self.branches.append_for_each(module, shared=shared, link=link)
 
         return self
 
-    def prepend_for_each(self, module: nn.Module, shared=False):
+    def prepend_for_each(self, module: nn.Module, shared=False, link: Optional[LinkType] = None):
         """Prepends a module to each branch.
 
         Parameters
@@ -318,7 +309,7 @@ class ParallelBlock(Block):
             The current object itself.
         """
 
-        self.branches.prepend_for_each(module, shared=shared)
+        self.branches.prepend_for_each(module, shared=shared, link=link)
 
         return self
 
