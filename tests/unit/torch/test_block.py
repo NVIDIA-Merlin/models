@@ -13,19 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 77ca69b4 (Adding ParallelBlock)
 from typing import Dict, Tuple
 
 import pytest
-<<<<<<< HEAD
-=======
-
->>>>>>> 2dfe2782 (Adding torch github-action + add copyright)
-=======
->>>>>>> f7011343 (Increase test-coverage)
 import torch
 from torch import nn
 
@@ -104,8 +94,6 @@ class TestBlock:
 
         with pytest.raises(ValueError, match="n must be greater than 0"):
             block.repeat(0)
-<<<<<<< HEAD
-<<<<<<< HEAD
 
     def test_repeat_with_link(self):
         block = Block(PlusOne())
@@ -133,8 +121,6 @@ class TestBlock:
 
         inputs = torch.randn(1, 3)
         assert torch.equal(block(inputs), inputs + 1)
-=======
->>>>>>> 77ca69b4 (Adding ParallelBlock)
 
 
 class TestParallelBlock:
@@ -171,7 +157,6 @@ class TestParallelBlock:
         with pytest.raises(RuntimeError):
             pb(inputs)
 
-<<<<<<< HEAD
     def test_schema_tracking(self):
         pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
 
@@ -186,8 +171,6 @@ class TestParallelBlock:
 
         assert len(schema.select_by_tag(Tags.EMBEDDING)) == 2
 
-=======
->>>>>>> 77ca69b4 (Adding ParallelBlock)
     def test_forward_tuple(self):
         inputs = torch.randn(1, 3)
         pb = ParallelBlock({"test": PlusOneTuple()})
@@ -260,8 +243,3 @@ class TestParallelBlock:
 
         with pytest.raises(IndexError):
             pb["invalid_key"]
-<<<<<<< HEAD
-=======
->>>>>>> f7011343 (Increase test-coverage)
-=======
->>>>>>> 77ca69b4 (Adding ParallelBlock)

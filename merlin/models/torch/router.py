@@ -159,6 +159,10 @@ class RouterBlock(ParallelBlock, Selectable):
             A new router block with the current block as its selectable.
         """
 
+        if hasattr(self, "_forward_called"):
+            # We don't need to track the schema since we will be using the nested router
+            self._handle.remove()
+
         return RouterBlock(self)
 
     def select(self, selection: Selection) -> "RouterBlock":

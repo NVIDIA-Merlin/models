@@ -118,6 +118,7 @@ class TestRouterBlock:
 
         outputs = module_utils.module_test(nested, self.batch.features)
         assert list(outputs.keys()) == ["user_age"]
+        assert "user_age" in nested.output_schema().column_names
 
 
 class TestSelectKeys:
