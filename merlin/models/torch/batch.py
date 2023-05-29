@@ -17,7 +17,6 @@
 from typing import Dict, Optional, Union
 
 import torch
-import torch.nn
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
@@ -321,8 +320,6 @@ def sample_batch(
         dictionary of target tensors.
     """
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     if isinstance(data, Dataset):
         if not batch_size:
             raise ValueError("Either use 'Loader' or specify 'batch_size'")
@@ -331,37 +328,16 @@ def sample_batch(
         loader = data
     else:
         raise ValueError(f"Expected Dataset or Loader instance, got: {data}")
-=======
-=======
-    if not isinstance(dataset_or_loader, (Dataset, Loader)):
-        raise ValueError(f"Expected Dataset or Loader instance, got {dataset_or_loader}")
-
->>>>>>> 519159b5 (Increasing test-coverage)
-    if isinstance(dataset_or_loader, Dataset):
-        if not batch_size:
-            raise ValueError("Either use 'Loader' or specify 'batch_size'")
-        loader = Loader(dataset_or_loader, batch_size=batch_size, shuffle=shuffle)
-    else:
-        loader = dataset_or_loader
->>>>>>> d00e67a4 (Adding sample_batch & sample_features)
 
     batch = loader.peek()
     # batch could be of type Prediction, so we can't unpack directly
     inputs, targets = batch[0], batch[1]
 
-<<<<<<< HEAD
     return Batch(inputs, targets)
 
 
 def sample_features(
     data: Union[Dataset, Loader],
-=======
-    return inputs, targets
-
-
-def sample_features(
-    dataset_or_loader: Union[Dataset, Loader],
->>>>>>> d00e67a4 (Adding sample_batch & sample_features)
     batch_size: Optional[int] = None,
     shuffle: Optional[bool] = False,
 ) -> Dict[str, torch.Tensor]:
@@ -382,8 +358,4 @@ def sample_features(
         dictionary of feature tensors.
     """
 
-<<<<<<< HEAD
     return sample_batch(data, batch_size, shuffle).features
-=======
-    return sample_batch(dataset_or_loader, batch_size, shuffle)[0]
->>>>>>> d00e67a4 (Adding sample_batch & sample_features)

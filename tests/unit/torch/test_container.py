@@ -178,17 +178,6 @@ class TestBlockContainerDict:
         container = BlockContainerDict()
         assert len(container) == 0
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    def test_list_of_dict(self):
-        container = BlockContainerDict(({"test": self.module}))
-        assert len(container) == 1
-        assert "test" in container
-
->>>>>>> cbf7e956 (Adding BlockContainerDict)
-=======
->>>>>>> 77ca69b4 (Adding ParallelBlock)
     def test_not_module(self):
         with pytest.raises(ValueError):
             BlockContainerDict({"test": "not a module"})
@@ -197,22 +186,16 @@ class TestBlockContainerDict:
         self.container.append_to("test", self.module)
         assert "test" in self.container._modules
 
-<<<<<<< HEAD
         self.container.append_to("test", self.module, link="residual")
         assert isinstance(self.container["test"][-1], link.Residual)
 
-=======
->>>>>>> cbf7e956 (Adding BlockContainerDict)
     def test_prepend_to(self):
         self.container.prepend_to("test", self.module)
         assert "test" in self.container._modules
 
-<<<<<<< HEAD
         self.container.prepend_to("test", self.module, link="residual")
         assert isinstance(self.container["test"][0], link.Residual)
 
-=======
->>>>>>> cbf7e956 (Adding BlockContainerDict)
     def test_append_for_each(self):
         container = BlockContainerDict({"a": nn.Module(), "b": nn.Module()})
 
@@ -227,13 +210,10 @@ class TestBlockContainerDict:
         assert len(container["b"]) == 3
         assert container["a"][-1] == container["b"][-1]
 
-<<<<<<< HEAD
         container.append_for_each(to_add, link="residual")
         assert isinstance(container["a"][-1], link.Residual)
         assert isinstance(container["b"][-1], link.Residual)
 
-=======
->>>>>>> cbf7e956 (Adding BlockContainerDict)
     def test_prepend_for_each(self):
         container = BlockContainerDict({"a": nn.Module(), "b": nn.Module()})
 
@@ -247,10 +227,7 @@ class TestBlockContainerDict:
         assert len(container["a"]) == 3
         assert len(container["b"]) == 3
         assert container["a"][0] == container["b"][0]
-<<<<<<< HEAD
 
         container.prepend_for_each(to_add, link="residual")
         assert isinstance(container["a"][0], link.Residual)
         assert isinstance(container["b"][0], link.Residual)
-=======
->>>>>>> cbf7e956 (Adding BlockContainerDict)

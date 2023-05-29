@@ -121,6 +121,7 @@ class TestRouterBlock:
         outputs = module_utils.module_test(nested, self.batch.features)
         assert list(outputs.keys()) == ["user_age"]
         assert "user_age" in nested.output_schema().column_names
+<<<<<<< HEAD
 =======
 import pytest
 =======
@@ -250,6 +251,8 @@ class TestRouterBlock:
         outputs = module_utils.module_test(nested, self.batch.features)
         assert list(outputs.keys()) == ["user_age"]
 >>>>>>> 89a6f043 (Increase test-coverage)
+=======
+>>>>>>> 78386932 (Fix failined nested router test)
 
 
 class TestSelectKeys:
