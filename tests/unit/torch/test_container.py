@@ -15,10 +15,12 @@
 #
 
 import pytest
+import torch
 import torch.nn as nn
 
+from merlin.models.torch import link
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
-from merlin.models.torch.utils import torchscript_utils
+from merlin.models.torch.utils import module_utils, torchscript_utils
 
 
 class TestBlockContainer:
@@ -34,6 +36,16 @@ class TestBlockContainer:
         self.block_container.append(module)
         assert len(self.block_container) == 1
 
+    def test_append_link(self):
+        module = nn.Linear(20, 20)
+        self.block_container.append(module, link="residual")
+        assert len(self.block_container) == 1
+
+        inputs = torch.randn(1, 20)
+        outputs = module_utils.module_test(self.block_container[0], inputs)
+
+        assert torch.equal(inputs + module(inputs), outputs)
+
     def test_prepend(self):
         module1 = nn.Linear(20, 30)
         module2 = nn.Linear(30, 40)
@@ -42,6 +54,16 @@ class TestBlockContainer:
         assert len(self.block_container) == 2
         assert isinstance(self.block_container[0], nn.Linear)
 
+    def test_prepend_link(self):
+        module = nn.Linear(20, 20)
+        self.block_container.prepend(module, link="residual")
+        assert len(self.block_container) == 1
+
+        inputs = torch.randn(1, 20)
+        outputs = module_utils.module_test(self.block_container[0], inputs)
+
+        assert torch.equal(inputs + module(inputs), outputs)
+
     def test_insert(self):
         module1 = nn.Linear(20, 30)
         module2 = nn.Linear(30, 40)
@@ -49,6 +71,16 @@ class TestBlockContainer:
         self.block_container.insert(0, module2)
         assert len(self.block_container) == 2
         assert isinstance(self.block_container[0], nn.Linear)
+
+    def test_insert_link(self):
+        module = nn.Linear(20, 20)
+        self.block_container.insert(0, module, link="residual")
+        assert len(self.block_container) == 1
+
+        inputs = torch.randn(1, 20)
+        outputs = module_utils.module_test(self.block_container[0], inputs)
+
+        assert torch.equal(inputs + module(inputs), outputs)
 
     def test_len(self):
         module = nn.Linear(20, 30)
@@ -154,9 +186,15 @@ class TestBlockContainerDict:
         self.container.append_to("test", self.module)
         assert "test" in self.container._modules
 
+        self.container.append_to("test", self.module, link="residual")
+        assert isinstance(self.container["test"][-1], link.Residual)
+
     def test_prepend_to(self):
         self.container.prepend_to("test", self.module)
         assert "test" in self.container._modules
+
+        self.container.prepend_to("test", self.module, link="residual")
+        assert isinstance(self.container["test"][0], link.Residual)
 
     def test_append_for_each(self):
         container = BlockContainerDict({"a": nn.Module(), "b": nn.Module()})
@@ -172,6 +210,10 @@ class TestBlockContainerDict:
         assert len(container["b"]) == 3
         assert container["a"][-1] == container["b"][-1]
 
+        container.append_for_each(to_add, link="residual")
+        assert isinstance(container["a"][-1], link.Residual)
+        assert isinstance(container["b"][-1], link.Residual)
+
     def test_prepend_for_each(self):
         container = BlockContainerDict({"a": nn.Module(), "b": nn.Module()})
 
@@ -185,3 +227,7 @@ class TestBlockContainerDict:
         assert len(container["a"]) == 3
         assert len(container["b"]) == 3
         assert container["a"][0] == container["b"][0]
+
+        container.prepend_for_each(to_add, link="residual")
+        assert isinstance(container["a"][0], link.Residual)
+        assert isinstance(container["b"][0], link.Residual)
