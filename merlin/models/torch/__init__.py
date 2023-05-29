@@ -16,5 +16,19 @@
 
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.outputs.base import ModelOutput
+from merlin.models.torch.outputs.classification import BinaryOutput
+from merlin.models.torch.outputs.regression import RegressionOutput
+from merlin.models.torch.transforms.agg import Concat, Stack
 
-__all__ = ["Batch", "Block", "ParallelBlock", "Sequence"]
+__all__ = [
+    "Batch",
+    "Concat",
+    "BinaryOutput",
+    "Block",
+    "ModelOutput",
+    "ParallelBlock",
+    "RegressionOutput",
+    "Sequence",
+    "Stack",
+]

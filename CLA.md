@@ -24,11 +24,13 @@ otherwise designated in writing by You as “Not a Submission.”
 associated comments and documentation.
 
 ## 2. Your Submission
+
 You must agree to the terms of this Agreement before making a Submission to any
 Project. This Agreement covers any and all Submissions that You, now or in the future (except as
 described in Section 4 below), Submit to any Project.
 
 ## 3. Originality of Work
+
 You represent that each of Your Submissions is entirely Your original work.
 Should You wish to Submit materials that are not Your original work, You may Submit them separately
 to the Project if You (a) retain all copyright and license information that was in the materials as You
@@ -38,6 +40,7 @@ restrictions of which You are aware, and (c) follow any other instructions in th
 guidelines concerning Submissions.
 
 ## 4. Your Employer
+
 References to “employer” in this Agreement include Your employer or anyone else
 for whom You are acting in making Your Submission, e.g. as a contractor, vendor, or agent. If Your
 Submission is made in the course of Your work for an employer or Your employer has intellectual
@@ -46,7 +49,6 @@ employer to make the Submission before signing this Agreement. In that case, the
 Agreement will refer to You and the employer collectively. If You change employers in the future and
 desire to Submit additional Submissions for the new employer, then You agree to sign a new Agreement
 and secure permission from the new employer before Submitting those Submissions.
-
 
 ## 5. Licenses
 
@@ -67,6 +69,7 @@ No additional licenses or rights whatsoever (including, without limitation, any 
 granted by implication, exhaustion, estoppel or otherwise.
 
 ## 6. Representations and Warranties
+
 You represent that You are legally entitled to grant the above
 licenses. You represent that each of Your Submissions is entirely Your original work (except as You may
 have disclosed under Section 3). You represent that You have secured permission from Your employer to
@@ -81,19 +84,23 @@ PROVIDED WITHOUT WARRANTY OF ANY KIND, INCLUDING, BUT NOT LIMITED TO, ANY WARRAN
 NONINFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 
 ## 7. Notice to NVIDIA
+
 You agree to notify NVIDIA in writing of any facts or circumstances of which
 You later become aware that would make Your representations in this Agreement inaccurate in any
 respect.
 
 ## 8. Information about Submissions
+
 You agree that contributions to Projects and information about
 contributions may be maintained indefinitely and disclosed publicly, including Your name and other
 information that You submit with Your Submission.
 
-## 9. Governing Law/Jurisdiction. 
+## 9. Governing Law/Jurisdiction.
+
 Claims arising under this Agreement shall be governed by the laws of Delaware, excluding its principles of conflict of laws and the United Nations Convention on Contracts for the Sale of Goods. The state and/or federal courts residing in Santa Clara County, California shall have exclusive jurisdiction over any dispute or claim arising out of this Agreement. You may not export the Software in violation of applicable export laws and regulations.
 
 ## 10. Entire Agreement/Assignment
+
 This Agreement is the entire agreement between the parties, and
 supersedes any and all prior agreements, understandings or communications, written or oral, between
 the parties relating to the subject matter hereof. This Agreement may be assigned by NVIDIA.
