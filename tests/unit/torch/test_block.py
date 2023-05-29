@@ -24,6 +24,7 @@ from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import Block, ParallelBlock
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import module_utils
+from merlin.schema import Tags
 
 
 class PlusOne(nn.Module):
@@ -49,6 +50,14 @@ class TestBlock:
         outputs = module_utils.module_test(block, inputs, batch=Batch(inputs))
 
         assert torch.equal(inputs, outputs)
+
+        schema = block.output_schema()
+        assert schema.first.dtype.name == str(outputs.dtype).split(".")[-1]
+
+    def test_no_schema_tracking(self):
+        block = Block(track_schema=False)
+        with pytest.raises(RuntimeError, match="Schema-tracking hook not registered"):
+            block.output_schema()
 
     def test_insertion(self):
         block = Block()
@@ -147,6 +156,20 @@ class TestParallelBlock:
 
         with pytest.raises(RuntimeError):
             pb(inputs)
+
+    def test_schema_tracking(self):
+        pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+
+        inputs = torch.randn(1, 3)
+        outputs = pb(inputs)
+
+        schema = pb.output_schema()
+
+        for name in outputs:
+            assert name in schema.column_names
+            assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
+
+        assert len(schema.select_by_tag(Tags.EMBEDDING)) == 2
 
     def test_forward_tuple(self):
         inputs = torch.randn(1, 3)

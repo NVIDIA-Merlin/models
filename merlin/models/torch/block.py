@@ -24,10 +24,11 @@ from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
+from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin
 from merlin.models.utils.registry import RegistryMixin
 
 
-class Block(BlockContainer, RegistryMixin):
+class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
     """A base-class that calls it's modules sequentially.
 
     Parameters
@@ -36,12 +37,16 @@ class Block(BlockContainer, RegistryMixin):
         Variable length argument list of PyTorch modules to be contained in the block.
     name : Optional[str], default = None
         The name of the block. If None, no name is assigned.
+    track_schema : bool, default = True
+        If True, the schema of the output tensors are tracked.
     """
 
     registry = registry
 
-    def __init__(self, *module: nn.Module, name: Optional[str] = None):
+    def __init__(self, *module: nn.Module, name: Optional[str] = None, track_schema: bool = True):
         super().__init__(*module, name=name)
+        if track_schema:
+            self._register_schema_tracking_hook()
 
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
@@ -138,17 +143,16 @@ class ParallelBlock(Block):
         Variable length argument list of PyTorch modules to be contained in the block.
     name : Optional[str], default = None
         The name of the block. If None, no name is assigned.
+    track_schema : bool, default = True
+        If True, the schema of the output tensors are tracked.
     """
 
-    def __init__(
-        self,
-        *inputs: Union[nn.Module, Dict[str, nn.Module]],
-    ):
+    def __init__(self, *inputs: Union[nn.Module, Dict[str, nn.Module]], track_schema: bool = True):
         pre = BlockContainer(name="pre")
         branches = BlockContainerDict(*inputs)
         post = BlockContainer(name="post")
 
-        super().__init__()
+        super().__init__(track_schema=track_schema)
 
         self.pre = pre
         self.branches = branches
