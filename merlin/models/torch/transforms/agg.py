@@ -37,6 +37,8 @@ class Concat(nn.Module):
         """
         Concatenates input tensors along the specified dimension.
 
+        The input dictionary will be sorted by name before concatenation.
+
         Parameters
         ----------
         inputs : Dict[str, torch.Tensor]
@@ -76,6 +78,8 @@ class Concat(nn.Module):
 @registry.register("stack")
 class Stack(nn.Module):
     """Stack tensors along a specified dimension.
+
+    The input dictionary will be sorted by name before concatenation.
 
     Parameters
     ----------
