@@ -15,7 +15,6 @@
 #
 import pandas as pd
 import pytest
-import pytorch_lightning as pl
 import torch
 from torch import nn
 from torchmetrics import AUROC, Accuracy, Precision, Recall
@@ -25,7 +24,7 @@ from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.torch.models.base import compute_loss
 from merlin.models.torch.utils import module_utils
-from merlin.schema import ColumnSchema, Schema, Tags
+from merlin.schema import ColumnSchema, Schema
 
 
 class TestModel:
@@ -75,6 +74,7 @@ class TestModel:
     def test_script(self):
         model = mm.Model(mm.Block(), mm.Block())
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+        model.initialize(mm.Batch(inputs, None))
 
         outputs = module_utils.module_test(model.to_torchscript(method="script"), inputs)
 
@@ -108,7 +108,7 @@ class TestModel:
         features = {"feature": torch.tensor([1, 2])}
         targets = {"target": torch.tensor([0, 1])}
         with pytest.raises(RuntimeError):
-            loss = model.training_step((features, targets), 0)
+            _ = model.training_step((features, targets), 0)
 
     def test_first(self):
         model = mm.Model(mm.Block(name="a"), mm.Block(name="b"), mm.Block(name="c"))
@@ -139,7 +139,7 @@ class TestModel:
             assert name in schema.column_names
             assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
 
-    #def test_train_classification(self, music_streaming_data):
+    # def test_train_classification(self, music_streaming_data):
     #  schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
     #  music_streaming_data.schema = schema
     #  click_column = schema.select_by_name("click").first
@@ -214,7 +214,7 @@ class TestComputeLoss:
             mm.BinaryOutput(ColumnSchema("b")),
         )
         with pytest.raises(RuntimeError):
-            loss = compute_loss(predictions, targets, model_outputs)
+            _ = compute_loss(predictions, targets, model_outputs)
 
     def test_single_model_output(self):
         predictions = {"foo": torch.randn(2, 1)}

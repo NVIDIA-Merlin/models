@@ -16,6 +16,7 @@
 
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.models.base import Model
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import BinaryOutput
@@ -27,6 +28,7 @@ __all__ = [
     "Concat",
     "BinaryOutput",
     "Block",
+    "MLPBlock",
     "Model",
     "ModelOutput",
     "ParallelBlock",
