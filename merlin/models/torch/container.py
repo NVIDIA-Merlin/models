@@ -119,7 +119,7 @@ class BlockContainer(nn.Module):
         return self
 
     def unwrap(self) -> nn.ModuleList:
-        return nn.ModuleList([m.unwrap() for m in self])
+        return nn.ModuleList(iter(self))
 
     def wrap_module(
         self, module: nn.Module
@@ -144,10 +144,13 @@ class BlockContainer(nn.Module):
 
     @_copy_to_script_wrapper
     def __iter__(self) -> Iterator[nn.Module]:
-        return iter(self.values)
+        return iter(m.unwrap() for m in self.values)
 
     @_copy_to_script_wrapper
     def __getitem__(self, idx: Union[slice, int]):
+        if isinstance(idx, slice):
+            return BlockContainer(*[v for v in self.values[idx]])
+
         return self.values[idx].unwrap()
 
     def __setitem__(self, idx: int, module: nn.Module) -> None:
