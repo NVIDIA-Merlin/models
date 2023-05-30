@@ -15,7 +15,7 @@
 #
 
 import inspect
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -53,6 +53,8 @@ def is_tabular(module: torch.nn.Module) -> bool:
     if first_arg.annotation != inspect.Parameter.empty:
         # Check if the annotation is a dict of tensors
         if first_arg.annotation == Dict[str, torch.Tensor]:
+            return True
+        elif first_arg.annotation == Union[torch.Tensor, Dict[str, torch.Tensor]]:
             return True
 
     return False
