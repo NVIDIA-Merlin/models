@@ -55,6 +55,8 @@ def is_tabular(module: torch.nn.Module) -> bool:
         # Check if the annotation is a dict of tensors
         if first_arg.annotation == Dict[str, torch.Tensor]:
             return True
+        elif first_arg.annotation == Union[torch.Tensor, Dict[str, torch.Tensor]]:
+            return True
 
     return False
 
