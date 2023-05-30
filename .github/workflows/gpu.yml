@@ -36,7 +36,7 @@ jobs:
           fi
           cd ${{ github.workspace }}; PYTEST_MARKERS="unit and not (example or integration) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-gpu
 
-  gpu-ci-example-integration:
+  tests-example-integration:
     runs-on: 1GPU
 
     steps:
