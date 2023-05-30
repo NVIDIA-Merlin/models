@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Dict
+from typing import Dict, Union
 
 import pytest
 import torch
@@ -31,6 +31,16 @@ from merlin.models.torch.utils.module_utils import (
 
 class ModuleWithDict(nn.Module):
     def forward(self, x: Dict[str, torch.Tensor]):
+        pass
+
+
+class ModuleWithDictUnion(nn.Module):
+    def forward(self, x: Union[Dict[str, torch.Tensor], torch.Tensor]):
+        pass
+
+
+class ModuleWithDictUnion2(nn.Module):
+    def forward(self, x: Union[torch.Tensor, Dict[str, torch.Tensor]]):
         pass
 
 
@@ -56,6 +66,13 @@ class Test_is_tabular:
 
         assert is_tabular(module_with_dict)
         assert not is_tabular(module_without_dict)
+
+    def test_union(self):
+        module_with_dict_union = ModuleWithDictUnion()
+        module_with_dict_union2 = ModuleWithDictUnion2()
+
+        assert is_tabular(module_with_dict_union)
+        assert is_tabular(module_with_dict_union2)
 
 
 class Test_check_batch_arg:
