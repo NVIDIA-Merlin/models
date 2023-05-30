@@ -19,10 +19,12 @@ import pytest
 import torch
 from torch import nn
 
+from merlin.models.torch import link
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import Block, ParallelBlock
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import module_utils
+from merlin.schema import Tags
 
 
 class PlusOne(nn.Module):
@@ -49,6 +51,14 @@ class TestBlock:
 
         assert torch.equal(inputs, outputs)
 
+        schema = block.output_schema()
+        assert schema.first.dtype.name == str(outputs.dtype).split(".")[-1]
+
+    def test_no_schema_tracking(self):
+        block = Block(track_schema=False)
+        with pytest.raises(RuntimeError, match="Schema-tracking hook not registered"):
+            block.output_schema()
+
     def test_insertion(self):
         block = Block()
         block.prepend(PlusOne())
@@ -58,6 +68,9 @@ class TestBlock:
         outputs = module_utils.module_test(block, inputs, batch=Batch(inputs))
 
         assert torch.equal(outputs, inputs + 2)
+
+        block.append(PlusOne(), link="residual")
+        assert isinstance(block[-1], link.Residual)
 
     def test_copy(self):
         block = Block(PlusOne())
@@ -81,6 +94,19 @@ class TestBlock:
 
         with pytest.raises(ValueError, match="n must be greater than 0"):
             block.repeat(0)
+
+    def test_repeat_with_link(self):
+        block = Block(PlusOne())
+
+        repeated = block.repeat(2, link="residual")
+        assert isinstance(repeated, Block)
+        assert len(repeated) == 2
+        assert isinstance(repeated[-1], link.Residual)
+
+        inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+        outputs = module_utils.module_test(repeated, inputs)
+
+        assert torch.equal(outputs, (inputs + 1) + (inputs + 1) + 1)
 
     def test_from_registry(self):
         @Block.registry.register("my_block")
@@ -130,6 +156,20 @@ class TestParallelBlock:
 
         with pytest.raises(RuntimeError):
             pb(inputs)
+
+    def test_schema_tracking(self):
+        pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+
+        inputs = torch.randn(1, 3)
+        outputs = pb(inputs)
+
+        schema = pb.output_schema()
+
+        for name in outputs:
+            assert name in schema.column_names
+            assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
+
+        assert len(schema.select_by_tag(Tags.EMBEDDING)) == 2
 
     def test_forward_tuple(self):
         inputs = torch.randn(1, 3)

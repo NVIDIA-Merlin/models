@@ -86,6 +86,7 @@ except ModuleNotFoundError:
 
 def pytest_collection_modifyitems(items):
     changed_backends = ci_utils.get_changed_backends()
+    full_name_to_alias = {v: k for k, v in ci_utils.BACKEND_ALIASES.items()}
 
     for item in items:
         path = item.location[0]
@@ -99,6 +100,8 @@ def pytest_collection_modifyitems(items):
                 item.add_marker(getattr(pytest.mark, marker))
 
         for changed in changed_backends:
+            if changed in full_name_to_alias:
+                changed = full_name_to_alias[changed]
             if f"/{changed}/" in path:
                 item.add_marker(pytest.mark.changed)
 
