@@ -116,3 +116,10 @@ def pytest_collection_modifyitems(items):
                     item.add_marker(getattr(pytest.mark, value))
                 for marker in ci_utils.OTHER_MARKERS:
                     item.add_marker(getattr(pytest.mark, marker))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    # Return success exit code if all tests are deselected
+    # We run tests for changed backends only on Pull Requests 
+    if exitstatus == 5:
+        session.exitstatus = 0
