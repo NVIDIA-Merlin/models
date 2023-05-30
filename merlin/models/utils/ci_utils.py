@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 from typing import Set
 
 from git import Repo
@@ -32,8 +33,10 @@ SHARED_MODULES = {
     "/models/io.py",
 }
 
+COMPARE_BRANCH = os.environ.get("COMPARE_BRANCH", "main")
 
-def get_changed_backends() -> Set[str]:
+
+def get_changed_backends(compare_branch: str = COMPARE_BRANCH) -> Set[str]:
     """
     Check which backends need to be tested based on the changed files in the current branch.
 
@@ -52,10 +55,25 @@ def get_changed_backends() -> Set[str]:
         changed files in the current branch of the repository.
     """
 
+    if not compare_branch:
+        compare_branch = COMPARE_BRANCH
+
     repo = Repo()
 
     commit = repo.head.commit  # Current branch last commit
-    diffs = commit.diff(repo.index.diff("HEAD"))
+
+    if compare_branch not in repo.branches:
+        origin = repo.remotes.origin
+        origin.fetch(compare_branch)
+        ref = getattr(origin.refs, compare_branch)
+        local_branch = repo.create_head(compare_branch, ref)
+        local_branch.set_tracking_branch(ref)
+
+    if compare_branch in repo.branches:
+        comparison = repo.branches[compare_branch]
+    else:
+        raise ValueError("Could not find comparison branch")
+    diffs = commit.diff(comparison)
 
     changed_files = set()
     for change_type in ["A", "D", "R", "M", "T"]:
@@ -78,18 +96,21 @@ def get_changed_backends() -> Set[str]:
             # If shared file is updated, we need to run all backends
             for shared in SHARED_MODULES:
                 if shared in file:
-                    return BACKEND_ALIASES.keys()
+                    output = set(BACKEND_ALIASES.values())
+                    output = output.union({"datasets", "horovod", "transformers"})
+
+                    return output
 
             name = file.split("/")[2]
             if name in BACKEND_ALIASES:
-                changed_backends.add(name)
+                changed_backends.add(BACKEND_ALIASES[name])
         except IndexError:
             continue
 
     return changed_backends
 
 
-def backend_has_changed(backend_name: str) -> bool:
+def backend_has_changed(backend_name: str, compare_branch: str = COMPARE_BRANCH) -> bool:
     """
     Check if a specific backend needs to be tested based on the changed files in the current branch.
 
@@ -107,7 +128,7 @@ def backend_has_changed(backend_name: str) -> bool:
         Returns True if the backend has changed and needs testing, False otherwise.
 
     """
-    changed_backends = get_changed_backends()
+    changed_backends = get_changed_backends(compare_branch)
     output: bool = False
 
     for backend in backend_name.split("|"):
