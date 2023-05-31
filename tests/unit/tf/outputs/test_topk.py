@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import numpy as np
 import pytest
 import tensorflow as tf
 
@@ -27,6 +28,10 @@ def test_brute_force_layer():
 
     candidates = tf.random.uniform(shape=(num_candidates, 4), dtype=tf.float32)
     query = tf.random.uniform(shape=(num_queries, 4), dtype=tf.float32)
+
+    # Create a ragged query
+    elements = np.random.rand(num_queries, 1, 4)
+    ragged_query = tf.ragged.constant(elements)
 
     wrong_candidates_rank = tf.random.uniform(shape=(num_candidates,), dtype=tf.float32)
     wrong_query_dim = tf.random.uniform(shape=(num_queries, 8), dtype=tf.float32)
@@ -60,6 +65,9 @@ def test_brute_force_layer():
     assert list(topk_output.scores.shape) == [num_queries, top_k]
     assert list(topk_output.identifiers.shape) == [num_queries, top_k]
     assert isinstance(topk_output, TopKPrediction)
+    assert list(topk_output.scores.shape) == [num_queries, top_k]
+    ragged_topk_output = brute_force(ragged_query)
+    assert list(ragged_topk_output.scores.shape) == [num_queries, top_k]
 
     with pytest.raises(Exception) as excinfo:
         brute_force(query, targets=None, testing=True)

@@ -206,6 +206,8 @@ class BruteForce(TopKLayer):
                 "You should call the `index` method first to " "set the _candidates index."
             )
 
+        if isinstance(inputs, tf.RaggedTensor):
+            inputs = tf.squeeze(inputs.to_tensor(), axis=1)
         tf.assert_equal(
             tf.shape(inputs)[1],
             tf.shape(self._candidates)[1],
@@ -220,6 +222,11 @@ class BruteForce(TopKLayer):
             assert targets is not None, ValueError(
                 "Targets should be provided during the evaluation mode"
             )
+            if isinstance(targets, tf.RaggedTensor):
+                targets = tf.ragged.boolean_mask(
+                    targets, targets._keras_mask.with_row_splits_dtype(targets.row_splits.dtype)
+                )
+                targets = targets.to_tensor()
             targets = tf.cast(tf.squeeze(targets), tf.int32)
             targets = tf.cast(tf.expand_dims(targets, -1) == top_ids, tf.float32)
             targets = tf.reshape(targets, tf.shape(top_scores))
