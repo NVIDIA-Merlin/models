@@ -21,9 +21,11 @@ import torch
 from torch import nn
 
 from merlin.models.torch.batch import Batch, Sequence
+from merlin.models.torch.block import ParallelBlock
 from merlin.models.torch.utils.module_utils import (
     _all_close_dict,
     check_batch_arg,
+    find_all_instances,
     is_tabular,
     module_test,
 )
@@ -225,3 +227,65 @@ class TestModuleTest:
             ValueError, match="The outputs of the original and scripted modules are not the same"
         ):
             module_test(module, input_data, method="script")
+
+
+class TestFindAllInstances:
+    def test_find_all_instances_base(self):
+        class SomeBlock(nn.Module):
+            ...
+
+        class OtherBlock(nn.Module):
+            ...
+
+        some_block = SomeBlock()
+        other_block = OtherBlock()
+
+        assert len(find_all_instances(SomeBlock, SomeBlock)) == 1
+        assert len(find_all_instances(some_block, SomeBlock)) == 1
+        assert len(find_all_instances(some_block, some_block)) == 1
+        assert len(find_all_instances(some_block, OtherBlock)) == 0
+        assert len(find_all_instances(some_block, other_block)) == 0
+
+    def test_find_all_instances_module_list(self):
+        class ToFind(nn.Module):
+            ...
+
+        class NotToFind(nn.Module):
+            ...
+
+        block = torch.nn.ModuleList(
+            [
+                ToFind(),
+                NotToFind(),
+                ToFind(),
+                NotToFind(),
+                ToFind(),
+            ]
+        )
+        assert len(find_all_instances(block, ToFind)) == 3
+
+    def test_find_all_instances_nested(self):
+        class ToFind(nn.Module):
+            ...
+
+        class NotToFind(nn.Module):
+            ...
+
+        block = ParallelBlock(
+            {
+                "a": NotToFind(),
+                "b": ParallelBlock(
+                    {
+                        "c": NotToFind(),
+                        "d": ToFind(),
+                        "e": ParallelBlock(
+                            {
+                                "f": ToFind(),
+                            }
+                        ),
+                    }
+                ),
+                "g": ToFind(),
+            }
+        )
+        assert len(find_all_instances(block, ToFind)) == 3

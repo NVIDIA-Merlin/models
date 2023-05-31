@@ -181,16 +181,6 @@ def _all_close_dict(left, right):
             raise ValueError("The outputs of the original and scripted modules are not the same")
 
 
-def get_all_children(module: nn.Module) -> List[nn.Module]:
-    children = []
-    for child in module.children():
-        if not isinstance(child, nn.ModuleList):
-            children.append(child)
-        children.extend(get_all_children(child))
-
-    return children
-
-
 ToSearch = TypeVar("ToSearch", bound=Type[nn.Module])
 
 
@@ -203,12 +193,9 @@ def find_all_instances(module: nn.Module, to_search: ToSearch) -> List[ToSearch]
     elif module == to_search:
         return [module]
 
+    results = []
     children = module.children()
-    if children:
-        results = []
-        for sub_module in children:
-            results.extend(find_all_instances(sub_module, to_search))
+    for sub_module in children:
+        results.extend(find_all_instances(sub_module, to_search))
 
-        return results
-
-    return []
+    return results

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from functools import reduce
 from typing import Dict, List, Optional, Sequence, Union
 
 import torch
@@ -53,7 +52,7 @@ class Model(Block, LightningModule):
     >>> model = Model(
     ...    TabularInputBlock(schema),
     ...    MLPBlock([32, 16]),
-    ...    BinaryOutput(schema.select_by_tag(Tags.TARGET)),
+    ...    BinaryOutput(schema.select_by_tag(Tags.TARGET).first),
     ... )
     ... trainer = Trainer(max_epochs=1)
     ... with Loader(dataset, batch_size=16) as loader:
@@ -125,17 +124,10 @@ class Model(Block, LightningModule):
         return self.blocks.values[-1]
 
     def input_schema(self) -> Schema:
+        """Returns the input schema of the model."""
         if self.schema:
             return self.schema
         return Schema([])
-
-    def output_schema(self) -> Schema:
-        output_schemas = []
-        for child in module_utils.get_all_children(self):
-            if hasattr(child, "output_schema"):
-                output_schemas.append(child.output_schema())
-
-        return reduce(lambda a, b: a + b, output_schemas)
 
 
 def initialize(module, data: Union[Dataset, Loader, Batch]):
@@ -211,7 +203,7 @@ def compute_loss(
         name = model_out.output_schema.first.name
 
         if targets is None:
-            _targets = model_out.target
+            _targets = torch.ones_like(predictions) * model_out.target
         elif isinstance(targets, torch.Tensor):
             _targets = targets
         elif isinstance(targets, dict):

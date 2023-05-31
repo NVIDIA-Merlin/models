@@ -137,6 +137,18 @@ class TestModel:
         with pytest.raises(RuntimeError):
             _ = model.training_step((features, targets), 0)
 
+    def test_model_outputs(self):
+        block1 = mm.RegressionOutput(ColumnSchema("foo"))
+        block2 = mm.BinaryOutput(ColumnSchema("bar"))
+        model = mm.Model(
+            mm.Block(),
+            mm.MLPBlock([4, 2]),
+            mm.ParallelBlock({"block1": block1, "block2": block2}),
+        )
+        assert len(model.model_outputs()) == 2
+        assert block1 in model.model_outputs()
+        assert block2 in model.model_outputs()
+
     def test_first(self):
         model = mm.Model(mm.Block(name="a"), mm.Block(name="b"), mm.Block(name="c"))
         assert model.first()._name == "a"
@@ -254,7 +266,6 @@ class TestComputeLoss:
     def test_model_output_targets(self):
         predictions = torch.randn(2, 1)
         binary_output = mm.BinaryOutput(ColumnSchema("foo"))
-        binary_output.target = torch.randint(2, (2, 1), dtype=torch.float32)
         results = compute_loss(predictions, None, (binary_output,))
-        expected_loss = nn.BCEWithLogitsLoss()(predictions, binary_output.target)
+        expected_loss = nn.BCEWithLogitsLoss()(predictions, torch.zeros(2, 1))
         assert torch.allclose(results["loss"], expected_loss)
