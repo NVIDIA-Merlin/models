@@ -101,9 +101,6 @@ class Model(Block, LightningModule):
             if hasattr(child, "output_schema"):
                 output_schemas.append(child.output_schema())
 
-        if not output_schemas:
-            raise ValueError("No output schema found")
-
         return reduce(lambda a, b: a + b, output_schemas)
 
 
@@ -117,7 +114,7 @@ def initialize(module, data: Union[Dataset, Loader, Batch]):
         raise RuntimeError(f"Unexpected input type: {type(data)}")
 
     module.to(batch.device())
-    return module(batch.features)
+    return module(batch.features, batch=batch)
 
 
 def compute_loss(

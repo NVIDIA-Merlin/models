@@ -27,6 +27,16 @@ from merlin.models.torch.utils import module_utils
 from merlin.schema import ColumnSchema, Schema
 
 
+class PlusOne(nn.Module):
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return inputs + 1
+
+
+class TimeTwo(nn.Module):
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return inputs * 2
+
+
 class TestModel:
     def test_init_default(self):
         model = mm.Model(mm.Block(), mm.Block())
@@ -45,6 +55,17 @@ class TestModel:
         optimizer = torch.optim.SGD
         model = mm.Model(mm.Block(), mm.Block(), optimizer=optimizer)
         assert model.optimizer is torch.optim.SGD
+
+    def test_pre_and_pre(self):
+        inputs = torch.tensor([[1, 2], [3, 4]])
+        model = mm.Model(mm.Block(), mm.Block())
+        assert torch.equal(model(inputs), inputs)
+
+        model.pre.append(PlusOne())
+        assert torch.equal(model(inputs), inputs + 1)
+
+        model.post.append(TimeTwo())
+        assert torch.equal(model(inputs), (inputs + 1) * 2)
 
     def test_initialize_with_dataset(self):
         dataset = Dataset(
@@ -70,6 +91,12 @@ class TestModel:
         model = mm.Model(mm.Block(), mm.Block())
         with Loader(dataset, batch_size=1) as loader:
             model.initialize(loader)
+
+    def test_initialize_raises_error(self):
+        inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+        model = mm.Model(mm.Block(), mm.Block())
+        with pytest.raises(RuntimeError):
+            model.initialize(inputs)
 
     def test_script(self):
         model = mm.Model(mm.Block(), mm.Block())
@@ -222,4 +249,12 @@ class TestComputeLoss:
         model_outputs = [mm.BinaryOutput(ColumnSchema("foo"))]
         results = compute_loss(predictions, targets, model_outputs)
         expected_loss = nn.BCEWithLogitsLoss()(predictions["foo"], targets["foo"])
+        assert torch.allclose(results["loss"], expected_loss)
+
+    def test_model_output_targets(self):
+        predictions = torch.randn(2, 1)
+        binary_output = mm.BinaryOutput(ColumnSchema("foo"))
+        binary_output.target = torch.randint(2, (2, 1), dtype=torch.float32)
+        results = compute_loss(predictions, None, (binary_output,))
+        expected_loss = nn.BCEWithLogitsLoss()(predictions, binary_output.target)
         assert torch.allclose(results["loss"], expected_loss)
