@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 from functools import reduce
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 import torch
 from pytorch_lightning import LightningModule
@@ -32,7 +32,34 @@ from merlin.schema import Schema
 
 
 class Model(Block, LightningModule):
-    """Merlin Model class"""
+    """
+    Merlin Model class.
+
+    The Model class extends from both the Block and LightningModule classes. It
+    allows for easy construction of models using pre-defined blocks.
+
+    Parameters
+    ----------
+    *blocks: nn.Module
+        One or more blocks that make up the core functionality of the model.
+    schema: Schema, optional
+        A Merlin schema. Default is None.
+    optimizer: torch.optim.Optimizer, optional
+        A PyTorch optimizer from the PyTorch library (or any custom optimizer
+        that follows the same API). Default is Adam optimizer.
+
+    Example usage
+    -------------
+    >>> model = Model(
+    ...    TabularInputBlock(schema),
+    ...    MLPBlock([32, 16]),
+    ...    BinaryOutput(schema.select_by_tag(Tags.TARGET)),
+    ... )
+    ... trainer = Trainer(max_epochs=1)
+    ... with Loader(dataset, batch_size=16) as loader:
+    ...     model.initialize(loader)
+    ...     trainer.fit(model, loader)
+    """
 
     def __init__(
         self,
@@ -53,11 +80,13 @@ class Model(Block, LightningModule):
         self.optimizer = optimizer
 
     def initialize(self, data: Union[Dataset, Loader, Batch]):
+        """Initializes the model based on a given data set."""
         return initialize(self, data)
 
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ):
+        """Performs a forward pass through the model."""
         outputs = inputs
         for pre in self.pre.values:
             outputs = pre(outputs, batch=batch)
@@ -68,6 +97,7 @@ class Model(Block, LightningModule):
         return outputs
 
     def training_step(self, batch, batch_idx):
+        """Performs a training step with a single batch."""
         del batch_idx
         inputs, targets = batch
         predictions = self(inputs)
@@ -79,15 +109,19 @@ class Model(Block, LightningModule):
         return loss["loss"]
 
     def configure_optimizers(self):
+        """Configures the optimizer for the model."""
         return self.optimizer(self.parameters())
 
     def model_outputs(self) -> List[ModelOutput]:
+        """Finds all instances of `ModelOutput` in the model."""
         return module_utils.find_all_instances(self, ModelOutput)
 
     def first(self) -> nn.Module:
+        """Returns the first block in the model."""
         return self.blocks.values[0]
 
     def last(self) -> nn.Module:
+        """Returns the last block in the model."""
         return self.blocks.values[-1]
 
     def input_schema(self) -> Schema:
@@ -120,10 +154,49 @@ def initialize(module, data: Union[Dataset, Loader, Batch]):
 def compute_loss(
     predictions: Union[torch.Tensor, Dict[str, torch.Tensor]],
     targets: Optional[Union[torch.Tensor, Dict[str, torch.Tensor]]],
-    model_outputs: List[ModelOutput],
+    model_outputs: Sequence[ModelOutput],
     compute_metrics: bool = True,
 ) -> Dict[str, torch.Tensor]:
-    """ """
+    """Compute the loss and metrics for the given model outputs.
+
+    This function takes in predictions and targets, and a list of model
+    outputs. It computes the loss using the loss function of each model output
+    and averages it. If `compute_metrics` is set to True, it also computes the
+    metrics defined in each model output.
+
+    Parameters
+    ----------
+    predictions: Union[torch.Tensor, Dict[str, torch.Tensor]]
+        The predictions from the model.
+    targets: Optional[Union[torch.Tensor, Dict[str, torch.Tensor]]]
+        The ground truth targets.
+    model_outputs: Sequence[ModelOutput]
+        A list of model outputs. Each model output must have a defined loss
+        function.
+    compute_metrics: bool, optional
+        Whether to compute metrics defined in each model output. Default: True.
+
+    Returns
+    -------
+    Dict[str, torch.Tensor]
+        A dictionary containing the loss and the computed metrics (if any).
+
+    Raises
+    ------
+    RuntimeError: If no model outputs are provided, or if multiple model
+        outputs are provided but only one set of targets is given.
+
+    Example usage
+    -------------
+    >>> predictions = torch.tensor([0.2, 0.3, 0.6, 0.8])
+    >>> targets = torch.tensor([1.0, 0.0, 1.0, 0.0], dtype=torch.float32)
+    >>> binary_output = mm.BinaryOutput(ColumnSchema("target"))
+    >>> results = compute_loss(predictions, targets, [binary_output])
+    >>> results["loss"]
+    tensor(0.7653)
+    >>> results["binary_accuracy"]
+    tensor(0.5000)
+    """
     if len(model_outputs) < 1:
         raise RuntimeError("No model outputs found.")
     if (
