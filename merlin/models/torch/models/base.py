@@ -21,7 +21,7 @@ from torch import nn
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
-from merlin.models.torch.batch import Batch, sample_batch
+from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import Block
 from merlin.models.torch.container import BlockContainer
 from merlin.models.torch.outputs.base import ModelOutput
@@ -80,7 +80,7 @@ class Model(Block, LightningModule):
 
     def initialize(self, data: Union[Dataset, Loader, Batch]):
         """Initializes the model based on a given data set."""
-        return initialize(self, data)
+        return module_utils.initialize(self, data)
 
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
@@ -128,19 +128,6 @@ class Model(Block, LightningModule):
         if self.schema:
             return self.schema
         return Schema([])
-
-
-def initialize(module, data: Union[Dataset, Loader, Batch]):
-    if isinstance(data, (Loader, Dataset)):
-        module.double()  # TODO: Put in data-loader PR to standardize on float-32
-        batch = sample_batch(data, batch_size=1, shuffle=False)
-    elif isinstance(data, Batch):
-        batch = data
-    else:
-        raise RuntimeError(f"Unexpected input type: {type(data)}")
-
-    module.to(batch.device())
-    return module(batch.features, batch=batch)
 
 
 def compute_loss(

@@ -19,6 +19,10 @@ from typing import Dict, List, Tuple, Type, TypeVar, Union
 import torch
 import torch.nn as nn
 
+from merlin.dataloader.torch import Loader
+from merlin.io import Dataset
+from merlin.models.torch.batch import Batch, sample_batch
+
 
 def is_tabular(module: torch.nn.Module) -> bool:
     """
@@ -199,3 +203,16 @@ def find_all_instances(module: nn.Module, to_search: ToSearch) -> List[ToSearch]
         results.extend(find_all_instances(sub_module, to_search))
 
     return results
+
+
+def initialize(module, data: Union[Dataset, Loader, Batch]):
+    if isinstance(data, (Loader, Dataset)):
+        module.double()  # TODO: Put in data-loader PR to standardize on float-32
+        batch = sample_batch(data, batch_size=1, shuffle=False)
+    elif isinstance(data, Batch):
+        batch = data
+    else:
+        raise RuntimeError(f"Unexpected input type: {type(data)}")
+
+    module.to(batch.device())
+    return module(batch.features, batch=batch)
