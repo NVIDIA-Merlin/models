@@ -8,7 +8,7 @@ from merlin.models.utils.schema_utils import (
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
-class Test_select_schema:
+class TestSelectSchema:
     @pytest.fixture(autouse=True)
     def setup_method(self, music_streaming_data):
         self.schema: Schema = music_streaming_data.schema
@@ -48,7 +48,7 @@ class Test_select_schema:
             select_schema(1, 1)
 
 
-class Test_selection_name:
+class TestSelectionName:
     @pytest.fixture(autouse=True)
     def setup_method(self, music_streaming_data):
         self.schema: Schema = music_streaming_data.schema
