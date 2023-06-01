@@ -24,6 +24,17 @@ def infer_embedding_dim(schema: Schema, multiplier: float = 2.0, ensure_multiple
 
 
 class EmbeddingTable(nn.Module, Selectable):
+    """Embedding-table module.
+
+    Attributes:
+        has_module_combiner (bool): Whether a module combiner is used or not.
+
+    Args:
+        dim (Union[int, DimFn]): The dimension for the embedding table.
+        schema (Optional[Union[ColumnSchema, Schema]]): The schema for the embedding table.
+        combiner (Optional[Combiner]): The combiner used to combine the embeddings.
+    """
+
     has_module_combiner: Final[bool] = False
 
     def __init__(
@@ -42,6 +53,13 @@ class EmbeddingTable(nn.Module, Selectable):
         self.setup_schema(schema or Schema())
 
     def setup_schema(self, schema: Schema):
+        """
+        Sets up the schema for the embedding table.
+
+        Args:
+            schema (Schema): The schema to setup.
+        """
+
         if isinstance(schema, ColumnSchema):
             schema = Schema([schema])
 
@@ -52,12 +70,27 @@ class EmbeddingTable(nn.Module, Selectable):
             self.table = self.create_table()
 
     def create_table(self) -> nn.Module:
+        """
+        Creates the table that holds the embeddings.
+
+        Returns:
+            nn.Module: The embedding table.
+        """
+
         if not isinstance(self.dim, int):
             self.dim = self.dim(self.schema.first)
 
         return nn.Embedding(self.num_embeddings, self.dim)
 
     def insert_rows(self, num_rows: int, start_index: int = 0):
+        """
+        Inserts rows into the embedding table.
+
+        Args:
+            num_rows (int): The number of rows to insert.
+            start_index (int): The index to start the insertion.
+        """
+
         device = self.table.weight.device
         new_embedding = type(self.table)(num_rows, self.dim).to(device)
 
@@ -73,6 +106,16 @@ class EmbeddingTable(nn.Module, Selectable):
         self.table = new_embedding
 
     def append_rows(self, num_rows: int):
+        """
+        Appends rows to the embedding table.
+
+        Args:
+            num_rows (int): The number of rows to append.
+
+        Returns:
+            EmbeddingTable: Updated EmbeddingTable instance with the appended rows.
+        """
+
         self.insert_rows(num_rows, self.num_embeddings)
 
         return self
@@ -84,39 +127,18 @@ class EmbeddingTable(nn.Module, Selectable):
             raise RuntimeError("Table is not initialized, please add features to the table")
 
         if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
-            if len(inputs) == 2:
-                ids, offsets = None, None
-
-                for key in inputs:
-                    if key.endswith("__values"):
-                        ids = inputs[key]
-                    elif key.endswith("__offsets"):
-                        offsets = inputs[key]
-
-                if ids is not None and offsets is not None:
-                    return self.forward_bag(ids, offsets)
-
             return self.forward_dict(inputs)
+
+        ids = inputs
 
         if ids.dim() > 2:
             ids = torch.squeeze(ids, dim=-1)
 
-        if self.combiner and not self.has_module_combiner:
-            out = nn.functional.embedding_bag(ids, offsets=offsets, mode=self.combiner)
-        else:
-            out = self.table(ids)
-
+        out = self.table(ids)
         if self.has_module_combiner:
             out = self.combiner(out)
 
         return out
-
-    def forward_bag(
-        self,
-        inputs: torch.Tensor,
-        offsets: Optional[torch.Tensor] = None,
-    ):
-        return nn.functional.embedding_bag(inputs, offsets=offsets, mode=self.combiner)
 
     def forward_dict(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """Forward pass with input as a dictionary.
@@ -137,28 +159,72 @@ class EmbeddingTable(nn.Module, Selectable):
 
             return {name: self.forward(filtered)}
 
-        names, shapes = [], []
-        tensors_by_len = collections.defaultdict(list)
+        dense_tensors = collections.defaultdict(dict)
+        sparse_tensors = collections.defaultdict(dict)
+
         for feature_name in sorted(self.schema.column_names):
             if feature_name in inputs:
                 tensor = inputs[feature_name]
                 domain = self.feature_to_domain[feature_name]
                 if domain.min > 1:
                     tensor = tensor + domain.min
-                tensors_by_len[len(tensor.shape)].append(tensor)
-                names.append(feature_name)
-                shapes.append(tensor.shape)
+
+                dense_tensors[len(tensor.shape)][feature_name] = tensor
+            elif feature_name + "__values" in inputs and feature_name + "__offsets" in inputs:
+                values = inputs[feature_name + "__values"]
+                offsets = inputs[feature_name + "__offsets"]
+                sparse_tensors[feature_name] = (values, offsets)
 
         out = {}
 
-        for num_dims, tensors in tensors_by_len.items():
-            stacked = self.forward(torch.cat(tensors))
-            i = 0
-            for name, shape in zip(names, shapes):
-                out[name] = stacked[i : i + shape[0]]
-                i += shape[0]
+        for num_dims, tensor_dict in dense_tensors.items():
+            tensors = torch.cat(list(tensor_dict.values()))
+
+            if num_dims > 1 and self.combiner and not self.has_module_combiner:
+                stacked = self.forward_bag(tensors)
+            else:
+                stacked = self.forward(tensors)
+
+            if num_dims > 1 and self.has_module_combiner:
+                stacked = self.combiner(stacked)
+
+            if len(tensor_dict) == 1:
+                out[list(tensor_dict.keys())[0]] = stacked
+            else:
+                i = 0
+                for name, tensor in tensor_dict.items():
+                    out[name] = stacked[i : i + tensor.shape[0]]
+                    i += tensor.shape[0]
+
+        if sparse_tensors:
+            values, offsets = [], []
+            for val in sparse_tensors.values():
+                values.append(val[0])
+                offsets.append(val[1])
+
+            if self.combiner and not self.has_module_combiner:
+                bags = self.forward_bag(torch.cat(values), torch.cat(offsets))
+
+                if len(sparse_tensors) == 1:
+                    out[list(sparse_tensors.keys())[0]] = bags
+                else:
+                    i = 0
+                    for feature_name, (val, _) in sparse_tensors.items():
+                        out[feature_name] = bags[i : i + val.shape[0]]
+                        i += val.shape[0]
+            else:
+                raise NotImplementedError("Sparse tensors not supported without combiner")
 
         return out
+
+    def forward_bag(
+        self,
+        inputs: torch.Tensor,
+        offsets: Optional[torch.Tensor] = None,
+    ):
+        return nn.functional.embedding_bag(
+            inputs, weight=self.table.weight, offsets=offsets, mode=self.combiner
+        )
 
     def add_feature(self, col_schema: ColumnSchema) -> "EmbeddingTable":
         """Add a feature to the table.

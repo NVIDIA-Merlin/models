@@ -86,15 +86,32 @@ class TestEmbeddingTable:
         assert output["user_id"].size() == (3, 8)
 
     def test_multiple_features_different_shapes(self, item_id_col_schema, user_id_col_schema):
-        et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]))
+        et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]), combiner="mean")
         input_dict = {
-            "item_id": torch.tensor([0, 1, 2]),
-            "user_id": torch.tensor([[0, 1], [1, 2], [2, 3]]),
+            "user_id": torch.tensor([0, 1, 2]),
+            "item_id": torch.tensor([[0, 1], [1, 2], [2, 3]]),
         }
         output = et(input_dict)
 
         assert isinstance(output, dict)
         assert isinstance(output["item_id"], torch.Tensor)
         assert isinstance(output["user_id"], torch.Tensor)
-        assert output["item_id"].size() == (3, 8)
         assert output["user_id"].size() == (3, 8)
+        assert output["item_id"].size() == (3, 8)
+
+    def test_multiple_features_different_shapes_sparse(
+        self, item_id_col_schema, user_id_col_schema
+    ):
+        et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]), combiner="mean")
+        input_dict = {
+            "user_id": torch.tensor([0, 1, 2]),
+            "item_id__values": torch.tensor([0, 1, 1, 2, 2, 3]),
+            "item_id__offsets": torch.tensor([0, 2, 4]),
+        }
+        output = et(input_dict)
+
+        assert isinstance(output, dict)
+        assert isinstance(output["item_id"], torch.Tensor)
+        assert isinstance(output["user_id"], torch.Tensor)
+        assert output["user_id"].size() == (3, 8)
+        assert output["item_id"].size() == (3, 8)
