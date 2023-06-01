@@ -67,7 +67,7 @@ class TorchScriptWrapper(nn.Module):
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ):
-        """
+        """Forward pass through the wrapped module with appropriate torchscript type-checking.
 
         Parameters
         ----------
