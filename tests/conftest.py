@@ -20,12 +20,14 @@ from __future__ import absolute_import
 from pathlib import Path
 
 import distributed
+import numpy as np
 import pytest
 
 from merlin.core.utils import Distributed
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 from merlin.models.utils import ci_utils
+from merlin.schema import ColumnSchema, Tags
 
 REPO_ROOT = Path(__file__).parent.parent
 
@@ -82,6 +84,26 @@ try:
     from tests.unit.torch._conftest import *  # noqa
 except ModuleNotFoundError:
     pass
+
+
+@pytest.fixture
+def item_id_col_schema() -> ColumnSchema:
+    return ColumnSchema(
+        "item_id",
+        dtype=np.int32,
+        properties={"domain": {"min": 0, "max": 10, "name": "item_id"}},
+        tags=[Tags.CATEGORICAL, Tags.ITEM_ID],
+    )
+
+
+@pytest.fixture
+def user_id_col_schema() -> ColumnSchema:
+    return ColumnSchema(
+        "user_id",
+        dtype=np.int32,
+        properties={"domain": {"min": 0, "max": 20, "name": "user_id"}},
+        tags=[Tags.CATEGORICAL, Tags.USER_ID],
+    )
 
 
 def pytest_collection_modifyitems(items):
