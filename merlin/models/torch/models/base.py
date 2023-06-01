@@ -101,11 +101,11 @@ class Model(Block, LightningModule):
         inputs, targets = batch
         predictions = self(inputs)
 
-        loss = compute_loss(predictions, targets, self.model_outputs())
-        for name, value in loss.items():
+        loss_and_metrics = compute_loss(predictions, targets, self.model_outputs())
+        for name, value in loss_and_metrics.items():
             self.log(f"train_{name}", value)
 
-        return loss["loss"]
+        return loss_and_metrics["loss"]
 
     def configure_optimizers(self):
         """Configures the optimizer for the model."""
@@ -208,15 +208,12 @@ def compute_loss(
             _targets = targets
         elif isinstance(targets, dict):
             _targets = targets[name]
-        # _targets = torch.squeeze(_targets).double()
 
         if isinstance(predictions, torch.Tensor):
             _predictions = predictions
         elif isinstance(predictions, dict):
             _predictions = predictions[name]
-        # _predictions = torch.squeeze(_predictions)
 
-        # TODO: How to handle task weights?
         results["loss"] += model_out.loss(_predictions, _targets) / len(model_outputs)
 
         if not compute_metrics:

@@ -179,21 +179,21 @@ class TestModel:
             assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
 
     # def test_train_classification(self, music_streaming_data):
-    #  schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
-    #  music_streaming_data.schema = schema
-    #  click_column = schema.select_by_name("click").first
+    #     schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
+    #     music_streaming_data.schema = schema
 
-    #  model = mm.Model(
-    #      mm.Concat(),
-    #      mm.BinaryOutput(click_column),
-    #      schema=schema,
-    #  )
+    #     model = mm.Model(
+    #        mm.TabularInputBlock(schema),
+    #        mm.MLPBlock([4, 2]),
+    #        mm.BinaryOutput(schema.select_by_name("click").first),
+    #        schema=schema,
+    #     )
 
-    #  trainer = pl.Trainer(max_epochs=1)
+    #     trainer = pl.Trainer(max_epochs=1)
 
-    #  with Loader(music_streaming_data, batch_size=16) as loader:
-    #      model.initialize(loader)
-    #      trainer.fit(model, loader)
+    #     with Loader(music_streaming_data, batch_size=16) as loader:
+    #         model.initialize(loader)
+    #         trainer.fit(model, loader)
 
 
 class TestComputeLoss:
