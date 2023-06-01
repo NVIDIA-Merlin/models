@@ -169,7 +169,18 @@ class Encoder:
         if index:
             output = output.set_index(index_schema.column_names)
 
-        return Dataset(output)
+        return Dataset(output, schema=self.encoded_schema(schema, index_schema) or None)
+
+    def encoded_schema(self, input_schema: Schema, index_schema: Schema) -> Schema:
+        del input_schema
+        module_schema = None
+        if hasattr(self.module, "output_schema"):
+            module_schema = self.module.output_schema()
+
+        if index_schema and module_schema:
+            return index_schema + module_schema
+
+        return Schema()
 
     def encode_df(
         self,
@@ -305,6 +316,27 @@ class Predictor(Encoder):
         output_df = safe_concat_columns(output_df, module_df, self.prediction_suffix)
 
         return output_df
+
+    def encoded_schema(self, input_schema: Schema, index_schema: Schema) -> Schema:
+        del index_schema
+
+        module_schema = Schema()
+        if hasattr(self.module, "output_schema"):
+            module_schema = self.module.output_schema()
+
+        if not module_schema:
+            return Schema()
+
+        out_schema = input_schema.copy()
+        for col in module_schema.column_names:
+            if col in input_schema.column_names:
+                name = col + self.prediction_suffix
+                col = module_schema[col].with_name(name)
+                out_schema[name] = col
+            else:
+                out_schema[col] = module_schema[col]
+
+        return out_schema
 
 
 def to_tensor_table(

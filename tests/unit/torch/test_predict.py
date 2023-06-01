@@ -4,7 +4,9 @@ import torch
 from torch import nn
 
 from merlin.dataloader.torch import Loader
+from merlin.io import Dataset
 from merlin.models.torch.predict import Encoder, Predictor
+from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin
 from merlin.schema import Tags
 
 
@@ -13,7 +15,7 @@ class TensorOutputModel(nn.Module):
         return x["position"] * 2
 
 
-class DictOutputModel(nn.Module):
+class DictOutputModel(SchemaTrackingMixin, nn.Module):
     def __init__(self, output_name: str = "testing"):
         super().__init__()
         self.name = output_name
@@ -41,8 +43,10 @@ class TestEncoder:
         with pytest.raises(ValueError):
             encoder(music_streaming_data)
 
-        outputs = encoder(music_streaming_data, batch_size=10).compute()
-        assert len(outputs) == 100
+        output = encoder(music_streaming_data, batch_size=10, index=Tags.USER_ID, unique=False)
+        output_df = output.compute()
+        assert len(output_df) == 100
+        assert set(output.schema.column_names) == {"user_id", "testing"}
 
     def test_tensor_dict(self):
         encoder = Encoder(TensorOutputModel())
@@ -78,17 +82,33 @@ class TestEncoder:
 class TestPredictor:
     def test_dataset(self, music_streaming_data):
         predictor = Predictor(DictOutputModel("click"), prediction_suffix="_")
-        outputs = predictor(music_streaming_data, batch_size=10).compute()
-        assert len(outputs) == 100
+        output = predictor(music_streaming_data, batch_size=10)
+        output_df = output.compute()
+        assert len(output_df) == 100
 
         for col in music_streaming_data.schema.column_names:
-            assert col in outputs.columns
+            assert col in output_df.columns
 
-        assert "click_" in outputs.columns
+        assert "click_" in output_df.columns
+        assert "click_" in output.schema.column_names
+        assert len(output_df.columns) == len(output.schema)
 
     def test_no_targets(self):
         predictor = Predictor(TensorOutputModel())
-        outputs = predictor.encode_tensors({"position": torch.tensor([1, 2, 3, 4])})
 
-        assert len(outputs) == 4
-        assert hasattr(outputs, "columns")
+        df = pd.DataFrame({"position": [1, 2, 3, 4]})
+        outputs = predictor(Dataset(df), batch_size=2)
+        output_df = outputs.compute()
+
+        assert len(outputs.schema) == 2
+        assert hasattr(output_df, "columns")
+
+    def test_no_targets_dict(self):
+        predictor = Predictor(DictOutputModel())
+
+        df = pd.DataFrame({"user_id": [1, 2, 3, 4]})
+        outputs = predictor(Dataset(df), batch_size=2)
+        output_df = outputs.compute()
+
+        assert len(outputs.schema) == 2
+        assert hasattr(output_df, "columns")
