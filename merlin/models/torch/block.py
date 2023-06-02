@@ -190,8 +190,12 @@ class ParallelBlock(Block):
         outputs = {}
         for name, branch_container in self.branches.items():
             branch = inputs
-            for module in branch_container.values:
-                branch = module(branch, batch=batch)
+
+            if hasattr(branch_container, "branches"):
+                branch = branch_container(branch, batch=batch)
+            else:
+                for module in branch_container.values:
+                    branch = module(branch, batch=batch)
 
             if isinstance(branch, torch.Tensor):
                 branch_dict = {name: branch}
