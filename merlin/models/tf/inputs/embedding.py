@@ -644,6 +644,7 @@ def Embeddings(
         Factor for L2 regularization of the embeddings vectors (from the current batch only)
         If a dictionary is provided, the keys are feature names and the values are
         regularization factors
+
     Returns
     -------
     ParallelBlock
@@ -1445,6 +1446,7 @@ def ContinuousEmbedding(
 ) -> SequentialBlock:
     """Concatenates all numerical features and project then using the
         specified Block.
+
     Parameters
     ----------
     inputs : Block
@@ -1475,10 +1477,12 @@ def ContinuousEmbedding(
 
 def serialize_table_config(table_config: TableConfig) -> Dict[str, Any]:
     """Serializes a TableConfig instance
+
     Parameters
     ----------
     table_config : TableConfig
         Configuration data for one embedding table
+
     Returns
     -------
     Dict[str, Any]
@@ -1500,6 +1504,7 @@ def deserialize_table_config(table_params: Dict[str, Any]) -> TableConfig:
     ----------
     table_params : Dict[str, Any]
         Dict with the serialized values
+
     Returns
     -------
     TableConfig
@@ -1516,10 +1521,12 @@ def deserialize_table_config(table_params: Dict[str, Any]) -> TableConfig:
 
 def serialize_feature_config(feature_config: FeatureConfig) -> Dict[str, Any]:
     """Serializes a FeatureConfig instance
+
     Parameters
     ----------
     feature_config : FeatureConfig
         Configuration data for one embedding feature
+
     Returns
     -------
     Dict[str, Any]

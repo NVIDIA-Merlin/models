@@ -388,7 +388,8 @@ def sample_batch(
         If enabled, it converts multi-hot/list features to dense or ragged based on the schema.
         It also ensures that scalar features are converted to 2D (batch size, 1).
         P.s. The features are automatically prepared by InputBlockV2 if it is used
-    Returns:
+
+    Returns
     -------
     batch: Dict[tf.tensor]
         dictionary of input tensors.

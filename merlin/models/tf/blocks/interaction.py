@@ -293,6 +293,7 @@ def FMBlock(
     factors_dim : Optional[int], optional
         If fm_input_block is not provided, the factors_dim is used to define the
         embeddings dim to instantiate InputBlockV2, by default None
+
     Returns
     -------
     tf.Tensor

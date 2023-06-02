@@ -182,6 +182,7 @@ def get_output_schema(export_path: str) -> Schema:
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ModelBlock(Block, tf.keras.Model):
     """Block that extends `tf.keras.Model` to make it saveable.
+
     Parameters
     ----------
     block : Block
@@ -2623,6 +2624,7 @@ def _maybe_convert_merlin_dataset(
 ) -> Any:
     """Converts the Dataset to a Loader with the given
     batch_size and shuffle options
+
     Parameters
     ----------
     data
@@ -2631,6 +2633,7 @@ def _maybe_convert_merlin_dataset(
         Batch size
     shuffle : bool, optional
         Enables data shuffling during loading, by default True
+
     Returns
     -------
     Any

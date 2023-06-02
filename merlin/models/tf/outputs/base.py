@@ -290,6 +290,7 @@ class ModelOutput(Layer):
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class DotProduct(Layer):
     """Dot-product between queries & items.
+
     Parameters:
     -----------
     query_name : str, optional

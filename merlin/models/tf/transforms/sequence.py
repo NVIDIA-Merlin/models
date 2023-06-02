@@ -40,6 +40,7 @@ class RemovePad3D(Block):
         padding_idx: int
             The padding index value.
             Defaults to 0.
+
     Returns
     -------
         targets: tf.Tensor

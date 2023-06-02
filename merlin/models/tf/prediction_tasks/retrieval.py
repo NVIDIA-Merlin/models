@@ -59,6 +59,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             Add query embeddings to the context block, by default False
         store_negative_ids: bool
             Returns negative items ids as part of the output, by default False
+
     Returns
     -------
         PredictionTask

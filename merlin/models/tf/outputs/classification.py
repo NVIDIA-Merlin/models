@@ -36,6 +36,7 @@ LOG = logging.getLogger("merlin_models")
 
 def default_binary_metrics() -> List[tf.keras.metrics.Metric]:
     """Returns the default binary metrics
+
     Returns
     -------
     List[tf.keras.metrics.Metric]
@@ -52,6 +53,7 @@ def default_binary_metrics() -> List[tf.keras.metrics.Metric]:
 def default_categorical_prediction_metrics(k=10):
     """Returns the default top-k metrics for
     categorical classification
+
     Returns
     -------
     List[tf.keras.metrics.Metric]

@@ -629,6 +629,7 @@ class TopKEncoder(Encoder, BaseModel):
 class EmbeddingEncoder(Encoder):
     """Creates an Encoder from an EmbeddingTable.
     Typically used with RetrievalModelV2.
+
     Parameters
     ----------
     schema : Union[ColumnSchema, Schema]

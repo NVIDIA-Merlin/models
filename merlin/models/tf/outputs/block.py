@@ -132,12 +132,14 @@ def OutputBlock(
 
 def _get_col_set_by_tags(schema: Schema, tags) -> Set[str]:
     """Returns a set with the schema column names
+
     Parameters
     ----------
     schema : Schema
         Schema
     tags :
         Tags to filter
+
     Returns
     -------
     Set[str]
@@ -152,6 +154,7 @@ def _set_task_block(
     task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
 ):
     """Creates a tower (task_block) for each task (output).
+
     Parameters
     ----------
     output_block : OutputBlock
