@@ -5,6 +5,7 @@ import torch
 from torch import nn
 
 from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.container import BlockContainer
 from merlin.models.torch.utils.selection_utils import (
     Selectable,
     Selection,
@@ -181,10 +182,7 @@ class RouterBlock(ParallelBlock, Selectable):
 
         selected_branches = {}
         for key, val in self.branches.items():
-            if len(val) == 1:
-                val = val[0]
-
-            selected_branches[key] = val.select(selection)
+            selected_branches[key] = select_container(val, selection)
 
         selectable = self.__class__(self.selectable.select(selection))
         for key, val in selected_branches.items():
@@ -278,3 +276,15 @@ class SelectKeys(nn.Module, Selectable):
                 outputs[key] = val
 
         return outputs
+
+
+def select_container(container: BlockContainer, selection: Selection) -> BlockContainer:
+    outputs = []
+
+    for module in container:
+        if module.accepts_dict:
+            outputs.append(module.select(selection))
+        else:
+            outputs.append(module)
+
+    return BlockContainer(*outputs, name=container._name)
