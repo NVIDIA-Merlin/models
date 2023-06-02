@@ -207,7 +207,7 @@ class EmbeddingTable(nn.Module, Selectable):
             tensors = torch.cat(list(tensor_dict.values()))
 
             if num_dims > 1 and self.has_combiner and not self.has_module_combiner:
-                stacked = self._forward_bag(tensors)
+                stacked = self.forward_bag(tensors)
             else:
                 stacked = self.forward_tensor(tensors)
 
@@ -228,7 +228,7 @@ class EmbeddingTable(nn.Module, Selectable):
                 extra_offset += values[0].shape[0]
 
             if self.has_combiner and not self.has_module_combiner:
-                bags = self._forward_bag(torch.cat(values), torch.cat(offsets))
+                bags = self.forward_bag(torch.cat(values), torch.cat(offsets))
 
                 if len(sparse_tensors) == 1:
                     out[list(sparse_tensors.keys())[0]] = bags
@@ -242,11 +242,33 @@ class EmbeddingTable(nn.Module, Selectable):
 
         return out
 
-    def _forward_bag(
+    def forward_bag(
         self,
         inputs: torch.Tensor,
         offsets: Optional[torch.Tensor] = None,
     ):
+        """
+        Computes the forward pass for an embedding bag.
+
+        An embedding bag is a method of compressing sparse matrices in order to
+        speed up certain operations. It is particularly useful when dealing with
+        sparse matrices where each row contains few non-zero elements.
+
+        Args:
+            inputs (torch.Tensor): The input tensor to be transformed by the embedding bag.
+                This tensor should be a 2D tensor of shape (num_instances, num_features),
+                where each row corresponds to a single instance, and each column corresponds
+                to a feature.
+            offsets (Optional[torch.Tensor]): A tensor containing the offsets for each bag in
+                the input tensor. This tensor should have the same size (num_instances) as the
+                first dimension of inputs. If not provided, it is assumed that the input tensor
+                only contains a single bag.
+
+        Returns:
+            torch.Tensor: The transformed input tensor, with embeddings applied and
+                potentially combined according to the mode of operation of the embedding bag.
+        """
+
         return nn.functional.embedding_bag(
             inputs, weight=self.table.weight, offsets=offsets, mode=self.combiner
         )
@@ -374,6 +396,16 @@ class EmbeddingTable(nn.Module, Selectable):
 
 
 class EmbeddingTables(ParallelBlock, Selectable):
+    """Parallel-block of embedding tables.
+
+    Args:
+        dim (Optional[Union[Dict[str, int], int, DimFn]]): The dimensions for the embedding tables.
+        schema (Optional[Schema]): The schema for the embedding tables.
+        table_cls (Type[nn.Module]): The type of embedding table to create.
+        sequence_combiner (Optional[Combiner]): The combiner used to combine the embeddings.
+        **kwargs: Additional keyword arguments.
+    """
+
     def __init__(
         self,
         dim: Optional[Union[Dict[str, int], int, DimFn]] = infer_embedding_dim,
@@ -391,6 +423,15 @@ class EmbeddingTables(ParallelBlock, Selectable):
             self.setup_schema(schema)
 
     def setup_schema(self, schema: Schema):
+        """
+        Sets up the schema for the embedding tables.
+
+        Args:
+            schema (Schema): The schema to setup.
+
+        Returns:
+            EmbeddingTables: The updated EmbeddingTables instance with the setup schema.
+        """
         self.schema = schema
 
         for col in schema:
@@ -406,6 +447,15 @@ class EmbeddingTables(ParallelBlock, Selectable):
         return self
 
     def select(self, selection: Selection) -> "EmbeddingTables":
+        """
+        Selects a subset of the embedding tables based on the given selection.
+
+        Args:
+            selection (Selection): The selection criteria to apply.
+
+        Returns:
+            EmbeddingTables: The selected subset of the embedding tables.
+        """
         selected_branches = {}
         for key, val in self.branches.items():
             try:
