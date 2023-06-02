@@ -34,15 +34,7 @@ class TestSelectSchema:
 
         output = select_schema(self.schema, column)
         output_2 = select_schema(self.schema, ColumnSchema("user_id"))
-<<<<<<< HEAD
-<<<<<<< HEAD
         assert output == output_2 == Schema([column])
-=======
-        assert output == column == output_2
->>>>>>> a2644079 (Add selection_utils)
-=======
-        assert output == output_2 == Schema([column])
->>>>>>> 89a6f043 (Increase test-coverage)
 
     def test_exceptions(self):
         with pytest.raises(ValueError, match="is not valid"):
@@ -52,11 +44,7 @@ class TestSelectSchema:
             select_schema(1, 1)
 
 
-<<<<<<< HEAD
 class TestSelectionName:
-=======
-class Test_selection_name:
->>>>>>> a2644079 (Add selection_utils)
     @pytest.fixture(autouse=True)
     def setup_method(self, music_streaming_data):
         self.schema: Schema = music_streaming_data.schema
@@ -82,10 +70,6 @@ class Test_selection_name:
 
         assert selection_name(column) == column.name
         assert selection_name(ColumnSchema("user_id")) == column.name
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 9434c6bd (Increasing test-coverage)
 
     def test_exception(self):
         with pytest.raises(ValueError, match="is not valid"):
@@ -99,8 +83,3 @@ class TestSelectable:
         assert hasattr(selectable, "setup_schema")
         with pytest.raises(NotImplementedError):
             selectable.select(1)
-<<<<<<< HEAD
-=======
->>>>>>> a2644079 (Add selection_utils)
-=======
->>>>>>> 9434c6bd (Increasing test-coverage)
