@@ -98,8 +98,12 @@ class Model(Block, LightningModule):
     def training_step(self, batch, batch_idx):
         """Performs a training step with a single batch."""
         del batch_idx
-        inputs, targets = batch
-        predictions = self(inputs)
+        if isinstance(batch, Batch):
+            inputs = batch.features
+            targets = batch.targets
+        else:
+            inputs, targets = batch
+        predictions = self(inputs, batch=Batch(inputs, targets))
 
         loss_and_metrics = compute_loss(predictions, targets, self.model_outputs())
         for name, value in loss_and_metrics.items():

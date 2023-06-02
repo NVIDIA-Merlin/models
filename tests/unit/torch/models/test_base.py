@@ -22,6 +22,7 @@ from torchmetrics import AUROC, Accuracy, Precision, Recall
 import merlin.models.torch as mm
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
+from merlin.models.torch.batch import Batch
 from merlin.models.torch.models.base import compute_loss
 from merlin.models.torch.utils import module_utils
 from merlin.schema import ColumnSchema, Schema
@@ -117,7 +118,7 @@ class TestModel:
 
         assert torch.equal(inputs, outputs)
 
-    def test_training_step(self):
+    def test_training_step_values(self):
         model = mm.Model(
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),
@@ -126,9 +127,36 @@ class TestModel:
         targets = {"target": torch.tensor([[0.0], [1.0]])}
         loss = model.training_step((features, targets), 0)
         (weights, bias) = model.parameters()
-        outputs = nn.Sigmoid()(torch.matmul(features["feature"], weights.T) + bias)
-        expected_loss = nn.BCEWithLogitsLoss()(outputs, targets["target"])
+        expected_outputs = nn.Sigmoid()(torch.matmul(features["feature"], weights.T) + bias)
+        expected_loss = nn.BCEWithLogitsLoss()(expected_outputs, targets["target"])
         assert torch.allclose(loss, expected_loss)
+
+    def test_training_step_with_loader(self):
+        model = mm.Model(
+            mm.Concat(),
+            mm.BinaryOutput(ColumnSchema("target")),
+        )
+        feature = [[1.0, 2.0], [3.0, 4.0]]
+        target = [[0.0], [1.0]]
+        dataset = Dataset(pd.DataFrame({"feature": feature, "target": target}))
+        with Loader(dataset, batch_size=1) as loader:
+            model.initialize(loader)
+            batch = loader.peek()
+
+        loss = model.training_step(batch, 0)
+        assert loss > 0.0
+
+    def test_training_step_with_batch(self):
+        model = mm.Model(
+            mm.Concat(),
+            mm.BinaryOutput(ColumnSchema("target")),
+        )
+        feature = {"feature": torch.tensor([[1.0, 2.0], [3.0, 4.0]])}
+        target = {"target": torch.tensor([[0.0], [1.0]])}
+        batch = Batch(feature, target)
+        model.initialize(batch)
+        loss = model.training_step(batch, 0)
+        assert loss > 0.0
 
     def test_training_step_missing_output(self):
         model = mm.Model(mm.Block())
