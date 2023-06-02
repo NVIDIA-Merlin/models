@@ -35,6 +35,7 @@ __all__ = [
     "EmbeddingTable",
     "EmbeddingTables",
     "ParallelBlock",
+    "MLPBlock",
     "ModelOutput",
     "ParallelBlock",
     "Sequence",

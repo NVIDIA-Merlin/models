@@ -182,7 +182,9 @@ class RouterBlock(ParallelBlock, Selectable):
 
         selected_branches = {}
         for key, val in self.branches.items():
-            selected_branches[key] = select_container(val, selection)
+            selected = select_container(val, selection)
+            if selected:
+                selected_branches[key] = selected
 
         selectable = self.__class__(self.selectable.select(selection))
         for key, val in selected_branches.items():
@@ -222,6 +224,7 @@ class SelectKeys(nn.Module, Selectable):
 
     def __init__(self, schema: Optional[Schema] = None):
         super().__init__()
+        self.col_names: List[str] = []
         if schema:
             self.setup_schema(schema)
 
@@ -231,7 +234,7 @@ class SelectKeys(nn.Module, Selectable):
 
         super().setup_schema(schema)
 
-        self.col_names: List[str] = schema.column_names
+        self.col_names = schema.column_names
 
     def select(self, selection: Selection) -> "SelectKeys":
         """Select a subset of the schema based on the provided selection.
@@ -277,14 +280,28 @@ class SelectKeys(nn.Module, Selectable):
 
         return outputs
 
+    def extra_repr(self) -> str:
+        return f"select: {', '.join(self.col_names)}"
+
+    def __bool__(self) -> bool:
+        return bool(self.col_names)
+
 
 def select_container(container: BlockContainer, selection: Selection) -> BlockContainer:
     outputs = []
 
-    for module in container:
-        if module.accepts_dict:
-            outputs.append(module.select(selection))
+    if hasattr(container.values[0], "select"):
+        first = container.values[0].select(selection)
+        if first:
+            outputs.append(first)
         else:
-            outputs.append(module)
+            return BlockContainer()
+
+    if len(container.values) > 1:
+        for module in container.values[1:]:
+            if hasattr(module, "select"):
+                outputs.append(module.select(selection))
+            else:
+                outputs.append(module)
 
     return BlockContainer(*outputs, name=container._name)
