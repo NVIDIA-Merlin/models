@@ -728,6 +728,7 @@
 <span class="sd">        Factor for L2 regularization of the embeddings vectors (from the current batch only)</span>
 <span class="sd">        If a dictionary is provided, the keys are feature names and the values are</span>
 <span class="sd">        regularization factors</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    ParallelBlock</span>
@@ -1529,6 +1530,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SequentialBlock</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Concatenates all numerical features and project then using the</span>
 <span class="sd">        specified Block.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    inputs : Block</span>
@@ -1559,10 +1561,12 @@
 
 <span class="k">def</span> <span class="nf">serialize_table_config</span><span class="p">(</span><span class="n">table_config</span><span class="p">:</span> <span class="n">TableConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Serializes a TableConfig instance</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    table_config : TableConfig</span>
 <span class="sd">        Configuration data for one embedding table</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    Dict[str, Any]</span>
@@ -1584,6 +1588,7 @@
 <span class="sd">    ----------</span>
 <span class="sd">    table_params : Dict[str, Any]</span>
 <span class="sd">        Dict with the serialized values</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    TableConfig</span>
@@ -1600,10 +1605,12 @@
 
 <span class="k">def</span> <span class="nf">serialize_feature_config</span><span class="p">(</span><span class="n">feature_config</span><span class="p">:</span> <span class="n">FeatureConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Serializes a FeatureConfig instance</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    feature_config : FeatureConfig</span>
 <span class="sd">        Configuration data for one embedding feature</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    Dict[str, Any]</span>
