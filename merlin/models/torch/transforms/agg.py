@@ -15,6 +15,9 @@ class Concat(nn.Module):
     dim : int
         The dimension along which the tensors will be concatenated.
         Default is -1.
+    align_dims: bool, default = True
+        If True, adds an extra dimension to all input tensors that need it.
+
 
     Examples
     --------
@@ -29,9 +32,10 @@ class Concat(nn.Module):
 
     """
 
-    def __init__(self, dim: int = -1):
+    def __init__(self, dim: int = -1, align_dims: bool = True):
         super().__init__()
         self.dim = dim
+        self.align_dims = align_dims
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
@@ -58,6 +62,17 @@ class Concat(nn.Module):
             along the specified dimension.
         """
         sorted_tensors = [inputs[name] for name in sorted(inputs.keys())]
+
+        if self.align_dims:
+            max_dims = max(tensor.dim() for tensor in sorted_tensors)
+            _sorted_tensors = []
+            for tensor in sorted_tensors:
+                if tensor.dim() < max_dims:
+                    _sorted_tensors.append(tensor.unsqueeze(1))
+                else:
+                    _sorted_tensors.append(tensor)
+            sorted_tensors = _sorted_tensors
+
         # TODO: Fix this for dim=-1
         if self.dim > 0:
             if not all(

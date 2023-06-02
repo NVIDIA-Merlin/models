@@ -224,8 +224,8 @@ class EmbeddingTable(nn.Module, Selectable):
             extra_offset = 0
             for val in sparse_tensors.values():
                 values.append(val[0])
-                offsets.append(val[1] + extra_offset)
-                extra_offset += values[0].shape[0]
+                offsets.append(val[1][:-1] + extra_offset)
+                extra_offset += val[0].shape[0]
 
             if self.has_combiner and not self.has_module_combiner:
                 bags = self.forward_bag(torch.cat(values), torch.cat(offsets))
@@ -235,8 +235,9 @@ class EmbeddingTable(nn.Module, Selectable):
                 else:
                     i = 0
                     for feature_name, (_, feat_offsets) in sparse_tensors.items():
-                        out[feature_name] = bags[i : i + feat_offsets.shape[0]]
-                        i += feat_offsets.shape[0]
+                        num = feat_offsets.shape[0] - 1
+                        out[feature_name] = bags[i : i + num]
+                        i += num
             else:
                 raise NotImplementedError("Sparse tensors not supported without combiner")
 
