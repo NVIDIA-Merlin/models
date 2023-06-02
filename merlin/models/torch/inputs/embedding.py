@@ -47,7 +47,7 @@ class EmbeddingTable(nn.Module, Selectable):
     Args:
         dim (Union[int, DimFn]): The dimension for the embedding table.
         schema (Optional[Union[ColumnSchema, Schema]]): The schema for the embedding table.
-        combiner (Optional[Combiner]): The combiner used to combine the embeddings.
+        seq_combiner (Optional[Combiner]): The combiner used to combine the embeddings.
     """
 
     has_combiner: Final[bool] = False
