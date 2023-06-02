@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from functools import reduce
 from typing import Dict, List, Optional, Sequence, Union
 
 import torch
@@ -131,7 +132,19 @@ class Model(Block, LightningModule):
         """Returns the input schema of the model."""
         if self.schema:
             return self.schema
+        # TODO: Implement logic when TabularInputBlock is available.
         return Schema([])
+
+    def output_schema(self) -> Schema:
+        output_schemas = []
+        for child in module_utils.get_all_children(self):
+            if hasattr(child, "output_schema"):
+                output_schemas.append(child.output_schema())
+
+        if not output_schemas:
+            raise RuntimeError("No output schema found")
+
+        return reduce(lambda a, b: a + b, output_schemas)  # type: ignore
 
 
 def compute_loss(

@@ -96,7 +96,7 @@ class TestModel:
     def test_initialize_raises_error(self):
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         model = mm.Model(mm.Block(), mm.Block())
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="Unexpected input type"):
             model.initialize(inputs)
 
     def test_script(self):
@@ -162,7 +162,7 @@ class TestModel:
         model = mm.Model(mm.Block())
         features = {"feature": torch.tensor([1, 2])}
         targets = {"target": torch.tensor([0, 1])}
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="No model outputs found"):
             _ = model.training_step((features, targets), 0)
 
     def test_model_outputs(self):
@@ -205,6 +205,11 @@ class TestModel:
         for name in outputs:
             assert name in schema.column_names
             assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
+
+    def test_no_output_schema(self):
+        model = mm.Model(PlusOne())
+        with pytest.raises(RuntimeError, match="No output schema found"):
+            _ = model.output_schema()
 
     # def test_train_classification(self, music_streaming_data):
     #     schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
@@ -280,7 +285,7 @@ class TestComputeLoss:
             mm.BinaryOutput(ColumnSchema("a")),
             mm.BinaryOutput(ColumnSchema("b")),
         )
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="Multiple outputs"):
             _ = compute_loss(predictions, targets, model_outputs)
 
     def test_single_model_output(self):
