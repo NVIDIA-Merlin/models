@@ -302,3 +302,10 @@ class TestComputeLoss:
         results = compute_loss(predictions, None, (binary_output,))
         expected_loss = nn.BCEWithLogitsLoss()(predictions, torch.zeros(2, 1))
         assert torch.allclose(results["loss"], expected_loss)
+
+    def test_model_no_target(self):
+        predictions = torch.randn(2, 1)
+        binary_output = mm.BinaryOutput(ColumnSchema("foo"))
+        delattr(binary_output, "target")
+        with pytest.raises(ValueError, match="has no target"):
+            _ = compute_loss(predictions, None, (binary_output,))

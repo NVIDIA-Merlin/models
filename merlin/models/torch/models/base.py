@@ -207,6 +207,8 @@ def compute_loss(
         name = model_out.output_schema.first.name
 
         if targets is None:
+            if not hasattr(model_out, "target"):
+                raise ValueError(f"'{model_out.__class__.__name__}' has no target.")
             _targets = torch.ones_like(predictions) * model_out.target
         elif isinstance(targets, torch.Tensor):
             _targets = targets
