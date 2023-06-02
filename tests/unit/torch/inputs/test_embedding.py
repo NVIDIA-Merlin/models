@@ -135,7 +135,7 @@ class TestEmbeddingTable:
         input_dict = {
             "user_id": torch.tensor([0, 1, 2]),
             "item_id__values": torch.tensor([0, 1, 1, 2, 2, 3]),
-            "item_id__offsets": torch.tensor([0, 2, 4]),
+            "item_id__offsets": torch.tensor([0, 2, 4, 6]),
         }
         output = module_utils.module_test(et, input_dict)
 
@@ -149,9 +149,9 @@ class TestEmbeddingTable:
         et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]), combiner="mean")
         input_dict = {
             "user_id__values": torch.tensor([0, 2, 3, 4, 2, 3]),
-            "user_id__offsets": torch.tensor([0, 2, 4]),
+            "user_id__offsets": torch.tensor([0, 2, 4, 6]),
             "item_id__values": torch.tensor([0, 1, 1, 2, 2, 3]),
-            "item_id__offsets": torch.tensor([0, 2, 4]),
+            "item_id__offsets": torch.tensor([0, 2, 4, 6]),
         }
         output = module_utils.module_test(et, input_dict)
 

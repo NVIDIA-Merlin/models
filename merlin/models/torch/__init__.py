@@ -18,6 +18,8 @@ from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import Block, ParallelBlock
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.models.base import Model
+from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
+from merlin.models.torch.inputs.tabular import TabularInputBlock
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import BinaryOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
@@ -30,6 +32,9 @@ __all__ = [
     "Block",
     "MLPBlock",
     "Model",
+    "EmbeddingTable",
+    "EmbeddingTables",
+    "ParallelBlock",
     "ModelOutput",
     "ParallelBlock",
     "Sequence",
@@ -37,6 +42,7 @@ __all__ = [
     "RouterBlock",
     "SelectKeys",
     "select_schema",
+    "TabularInputBlock",
     "Concat",
     "Stack",
 ]
