@@ -97,7 +97,9 @@ class TestEmbeddingTable:
         assert output["user_id"].size() == (3, 8)
 
     def test_multiple_features_different_shapes(self, item_id_col_schema, user_id_col_schema):
-        et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]), combiner="mean")
+        et = EmbeddingTable(
+            8, Schema([item_id_col_schema, user_id_col_schema]), seq_combiner="mean"
+        )
         input_dict = {
             "user_id": torch.tensor([0, 1, 2]),
             "item_id": torch.tensor([[0, 1], [1, 2], [2, 3]]),
@@ -115,7 +117,9 @@ class TestEmbeddingTable:
             def forward(self, x):
                 return x.mean(dim=1)
 
-        et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]), combiner=Mean())
+        et = EmbeddingTable(
+            8, Schema([item_id_col_schema, user_id_col_schema]), seq_combiner=Mean()
+        )
         input_dict = {
             "user_id": torch.tensor([0, 1, 2]),
             "item_id": torch.tensor([[0, 1], [1, 2], [2, 3]]),
@@ -131,7 +135,9 @@ class TestEmbeddingTable:
     def test_multiple_features_different_shapes_sparse(
         self, item_id_col_schema, user_id_col_schema
     ):
-        et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]), combiner="mean")
+        et = EmbeddingTable(
+            8, Schema([item_id_col_schema, user_id_col_schema]), seq_combiner="mean"
+        )
         input_dict = {
             "user_id": torch.tensor([0, 1, 2]),
             "item_id__values": torch.tensor([0, 1, 1, 2, 2, 3]),
@@ -146,7 +152,9 @@ class TestEmbeddingTable:
         assert output["item_id"].size() == (3, 8)
 
     def test_multiple_features_sparse(self, item_id_col_schema, user_id_col_schema):
-        et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]), combiner="mean")
+        et = EmbeddingTable(
+            8, Schema([item_id_col_schema, user_id_col_schema]), seq_combiner="mean"
+        )
         input_dict = {
             "user_id__values": torch.tensor([0, 2, 3, 4, 2, 3]),
             "user_id__offsets": torch.tensor([0, 2, 4, 6]),
@@ -166,7 +174,7 @@ class TestEmbeddingTable:
             et(input_dict)
 
     def test_combiner_module(self, item_id_col_schema):
-        et = EmbeddingTable(8, item_id_col_schema, combiner=nn.Linear(8, 10))
+        et = EmbeddingTable(8, item_id_col_schema, seq_combiner=nn.Linear(8, 10))
 
         outputs = module_utils.module_test(et, {"item_id": torch.tensor([[0], [1], [2]])})
         assert outputs["item_id"].shape == (3, 1, 10)

@@ -86,4 +86,4 @@ def defaults(block: TabularInputBlock):
         block (TabularInputBlock): The block to initialize.
     """
     block.add_route(Tags.CONTINUOUS)
-    block.add_route(Tags.CATEGORICAL, EmbeddingTables(sequence_combiner="mean"))
+    block.add_route(Tags.CATEGORICAL, EmbeddingTables(seq_combiner="mean"))
