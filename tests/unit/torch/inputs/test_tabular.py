@@ -16,7 +16,7 @@ class TestTabularInputBlock:
 
     def test_forward(self):
         self.input_block.add_route(Tags.CONTINUOUS)
-        self.input_block.add_route(Tags.CATEGORICAL, mm.EmbeddingTable(10, combiner="mean"))
+        self.input_block.add_route(Tags.CATEGORICAL, mm.EmbeddingTable(10, seq_combiner="mean"))
 
         outputs = self.input_block(self.batch.features)
 

@@ -57,15 +57,15 @@ class EmbeddingTable(nn.Module, Selectable):
         self,
         dim: Union[int, DimFn] = infer_embedding_dim,
         schema: Optional[Union[ColumnSchema, Schema]] = None,
-        combiner: Optional[Combiner] = None,
+        seq_combiner: Optional[Combiner] = None,
     ):
         super().__init__()
         self.dim = dim
-        self.combiner = combiner
+        self.seq_combiner = seq_combiner
         self.domains: Mapping[str, Domain] = collections.OrderedDict()
         self.feature_to_domain: Dict[str, Domain] = {}
-        self.has_combiner = self.combiner is not None
-        self.has_module_combiner = isinstance(self.combiner, nn.Module)
+        self.has_combiner = self.seq_combiner is not None
+        self.has_module_combiner = isinstance(self.seq_combiner, nn.Module)
         self.num_embeddings = 0
         self.setup_schema(schema or Schema())
 
@@ -165,7 +165,7 @@ class EmbeddingTable(nn.Module, Selectable):
     def forward_tensor(self, ids: torch.Tensor) -> torch.Tensor:
         out = self.table(ids)
         if len(out.shape) > 2 and self.has_module_combiner:
-            out = self.combiner(out)
+            out = self.seq_combiner(out)
 
         return out
 
@@ -271,7 +271,7 @@ class EmbeddingTable(nn.Module, Selectable):
         """
 
         return nn.functional.embedding_bag(
-            inputs, weight=self.table.weight, offsets=offsets, mode=self.combiner
+            inputs, weight=self.table.weight, offsets=offsets, mode=self.seq_combiner
         )
 
     def add_feature(self, col_schema: ColumnSchema) -> "EmbeddingTable":
@@ -403,7 +403,7 @@ class EmbeddingTables(ParallelBlock, Selectable):
         dim (Optional[Union[Dict[str, int], int, DimFn]]): The dimensions for the embedding tables.
         schema (Optional[Schema]): The schema for the embedding tables.
         table_cls (Type[nn.Module]): The type of embedding table to create.
-        sequence_combiner (Optional[Combiner]): The combiner used to combine the embeddings.
+        seq_combiner (Optional[Combiner]): The combiner used to combine the embeddings.
         **kwargs: Additional keyword arguments.
     """
 
@@ -412,13 +412,13 @@ class EmbeddingTables(ParallelBlock, Selectable):
         dim: Optional[Union[Dict[str, int], int, DimFn]] = infer_embedding_dim,
         schema: Optional[Schema] = None,
         table_cls: Type[nn.Module] = EmbeddingTable,
-        sequence_combiner: Optional[Combiner] = None,
+        seq_combiner: Optional[Combiner] = None,
         **kwargs,
     ):
         super().__init__(kwargs.pop("tables", {}))
         self.dim = dim
         self.table_cls = table_cls
-        self.sequence_combiner = sequence_combiner
+        self.seq_combiner = seq_combiner
         self.kwargs = kwargs
         if isinstance(schema, Schema):
             self.setup_schema(schema)
@@ -439,7 +439,7 @@ class EmbeddingTables(ParallelBlock, Selectable):
             raw_kwargs = {
                 "dim": self.dim,
                 "schema": col,
-                "combiner": self.sequence_combiner,
+                "seq_combiner": self.seq_combiner,
                 **self.kwargs,
             }
             kwargs = _forward_kwargs_to_table(col, self.table_cls, raw_kwargs)
@@ -468,7 +468,7 @@ class EmbeddingTables(ParallelBlock, Selectable):
             dim=self.dim,
             schema=select_schema(self.schema, selection),
             table_cls=self.table_cls,
-            sequence_combiner=self.sequence_combiner,
+            seq_combiner=self.seq_combiner,
             tables=selected_branches,
             **self.kwargs,
         )
