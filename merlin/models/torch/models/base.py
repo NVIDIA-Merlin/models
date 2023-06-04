@@ -221,7 +221,9 @@ def compute_loss(
         elif isinstance(predictions, dict):
             _predictions = predictions[name]
 
-        results["loss"] = results["loss"] + model_out.loss(_predictions, _targets) / len(model_outputs)
+        results["loss"] = results["loss"] + model_out.loss(_predictions, _targets) / len(
+            model_outputs
+        )
 
         if not compute_metrics:
             continue
