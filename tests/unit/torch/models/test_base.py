@@ -131,7 +131,7 @@ class TestModel:
         expected_loss = nn.BCEWithLogitsLoss()(expected_outputs, targets["target"])
         assert torch.allclose(loss, expected_loss)
 
-    def test_training_step_with_loader(self):
+    def test_training_step_with_dataloader(self):
         model = mm.Model(
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),

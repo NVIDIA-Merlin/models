@@ -100,11 +100,12 @@ class Model(Block, LightningModule):
         """Performs a training step with a single batch."""
         del batch_idx
         if isinstance(batch, Batch):
-            inputs = batch.features
+            features = batch.features
             targets = batch.targets
         else:
-            inputs, targets = batch
-        predictions = self(inputs, batch=Batch(inputs, targets))
+            features, targets = batch
+
+        predictions = self(features, batch=Batch(features, targets))
 
         loss_and_metrics = compute_loss(predictions, targets, self.model_outputs())
         for name, value in loss_and_metrics.items():
@@ -220,13 +221,13 @@ def compute_loss(
         elif isinstance(predictions, dict):
             _predictions = predictions[name]
 
-        results["loss"] += model_out.loss(_predictions, _targets) / len(model_outputs)
+        results["loss"] = results["loss"] + model_out.loss(_predictions, _targets) / len(model_outputs)
 
         if not compute_metrics:
             continue
 
         for metric in model_out.metrics:
+            metric.to(_predictions.device)
             metric_name = camelcase_to_snakecase(metric.__class__.__name__)
             results[metric_name] = metric(_predictions, _targets)
-
     return results
