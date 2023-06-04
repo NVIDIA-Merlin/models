@@ -196,30 +196,34 @@ def compute_loss(
     """
     if len(model_outputs) < 1:
         raise RuntimeError("No model outputs found.")
-    if (
-        isinstance(predictions, torch.Tensor)
-        and isinstance(targets, torch.Tensor)
-        and len(model_outputs) > 1
-    ):
-        raise RuntimeError("Multiple outputs but only one target was provided.")
 
     results = {"loss": torch.tensor(0.0)}
     for model_out in model_outputs:
         name = model_out.output_schema.first.name
 
-        if targets is None:
+        if targets is None or (isinstance(targets, dict) and name not in targets):
             if not hasattr(model_out, "target"):
                 raise ValueError(f"'{model_out.__class__.__name__}' has no target.")
-            _targets = torch.ones_like(predictions) * model_out.target
-        elif isinstance(targets, torch.Tensor):
-            _targets = targets
+            if isinstance(predictions, dict):
+                pred_col = predictions[name]
+            else:
+                pred_col = predictions
+            _targets = torch.ones_like(pred_col) * model_out.target
         elif isinstance(targets, dict):
             _targets = targets[name]
+        elif isinstance(targets, torch.Tensor):
+            _targets = targets
+        else:
+            raise ValueError(f"Unknown 'targets' type: {type(targets)}")
 
-        if isinstance(predictions, torch.Tensor):
-            _predictions = predictions
-        elif isinstance(predictions, dict):
+        if isinstance(predictions, dict):
+            if name not in predictions:
+                raise RuntimeError(f"Column '{name}' not found in predictions")
             _predictions = predictions[name]
+        elif isinstance(predictions, torch.Tensor):
+            _predictions = predictions
+        else:
+            raise ValueError(f"Unknown 'predictions' type: {type(predictions)}")
 
         results["loss"] = results["loss"] + model_out.loss(_predictions, _targets) / len(
             model_outputs

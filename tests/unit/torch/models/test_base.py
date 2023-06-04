@@ -278,16 +278,6 @@ class TestComputeLoss:
         expected_loss = nn.BCEWithLogitsLoss()(predictions["a"], targets)
         assert torch.allclose(results["loss"], expected_loss)
 
-    def test_multiple_outputs_raises_error(self):
-        predictions = torch.randn(2, 1)
-        targets = torch.randint(2, (2, 1), dtype=torch.float32)
-        model_outputs = (
-            mm.BinaryOutput(ColumnSchema("a")),
-            mm.BinaryOutput(ColumnSchema("b")),
-        )
-        with pytest.raises(RuntimeError, match="Multiple outputs"):
-            _ = compute_loss(predictions, targets, model_outputs)
-
     def test_single_model_output(self):
         predictions = {"foo": torch.randn(2, 1)}
         targets = {"foo": torch.randint(2, (2, 1), dtype=torch.float32)}
@@ -296,16 +286,44 @@ class TestComputeLoss:
         expected_loss = nn.BCEWithLogitsLoss()(predictions["foo"], targets["foo"])
         assert torch.allclose(results["loss"], expected_loss)
 
-    def test_model_output_targets(self):
+    def test_tensor_input_no_targets(self):
         predictions = torch.randn(2, 1)
         binary_output = mm.BinaryOutput(ColumnSchema("foo"))
         results = compute_loss(predictions, None, (binary_output,))
         expected_loss = nn.BCEWithLogitsLoss()(predictions, torch.zeros(2, 1))
         assert torch.allclose(results["loss"], expected_loss)
 
-    def test_model_no_target(self):
+    def test_dict_input_no_targets(self):
+        predictions = {"foo": torch.randn(2, 1)}
+        binary_output = mm.BinaryOutput(ColumnSchema("foo"))
+        results = compute_loss(predictions, None, (binary_output,))
+        expected_loss = nn.BCEWithLogitsLoss()(predictions["foo"], torch.zeros(2, 1))
+        assert torch.allclose(results["loss"], expected_loss)
+
+    def test_no_target_raises_error(self):
         predictions = torch.randn(2, 1)
         binary_output = mm.BinaryOutput(ColumnSchema("foo"))
         delattr(binary_output, "target")
         with pytest.raises(ValueError, match="has no target"):
             _ = compute_loss(predictions, None, (binary_output,))
+
+    def test_unknown_targets_type(self):
+        predictions = torch.randn(2, 1)
+        targets = [torch.randint(2, (2, 1), dtype=torch.float32)]
+        model_outputs = [mm.BinaryOutput(ColumnSchema("foo"))]
+        with pytest.raises(ValueError, match="Unknown 'targets' type"):
+            _ = compute_loss(predictions, targets, model_outputs)
+
+    def test_unknown_predictions_type(self):
+        predictions = [torch.randn(2, 1)]
+        targets = torch.randint(2, (2, 1), dtype=torch.float32)
+        model_outputs = [mm.BinaryOutput(ColumnSchema("foo"))]
+        with pytest.raises(ValueError, match="Unknown 'predictions' type"):
+            _ = compute_loss(predictions, targets, model_outputs)
+
+    def test_target_column_not_in_inputs(self):
+        predictions = {"foo": torch.randn(2, 1)}
+        targets = {"bar": torch.randint(2, (2, 1), dtype=torch.float32)}
+        model_outputs = [mm.BinaryOutput(ColumnSchema("bar"))]
+        with pytest.raises(RuntimeError, match="Column 'bar' not found"):
+            _ = compute_loss(predictions, targets, model_outputs)
