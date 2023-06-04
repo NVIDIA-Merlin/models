@@ -19,3 +19,4 @@ wandb
 optuna
 plotly
 GitPython
+colorlog
