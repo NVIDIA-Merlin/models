@@ -278,4 +278,10 @@ def initialize(module, data: Union[Dataset, Loader, Batch]):
         raise RuntimeError(f"Unexpected input type: {type(data)}")
 
     module.to(batch.device())
+
+    if hasattr(module, "model_outputs"):
+        for model_out in module.model_outputs():
+            for metric in model_out.metrics:
+                metric.to(batch.device())
+
     return module(batch.features, batch=batch)

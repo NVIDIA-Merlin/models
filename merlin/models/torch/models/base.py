@@ -229,7 +229,6 @@ def compute_loss(
             continue
 
         for metric in model_out.metrics:
-            metric.to(_predictions.device)
             metric_name = camelcase_to_snakecase(metric.__class__.__name__)
             results[metric_name] = metric(_predictions, _targets)
     return results
