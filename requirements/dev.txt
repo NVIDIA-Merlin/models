@@ -20,3 +20,4 @@ optuna
 plotly
 GitPython
 asvdb@git+https://github.com/rapidsai/asvdb.git@main
+colorlog
