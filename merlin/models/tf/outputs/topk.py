@@ -207,6 +207,9 @@ class BruteForce(TopKLayer):
             )
 
         if isinstance(inputs, tf.RaggedTensor):
+            # Evaluates on last session's item only
+            # (which is the default mode during inference too).
+            # TODO extend top-k generation to other items in the input session.
             inputs = tf.squeeze(inputs.to_tensor(), axis=1)
         tf.assert_equal(
             tf.shape(inputs)[1],
