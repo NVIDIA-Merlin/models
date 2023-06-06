@@ -17,9 +17,6 @@ except ImportError:
     pass
 
 
-if hvd_installed:
-    hvd.init()
-
 if HAS_GPU:
     try:
         from sparse_operation_kit import experiment as sok  # noqa: F401
@@ -27,7 +24,3 @@ if HAS_GPU:
         sok_installed = True
     except (ImportError, tf.errors.NotFoundError):
         pass
-
-
-if sok_installed:
-    sok.init(use_legacy_optimizer=False)

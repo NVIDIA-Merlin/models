@@ -9,6 +9,7 @@ from merlin.models.tf.distributed.embedding import SOKEmbedding
 from merlin.schema import ColumnSchema, Tags
 
 
+@pytest.mark.multigpu
 @pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
 @pytest.mark.skipif(importlib.util.find_spec("sparse_operation_kit") is None, reason="needs sok")
 class TestSOKEmbedding:
@@ -20,6 +21,10 @@ class TestSOKEmbedding:
     )
 
     def test_sok_embedding_basic(self):
+        from sparse_operation_kit import experiment as sok
+
+        sok.init(use_legacy_optimizer=False)
+
         embedding = SOKEmbedding(16, self.sample_column_schema, vocab_sizes=[10])
         inputs = [tf.ragged.constant([[0, 1, 0], [1, 0]])]
         combiners = ["sum"]
@@ -27,6 +32,10 @@ class TestSOKEmbedding:
         assert outputs[0].shape == (2, 16)
 
     def test_sok_embedding_pretrained(self):
+        from sparse_operation_kit import experiment as sok
+
+        sok.init(use_legacy_optimizer=False)
+
         weights = {}
         indices = np.array([0, 1, 2])
         values = np.arange(3 * 16).reshape(3, 16)
@@ -41,6 +50,10 @@ class TestSOKEmbedding:
         assert outputs[0].shape == (2, 16)
 
     def test_sok_embedding_config(self):
+        from sparse_operation_kit import experiment as sok
+
+        sok.init(use_legacy_optimizer=False)
+
         embedding = SOKEmbedding(16, self.sample_column_schema, vocab_sizes=[10], name="item_id")
         config = embedding.get_config()
         _ = SOKEmbedding.from_config(config)

@@ -8,7 +8,7 @@ from tensorflow.keras.utils import set_random_seed
 import merlin.models.tf as mm
 from merlin.datasets.advertising.criteo.dataset import default_criteo_transform
 from merlin.io.dataset import Dataset
-from merlin.models.tf.distributed.backend import hvd, hvd_installed
+from merlin.models.tf.distributed.backend import hvd_installed
 from merlin.models.utils.example_utils import workflow_fit_transform
 from merlin.schema.tags import Tags
 
@@ -17,6 +17,7 @@ from merlin.schema.tags import Tags
 set_random_seed(42)
 
 
+@pytest.mark.multigpu
 @pytest.mark.parametrize("custom_distributed_optimizer", [True, False])
 def test_horovod_multigpu_dlrm(
     criteo_data,
@@ -35,6 +36,10 @@ def test_horovod_multigpu_dlrm(
     Even with multiple GPUs, if you simply run pytest without horovodrun, it
     will use only one GPU.
     """
+    import horovod.tensorflow.keras as hvd
+
+    hvd.init()
+
     criteo_data.to_ddf().to_parquet(os.path.join(tmpdir, "train"))
     criteo_data.to_ddf().to_parquet(os.path.join(tmpdir, "valid"))
     workflow = default_criteo_transform()
@@ -131,6 +136,10 @@ def test_horovod_multigpu_two_tower(
     Even with multiple GPUs, if you simply run pytest without horovodrun, it
     will use only one GPU.
     """
+    import horovod.tensorflow.keras as hvd
+
+    hvd.init()
+
     # As a workaround for nvtabular producing different numbers of batches in
     # workers, we repartition the dataset in multiples of hvd.size().
     # https://github.com/NVIDIA-Merlin/models/issues/765
