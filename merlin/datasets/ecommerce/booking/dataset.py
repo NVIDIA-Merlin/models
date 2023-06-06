@@ -183,7 +183,7 @@ def default_booking_transformation(**kwargs):
     Returns:
         Workflow: NVTabular workflow
     """
-    cat = lambda: nvt.ops.Categorify(start_index=1)  # noqa: E731
+    cat = lambda: nvt.ops.Categorify()  # noqa: E731
 
     df_season = get_lib().DataFrame(
         {"month": range(1, 13), "season": ([0] * 3) + ([1] * 3) + ([2] * 3) + ([3] * 3)}
