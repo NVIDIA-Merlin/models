@@ -68,30 +68,39 @@
             }
         },
         {
-            "name": "image_vector",
-            "type": "FLOAT",
-            "floatDomain": {
-                "min": -426.2960265063624,
-                "max": 757.3242762232064
+            "name": "category_hash",
+            "type": "INT",
+            "intDomain": {
+                "name": "category_hash",
+                "max": "174",
+                "isCategorical": true
             },
             "annotation": {
                 "tag": [
-                    "item"
+                    "item",
+                    "item_id",
+                    "categorical",
+                    "id"
                 ],
                 "extraMetadata": [
                     {
+                        "num_buckets": null,
+                        "freq_threshold": 0.0,
+                        "max_size": 1000.0,
+                        "start_index": 0.0,
+                        "cat_path": ".//categories/unique.category_hash.parquet",
+                        "embedding_sizes": {
+                            "cardinality": 175.0,
+                            "dimension": 29.0
+                        },
                         "_dims": [
                             [
                                 0.0,
                                 null
-                            ],
-                            [
-                                66386,
-                                66386
                             ]
                         ],
-                        "is_list": true,
-                        "is_ragged": true,
+                        "is_list": false,
+                        "is_ragged": false,
                         "dtype_item_size": 64.0
                     }
                 ]
