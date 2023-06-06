@@ -123,6 +123,7 @@ def test_horovod_multigpu_dlrm(
         assert saved_model not in os.listdir(tmpdir)
 
 
+@pytest.mark.multigpu
 def test_horovod_multigpu_two_tower(
     music_streaming_data, tmpdir, batch_size=11, learning_rate=0.03
 ):
