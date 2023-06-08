@@ -368,8 +368,6 @@ def select_module(module: SelectT, selection: Selection) -> SelectT:
     except (AttributeError, RuntimeError):
         pass
 
-    # TODO: Check for output-schema and select that
-
     return output
 
 
