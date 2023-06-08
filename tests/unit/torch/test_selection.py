@@ -1,6 +1,6 @@
 import pytest
 
-from merlin.models.torch.utils.selection_utils import Selectable, select_schema, selection_name
+from merlin.models.torch.selection import Selectable, select, select_schema, selection_name
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -11,13 +11,13 @@ class TestSelectSchema:
 
     def test_select_schema(self):
         selection = self.schema.select_by_tag(Tags.USER)
-        output = select_schema(self.schema, selection)
+        output = select(self.schema, selection)
 
         assert output == selection
 
     def test_select_tag(self):
         selection = self.schema.select_by_tag(Tags.USER)
-        output = select_schema(self.schema, Tags.USER)
+        output = select(self.schema, Tags.USER)
 
         assert output == selection
 
@@ -26,14 +26,14 @@ class TestSelectSchema:
             return schema.select_by_tag(Tags.USER)
 
         selection = self.schema.select_by_tag(Tags.USER)
-        output = select_schema(self.schema, selection_callable)
+        output = select(self.schema, selection_callable)
         assert output == selection
 
     def test_select_column(self):
         column = self.schema["user_id"]
 
-        output = select_schema(self.schema, column)
-        output_2 = select_schema(self.schema, ColumnSchema("user_id"))
+        output = select(self.schema, column)
+        output_2 = select(self.schema, ColumnSchema("user_id"))
         assert output == output_2 == Schema([column])
 
     def test_exceptions(self):
@@ -80,6 +80,7 @@ class TestSelectable:
     def test_exception(self):
         selectable = Selectable()
 
-        assert hasattr(selectable, "setup_schema")
+        selectable.setup_schema(Schema([]))
+        selectable.schema == Schema([])
         with pytest.raises(NotImplementedError):
             selectable.select(1)

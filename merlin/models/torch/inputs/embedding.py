@@ -7,10 +7,9 @@ from torch import nn
 
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import ParallelBlock
-from merlin.models.torch.router import select_container
-from merlin.models.torch.utils.selection_utils import Selectable, Selection, select_schema
+from merlin.models.torch.selection import Selectable, Selection, select
 from merlin.models.utils.schema_utils import get_embedding_size_from_cardinality
-from merlin.schema import ColumnSchema, Schema
+from merlin.schema import ColumnSchema, Schema, Tags
 
 DimFn = Callable[[Schema], int]
 Combiner = Union[str, nn.Module]
@@ -360,12 +359,35 @@ class EmbeddingTable(nn.Module, Selectable):
         return self
 
     def select(self, selection: Selection) -> Selectable:
-        selected = select_schema(self.schema, selection)
+        selected = select(self.schema, selection)
 
         if not selected:
             raise ValueError(f"Selection {selection} not found in the table")
 
         return self
+
+    @torch.jit.ignore
+    def output_schema(self) -> Schema:
+        output = Schema()
+
+        for col in self.schema:
+            dims = (None, self.dim) if self.seq_combiner else (None, None, self.dim)
+            tags = [Tags.EMBEDDING]
+
+            # TODO: Is there a better way to do this?
+            if Tags.SESSION in col.tags:
+                tags.append(Tags.SESSION)
+            if Tags.USER in col.tags:
+                tags.append(Tags.USER)
+            if Tags.ITEM in col.tags:
+                tags.append(Tags.ITEM)
+            if Tags.CONTEXT in col.tags:
+                tags.append(Tags.CONTEXT)
+
+            name = col.name + "_embedding"
+            output[name] = ColumnSchema(name, dims=dims, tags=tags)
+
+        return output
 
     def contains_multiple_domains(self) -> bool:
         """
@@ -436,14 +458,17 @@ class EmbeddingTables(ParallelBlock, Selectable):
         self.schema = schema
 
         for col in schema:
-            raw_kwargs = {
-                "dim": self.dim,
-                "schema": col,
-                "seq_combiner": self.seq_combiner,
-                **self.kwargs,
-            }
-            kwargs = _forward_kwargs_to_table(col, self.table_cls, raw_kwargs)
-            self.branches[col.name] = self.table_cls(**kwargs)
+            if col.int_domain.name in self.branches:
+                self.branches[col.int_domain.name][0].add_feature(col)
+            else:
+                raw_kwargs = {
+                    "dim": self.dim,
+                    "schema": col,
+                    "seq_combiner": self.seq_combiner,
+                    **self.kwargs,
+                }
+                kwargs = _forward_kwargs_to_table(col, self.table_cls, raw_kwargs)
+                self.branches[col.int_domain.name] = self.table_cls(**kwargs)
 
         return self
 
@@ -460,13 +485,13 @@ class EmbeddingTables(ParallelBlock, Selectable):
         selected_branches = {}
         for key, val in self.branches.items():
             try:
-                selected_branches[key] = select_container(val, selection)
+                selected_branches[key] = select(val, selection)
             except ValueError:
                 pass
 
         output = EmbeddingTables(
             dim=self.dim,
-            schema=select_schema(self.schema, selection),
+            schema=select(self.schema, selection),
             table_cls=self.table_cls,
             seq_combiner=self.seq_combiner,
             tables=selected_branches,
@@ -474,6 +499,9 @@ class EmbeddingTables(ParallelBlock, Selectable):
         )
 
         return output
+
+    def extra_repr(self) -> str:
+        return ", ".join(list(self.branches.keys()))
 
 
 def _forward_kwargs_to_table(col, table_cls, kwargs):

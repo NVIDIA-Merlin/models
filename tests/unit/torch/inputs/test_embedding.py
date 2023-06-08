@@ -227,6 +227,7 @@ class TestEmbeddingTables:
         assert embs["item_id"][0].dim == 8
         assert embs["user_id"][0].num_embeddings == 21
         assert embs["user_id"][0].dim == 8
+        assert embs.extra_repr() == "item_id, user_id"
 
     def test_select(self, item_id_col_schema, user_id_col_schema):
         embs = EmbeddingTables(8, Schema([item_id_col_schema, user_id_col_schema]))

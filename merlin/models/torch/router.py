@@ -1,18 +1,20 @@
 from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import Optional
 
-import torch
 from torch import nn
 
 from merlin.models.torch.block import Block, ParallelBlock
-from merlin.models.torch.container import BlockContainer
-from merlin.models.torch.utils.selection_utils import (
+from merlin.models.torch.container import BlockContainer, BlockContainerDict
+from merlin.models.torch.selection import (
     Selectable,
     Selection,
+    SelectKeys,
+    _select_parallel_block,
+    select,
     select_schema,
     selection_name,
 )
-from merlin.schema import ColumnSchema, Schema
+from merlin.schema import Schema
 
 
 class RouterBlock(ParallelBlock, Selectable):
@@ -23,7 +25,7 @@ class RouterBlock(ParallelBlock, Selectable):
         router = RouterBlock(schema)
         router.add_route(Tags.CONTINUOUS)
         router.add_route(Tags.CATEGORICAL, mm.Embeddings(dim=64))
-        router.add_route(Tags.EMBEDDING, mm.MLPBlock([64, 32]))
+        router.add_route_for_each(Tags.EMBEDDING, mm.MLPBlock([64, 32]))
 
     Parameters
     ----------
@@ -76,8 +78,7 @@ class RouterBlock(ParallelBlock, Selectable):
 
         routing_module = self.selectable.select(selection)
         if module is not None:
-            if hasattr(module, "setup_schema"):
-                module.setup_schema(routing_module.schema)
+            setup_schema(module, routing_module.schema)
 
             if isinstance(module, ParallelBlock):
                 branch = module.prepend(routing_module)
@@ -131,13 +132,56 @@ class RouterBlock(ParallelBlock, Selectable):
 
         return self
 
-    def nested_router(self) -> "RouterBlock":
+    # def exclude_route(
+    #     self,
+    #     selection: Selection,
+    # ) -> "RouterBlock":
+    #     route = self.select(selection)
+    #     output = RouterBlock(self.selectable)
+    #     output.pre = self.pre
+
+    #     for key, val in self.branches.items():
+    #         if key not in route.branches:
+    #             output.branches[key] = val
+    #         else:
+    #             a = 5
+
+    #     return output
+
+    # def externalize_route(
+    #     self,
+    #     selection: Selection
+    # ) -> Tuple["RouterBlock", Block]:
+
+    #     a = _select_parallel_block(self, selection)
+
+    #     route = self.select(selection)
+    #     route_schema = route.output_schema()
+
+    #     new_inputs = self
+
+    #     # popped = self.exclude_route(selection)
+    #     # route_schema = popped.output_schema()
+    #     # if not route_schema:
+    #     #     raise ValueError(f"Selection not found.")
+
+    #     # if len(route_schema) == 1:
+    #     #     route_schema = Schema([
+    #     #         route_schema.first.with_name(selection_name(selection))
+    #     #     ])
+
+    #     # self.schema += route_schema
+    #     # self.add_route(route_schema)
+
+    #     return new_inputs, route
+
+    def reroute(self) -> "RouterBlock":
         """Create a new nested router block.
 
         This method is useful for creating hierarchical routing structures.
         For example, you might want to route continuous and categorical features differently,
         and then within each of these categories, route user- and item-features differently.
-        This can be achieved by calling `nested_router` to create a second level of routing.
+        This can be achieved by calling `reroute` to create a second level of routing.
 
         This approach allows for constructing networks with shared computation,
         such as shared embedding tables (like for instance user_genres and item_genres columns).
@@ -150,7 +194,7 @@ class RouterBlock(ParallelBlock, Selectable):
             router.add_route(Tags.CATEGORICAL, mm.Embeddings())
 
             # Second level of routing: separate user- and item-features
-            two_tower = router.nested_router()
+            two_tower = router.reroute()
             two_tower.add_route(Tags.USER, mm.MLPBlock([64, 32]))
             two_tower.add_route(Tags.ITEM, mm.MLPBlock([64, 32]))
 
@@ -164,7 +208,7 @@ class RouterBlock(ParallelBlock, Selectable):
             # We don't need to track the schema since we will be using the nested router
             self._handle.remove()
 
-        return RouterBlock(self)
+        return self.__class__(self)
 
     def select(self, selection: Selection) -> "RouterBlock":
         """Select a subset of the branches based on the provided selection.
@@ -180,128 +224,62 @@ class RouterBlock(ParallelBlock, Selectable):
             A new router block with the selected branches.
         """
 
-        selected_branches = {}
-        for key, val in self.branches.items():
-            selected = select_container(val, selection)
-            if selected:
-                selected_branches[key] = selected
-
-        selectable = self.__class__(self.selectable.select(selection))
-        for key, val in selected_branches.items():
-            selectable.branches[key] = val
-
-        selectable.pre = self.pre
-        selectable.post = self.post
-
-        return selectable
-
-
-class SelectKeys(nn.Module, Selectable):
-    """Filter tabular data based on a defined schema.
-
-    Example usage::
-
-        >>> select_keys = mm.SelectKeys(Schema(["user_id", "item_id"]))
-        >>> inputs = {
-        ...     "user_id": torch.tensor([1, 2, 3]),
-        ...     "item_id": torch.tensor([4, 5, 6]),
-        ...     "other_key": torch.tensor([7, 8, 9]),
-        ... }
-        >>> outputs = select_keys(inputs)
-        >>> print(outputs.keys())
-        dict_keys(['user_id', 'item_id'])
-
-    Parameters
-    ----------
-    schema : Schema, optional
-        The schema to use for selection. Default is None.
-
-    Attributes
-    ----------
-    col_names : list
-        List of column names in the schema.
-    """
-
-    def __init__(self, schema: Optional[Schema] = None):
-        super().__init__()
-        self.col_names: List[str] = []
-        if schema:
-            self.setup_schema(schema)
-
-    def setup_schema(self, schema: Schema):
-        if isinstance(schema, ColumnSchema):
-            schema = Schema([schema])
-
-        super().setup_schema(schema)
-
-        self.col_names = schema.column_names
-
-    def select(self, selection: Selection) -> "SelectKeys":
-        """Select a subset of the schema based on the provided selection.
-
-        Parameters
-        ----------
-        selection : Selection
-            The selection to apply to the schema.
-
-        Returns
-        -------
-        SelectKeys
-            A new SelectKeys instance with the selected schema.
-        """
-
-        return SelectKeys(select_schema(self.schema, selection))
-
-    def forward(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-        """Only keep the inputs that are present in the schema.
-
-        Parameters
-        ----------
-        inputs : dict
-            A dictionary of torch.Tensor objects.
-
-        Returns
-        -------
-        dict
-            A dictionary of torch.Tensor objects after selection.
-        """
-
-        outputs = {}
-
-        for key, val in inputs.items():
-            _key = key
-            if key.endswith("__values"):
-                _key = key[: -len("__values")]
-            elif key.endswith("__offsets"):
-                _key = key[: -len("__offsets")]
-
-            if _key in self.col_names:
-                outputs[key] = val
-
-        return outputs
-
-    def extra_repr(self) -> str:
-        return f"select: {', '.join(self.col_names)}"
-
-    def __bool__(self) -> bool:
-        return bool(self.col_names)
-
-
-def select_container(container: BlockContainer, selection: Selection) -> BlockContainer:
-    outputs = []
-
-    if hasattr(container.values[0], "select"):
-        first = container.values[0].select(selection)
-        if first:
-            outputs.append(first)
-        else:
-            return BlockContainer()
-
-    if len(container.values) > 1:
-        for module in container.values[1:]:
-            if hasattr(module, "select"):
-                outputs.append(module.select(selection))
+        selected = select(self.selectable, selection)
+        output = self.__class__(selected) if selected else RouterBlock(selected)
+        output = _select_parallel_block(self, selection, output)
+        if output:
+            if isinstance(selected, SelectKeys):
+                selected_keys = selected
             else:
-                outputs.append(module)
+                selected_keys = SelectKeys(selected.schema)
+            if not self.pre or (self.pre and self.pre[0] != selected_keys):
+                if all(get_pre(self.branches[key]) for key in output.branches):
+                    for key in output.branches:
+                        pre = get_pre(self.branches[key])
+                        if pre and pre[0] != selected_keys:
+                            set_pre(output.branches[key], BlockContainer(selected_keys, *self.pre))
+                elif selected_keys not in list(output.branches.modules()):
+                    output.pre = BlockContainer(selected_keys, *self.pre)
 
-    return BlockContainer(*outputs, name=container._name)
+        return output
+
+    def replace(self, pre=None, branches=None, post=None) -> "RouterBlock":
+        if isinstance(branches, dict):
+            branches = BlockContainerDict(branches)
+
+        output = self.__class__(self.selectable)
+        output.pre = pre or self.pre
+        output.branches = branches or self.branches
+        output.post = post or self.post
+
+        return output
+
+
+def setup_schema(module: nn.Module, schema: Schema):
+    if hasattr(module, "setup_schema"):
+        module.setup_schema(schema)
+
+    elif isinstance(module, ParallelBlock):
+        for branch in module.branches.values():
+            setup_schema(branch, schema)
+
+    elif isinstance(module, BlockContainer) and module:
+        setup_schema(module[0], schema)
+
+
+def get_pre(module: nn.Module) -> BlockContainer:
+    if hasattr(module, "pre"):
+        return module.pre
+
+    if isinstance(module, BlockContainer):
+        return get_pre(module[0])
+
+    return BlockContainer()
+
+
+def set_pre(module: nn.Module, pre: BlockContainer):
+    if hasattr(module, "pre"):
+        module.pre = pre
+
+    if isinstance(module, BlockContainer):
+        return set_pre(module[0], pre)

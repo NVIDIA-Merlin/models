@@ -49,10 +49,12 @@ class SchemaTrackingMixin:
         self._handle = None
         self._output_shapes = {}
         self._output_dtypes = {}
+        self._output_schema = None
 
         if self._handle is None:
             self._handle = self.register_forward_hook(self._post_forward_hook)
 
+    @torch.jit.ignore
     def output_schema(self) -> Schema:
         """Get the output schema of the module.
 
@@ -66,6 +68,9 @@ class SchemaTrackingMixin:
         RuntimeError
             If forward() has not been called before calling this method.
         """
+
+        if getattr(self, "_output_schema", None):
+            return self._output_schema
 
         if not hasattr(self, "_output_shapes"):
             raise RuntimeError(
@@ -96,3 +101,43 @@ class SchemaTrackingMixin:
     def eval(self):
         self._register_schema_tracking_hook()
         return super().eval()
+
+
+def input_schema(module) -> Schema:
+    if hasattr(module, "input_schema"):
+        return module.input_schema()
+    if hasattr(module, "schema"):
+        return module.schema
+
+    schema = Schema()
+    if hasattr(module, "items"):
+        for value in module.values():
+            schema += input_schema(value)
+
+    else:
+        # check if iterable
+        try:
+            return input_schema(module[0])
+        except TypeError:
+            pass
+
+    return schema
+
+
+def output_schema(module) -> Schema:
+    if hasattr(module, "output_schema"):
+        return module.output_schema()
+
+    schema = Schema()
+    if hasattr(module, "items"):
+        for value in module.values():
+            schema += output_schema(value)
+
+    else:
+        # check if iterable
+        try:
+            return output_schema(module[-1])
+        except TypeError:
+            pass
+
+    return schema

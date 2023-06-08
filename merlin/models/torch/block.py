@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import textwrap
 from copy import deepcopy
 from typing import Dict, Optional, Union
 
@@ -148,9 +149,9 @@ class ParallelBlock(Block):
     """
 
     def __init__(self, *inputs: Union[nn.Module, Dict[str, nn.Module]], track_schema: bool = True):
-        pre = BlockContainer(name="pre")
+        pre = BlockContainer()
         branches = BlockContainerDict(*inputs)
-        post = BlockContainer(name="post")
+        post = BlockContainer()
 
         super().__init__(track_schema=track_schema)
 
@@ -191,7 +192,9 @@ class ParallelBlock(Block):
         for name, branch_container in self.branches.items():
             branch = inputs
 
-            if hasattr(branch_container, "branches"):
+            # We need to check whether or not the branch container has a forward-method
+            # This is a bit of a hack, but this seems to work in torchscript as well.
+            if hasattr(branch_container, "output_schema"):
                 branch = branch_container(branch, batch=batch)
             else:
                 for module in branch_container.values:
@@ -321,6 +324,29 @@ class ParallelBlock(Block):
 
         return self
 
+    def replace(self, pre=None, branches=None, post=None) -> "ParallelBlock":
+        """Replaces the pre-processing, branching and post-processing stages.
+
+        Parameters
+        ----------
+        pre : Optional[BlockContainer], default=None
+            The pre-processing stage.
+        branches : Optional[BlockContainerDict], default=None
+            The branching stage.
+        post : Optional[BlockContainer], default=None
+            The post-processing stage.
+
+        Returns
+        -------
+        ParallelBlock
+            The current object itself.
+        """
+        output = ParallelBlock(branches or self.branches)
+        output.pre = pre or self.pre
+        output.post = post or self.post
+
+        return output
+
     def __getitem__(self, idx: Union[slice, int, str]):
         if isinstance(idx, str) and idx in self.branches:
             return self.branches[idx]
@@ -338,3 +364,29 @@ class ParallelBlock(Block):
 
     def __contains__(self, name):
         return name in self.branches
+
+    def __bool__(self) -> bool:
+        return bool(self.branches) or bool(self.pre) or bool(self.post)
+
+    def __repr__(self) -> str:
+        indent_str = "    "
+        branches = repr(self.branches)[len("BlockContainerDict") :]
+
+        pre = ""
+        if self.pre:
+            pre = textwrap.indent("(pre): " + repr(self.pre), indent_str)
+
+        post = ""
+        if self.post:
+            post = textwrap.indent("(post): " + repr(self.post), indent_str)
+
+        if self.pre or self.post:
+            branches = textwrap.indent("(branches): " + branches, indent_str)
+            output = ""
+            for o in [pre, branches, post]:
+                if o:
+                    output += "\n" + o
+
+            return f"{self._get_name()}({output}\n)"
+
+        return self._get_name() + branches

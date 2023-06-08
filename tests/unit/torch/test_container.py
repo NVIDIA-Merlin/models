@@ -140,7 +140,7 @@ class TestBlockContainer:
         module = nn.Linear(20, 30)
         self.block_container.append(module)
         unwrapped = self.block_container.unwrap()
-        assert isinstance(unwrapped, nn.ModuleList)
+        assert unwrapped == self.block_container
 
     def test_wrap_module_with_module(self):
         module = nn.Linear(20, 30)
@@ -172,7 +172,7 @@ class TestBlockContainerDict:
     def test_init(self):
         assert isinstance(self.container, BlockContainerDict)
         assert self.container._get_name() == "test"
-        assert isinstance(self.container.unwrap()["test"], nn.ModuleList)
+        assert isinstance(self.container.unwrap()["test"], BlockContainer)
 
     def test_empty(self):
         container = BlockContainerDict()
