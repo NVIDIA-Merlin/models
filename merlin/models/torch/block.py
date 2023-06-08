@@ -390,3 +390,21 @@ class ParallelBlock(Block):
             return f"{self._get_name()}({output}\n)"
 
         return self._get_name() + branches
+
+
+def get_pre(module: nn.Module) -> BlockContainer:
+    if hasattr(module, "pre"):
+        return module.pre
+
+    if isinstance(module, BlockContainer):
+        return get_pre(module[0])
+
+    return BlockContainer()
+
+
+def set_pre(module: nn.Module, pre: BlockContainer):
+    if hasattr(module, "pre"):
+        module.pre = pre
+
+    if isinstance(module, BlockContainer):
+        return set_pre(module[0], pre)

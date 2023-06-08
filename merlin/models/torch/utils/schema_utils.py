@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -141,3 +142,17 @@ def output_schema(module) -> Schema:
             pass
 
     return schema
+
+
+def setup_schema(module: nn.Module, schema: Schema):
+    from merlin.models.torch.block import BlockContainer, ParallelBlock
+
+    if hasattr(module, "setup_schema"):
+        module.setup_schema(schema)
+
+    elif isinstance(module, ParallelBlock):
+        for branch in module.branches.values():
+            setup_schema(branch, schema)
+
+    elif isinstance(module, BlockContainer) and module:
+        setup_schema(module[0], schema)

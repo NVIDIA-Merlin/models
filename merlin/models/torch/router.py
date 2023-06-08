@@ -3,7 +3,7 @@ from typing import Optional
 
 from torch import nn
 
-from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.block import Block, ParallelBlock, get_pre, set_pre
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.selection import (
     Selectable,
@@ -11,9 +11,9 @@ from merlin.models.torch.selection import (
     SelectKeys,
     _select_parallel_block,
     select,
-    select_schema,
     selection_name,
 )
+from merlin.models.torch.utils.schema_utils import setup_schema
 from merlin.schema import Schema
 
 
@@ -124,56 +124,13 @@ class RouterBlock(ParallelBlock, Selectable):
 
             return self
 
-        selected = select_schema(self.selectable.schema, selection)
+        selected = select(self.selectable.schema, selection)
 
         for col in selected:
             col_module = module if shared else deepcopy(module)
             self.add_route(col, col_module, name=col.name)
 
         return self
-
-    # def exclude_route(
-    #     self,
-    #     selection: Selection,
-    # ) -> "RouterBlock":
-    #     route = self.select(selection)
-    #     output = RouterBlock(self.selectable)
-    #     output.pre = self.pre
-
-    #     for key, val in self.branches.items():
-    #         if key not in route.branches:
-    #             output.branches[key] = val
-    #         else:
-    #             a = 5
-
-    #     return output
-
-    # def externalize_route(
-    #     self,
-    #     selection: Selection
-    # ) -> Tuple["RouterBlock", Block]:
-
-    #     a = _select_parallel_block(self, selection)
-
-    #     route = self.select(selection)
-    #     route_schema = route.output_schema()
-
-    #     new_inputs = self
-
-    #     # popped = self.exclude_route(selection)
-    #     # route_schema = popped.output_schema()
-    #     # if not route_schema:
-    #     #     raise ValueError(f"Selection not found.")
-
-    #     # if len(route_schema) == 1:
-    #     #     route_schema = Schema([
-    #     #         route_schema.first.with_name(selection_name(selection))
-    #     #     ])
-
-    #     # self.schema += route_schema
-    #     # self.add_route(route_schema)
-
-    #     return new_inputs, route
 
     def reroute(self) -> "RouterBlock":
         """Create a new nested router block.
@@ -253,33 +210,3 @@ class RouterBlock(ParallelBlock, Selectable):
         output.post = post or self.post
 
         return output
-
-
-def setup_schema(module: nn.Module, schema: Schema):
-    if hasattr(module, "setup_schema"):
-        module.setup_schema(schema)
-
-    elif isinstance(module, ParallelBlock):
-        for branch in module.branches.values():
-            setup_schema(branch, schema)
-
-    elif isinstance(module, BlockContainer) and module:
-        setup_schema(module[0], schema)
-
-
-def get_pre(module: nn.Module) -> BlockContainer:
-    if hasattr(module, "pre"):
-        return module.pre
-
-    if isinstance(module, BlockContainer):
-        return get_pre(module[0])
-
-    return BlockContainer()
-
-
-def set_pre(module: nn.Module, pre: BlockContainer):
-    if hasattr(module, "pre"):
-        module.pre = pre
-
-    if isinstance(module, BlockContainer):
-        return set_pre(module[0], pre)
