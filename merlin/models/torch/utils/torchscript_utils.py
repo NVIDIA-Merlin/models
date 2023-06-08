@@ -144,3 +144,12 @@ class TorchScriptWrapper(nn.Module):
 
     def __repr__(self):
         return self.to_wrap.__repr__()
+
+    def __eq__(self, value) -> bool:
+        if not isinstance(value, TorchScriptWrapper):
+            return self.to_wrap == value
+
+        return self.to_wrap == value.to_wrap
+
+    def __hash__(self):
+        return hash(self.to_wrap)

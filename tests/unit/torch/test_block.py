@@ -130,6 +130,7 @@ class TestParallelBlock:
         assert isinstance(pb.pre, BlockContainer)
         assert isinstance(pb.branches, BlockContainerDict)
         assert isinstance(pb.post, BlockContainer)
+        assert pb.__repr__().startswith("ParallelBlock")
 
     def test_init_list_of_dict(self):
         pb = ParallelBlock(({"test": PlusOne()}))

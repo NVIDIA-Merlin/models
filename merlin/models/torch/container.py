@@ -119,7 +119,8 @@ class BlockContainer(nn.Module):
         return self
 
     def unwrap(self) -> nn.ModuleList:
-        return nn.ModuleList(iter(self))
+        return self
+        # return nn.ModuleList(iter(self))
 
     def wrap_module(
         self, module: nn.Module
@@ -169,6 +170,9 @@ class BlockContainer(nn.Module):
             self.append(module)
 
         return self
+
+    def __bool__(self) -> bool:
+        return bool(self.values)
 
     def __repr__(self) -> str:
         sequential = repr(self.values)
@@ -334,9 +338,11 @@ class BlockContainerDict(nn.ModuleDict):
 
     def add_module(self, name: str, module: Optional[nn.Module]) -> None:
         if module and not isinstance(module, BlockContainer):
-            module = BlockContainer(module, name=name[0].upper() + name[1:])
+            module = BlockContainer(module)
 
-        return super().add_module(name, module)
+        output = super().add_module(name, module)
+
+        return output
 
     def unwrap(self) -> Dict[str, nn.ModuleList]:
         return {k: v.unwrap() for k, v in self.items()}

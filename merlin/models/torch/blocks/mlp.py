@@ -52,12 +52,9 @@ class MLPBlock(Block):
         activation=nn.ReLU,
         normalization=None,
         dropout: Optional[float] = None,
-        pre_agg: Optional[nn.Module] = MaybeAgg(Concat()),
+        pre_agg: Optional[nn.Module] = None,
     ):
-        modules: List[nn.Module] = []
-
-        if pre_agg is not None:
-            modules.append(pre_agg)
+        modules: List[nn.Module] = [pre_agg or MaybeAgg(Concat())]
 
         if not isinstance(units, list):
             units = list(units)

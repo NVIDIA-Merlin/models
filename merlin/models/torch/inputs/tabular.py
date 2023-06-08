@@ -1,16 +1,14 @@
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from torch import nn
 
 from merlin.models.torch.block import Block
 from merlin.models.torch.inputs.embedding import EmbeddingTables
 from merlin.models.torch.router import RouterBlock
-
-# from merlin.models.torch.utils.selection_utils import Selection, selection_name
 from merlin.models.utils.registry import Registry
 from merlin.schema import Schema, Tags
 
-Initializer = Callable[["TabularInputBlock"], None]
+Initializer = Callable[["TabularInputBlock"], Any]
 
 
 class TabularInputBlock(RouterBlock):
@@ -52,22 +50,6 @@ class TabularInputBlock(RouterBlock):
             init(self)
         if agg:
             self.append(Block.parse(agg))
-
-    # def externalize_route(self, selection: Selection) -> "TabularInputBlock":
-    #     popped = self.pop_route(selection)
-    #     route_schema = popped.output_schema()
-    #     if not route_schema:
-    #         raise ValueError(f"Selection not found.")
-
-    #     if len(route_schema) == 1:
-    #         route_schema = Schema([
-    #             route_schema.first.with_name(selection_name(selection))
-    #         ])
-
-    #     self.schema += route_schema
-    #     self.add_route(route_schema)
-
-    #     return self
 
     @classmethod
     def register_init(cls, name: str):

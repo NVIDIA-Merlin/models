@@ -1,13 +1,36 @@
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import torch
 from torch import nn
 
+from merlin.models.torch.batch import Batch
+from merlin.models.torch.container import BlockContainer
 from merlin.models.torch.registry import registry
+from merlin.models.torch.selection import Selectable, Selection, select_schema
+
+
+class AggModule(nn.Module, Selectable):
+    def select(self, selection: Selection) -> "AggModule":
+        if not hasattr(self, "schema"):
+            raise ValueError(f"Schema not set in {self}, so cannot select.")
+
+        selected = select_schema(self.schema, selection)
+        if selected == self.schema:
+            return self
+
+        diff = set(selected.column_names) - set(self.schema.column_names)
+
+        raise ValueError(f"Sub-selecting {diff} from {self} is not supported. ")
+
+    def extra_repr(self) -> str:
+        if getattr(self, "schema", None):
+            return f"{', '.join(self.schema.column_names)}"
+
+        return ""
 
 
 @registry.register("concat")
-class Concat(nn.Module):
+class Concat(AggModule):
     """Concatenate tensors along a specified dimension.
 
     Parameters
@@ -87,11 +110,11 @@ class Concat(nn.Module):
                     "along the specified dimension.",
                 )
 
-        return torch.cat(sorted_tensors, dim=self.dim)
+        return torch.cat(sorted_tensors, dim=self.dim).float()
 
 
 @registry.register("stack")
-class Stack(nn.Module):
+class Stack(AggModule):
     """Stack tensors along a specified dimension.
 
     The input dictionary will be sorted by name before concatenation.
@@ -148,10 +171,10 @@ class Stack(nn.Module):
         if not all(t.shape == sorted_tensors[0].shape for t in sorted_tensors):
             raise RuntimeError("Input tensor shapes don't match for stacking.")
 
-        return torch.stack(sorted_tensors, dim=self.dim)
+        return torch.stack(sorted_tensors, dim=self.dim).float()
 
 
-class MaybeAgg(nn.Module):
+class MaybeAgg(BlockContainer):
     """
     This class is designed to conditionally apply an aggregation operation
     (e.g., Stack or Concat) on a tensor or a dictionary of tensors.
@@ -183,10 +206,13 @@ class MaybeAgg(nn.Module):
     """
 
     def __init__(self, agg: nn.Module):
-        super().__init__()
-        self.agg = agg
+        super().__init__(agg)
 
-    def forward(self, inputs: Union[Dict[str, torch.Tensor], torch.Tensor]) -> torch.Tensor:
+    def forward(
+        self,
+        inputs: Union[Dict[str, torch.Tensor], torch.Tensor],
+        batch: Optional[Batch] = None,
+    ) -> torch.Tensor:
         """
         Conditionally applies the aggregation operation on the inputs.
 
@@ -204,7 +230,7 @@ class MaybeAgg(nn.Module):
         """
 
         if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
-            return self.agg(inputs)
+            return self.values[0](inputs)
 
         if not torch.jit.isinstance(inputs, torch.Tensor):
             raise RuntimeError("Inputs must be either a dictionary of tensors or a single tensor.")
