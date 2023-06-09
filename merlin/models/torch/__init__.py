@@ -23,7 +23,7 @@ from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import BinaryOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.router import RouterBlock
-from merlin.models.torch.selection import SelectFeatures, Selection, SelectKeys, externalize, select
+from merlin.models.torch.selection import SelectFeatures, Selection, SelectKeys, extract, select
 from merlin.models.torch.transforms.agg import Concat, Stack
 
 __all__ = [
@@ -32,7 +32,7 @@ __all__ = [
     "Block",
     "EmbeddingTable",
     "EmbeddingTables",
-    "externalize",
+    "extract",
     "ParallelBlock",
     "MLPBlock",
     "ModelOutput",

@@ -52,7 +52,7 @@ class TestTabularInputBlock:
         with pytest.raises(ValueError):
             mm.TabularInputBlock(self.schema, init="unknown")
 
-    def test_externalize_route_two_tower(self):
+    def test_extract_route_two_tower(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults")  # , agg="concat"
         towers = input_block.reroute()
         towers.add_route(Tags.USER, mm.MLPBlock([10]))
@@ -62,33 +62,33 @@ class TestTabularInputBlock:
         assert outputs["user"].shape == (10, 10)
         assert outputs["item"].shape == (10, 10)
 
-        new_inputs, route = mm.externalize(towers, Tags.USER)
+        new_inputs, route = mm.extract(towers, Tags.USER)
 
         assert "user" in new_inputs.branches
         assert new_inputs.branches["user"][0].select_keys.column_names == ["user"]
         assert "user" in route.branches
 
-    def test_externalize_route_embeddings(self):
+    def test_extract_route_embeddings(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
 
         outputs = input_block(self.batch.features)
         assert outputs.shape == (10, 107)
 
-        no_embs, emb_route = mm.externalize(input_block, Tags.CATEGORICAL)
+        no_embs, emb_route = mm.extract(input_block, Tags.CATEGORICAL)
 
         assert no_embs
 
-    def test_externalize_route_nesting(self):
+    def test_extract_route_nesting(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
 
         outputs = input_block(self.batch.features)
         assert outputs.shape == (10, 107)
 
-        no_user_id, user_id_route = mm.externalize(input_block, ColumnSchema("user_id"))
+        no_user_id, user_id_route = mm.extract(input_block, ColumnSchema("user_id"))
 
         assert no_user_id
 
-    def test_externalize_double_nesting(self):
+    def test_extract_double_nesting(self):
         input_block = mm.TabularInputBlock(self.schema, agg="concat")
         input_block.add_route(Tags.CONTINUOUS)
         input_block.add_route(
@@ -101,6 +101,6 @@ class TestTabularInputBlock:
         outputs = input_block(self.batch.features)
         assert outputs.shape == (10, 73)
 
-        no_user_id, user_id_route = mm.externalize(input_block, Tags.USER_ID)
+        no_user_id, user_id_route = mm.extract(input_block, Tags.USER_ID)
 
         assert no_user_id
