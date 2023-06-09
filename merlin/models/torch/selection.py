@@ -1,4 +1,14 @@
-from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 import torch
 from torch import nn
@@ -11,22 +21,41 @@ from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin, input_sc
 from merlin.schema import ColumnSchema, Schema, Tags
 
 Selection = Union[Schema, ColumnSchema, Callable[[Schema], Schema], Tags]
-select = LazyDispatcher("selection")
+ToSelectT = TypeVar("ToSelectT")
 
 
-class ExternalizeDispatch(LazyDispatcher):
+class _SelectDispatch(LazyDispatcher):
+    def __call__(self, to_select: ToSelectT, selection: Selection) -> ToSelectT:
+        if hasattr(to_select, "select") and not isinstance(to_select, Schema):
+            output = to_select.select(selection)
+        else:
+            output = super().__call__(to_select, selection)
+
+        if isinstance(to_select, nn.Module):
+            try:
+                in_schema = select_schema(input_schema(to_select), selection)
+                to_exclude = (input_schema(to_select) - in_schema).column_names
+                output._output_schema = to_select.output_schema().excluding_by_name(to_exclude)
+            except (AttributeError, RuntimeError):
+                pass
+
+        return output
+
+
+class _ExtractDispatch(LazyDispatcher):
     def __call__(self, module: nn.Module, selection: Selection) -> Tuple[nn.Module, nn.Module]:
         route = select(module, selection)
-        externalized = self.externalize(module, selection, route)
+        extracted = self.extract(module, selection, route)
 
-        return externalized, route
+        return extracted, route
 
-    def externalize(self, module: nn.Module, selection: Selection, route: nn.Module, name=None):
+    def extract(self, module: nn.Module, selection: Selection, route: nn.Module, name=None):
         fn = self.dispatch(module)
         return fn(module, selection, route, name=name)
 
 
-externalize = ExternalizeDispatch("externalize")
+select = _SelectDispatch("selection")
+extract = _ExtractDispatch("extract")
 
 
 @select.register(Schema)
@@ -101,6 +130,12 @@ def selection_name(selection: Selection) -> str:
         return selection.__name__
 
     raise ValueError(f"Selection {selection} is not valid")
+
+
+@runtime_checkable
+class _SelectableProtocol(Protocol):
+    def select(self, selection: Selection):
+        ...
 
 
 class Selectable:
@@ -251,14 +286,58 @@ class SelectKeys(nn.Module, Selectable, SchemaTrackingMixin):
 
 
 class SelectFeatures(nn.Module):
+    """Filter tabular data based on a defined schema.
+
+    It operates similarly to SelectKeys, but it uses the features from Batch.
+    This is useful when you want to select raw-features from anywhere in the model.
+
+    Example usage::
+
+        >>> select_features = mm.SelectFeatures(Schema(["user_id", "item_id"]))
+        >>> inputs = {
+        ...     "user_id_embedding": torch.tensor([1.0, 2.0, 3.0]),
+        ...     "item_id_embedding": torch.tensor([4.0, 5.0, 6.0]),
+        ...     "other_key": torch.tensor([7, 8, 9]),
+        ... }
+        >>> batch = Batch(inputs)
+        >>> outputs = select_features(inputs, batch)
+        >>> print(outputs.keys())
+        dict_keys(['user_id', 'item_id'])
+
+    Parameters
+    ----------
+    schema : Schema, optional
+        The schema to use for selection. Default is None.
+    """
+
     def __init__(self, schema: Optional[Schema] = None):
         super().__init__()
         self.select_keys = SelectKeys(schema=schema)
 
     def setup_schema(self, schema: Schema):
+        """Set up the schema for the SelectFeatures.
+
+        Parameters
+        ----------
+        schema : Schema
+            The schema to use for selection.
+        """
         self.select_keys.setup_schema(schema)
+        self.embedding_names = schema.select_by_tag(Tags.EMBEDDING).column_names
 
     def select(self, selection: Selection) -> "SelectFeatures":
+        """Select a subset of the schema based on the provided selection.
+
+        Parameters
+        ----------
+        selection : Selection
+            The selection to apply to the schema.
+
+        Returns
+        -------
+        SelectFeatures
+            A new SelectFeatures instance with the selected schema.
+        """
         schema = self.select_keys.select(selection).schema
 
         return SelectFeatures(schema)
@@ -268,7 +347,7 @@ class SelectFeatures(nn.Module):
         embeddings = self.select_keys(inputs, batch.features)
 
         for key, val in embeddings.items():
-            if key.endswith("_embedding"):
+            if key in self.embedding_names and key.endswith("_embedding"):
                 key = key.replace("_embedding", "")
             outputs[key] = val
 
@@ -278,14 +357,18 @@ class SelectFeatures(nn.Module):
 BlockT = TypeVar("BlockT", bound=BlockContainer)
 
 
+@select.register(BlockContainer)
 def _select_block(container: BlockT, selection: Selection) -> BlockT:
+    if isinstance(container, ParallelBlock):
+        return _select_parallel_block(container, selection)
+
     outputs = []
 
     if not container.values:
         return container.__class__()
 
     first = container.values[0]
-    selected_first = select_module(first, selection)
+    selected_first = select(first, selection)
     if not selected_first:
         return container.__class__()
     if first == selected_first:
@@ -295,7 +378,7 @@ def _select_block(container: BlockT, selection: Selection) -> BlockT:
     if len(container.values) > 1:
         for module in container.values[1:]:
             try:
-                selected_module = select_module(module, selection)
+                selected_module = select(module, selection)
             except ValueError:
                 selected_module = None
 
@@ -330,14 +413,14 @@ def _select_parallel_block(
 
     pre = parallel.pre
     if pre:
-        selected = select_module(pre, selection)
+        selected = select(pre, selection)
         if not selected:
             return ParallelBlock()
 
         pre = selected
 
     for key, val in parallel.branches.items():
-        selected = select_module(val, selection)
+        selected = select(val, selection)
         if selected:
             branches[key] = selected
 
@@ -350,33 +433,12 @@ def _select_parallel_block(
     return output
 
 
-@select.register(nn.Module)
-def select_module(module: SelectT, selection: Selection) -> SelectT:
-    if hasattr(module, "select"):
-        output = module.select(selection)
-    elif isinstance(module, ParallelBlock):
-        output = _select_parallel_block(module, selection)
-    elif isinstance(module, BlockContainer):
-        output = _select_block(module, selection)
-    else:
-        raise ValueError(f"Cannot select from {module}")
-
-    try:
-        in_schema = select_schema(input_schema(module), selection)
-        to_exclude = (input_schema(module) - in_schema).column_names
-        output._output_schema = module.output_schema().excluding_by_name(to_exclude)
-    except (AttributeError, RuntimeError):
-        pass
-
-    return output
-
-
-def _externalize_parallel(main, selection, route, name=None):
+def _extract_parallel(main, selection, route, name=None):
     output_branches = {}
 
     for branch_name, branch in main.branches.items():
         if branch_name in route:
-            out = externalize.externalize(branch, selection, route[branch_name], name=branch_name)
+            out = extract.extract(branch, selection, route[branch_name], name=branch_name)
             if out:
                 output_branches[branch_name] = out
         else:
@@ -385,10 +447,10 @@ def _externalize_parallel(main, selection, route, name=None):
     return main.replace(branches=output_branches)
 
 
-@externalize.register(BlockContainer)
-def _externalize_block(main, selection, route, name=None):
+@extract.register(BlockContainer)
+def _extract_block(main, selection, route, name=None):
     if isinstance(main, ParallelBlock):
-        return _externalize_parallel(main, selection, route=route, name=name)
+        return _extract_parallel(main, selection, route=route, name=name)
 
     main_schema = input_schema(main)
     route_schema = input_schema(route)
@@ -405,13 +467,13 @@ def _externalize_block(main, selection, route, name=None):
 
     output = main.__class__()
     for i, module in enumerate(main):
-        output.append(externalize.externalize(module, selection, route[i], name=name))
+        output.append(extract.extract(module, selection, route[i], name=name))
 
     return output
 
 
-@externalize.register(SelectKeys)
-def _externalize_select_keys(main, selection, route, name=None):
+@extract.register(SelectKeys)
+def _extract_select_keys(main, selection, route, name=None):
     main_schema = input_schema(main)
     route_schema = input_schema(route)
     diff = main_schema.excluding_by_name(route_schema.column_names)
