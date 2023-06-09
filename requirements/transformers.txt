@@ -1,1 +1,5 @@
-transformers>=4.23,<5
+# Version 4.30 of `transformers` started using functionality in TensorFlow 2.11
+# Until either that is changed in transformers or, we drop support
+# for TensorFlow versions prior to 2.11, then we need to keep this
+# upper bound on the version specifier
+transformers>=4.23,<4.30
