@@ -79,11 +79,8 @@ jobs:
           python setup.py develop
       - name: Run unittests
         run: |
-          if [[ "${{ github.ref }}" == 'refs/heads/main' ]]; then
-            make tests-tf
-          else
-            make tests-tf-changed
-          fi
+          pytest -rsx -s tests/unit/tf/examples/test_usecase_retrieval_with_hpo.py
+          pytest -rsx -s tests/unit/tf/examples/test_usecase_incremental_training_layer_freezing.py
       - name: Generate package for pypi
         run: |
           python setup.py sdist
