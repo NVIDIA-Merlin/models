@@ -182,8 +182,7 @@ class RouterBlock(ParallelBlock, Selectable):
         """
 
         selected = select(self.selectable, selection)
-        output = self.__class__(selected) if selected else RouterBlock(selected)
-        output = _select_parallel_block(self, selection, output)
+        output = _select_parallel_block(self, selection)
         if output:
             if isinstance(selected, SelectKeys):
                 selected_keys = selected
@@ -205,8 +204,8 @@ class RouterBlock(ParallelBlock, Selectable):
             branches = BlockContainerDict(branches)
 
         output = self.__class__(self.selectable)
-        output.pre = pre or self.pre
-        output.branches = branches or self.branches
-        output.post = post or self.post
+        output.pre = pre if pre is not None else self.pre
+        output.branches = branches if branches is not None else self.branches
+        output.post = post if post is not None else self.post
 
         return output

@@ -32,7 +32,12 @@ class _SelectDispatch(LazyDispatcher):
             output = super().__call__(to_select, selection)
 
         if isinstance(to_select, nn.Module):
+            from merlin.models.torch.inputs.tabular import TabularInputBlock
+
             try:
+                if isinstance(to_select, TabularInputBlock):
+                    a = 5
+
                 in_schema = select_schema(input_schema(to_select), selection)
                 to_exclude = (input_schema(to_select) - in_schema).column_names
                 output._output_schema = to_select.output_schema().excluding_by_name(to_exclude)
@@ -44,10 +49,10 @@ class _SelectDispatch(LazyDispatcher):
 
 class _ExtractDispatch(LazyDispatcher):
     def __call__(self, module: nn.Module, selection: Selection) -> Tuple[nn.Module, nn.Module]:
-        route = select(module, selection)
-        extracted = self.extract(module, selection, route)
+        extraction = select(module, selection)
+        module_with_extraction = self.extract(module, selection, extraction)
 
-        return extracted, route
+        return module_with_extraction, extraction
 
     def extract(self, module: nn.Module, selection: Selection, route: nn.Module, name=None):
         fn = self.dispatch(module)
@@ -186,7 +191,7 @@ class Selectable:
         raise NotImplementedError()
 
 
-class SelectKeys(nn.Module, Selectable, SchemaTrackingMixin):
+class SelectKeys(nn.Module, Selectable):
     """Filter tabular data based on a defined schema.
 
     Example usage::
@@ -407,9 +412,8 @@ ParallelT = TypeVar("ParallelT", bound=ParallelBlock)
 def _select_parallel_block(
     parallel: ParallelT,
     selection: Selection,
-    to_return: Optional[ParallelT] = None,
 ) -> ParallelT:
-    branches = {} if to_return is None else to_return.branches
+    branches = {}
 
     pre = parallel.pre
     if pre:
@@ -424,11 +428,12 @@ def _select_parallel_block(
         if selected:
             branches[key] = selected
 
-    output = to_return or parallel.__class__(branches)
-    output.pre = pre
+    if len(branches) == len(parallel.branches):
+        post = parallel.post
+    else:
+        post = BlockContainer()
 
-    if parallel.branches == output.branches:
-        output.post = parallel.post
+    output = parallel.replace(pre=pre, branches=branches, post=post)
 
     return output
 

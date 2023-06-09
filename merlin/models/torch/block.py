@@ -26,7 +26,10 @@ from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
 from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin
+from merlin.models.torch.utils.schema_utils import _input_schema as input_schema
+from merlin.models.torch.utils.schema_utils import _output_schema as output_schema
 from merlin.models.utils.registry import RegistryMixin
+from merlin.schema import Schema
 
 
 class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
@@ -341,9 +344,9 @@ class ParallelBlock(Block):
         ParallelBlock
             The current object itself.
         """
-        output = ParallelBlock(branches or self.branches)
-        output.pre = pre or self.pre
-        output.post = post or self.post
+        output = ParallelBlock(branches if branches is not None else self.branches)
+        output.pre = pre if pre is not None else self.pre
+        output.post = post if post is not None else self.post
 
         return output
 
@@ -408,3 +411,31 @@ def set_pre(module: nn.Module, pre: BlockContainer):
 
     if isinstance(module, BlockContainer):
         return set_pre(module[0], pre)
+
+
+@input_schema.register(ParallelBlock)
+def _input_schema_parallel_block(module: ParallelBlock):
+    schema = Schema()
+
+    if module.post:
+        return input_schema(module.post)
+
+    for branch in module.branches.values():
+        schema += input_schema(branch)
+
+    return schema
+
+
+@input_schema.register(BlockContainer)
+def _input_schema_block(module: BlockContainer):
+    return input_schema(module[-1])
+
+
+@output_schema.register(ParallelBlock)
+def _output_schema_parallel_block(module: ParallelBlock, input_schema: Schema):
+    pass
+
+
+@output_schema.register(BlockContainer)
+def _output_schema_block(module: BlockContainer, input_schema: Schema):
+    pass

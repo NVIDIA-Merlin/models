@@ -20,10 +20,10 @@ import torch
 from torch import nn
 
 from merlin.models.torch.batch import Batch
-from merlin.models.torch.utils import module_utils
+from merlin.models.torch.utils import module_utils, schema_utils
 
 
-class TorchScriptWrapper(nn.Module):
+class TorchScriptWrapper(nn.Module, schema_utils.SchemaTrackingMixin):
     """
     A wrapper class for PyTorch `nn.Module` to make it compatible with TorchScript.
 
@@ -134,6 +134,7 @@ class TorchScriptWrapper(nn.Module):
             "accepts_dict",
             "accepts_batch",
             "requires_batch",
+            "output_schema",
             "to_wrap",
             "unwrap",
         ]:

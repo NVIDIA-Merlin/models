@@ -3,7 +3,8 @@ import torch
 
 import merlin.models.torch as mm
 from merlin.models.torch.inputs.embedding import infer_embedding_dim
-from merlin.models.torch.selection import select_schema
+from merlin.models.torch.selection import output_schema, select_schema
+from merlin.models.torch.utils.schema_utils import trace_schema
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -58,6 +59,8 @@ class TestTabularInputBlock:
         towers.add_route(Tags.USER, mm.MLPBlock([10]))
         towers.add_route(Tags.ITEM, mm.MLPBlock([10]))
 
+        outputs = trace_schema(towers, self.batch.features)
+
         outputs = towers(self.batch.features)
         assert outputs["user"].shape == (10, 10)
         assert outputs["item"].shape == (10, 10)
@@ -67,6 +70,7 @@ class TestTabularInputBlock:
         assert "user" in new_inputs.branches
         assert new_inputs.branches["user"][0].select_keys.column_names == ["user"]
         assert "user" in route.branches
+        assert output_schema(route).select_by_tag(Tags.EMBEDDING).column_names == ["user"]
 
     def test_extract_route_embeddings(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")

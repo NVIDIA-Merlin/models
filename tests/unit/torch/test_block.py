@@ -187,6 +187,9 @@ class TestParallelBlock:
         assert pb[-1][0] == module
         assert pb[2][0] == module
 
+        repr = pb.__repr__()
+        assert "(post):" in repr
+
         module_utils.module_test(pb, torch.randn(1, 3))
 
     def test_prepend(self):
@@ -196,6 +199,9 @@ class TestParallelBlock:
         assert len(pb.pre._modules) == 1
 
         assert pb[0][0] == module
+
+        repr = pb.__repr__()
+        assert "(pre):" in repr
 
         module_utils.module_test(pb, torch.randn(1, 3))
 
