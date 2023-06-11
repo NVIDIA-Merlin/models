@@ -11,6 +11,6 @@ rm -rf hugectr/
 git clone https://github.com/NVIDIA-Merlin/HugeCTR.git hugectr
 
 cd hugectr/sparse_operation_kit/
-python setup.py install
+python setup.py develop --no-deps
 
 rm -rf ${HUGECTR_HOME}
