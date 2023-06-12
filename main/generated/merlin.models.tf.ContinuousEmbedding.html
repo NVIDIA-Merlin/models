@@ -97,7 +97,28 @@
 <dl class="py function">
 <dt id="merlin.models.tf.ContinuousEmbedding">
 <code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">ContinuousEmbedding</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.core.base.Block</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">embedding_block</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.core.base.Block</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">continuous_aggregation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'concat'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'continuous'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">merlin.models.tf.core.combinators.SequentialBlock</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#ContinuousEmbedding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ContinuousEmbedding" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="simple">
+<dt>Concatenates all numerical features and project then using the</dt><dd><p>specified Block.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> (<em>Block</em>) – Expects a ParallelBlock with a number of features</p></li>
+<li><p><strong>embedding_block</strong> (<em>Block</em>) – Block to project the continuous features</p></li>
+<li><p><strong>aggregation</strong> (<em>optional</em>) – Aggregation combining continuous feature switch the other features, by default None</p></li>
+<li><p><strong>continuous_aggregation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – Aggregation for continuous features, by default “concat”</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the projected continuous block, by default “continuous”</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A block that contains the projected continuous features along with the other features</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock" title="merlin.models.tf.SequentialBlock">SequentialBlock</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 

@@ -128,7 +128,6 @@
     <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">max_seq_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">add_continuous_branch</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">continuous_tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">TagsType</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tags</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,),</span>
     <span class="n">continuous_projection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -159,6 +158,9 @@
 <span class="sd">        Next to this, it&#39;s also possible to construct it manually.</span>
 <span class="sd">    branches: Dict[str, Block], optional</span>
 <span class="sd">        Dictionary of branches to use inside the InputBlock.</span>
+<span class="sd">    pre: Optional[BlockType]</span>
+<span class="sd">        Transformations to apply on the inputs before the module is</span>
+<span class="sd">        called (before &#39;forward&#39;). Default is None.</span>
 <span class="sd">    post: Optional[BlockType]</span>
 <span class="sd">        Transformations to apply on the inputs after the module is</span>
 <span class="sd">        called (so **after** `forward`).</span>

@@ -308,6 +308,37 @@
         <span class="n">dense</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A Dense layer that aggregates features before projection</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        units : _type_</span>
+<span class="sd">            _description_</span>
+<span class="sd">        activation : Optional[Union[str,tf.keras.layers.Layer]], optional</span>
+<span class="sd">            The activation function to use. By default None</span>
+<span class="sd">        use_bias : bool, optional</span>
+<span class="sd">            Whether to use a bias in the MLP, by default True</span>
+<span class="sd">        kernel_initializer: InitializerType</span>
+<span class="sd">            Initializer for the kernel weights matrix. Defaults to &quot;glorot_uniform&quot;.</span>
+<span class="sd">        bias_initializer: InitializerType</span>
+<span class="sd">            Initializer for the bias vector. Default to &quot;zeros&quot;.</span>
+<span class="sd">        kernel_regularizer: Optional[RegularizerType]</span>
+<span class="sd">            Regularizer function applied to the kernel weights matrix. Default to None.</span>
+<span class="sd">        bias_regularizer: Optional[RegularizerType]</span>
+<span class="sd">            Regularizer function applied to the bias vector.  Default to None.</span>
+<span class="sd">        activity_regularizer : optional</span>
+<span class="sd">            Regularizer function applied to the output of the layer (its &quot;activation&quot;),</span>
+<span class="sd">            by default None</span>
+<span class="sd">        kernel_constraint : optional</span>
+<span class="sd">            Constraint function applied to the kernel weights matrix, by default None</span>
+<span class="sd">        bias_constraint : optional</span>
+<span class="sd">            Constraint function applied to the bias vector, by default None</span>
+<span class="sd">        pre_aggregation : str, optional</span>
+<span class="sd">            If provided, aggregates inputs before the dense projection, by default &quot;concat&quot;</span>
+<span class="sd">        dense : _type_, optional</span>
+<span class="sd">            A tf.keras.layers.Layer that can be used to project the inputs.</span>
+<span class="sd">            Typically used when deserializing the layer. By default None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="nb">super</span><span class="p">(</span><span class="n">_Dense</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dense</span> <span class="o">=</span> <span class="n">dense</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
             <span class="n">units</span><span class="p">,</span>

@@ -118,8 +118,6 @@ callable to initialize embedding tables</p></li>
 <li><p><strong>prediction_tasks</strong> (<em>optional</em>) – The optional <cite>PredictionTask</cite> or list of <cite>PredictionTask</cite> to apply on the model.</p></li>
 <li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
 Defaults to 1.</p></li>
-<li><p><strong>loss</strong> (<em>Optional</em><em>[</em><em>LossType</em><em>]</em>) – Loss function.
-Defaults to <cite>bpr</cite>.</p></li>
 <li><p><strong>samplers</strong> (<em>List</em><em>[</em><a class="reference internal" href="merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler" title="merlin.models.tf.ItemSampler"><em>ItemSampler</em></a><em>]</em>) – List of samplers for negative sampling, by default <cite>[InBatchSampler()]</cite></p></li>
 </ul>
 </dd>

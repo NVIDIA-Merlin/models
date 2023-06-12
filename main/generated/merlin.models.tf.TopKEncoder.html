@@ -162,13 +162,13 @@ By default None</p></li>
 <td><p>Batched top-k prediction using Dask.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code>(input_shape)</p></td>
-<td><p></p></td>
+<td><p>Creates the variables of the layer.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_from_config</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(inputs, *[, targets, training, testing])</p></td>
-<td><p></p></td>
+<td><p>Calls the model on new inputs and returns the outputs as tensors.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_train_test</span></code>(x[, y, sample_weight, …])</p></td>
 <td><p>Apply the model’s call method during Train or Test modes and prepare Prediction (v2) or PredictionOutput (v1 - depreciated) objects</p></td>
@@ -189,7 +189,7 @@ By default None</p></li>
 <td><p>Overrides Model.compute_metrics() for some custom behaviour</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code>(input_shape)</p></td>
-<td><p></p></td>
+<td><p>Computes the output shape of the layer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
 <td><p>Compute the output tensor signature of the layer based on the inputs.</p></td>
@@ -198,7 +198,7 @@ By default None</p></li>
 <td><p>Count the total number of scalars composing the weights.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode</span></code>(dataset, index, batch_size, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>Encodes the given dataset and index.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.TopKEncoder.encode_candidates" title="merlin.models.tf.TopKEncoder.encode_candidates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_candidates</span></code></a>(dataset[, index_column, …])</p></td>
 <td><p>Method to generate candidates embeddings</p></td>
@@ -225,7 +225,7 @@ By default None</p></li>
 <td><p>Class method to initialize a TopKEncoder from a dataset of raw candidates features.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config[, custom_objects])</p></td>
-<td><p></p></td>
+<td><p>Creates a new instance of the class by deserializing.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_build_config</span></code>()</p></td>
 <td><p></p></td>
@@ -234,7 +234,7 @@ By default None</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
-<td><p></p></td>
+<td><p>Returns the configuration of the model as a dictionary.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input tensor(s) of a layer at a given node.</p></td>
@@ -285,7 +285,7 @@ By default None</p></li>
 <td><p>Logic to consolidate metrics results extracted from standard Keras Model.compute_metrics()</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs_by_name</span></code>()</p></td>
-<td><p></p></td>
+<td><p>Returns the task names from the model outputs</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs_by_target</span></code>()</p></td>
 <td><p>Method to index the model’s prediction blocks by target names.</p></td>
@@ -300,7 +300,7 @@ By default None</p></li>
 <td><p>Returns predictions for a single batch of samples.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_step</span></code>(data)</p></td>
-<td><p></p></td>
+<td><p>Custom predict step to obtain the outputs</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prediction_tasks_by_name</span></code>()</p></td>
 <td><p></p></td>
@@ -348,7 +348,7 @@ By default None</p></li>
 <td><p>Runs a single gradient update on a single batch of data.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_step</span></code>(data)</p></td>
-<td><p>Train step</p></td>
+<td><p>Performs a training step.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
 <td><p>Decorator to automatically enter the module name scope.</p></td>
@@ -384,10 +384,10 @@ By default None</p></li>
 <td><p>Whether the layer is dynamic (eager-only); set in the constructor.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">first</span></code></p></td>
-<td><p></p></td>
+<td><p>Returns the first block of the model.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_schema</span></code></p></td>
-<td><p></p></td>
+<td><p>Returns True as this class does contain a schema.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">inbound_nodes</span></code></p></td>
 <td><p>Return Functional API nodes upstream of this layer.</p></td>
@@ -411,7 +411,7 @@ By default None</p></li>
 <td><p>Specify whether to compile the model with XLA.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">last</span></code></p></td>
-<td><p></p></td>
+<td><p>Returns the last block of the model.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">layers</span></code></p></td>
 <td><p></p></td>
@@ -426,7 +426,7 @@ By default None</p></li>
 <td><p>Returns the model’s display labels for all outputs.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_outputs</span></code></p></td>
-<td><p></p></td>
+<td><p>Returns a list with the ModelOutput in the model</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></p></td>
 <td><p>Name of the layer (string), set in the constructor.</p></td>
@@ -453,13 +453,13 @@ By default None</p></li>
 <td><p>Retrieves the output shape(s) of a layer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prediction_tasks</span></code></p></td>
-<td><p></p></td>
+<td><p>Returns the Prediction tasks in the model.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_eagerly</span></code></p></td>
 <td><p>Settable attribute indicating whether the model should run eagerly.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">schema</span></code></p></td>
-<td><p></p></td>
+<td><p>Returns the schema of the model.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_updates</span></code></p></td>
 <td><p>Deprecated, do NOT use!</p></td>
@@ -474,7 +474,7 @@ By default None</p></li>
 <td><p>Whether this layer supports computing a mask using <cite>compute_mask</cite>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_call</span></code></p></td>
-<td><p></p></td>
+<td><p>Provides the list of blocks to be called during the execution of the model.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.TopKEncoder.topk_layer" title="merlin.models.tf.TopKEncoder.topk_layer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">topk_layer</span></code></a></p></td>
 <td><p></p></td>

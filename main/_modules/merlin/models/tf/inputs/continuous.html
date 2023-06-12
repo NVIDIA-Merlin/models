@@ -182,9 +182,39 @@
 
 <div class="viewcode-block" id="ContinuousFeatures.from_features"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures.from_features">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_features</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Class method for creating an instance of ContinuousFeatures.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        features: list</span>
+<span class="sd">            List of continuous features to include in this module.</span>
+<span class="sd">        kwargs : dict</span>
+<span class="sd">            Additional keyword arguments.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ContinuousFeatures</span>
+<span class="sd">            An instance of ContinuousFeatures class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ContinuousFeatures.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Processes the specified continuous features from the inputs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputs: dict</span>
+<span class="sd">            The input tensors, as a dictionary of string feature name to tensor.</span>
+<span class="sd">        args: tuple</span>
+<span class="sd">            Additional arguments, not used.</span>
+<span class="sd">        kwargs: dict</span>
+<span class="sd">            Additional keyword arguments, not used.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary of the processed continuous features.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cont_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
         <span class="n">cont_features</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">k</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cont_features</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -192,6 +222,18 @@
         <span class="k">return</span> <span class="n">cont_features</span></div>
 
 <div class="viewcode-block" id="ContinuousFeatures.compute_call_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures.compute_call_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_call_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates the output shapes of the processed continuous features.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shapes: dict</span>
+<span class="sd">            The shapes of the input tensors.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary of the output shapes of the processed continuous features.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cont_features_sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_features</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
         <span class="n">cont_features_sizes</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">k</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">v</span>
@@ -200,6 +242,13 @@
         <span class="k">return</span> <span class="n">cont_features_sizes</span></div>
 
 <div class="viewcode-block" id="ContinuousFeatures.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a dictionary containing the configuration of the ContinuousFeatures block.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary containing the configuration of the ContinuousFeatures block.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
 
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_features</span><span class="o">.</span><span class="n">feature_names</span>
@@ -207,12 +256,35 @@
         <span class="k">return</span> <span class="n">config</span></div>
 
     <span class="k">def</span> <span class="nf">_get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the name of the module.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The name of the module.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="s2">&quot;ContinuousFeatures&quot;</span>
 
 <div class="viewcode-block" id="ContinuousFeatures.repr_ignore"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures.repr_ignore">[docs]</a>    <span class="k">def</span> <span class="nf">repr_ignore</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of module properties to ignore when creating a string representation</span>
+<span class="sd">        of the module.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        List[str]</span>
+<span class="sd">            A list of module properties to ignore in the string representation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;filter_features&quot;</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="ContinuousFeatures.repr_extra"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures.repr_extra">[docs]</a>    <span class="k">def</span> <span class="nf">repr_extra</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a string of additional details to display in the string representation</span>
+<span class="sd">        of the module.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            Additional details for the string representation of the module.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filter_features</span><span class="o">.</span><span class="n">feature_names</span><span class="p">))</span></div></div>
 </pre></div>
 

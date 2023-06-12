@@ -145,7 +145,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.L2Norm.call" title="merlin.models.tf.L2Norm.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs[, axis])</p></td>
-<td><p></p></td>
+<td><p>Invokes the L2 normalization on the input tensor or dictionary of tensors.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_outputs</span></code>(outputs[, training])</p></td>
 <td><p></p></td>
@@ -160,7 +160,7 @@
 <td><p>Computes an output mask tensor.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.L2Norm.compute_output_shape" title="merlin.models.tf.L2Norm.compute_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code></a>(input_shape)</p></td>
-<td><p></p></td>
+<td><p>Compute the output shape of the tensor after normalization.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
 <td><p>Compute the output tensor signature of the layer based on the inputs.</p></td>
@@ -432,12 +432,39 @@
 <dl class="py method">
 <dt id="merlin.models.tf.L2Norm.call">
 <code class="sig-name descname"><span class="pre">call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/regularization.html#L2Norm.call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.L2Norm.call" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Invokes the L2 normalization on the input tensor or dictionary of tensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> (<em>Union</em><em>[</em><em>tf.Tensor</em><em>, </em><em>TabularData</em><em>]</em>) – A Tensor or TabularData input to normalize.</p></li>
+<li><p><strong>axis</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – The axis on which to normalize, by default -1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The L2-normalized tensor or dictionary of tensors.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Union[tf.Tensor, TabularData]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.L2Norm.compute_output_shape">
 <code class="sig-name descname"><span class="pre">compute_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/regularization.html#L2Norm.compute_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.L2Norm.compute_output_shape" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Compute the output shape of the tensor after normalization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.11)"><em>tuple</em></a>) – A tuple indicating the shape of the input tensor.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The shape of the tensor after L2 normalization.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.11)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

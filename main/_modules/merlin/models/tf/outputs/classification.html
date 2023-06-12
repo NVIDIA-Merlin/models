@@ -98,7 +98,7 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Layer</span>
@@ -118,7 +118,14 @@
 <span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">default_binary_metrics</span><span class="p">():</span>
+<span class="k">def</span> <span class="nf">default_binary_metrics</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Metric</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the default binary metrics</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    List[tf.keras.metrics.Metric]</span>
+<span class="sd">        List with metrics for binary classification</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Precision</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;precision&quot;</span><span class="p">),</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Recall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;recall&quot;</span><span class="p">),</span>
@@ -128,6 +135,14 @@
 
 
 <span class="k">def</span> <span class="nf">default_categorical_prediction_metrics</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the default top-k metrics for</span>
+<span class="sd">    categorical classification</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    List[tf.keras.metrics.Metric]</span>
+<span class="sd">        List with top-k metrics for categorical classification</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">RecallAt</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
         <span class="n">MRRAt</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
@@ -154,8 +169,6 @@
 <span class="sd">        by default None</span>
 <span class="sd">    name: str, optional</span>
 <span class="sd">        The name of the task.</span>
-<span class="sd">    task_block: Block, optional</span>
-<span class="sd">        The block to use for the task.</span>
 <span class="sd">    logits_temperature: float, optional</span>
 <span class="sd">        Parameter used to reduce model overconfidence, so that logits / T.</span>
 <span class="sd">        by default 1.</span>

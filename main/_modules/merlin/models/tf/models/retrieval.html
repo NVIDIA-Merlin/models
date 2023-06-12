@@ -154,9 +154,6 @@
 <span class="sd">    logits_temperature: float</span>
 <span class="sd">        Parameter used to reduce model overconfidence, so that logits / T.</span>
 <span class="sd">        Defaults to 1.</span>
-<span class="sd">    loss: Optional[LossType]</span>
-<span class="sd">        Loss function.</span>
-<span class="sd">        Defaults to `bpr`.</span>
 <span class="sd">    samplers: List[ItemSampler]</span>
 <span class="sd">        List of samplers for negative sampling, by default `[InBatchSampler()]`</span>
 
@@ -627,6 +624,8 @@
 <span class="sd">        By default None</span>
 <span class="sd">    post: Optional[tf.keras.layers.Layer], optional</span>
 <span class="sd">        The optional layer to apply on top of the query encoder.</span>
+<span class="sd">    outputs : Union[ModelOutput, List[ModelOutput]], optional</span>
+<span class="sd">        Specifies the model&#39;s outputs. If not specified, the outputs will be inferred.</span>
 <span class="sd">    logits_temperature: float, optional</span>
 <span class="sd">        Parameter used to reduce model overconfidence, so that logits / T.</span>
 <span class="sd">        Defaults to 1.</span>
@@ -640,6 +639,11 @@
 <span class="sd">        encoded ids, which are usually reserved for &lt;nulls&gt;,</span>
 <span class="sd">        out-of-vocabulary or padding.</span>
 <span class="sd">        By default 0.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    --------</span>
+<span class="sd">    RetrievalModelV2</span>
+<span class="sd">        The constructed Youtube-DNN based retrieval model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">inputs</span><span class="p">:</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">schema</span>

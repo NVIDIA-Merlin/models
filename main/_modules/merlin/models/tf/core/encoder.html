@@ -83,7 +83,7 @@
              
   <h1>Source code for merlin.models.tf.core.encoder</h1><div class="highlight"><pre>
 <span></span><span class="c1">#</span>
-<span class="c1"># Copyright (c) 2021, NVIDIA CORPORATION.</span>
+<span class="c1"># Copyright (c) 2023, NVIDIA CORPORATION.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c1"># you may not use this file except in compliance with the License.</span>
@@ -172,6 +172,22 @@
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encodes the given dataset and index.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataset: merlin.io.Dataset</span>
+<span class="sd">            The dataset to encode.</span>
+<span class="sd">        index: Union[str, ColumnSchema, Schema, Tags]</span>
+<span class="sd">            The index to use for encoding.</span>
+<span class="sd">        batch_size: int</span>
+<span class="sd">            The batch size for encoding.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        merlin.io.Dataset</span>
+<span class="sd">            The encoded dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">Schema</span><span class="p">):</span>
             <span class="n">output_schema</span> <span class="o">=</span> <span class="n">index</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">ColumnSchema</span><span class="p">):</span>
@@ -201,12 +217,14 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Batched prediction using Dask.</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        dataset: merlin.io.Dataset</span>
 <span class="sd">            Dataset to predict on.</span>
 <span class="sd">        batch_size: int</span>
 <span class="sd">            Batch size to use for prediction.</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        merlin.io.Dataset</span>
@@ -250,6 +268,23 @@
         <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Encoder.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calls the model on new inputs and returns the outputs as tensors.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputs : tensor-like or dict/tuple of tensors.</span>
+<span class="sd">            Tensors or dict/tuple of tensors representing the input batch.</span>
+<span class="sd">        targets : tensor-like, optional</span>
+<span class="sd">            Tensors representing the target data.</span>
+<span class="sd">        training : bool, optional</span>
+<span class="sd">            Whether the model is in training mode.</span>
+<span class="sd">        testing : bool, optional</span>
+<span class="sd">            Whether the model is in testing mode.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A tensor or dict of tensors corresponding to the result of calling the layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">inputs</span>
@@ -264,6 +299,17 @@
         <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Overrides the default __call__ method to remove &quot;features&quot; from inputs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputs : tensor-like or dict/tuple of tensors.</span>
+<span class="sd">            Tensors or dict/tuple of tensors representing the input batch.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A tensor or dict of tensors corresponding to the result of calling the layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># We remove features here since we don&#39;t expect them at inference time</span>
         <span class="c1"># Inside the `call` method, we will add them back by assuming inputs=features</span>
         <span class="k">if</span> <span class="s2">&quot;features&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
@@ -272,6 +318,13 @@
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Encoder.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the variables of the layer.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape: Tuple[int]</span>
+<span class="sd">            The shape of the input data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
         <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
@@ -280,18 +333,40 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_build_input_shape</span> <span class="o">=</span> <span class="n">input_shape</span></div>
 
 <div class="viewcode-block" id="Encoder.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the output shape of the layer.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape: Tuple[int]</span>
+<span class="sd">            The shape of the input data.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Tuple[int]</span>
+<span class="sd">            The output shape of the layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">combinators</span><span class="o">.</span><span class="n">compute_output_shape_sequentially</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_call</span><span class="p">),</span> <span class="n">input_shape</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Encoder.train_step"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.train_step">[docs]</a>    <span class="k">def</span> <span class="nf">train_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Train step&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Performs a training step.</span>
+
+<span class="sd">        Train step method is not implemented and Raises an error as the</span>
+<span class="sd">        Encoder block is not meant to be trained by itself and can only be</span>
+<span class="sd">        trained as part of a model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;This block is not meant to be trained by itself. &quot;</span><span class="p">,</span>
             <span class="s2">&quot;It can only be trained as part of a model.&quot;</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Encoder.fit"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fit model&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fits the model.</span>
+
+<span class="sd">        Fit method is not implemented and Raises an error as the Encoder block</span>
+<span class="sd">        is not meant to be trained by itself and can only be trained as part</span>
+<span class="sd">        of a model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;This block is not meant to be trained by itself. &quot;</span><span class="p">,</span>
             <span class="s2">&quot;It can only be trained as part of a model.&quot;</span><span class="p">,</span>
@@ -329,6 +404,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">to_call</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Provides the list of blocks to be called during the execution of the model.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">:</span>
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span>
 
@@ -340,22 +416,40 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">has_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns True as this class does contain a schema.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Schema</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the schema of the model.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">first</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the first block of the model.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">last</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the last block of the model.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
 <div class="viewcode-block" id="Encoder.from_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.from_config">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new instance of the class by deserializing.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config: dict</span>
+<span class="sd">            A dictionary, typically the output of get_config.</span>
+<span class="sd">        custom_objects: dict, optional</span>
+<span class="sd">            A dictionary mapping the names of layers to the corresponding</span>
+<span class="sd">            functions and classes.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A new instance of Encoder.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pre</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;pre&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">post</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;post&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span>
@@ -375,6 +469,13 @@
         <span class="k">return</span> <span class="n">output</span></div>
 
 <div class="viewcode-block" id="Encoder.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the configuration of the model as a dictionary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            The configuration of the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">tf_utils</span><span class="o">.</span><span class="n">maybe_serialize_keras_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">{},</span> <span class="p">[</span><span class="s2">&quot;pre&quot;</span><span class="p">,</span> <span class="s2">&quot;post&quot;</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">):</span>
             <span class="n">config</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">serialize_keras_object</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
@@ -610,23 +711,91 @@
 
 <div class="viewcode-block" id="EmbeddingEncoder"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingEncoder.html#merlin.models.tf.EmbeddingEncoder">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">EmbeddingEncoder</span><span class="p">(</span><span class="n">Encoder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates an Encoder from an EmbeddingTable.</span>
+<span class="sd">    Typically used with RetrievalModelV2.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    schema : Union[ColumnSchema, Schema]</span>
+<span class="sd">        The ColumnSchema of the column for which the</span>
+<span class="sd">        embedding table needs to be created.</span>
+<span class="sd">        If a Schema is passed, only the first column</span>
+<span class="sd">        is considered</span>
+<span class="sd">    dim : int</span>
+<span class="sd">        Dimension of the embeddings</span>
+<span class="sd">    embeddings_initializer : Union[str, tf.keras.layers.Layer], optional</span>
+<span class="sd">        Initializer for the `embeddings`</span>
+<span class="sd">        matrix (see `keras.initializers`). By default &quot;uniform&quot;</span>
+<span class="sd">    embeddings_regularizer : Union[str, tf.keras.layers.Layer], optional</span>
+<span class="sd">        Regularizer function applied to</span>
+<span class="sd">        the `embeddings` matrix (see `keras.regularizers`)., by default None</span>
+<span class="sd">    activity_regularizer : Union[str, tf.keras.layers.Layer], optional</span>
+<span class="sd">        Sets a layer that applies an update to the cost function based</span>
+<span class="sd">        input activity, by default None</span>
+<span class="sd">    embeddings_constraint : Union[str, tf.keras.layers.Layer], optional</span>
+<span class="sd">        Constraint function applied to</span>
+<span class="sd">        the `embeddings` matrix (see `keras.constraints`), by default None</span>
+<span class="sd">    mask_zero : bool, optional</span>
+<span class="sd">        Whether or not the input value 0 is a special &quot;padding&quot;</span>
+<span class="sd">        value that should be masked out.</span>
+<span class="sd">        This is useful when using recurrent layers</span>
+<span class="sd">        which may take variable length input.</span>
+<span class="sd">        If this is `True`, then all subsequent layers</span>
+<span class="sd">        in the model need to support masking or an exception will be raised.</span>
+<span class="sd">        If mask_zero is set to True, as a consequence, index 0 cannot be</span>
+<span class="sd">        used in the vocabulary (input_dim should equal size of</span>
+<span class="sd">        vocabulary + 1), by default False</span>
+<span class="sd">    input_length : int, optional</span>
+<span class="sd">        This argument is required if you are going to connect</span>
+<span class="sd">        `Flatten` then `Dense` layers upstream</span>
+<span class="sd">        (without it, the shape of the dense outputs cannot be computed),</span>
+<span class="sd">        by default None</span>
+<span class="sd">    sequence_combiner : Optional[CombinerType], optional</span>
+<span class="sd">        A string specifying how to combine embedding results for each</span>
+<span class="sd">        entry (&quot;mean&quot;, &quot;sqrtn&quot; and &quot;sum&quot; are supported) or a layer.</span>
+<span class="sd">        Default is None (no combiner used), by default None</span>
+<span class="sd">    trainable : bool, optional</span>
+<span class="sd">        Whether the layer&#39;s variables should be trainable, by default True</span>
+<span class="sd">    name : str, optional</span>
+<span class="sd">        String name of the layer, by default None</span>
+<span class="sd">    dtype : optional</span>
+<span class="sd">        The dtype of the layer&#39;s computations and weights. Can also be a</span>
+<span class="sd">        `tf.keras.mixed_precision.Policy`, which allows the computation and weight</span>
+<span class="sd">        dtype to differ. Default of `None` means to use</span>
+<span class="sd">        `tf.keras.mixed_precision.global_policy()`, which is a float32 policy</span>
+<span class="sd">        unless set to different value., by default None</span>
+<span class="sd">    dynamic : bool, optional</span>
+<span class="sd">        Set this to `True` if your layer should only be run eagerly, and</span>
+<span class="sd">        should not be used to generate a static computation graph.</span>
+<span class="sd">        This would be the case for a Tree-RNN or a recursive network,</span>
+<span class="sd">        for example, or generally for any layer that manipulates tensors</span>
+<span class="sd">        using Python control flow. If `False`, we assume that the layer can</span>
+<span class="sd">        safely be used to generate a static computation graph., by default False</span>
+<span class="sd">    embeddings_l2_batch_regularization : Optional[Union[float, Dict[str, float]]], optional</span>
+<span class="sd">        Factor for L2 regularization of the embeddings vectors (from the current batch only)</span>
+<span class="sd">        by default 0.0, by default 0.0</span>
+<span class="sd">    post : Optional[tf.keras.layers.Layer], optional</span>
+<span class="sd">        _description_, by default None</span>
+<span class="sd">    **kwargs: Forwarded Encoder parameters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="EmbeddingEncoder.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingEncoder.html#merlin.models.tf.EmbeddingEncoder.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">ColumnSchema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">],</span>
         <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">embeddings_initializer</span><span class="o">=</span><span class="s2">&quot;uniform&quot;</span><span class="p">,</span>
-        <span class="n">embeddings_regularizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">activity_regularizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">embeddings_constraint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">mask_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">input_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">embeddings_initializer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">&quot;uniform&quot;</span><span class="p">,</span>
+        <span class="n">embeddings_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">activity_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">embeddings_constraint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mask_zero</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">input_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sequence_combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CombinerType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">dynamic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dynamic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">embeddings_l2_batch_regularization</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">ColumnSchema</span><span class="p">):</span>

@@ -148,13 +148,13 @@ the sequence length)</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.call" title="merlin.models.tf.AverageEmbeddingsByWeightFeature.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs, features)</p></td>
-<td><p></p></td>
+<td><p>Performs the weighted average calculation.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
 <td><p>Computes an output mask tensor.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.compute_output_shape" title="merlin.models.tf.AverageEmbeddingsByWeightFeature.compute_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code></a>(input_shape)</p></td>
-<td><p></p></td>
+<td><p>Computes the output shape.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
 <td><p>Compute the output tensor signature of the layer based on the inputs.</p></td>
@@ -175,7 +175,7 @@ the sequence length)</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.get_config" title="merlin.models.tf.AverageEmbeddingsByWeightFeature.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
-<td><p></p></td>
+<td><p>Returns the configuration of the layer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input tensor(s) of a layer at a given node.</p></td>
@@ -308,12 +308,42 @@ the sequence length)</p></li>
 <dl class="py method">
 <dt id="merlin.models.tf.AverageEmbeddingsByWeightFeature.call">
 <code class="sig-name descname"><span class="pre">call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#AverageEmbeddingsByWeightFeature.call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.call" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Performs the weighted average calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> (<em>tf.Tensor</em>) – Input tensor.</p></li>
+<li><p><strong>features</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><em>dict</em></a>) – Dictionary of features, must include the weight feature.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor after applying the weighted average calculation.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.11)"><strong>ValueError</strong></a> – If the inputs is a tf.RaggedTensor, the weight feature should also be a tf.RaggedTensor.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.AverageEmbeddingsByWeightFeature.compute_output_shape">
 <code class="sig-name descname"><span class="pre">compute_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#AverageEmbeddingsByWeightFeature.compute_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.compute_output_shape" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Computes the output shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shape</strong> (<em>tf.TensorShape</em>) – Shape of the input.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Shape of the output, which is the same as the input shape in this case.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tf.TensorShape</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.AverageEmbeddingsByWeightFeature.from_schema_convention">
@@ -344,7 +374,16 @@ is an instance of WeightedAverageByFeature with the corresponding weight feature
 <dl class="py method">
 <dt id="merlin.models.tf.AverageEmbeddingsByWeightFeature.get_config">
 <code class="sig-name descname"><span class="pre">get_config</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#AverageEmbeddingsByWeightFeature.get_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.get_config" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns the configuration of the layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dictionary containing the configuration of the layer.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
