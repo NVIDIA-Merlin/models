@@ -441,7 +441,6 @@ def _convert_data(
                 index = int((i / file_size) - 1)
                 df.to_parquet(
                     os.path.join(tmp_dir, f"{data_type}_{index}.parquet"),
-                    overwrite=True,
                 )
                 current = []
 
