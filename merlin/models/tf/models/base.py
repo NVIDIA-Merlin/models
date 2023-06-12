@@ -67,6 +67,7 @@ from merlin.models.tf.metrics.evaluation import MetricType
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
+from merlin.models.tf.outputs.classification import CategoricalOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.features import PrepareFeatures, expected_input_cols_from_schema
@@ -2506,7 +2507,7 @@ class RetrievalModelV2(Model):
 
             return candidate.encode(dataset, index=index, **kwargs)
 
-        if isinstance(self.last, ContrastiveOutput):
+        if isinstance(self.last, (ContrastiveOutput, CategoricalOutput)):
             return self.last.to_dataset()
 
         raise Exception(...)
