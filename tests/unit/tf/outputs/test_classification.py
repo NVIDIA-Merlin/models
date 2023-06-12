@@ -98,7 +98,8 @@ def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_last_item_prediction(sequence_testing_data: Dataset, run_eagerly):
+@pytest.mark.parametrize("use_bias", [True, False])
+def test_last_item_prediction(sequence_testing_data: Dataset, run_eagerly, use_bias):
     dataloader, schema = testing_utils.loader_for_last_item_prediction(sequence_testing_data)
     embeddings = mm.Embeddings(
         schema,
@@ -110,7 +111,7 @@ def test_last_item_prediction(sequence_testing_data: Dataset, run_eagerly):
         schema["item_id_seq"],
         CategoricalTarget(schema["item_id_seq"]),
         embeddings["item_id_seq"],
-        EmbeddingTablePrediction(embeddings["item_id_seq"]),
+        EmbeddingTablePrediction(embeddings["item_id_seq"], use_bias=use_bias),
     ]
 
     for target in predictions:
