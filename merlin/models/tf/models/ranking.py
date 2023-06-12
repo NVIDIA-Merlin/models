@@ -238,6 +238,7 @@ def DeepFMModel(
         The prediction tasks to be used, by default this will be inferred from the Schema.
         For custom prediction tasks we recommending using OutputBlock and blocks based
         on ModelOutput than the ones based in PredictionTask (that will be deprecated).
+
     Returns
     -------
     Model

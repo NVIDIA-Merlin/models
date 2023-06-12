@@ -22,7 +22,17 @@ import sys
 import warnings
 from collections.abc import Sequence as SequenceCollection
 from functools import partial
-from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Union, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Union,
+    runtime_checkable,
+)
 
 import six
 import tensorflow as tf
@@ -57,6 +67,7 @@ from merlin.models.tf.metrics.evaluation import MetricType
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
+from merlin.models.tf.outputs.classification import CategoricalOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.features import PrepareFeatures, expected_input_cols_from_schema
@@ -105,7 +116,12 @@ LOSS_PARAMETERS_DOCSTRINGS = """Can be either a single loss (str or tf.keras.los
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
-    """Callback that handles when to compute metrics."""
+    """Callback that handles when to compute metrics."
+    Parameters
+    ----------
+    train_metrics_steps : int, optional
+        Frequency (number of steps) to compute train metrics, by default 1
+    """
 
     def __init__(self, train_metrics_steps=1, **kwargs):
         self.train_metrics_steps = train_metrics_steps
@@ -166,7 +182,15 @@ def get_output_schema(export_path: str) -> Schema:
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ModelBlock(Block, tf.keras.Model):
-    """Block that extends `tf.keras.Model` to make it saveable."""
+    """Block that extends `tf.keras.Model` to make it saveable.
+
+    Parameters
+    ----------
+    block : Block
+        Block to be turned into a model
+    prep_features : Optional[bool], optional
+        Whether features need to be prepared or not, by default True
+    """
 
     def __init__(self, block: Block, prep_features: Optional[bool] = True, **kwargs):
         super().__init__(**kwargs)
@@ -284,6 +308,10 @@ class ModelBlock(Block, tf.keras.Model):
 
 
 class BaseModel(tf.keras.Model):
+    """Base model, that overrides Keras model methods
+    to compile, compute metrics and loss and also
+    to compute the train, eval, predict steps"""
+
     def __init__(self, **kwargs):
         super(BaseModel, self).__init__(**kwargs)
 
@@ -660,6 +688,10 @@ class BaseModel(tf.keras.Model):
 
     @property
     def prediction_tasks(self) -> List[PredictionTask]:
+        """Returns the Prediction tasks in the model.
+        Going to be deprecated in favor of model_outputs()
+        """
+
         from merlin.models.tf.prediction_tasks.base import PredictionTask
 
         results = find_all_instances_in_layers(self, PredictionTask)
@@ -693,6 +725,7 @@ class BaseModel(tf.keras.Model):
 
     @property
     def model_outputs(self) -> List[ModelOutput]:
+        """Returns a list with the ModelOutput in the model"""
         results = find_all_instances_in_layers(self, ModelOutput)
         # Ensures tasks are sorted by name, so that they match the metrics
         # which are sorted the same way by Keras
@@ -701,6 +734,7 @@ class BaseModel(tf.keras.Model):
         return results
 
     def outputs_by_name(self) -> Dict[str, ModelOutput]:
+        """Returns the task names from the model outputs"""
         return {task.full_name: task for task in self.model_outputs}
 
     def outputs_by_target(self) -> Dict[str, List[ModelOutput]]:
@@ -1175,6 +1209,7 @@ class BaseModel(tf.keras.Model):
         return metrics
 
     def predict_step(self, data):
+        """Custom predict step to obtain the outputs"""
         x, _, _ = unpack_x_y_sample_weight(data)
 
         if getattr(self, "predict_pre", None):
@@ -1558,8 +1593,13 @@ class BaseModel(tf.keras.Model):
 class Model(BaseModel):
     """Merlin Model class
 
+    `Model` is the main base class that represents a model in Merlin Models.
+    It can be configured with a number of pre and post processing blocks and can manage a context.
+
     Parameters
     ----------
+    blocks : list
+        List of `Block` instances in the model
     context : Optional[ModelContext], optional
         ModelContext is used to store/retrieve public variables across blocks,
         by default None.
@@ -1585,6 +1625,7 @@ class Model(BaseModel):
         prep_features: Optional[bool] = True,
         **kwargs,
     ):
+        """Creates a new `Model` instance."""
         super(Model, self).__init__(**kwargs)
 
         context = context or ModelContext()
@@ -1734,6 +1775,27 @@ class Model(BaseModel):
         self.built = True
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
+        """
+        Method for forward pass of the model.
+
+        Parameters
+        ----------
+        inputs : Tensor or dict of Tensor
+            Input Tensor(s) for the model
+        targets : Tensor or dict of Tensor, optional
+            Target Tensor(s) for the model
+        training : bool, optional
+            Flag to indicate whether the model is in training phase
+        testing : bool, optional
+            Flag to indicate whether the model is in testing phase
+        output_context : bool, optional
+            Flag to indicate whether to return the context along with the output
+
+        Returns
+        -------
+        Tensor or tuple of Tensor and ModelContext
+            Output of the model, and optionally the context
+        """
         outputs = inputs
         features = self._prepare_features(inputs, targets=targets)
         if isinstance(features, tuple):
@@ -1794,10 +1856,32 @@ class Model(BaseModel):
 
     @property
     def first(self):
+        """
+        The first `Block` in the model.
+
+        This property provides a simple way to quickly access the first `Block` in the model's
+        sequence of blocks.
+
+        Returns
+        -------
+        Block
+            The first `Block` in the model.
+        """
         return self.blocks[0]
 
     @property
     def last(self):
+        """
+        The last `Block` in the model.
+
+        This property provides a simple way to quickly access the last `Block` in the model's
+        sequence of blocks.
+
+        Returns
+        -------
+        Block
+            The last `Block` in the model.
+        """
         return self.blocks[-1]
 
     @classmethod
@@ -1846,6 +1930,25 @@ class Model(BaseModel):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
+        """
+        Creates a model from its config.
+
+        This method recreates a model instance from a configuration dictionary and
+        optional custom objects.
+
+        Parameters
+        ----------
+        config : dict
+            The configuration dictionary representing the model.
+        custom_objects : dict, optional
+            Dictionary mapping names to custom classes or functions to be considered
+            during deserialization.
+
+        Returns
+        -------
+        Model
+            The created `Model` instance.
+        """
         pre = config.pop("pre", None)
         post = config.pop("post", None)
         schema = config.pop("schema", None)
@@ -1882,6 +1985,22 @@ class Model(BaseModel):
         return model
 
     def get_sample_inputs(self, batch_size=None):
+        """
+        Generates sample inputs for the model.
+
+        This method creates a dictionary of sample inputs for each input feature, useful for
+        testing or initializing the model.
+
+        Parameters
+        ----------
+        batch_size : int, optional
+            The batch size for the sample inputs. If not specified, defaults to 2.
+
+        Returns
+        -------
+        dict
+            A dictionary mapping feature names to sample input tensors.
+        """
         batch_size = batch_size or 2
         if self.input_schema is not None:
             inputs = {}
@@ -1927,6 +2046,18 @@ class Model(BaseModel):
             return inputs
 
     def get_config(self):
+        """
+        Returns the model configuration as a dictionary.
+
+        This method returns a dictionary containing the configuration of the model.
+        The dictionary includes the configuration of each block in the model,
+        as well as additional properties such as `pre` and `post` layers, and the `schema`.
+
+        Returns
+        -------
+        dict
+            The configuration of the model.
+        """
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         for i, layer in enumerate(self.blocks):
@@ -2084,6 +2215,8 @@ class Model(BaseModel):
 
 @runtime_checkable
 class RetrievalBlock(Protocol):
+    """Protocol class for a RetrievalBlock"""
+
     def query_block(self) -> Block:
         ...
 
@@ -2374,7 +2507,7 @@ class RetrievalModelV2(Model):
 
             return candidate.encode(dataset, index=index, **kwargs)
 
-        if isinstance(self.last, ContrastiveOutput):
+        if isinstance(self.last, (ContrastiveOutput, CategoricalOutput)):
             return self.last.to_dataset()
 
         raise Exception(...)
@@ -2487,7 +2620,26 @@ class RetrievalModelV2(Model):
         return topk_model
 
 
-def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
+def _maybe_convert_merlin_dataset(
+    data: Any, batch_size: int, shuffle: bool = True, **kwargs
+) -> Any:
+    """Converts the Dataset to a Loader with the given
+    batch_size and shuffle options
+
+    Parameters
+    ----------
+    data
+        Dataset instance
+    batch_size : int
+        Batch size
+    shuffle : bool, optional
+        Enables data shuffling during loading, by default True
+
+    Returns
+    -------
+    Any
+        Returns a Loader instance if a Dataset, otherwise returns the data
+    """
     # Check if merlin-dataset is passed
     if hasattr(data, "to_ddf"):
         if not batch_size:

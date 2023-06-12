@@ -17,10 +17,13 @@
 
 from __future__ import absolute_import
 
+import platform
 from pathlib import Path
 
 import distributed
+import psutil
 import pytest
+from asvdb import BenchmarkInfo, utils
 
 from merlin.core.utils import Distributed
 from merlin.datasets.synthetic import generate_data
@@ -116,3 +119,21 @@ def pytest_collection_modifyitems(items):
                     item.add_marker(getattr(pytest.mark, value))
                 for marker in ci_utils.OTHER_MARKERS:
                     item.add_marker(getattr(pytest.mark, marker))
+
+
+def get_benchmark_info():
+    uname = platform.uname()
+    (commitHash, commitTime) = utils.getCommitInfo()
+
+    return BenchmarkInfo(
+        machineName=uname.machine,
+        cudaVer="na",
+        osType="%s %s" % (uname.system, uname.release),
+        pythonVer=platform.python_version(),
+        commitHash=commitHash,
+        commitTime=commitTime,
+        gpuType="na",
+        cpuType=uname.processor,
+        arch=uname.machine,
+        ram="%d" % psutil.virtual_memory().total,
+    )
