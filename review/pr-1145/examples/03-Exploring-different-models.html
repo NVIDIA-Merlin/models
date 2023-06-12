@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/examples/03-Exploring-different-models.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/examples/03-Exploring-different-models.html" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -121,7 +121,7 @@
 <h1>Iterating over Deep Learning Models using Merlin Models<a class="headerlink" href="#iterating-over-deep-learning-models-using-merlin-models" title="Permalink to this headline"></a></h1>
 <p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
 <p>In this example, we’ll demonstrate how to build and train several popular deep learning-based ranking model architectures. Merlin Models provides a high-level API to define those architectures, but allows for customization  as they are composed by reusable building blocks.</p>
-<p>In this example notebook, we use for training and evaluation synthetic data that mimics the schema (features and cardinalities) of <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">Ali-CCP dataset</a>: Alibaba Click and Conversion Prediction dataset. The Ali-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. You can get the raw dataset via this <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp() function</a> and generate the parquet files from it to be used in this example.</p>
+<p>In this example notebook, we use for training and evaluation synthetic data that mimics the schema (features and cardinalities) of <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">Ali-CCP dataset</a>: Alibaba Click and Conversion Prediction dataset. The Ali-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. You can get the raw dataset via this <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp() function</a> and generate the parquet files from it to be used in this example.</p>
 <div class="section" id="learning-objectives">
 <h2>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline"></a></h2>
 <ul class="simple">
@@ -319,7 +319,7 @@ Wall time: 17.4 s
 </div>
 <div class="section" id="initialize-dataloaders">
 <h3>Initialize Dataloaders<a class="headerlink" href="#initialize-dataloaders" title="Permalink to this headline"></a></h3>
-<p>We’re ready to start training, for that, we create our dataset objects, and under the hood we use Merlin <code class="docutils literal notranslate"><span class="pre">Loader</span></code> class for reading chunks of parquet files. <code class="docutils literal notranslate"><span class="pre">Loader</span></code> asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. To read more about Merlin optimized dataloaders visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141">here</a>.</p>
+<p>We’re ready to start training, for that, we create our dataset objects, and under the hood we use Merlin <code class="docutils literal notranslate"><span class="pre">Loader</span></code> class for reading chunks of parquet files. <code class="docutils literal notranslate"><span class="pre">Loader</span></code> asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. To read more about Merlin optimized dataloaders visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/merlin/models/tf/dataset.py#L141">here</a>.</p>
 </div>
 <div class="section" id="configures-training-for-all-models">
 <h3>Configures training for all models<a class="headerlink" href="#configures-training-for-all-models" title="Permalink to this headline"></a></h3>
