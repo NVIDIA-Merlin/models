@@ -102,60 +102,36 @@
 It accepts as input features for lookup tf.Tensor, tf.RaggedTensor,
 and tf.SparseTensor which might be 2D (batch_size, 1) for scalars
 or 3d (batch_size, seq_length, 1) for sequential features</p>
-<blockquote>
-<div><p>dim: Dimension of the dense embedding.
-col_schema: ColumnSchema</p>
-<blockquote>
-<div><p>Schema of the column. This is used to infer the cardinality.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>embeddings_initializer: Initializer for the <cite>embeddings</cite></dt><dd><p>matrix (see <cite>keras.initializers</cite>).</p>
-</dd>
-<dt>embeddings_regularizer: Regularizer function applied to</dt><dd><p>the <cite>embeddings</cite> matrix (see <cite>keras.regularizers</cite>).</p>
-</dd>
-<dt>embeddings_constraint: Constraint function applied to</dt><dd><p>the <cite>embeddings</cite> matrix (see <cite>keras.constraints</cite>).</p>
-</dd>
-<dt>mask_zero: Boolean, whether or not the input value 0 is a special “padding”</dt><dd><p>value that should be masked out.
-This is useful when using recurrent layers
-which may take variable length input.
-If this is <cite>True</cite>, then all subsequent layers
-in the model need to support masking or an exception will be raised.
-If mask_zero is set to True, as a consequence, index 0 cannot be
-used in the vocabulary (input_dim should equal size of
-vocabulary + 1).</p>
-</dd>
-<dt>input_length: Length of input sequences, when it is constant.</dt><dd><p>This argument is required if you are going to connect
-<cite>Flatten</cite> then <cite>Dense</cite> layers upstream
-(without it, the shape of the dense outputs cannot be computed).</p>
-</dd>
-</dl>
-</div></blockquote>
-<dl class="simple">
-<dt>combiner: A string specifying how to combine embedding results for each</dt><dd><p>entry (“mean”, “sqrtn” and “sum” are supported) or a layer.
-Default is None (no combiner used)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – The dimension of the dense embedding.</p></li>
+<li><p><strong>col_schemas</strong> (<em>ColumnSchema</em>) – The schema of the column(s) used to infer the cardinality.</p></li>
+<li><p><strong>embeddings_initializer</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – The initializer for the <cite>embeddings</cite> matrix (see <cite>keras.initializers</cite>),
+by default “uniform”.</p></li>
+<li><p><strong>embeddings_regularizer</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – The regularizer function applied to the <cite>embeddings</cite> matrix (see <cite>keras.regularizers</cite>),
+by default None.</p></li>
+<li><p><strong>embeddings_constraint</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – The constraint function applied to the <cite>embeddings</cite> matrix (see <cite>keras.constraints</cite>),
+by default None.</p></li>
+<li><p><strong>mask_zero</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether or not the input value 0 is a special “padding” value that should be masked out.
+This is useful when using recurrent layers which may take variable length input,
+by default False.</p></li>
+<li><p><strong>input_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – The length of input sequences when it is constant, by default None.</p></li>
+<li><p><strong>sequence_combiner</strong> (<em>CombinerType</em><em>, </em><em>optional</em>) – A string specifying how to combine embedding results for each entry (“mean”, “sqrtn”
+and “sum” are supported) or a layer. Default is None (no combiner used).</p></li>
+<li><p><strong>trainable</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether the layer’s variables should be trainable, by default True.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the layer, by default None.</p></li>
+<li><p><strong>dtype</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – The data type of the layer’s computations and weights. It can also be a
+<cite>tf.keras.mixed_precision.Policy</cite>, which allows the computation and weight
+dtype to differ, by default None.</p></li>
+<li><p><strong>dynamic</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – Set this to <cite>True</cite> if the layer should only be run eagerly and should not be used
+to generate a static computation graph, by default False.</p></li>
+<li><p><strong>l2_batch_regularization_factor</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>, </em><em>optional</em>) – The factor for L2 regularization of the embeddings vectors (from the current batch only),
+by default 0.0.</p></li>
+<li><p><strong>**kwargs</strong> – Other keyword arguments forwarded to the Keras Layer.</p></li>
+</ul>
 </dd>
 </dl>
-<p>trainable: Boolean, whether the layer’s variables should be trainable.
-name: String name of the layer.
-dtype: The dtype of the layer’s computations and weights. Can also be a</p>
-<blockquote>
-<div><p><cite>tf.keras.mixed_precision.Policy</cite>, which allows the computation and weight
-dtype to differ. Default of <cite>None</cite> means to use
-<cite>tf.keras.mixed_precision.global_policy()</cite>, which is a float32 policy
-unless set to different value.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>dynamic: Set this to <cite>True</cite> if your layer should only be run eagerly, and</dt><dd><p>should not be used to generate a static computation graph.
-This would be the case for a Tree-RNN or a recursive network,
-for example, or generally for any layer that manipulates tensors
-using Python control flow. If <cite>False</cite>, we assume that the layer can
-safely be used to generate a static computation graph.</p>
-</dd>
-<dt>l2_batch_regularization_factor: float, optional</dt><dd><p>Factor for L2 regularization of the embeddings vectors (from the current batch only)
-by default 0.0</p>
-</dd>
-</dl>
-<p><a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs: Forwarded Keras Layer parameters</p>
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.__init__">
 <code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">col_schemas</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html#merlin.schema.ColumnSchema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.ColumnSchema</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">embeddings_initializer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'uniform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">embeddings_regularizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activity_regularizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">embeddings_constraint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_zero</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_combiner</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">keras.engine.base_layer.Layer</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dynamic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2_batch_regularization_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable.__init__" title="Permalink to this definition"></a></dt>
@@ -194,7 +170,7 @@ by default 0.0</p>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable.build" title="merlin.models.tf.EmbeddingTable.build"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code></a>(input_shapes)</p></td>
-<td><p></p></td>
+<td><p>Builds the EmbeddingTable based on the input shapes.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_from_config</span></code>(config)</p></td>
 <td><p></p></td>
@@ -214,13 +190,13 @@ by default 0.0</p>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable.compute_call_output_shape" title="merlin.models.tf.EmbeddingTable.compute_call_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_call_output_shape</span></code></a>(input_shapes)</p></td>
-<td><p></p></td>
+<td><p>Computes the shape of the output of a call to this layer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
 <td><p>Computes an output mask tensor.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable.compute_output_shape" title="merlin.models.tf.EmbeddingTable.compute_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code></a>(input_shape)</p></td>
-<td><p></p></td>
+<td><p>Computes the shape of the output tensors.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
 <td><p>Compute the output tensor signature of the layer based on the inputs.</p></td>
@@ -250,7 +226,7 @@ by default 0.0</p>
 <td><p>Finalizes the layers state after updating layer weights.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable.from_config" title="merlin.models.tf.EmbeddingTable.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config[, table])</p></td>
-<td><p></p></td>
+<td><p>Creates an EmbeddingTable from its configuration.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable.from_dataset" title="merlin.models.tf.EmbeddingTable.from_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_dataset</span></code></a>(data[, trainable, name, col_schema])</p></td>
 <td><p>Create From pre-trained embeddings from a Dataset or DataFrame.</p></td>
@@ -265,7 +241,7 @@ by default 0.0</p>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable.get_config" title="merlin.models.tf.EmbeddingTable.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
-<td><p></p></td>
+<td><p>Returns the configuration of this EmbeddingTable.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input tensor(s) of a layer at a given node.</p></td>
@@ -325,10 +301,10 @@ by default 0.0</p>
 <td><p>Sets the weights of the layer, from NumPy arrays.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable.to_dataset" title="merlin.models.tf.EmbeddingTable.to_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_dataset</span></code></a>([gpu])</p></td>
-<td><p></p></td>
+<td><p>Converts the EmbeddingTable to a merlin.io.Dataset.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable.to_df" title="merlin.models.tf.EmbeddingTable.to_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_df</span></code></a>([gpu])</p></td>
-<td><p></p></td>
+<td><p>Converts the EmbeddingTable to a DataFrame.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
 <td><p>Decorator to automatically enter the module name scope.</p></td>
@@ -502,17 +478,47 @@ the schema for features that match the tags.</p>
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.to_dataset">
 <code class="sig-name descname"><span class="pre">to_dataset</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable.to_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable.to_dataset" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Converts the EmbeddingTable to a merlin.io.Dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>gpu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Whether to use gpu.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The dataset representation of the EmbeddingTable.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)">merlin.io.Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.to_df">
 <code class="sig-name descname"><span class="pre">to_df</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable.to_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable.to_df" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Converts the EmbeddingTable to a DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>gpu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Whether to use gpu.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The DataFrame representation of the EmbeddingTable.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>cudf or pandas DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.build">
 <code class="sig-name descname"><span class="pre">build</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shapes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable.build" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Builds the EmbeddingTable based on the input shapes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shapes</strong> (<em>tf.TensorShape</em><em> or </em><em>dictionary of shapes.</em>) – The shapes of the input tensors.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.call">
@@ -533,22 +539,70 @@ the schema for features that match the tags.</p>
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.compute_output_shape">
 <code class="sig-name descname"><span class="pre">compute_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable.compute_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable.compute_output_shape" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Computes the shape of the output tensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shape</strong> (<em>Union</em><em>[</em><em>tf.TensorShape</em><em>, </em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>tf.TensorShape</em><em>]</em><em>]</em>) – The shape of the input tensors.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The shape of the output tensors.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Union[tf.TensorShape, Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a>, tf.TensorShape]]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.compute_call_output_shape">
 <code class="sig-name descname"><span class="pre">compute_call_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shapes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable.compute_call_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable.compute_call_output_shape" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Computes the shape of the output of a call to this layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shapes</strong> (<em>tf.TensorShape</em><em> or </em><em>dictionary of shapes.</em>) – The shapes of the input tensors.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The shape of the output of a call to this layer.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Union[tf.TensorShape, Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a>, tf.TensorShape]]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.from_config">
 <em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">from_config</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable.from_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable.from_config" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Creates an EmbeddingTable from its configuration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><em>dict</em></a>) – Configuration dictionary.</p></li>
+<li><p><strong>table</strong> (<em>tf.keras.layers.Embedding</em><em>, </em><em>optional</em>) – An optional embedding layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A newly created EmbeddingTable.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#merlin.models.tf.EmbeddingTable" title="merlin.models.tf.EmbeddingTable">EmbeddingTable</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.EmbeddingTable.get_config">
 <code class="sig-name descname"><span class="pre">get_config</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#EmbeddingTable.get_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingTable.get_config" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns the configuration of this EmbeddingTable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Configuration dictionary.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

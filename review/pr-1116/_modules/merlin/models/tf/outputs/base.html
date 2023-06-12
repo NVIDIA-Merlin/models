@@ -128,7 +128,7 @@
 <span class="sd">        The layer to call in the forward-pass of the model</span>
 <span class="sd">    default_loss: Union[str, tf.keras.losses.Loss]</span>
 <span class="sd">        Default loss to set if the user does not specify one</span>
-<span class="sd">    get_default_metrics: Callable</span>
+<span class="sd">    default_metrics_fn: Callable</span>
 <span class="sd">        A function returning the list of default metrics to set</span>
 <span class="sd">        if the user does not specify any</span>
 <span class="sd">    name: Optional[Text], optional</span>
@@ -337,7 +337,17 @@
         <span class="k">return</span> <span class="n">config</span></div>
 
 <div class="viewcode-block" id="ModelOutput.get_task_name"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ModelOutput.html#merlin.models.tf.ModelOutput.get_task_name">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_task_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">target_name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_task_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">target_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the name of the task</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target_name : str</span>
+<span class="sd">            Name of the target</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            Returns the task name, which includes the target name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">base_name</span> <span class="o">=</span> <span class="n">to_snake_case</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">name_fn</span><span class="p">(</span><span class="n">target_name</span><span class="p">,</span> <span class="n">base_name</span><span class="p">)</span> <span class="k">if</span> <span class="n">target_name</span> <span class="k">else</span> <span class="n">base_name</span></div>
 
@@ -364,6 +374,7 @@
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">DotProduct</span><span class="p">(</span><span class="n">Layer</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Dot-product between queries &amp; items.</span>
+
 <span class="sd">    Parameters:</span>
 <span class="sd">    -----------</span>
 <span class="sd">    query_name : str, optional</span>
