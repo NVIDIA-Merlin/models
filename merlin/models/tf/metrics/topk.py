@@ -74,6 +74,7 @@ def precision_at(
 ) -> tf.Tensor:
     """
     Computes Precision@K metric
+
     Parameters
     ----------
     {METRIC_PARAMETERS_DOCSTRING}
@@ -90,6 +91,7 @@ def average_precision_at(
 ) -> tf.Tensor:
     """
     Computes Mean Average Precision (MAP) @K
+
     Parameters
     ----------
     {METRIC_PARAMETERS_DOCSTRING}

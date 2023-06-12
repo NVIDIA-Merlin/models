@@ -206,6 +206,11 @@ class BruteForce(TopKLayer):
                 "You should call the `index` method first to " "set the _candidates index."
             )
 
+        if isinstance(inputs, tf.RaggedTensor):
+            # Evaluates on last session's item only
+            # (which is the default mode during inference too).
+            # TODO extend top-k generation to other items in the input session.
+            inputs = tf.squeeze(inputs.to_tensor(), axis=1)
         tf.assert_equal(
             tf.shape(inputs)[1],
             tf.shape(self._candidates)[1],
@@ -220,6 +225,11 @@ class BruteForce(TopKLayer):
             assert targets is not None, ValueError(
                 "Targets should be provided during the evaluation mode"
             )
+            if isinstance(targets, tf.RaggedTensor):
+                targets = tf.ragged.boolean_mask(
+                    targets, targets._keras_mask.with_row_splits_dtype(targets.row_splits.dtype)
+                )
+                targets = targets.to_tensor()
             targets = tf.cast(tf.squeeze(targets), tf.int32)
             targets = tf.cast(tf.expand_dims(targets, -1) == top_ids, tf.float32)
             targets = tf.reshape(targets, tf.shape(top_scores))
@@ -236,6 +246,7 @@ class BruteForce(TopKLayer):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopKOutput(ModelOutput):
     """Prediction block for top-k evaluation
+
     Parameters
     ----------
     to_call:  Union[str, TopKLayer]
