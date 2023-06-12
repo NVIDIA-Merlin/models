@@ -246,6 +246,7 @@ class BruteForce(TopKLayer):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopKOutput(ModelOutput):
     """Prediction block for top-k evaluation
+
     Parameters
     ----------
     to_call:  Union[str, TopKLayer]

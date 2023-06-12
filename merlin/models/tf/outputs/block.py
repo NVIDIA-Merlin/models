@@ -131,6 +131,20 @@ def OutputBlock(
 
 
 def _get_col_set_by_tags(schema: Schema, tags) -> Set[str]:
+    """Returns a set with the schema column names
+
+    Parameters
+    ----------
+    schema : Schema
+        Schema
+    tags :
+        Tags to filter
+
+    Returns
+    -------
+    Set[str]
+        A set with the schema column names
+    """
     return set(schema.select_by_tag(tags).column_names)
 
 
@@ -139,6 +153,22 @@ def _set_task_block(
     col_name: str,
     task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
 ):
+    """Creates a tower (task_block) for each task (output).
+
+    Parameters
+    ----------
+    output_block : OutputBlock
+        The output block with the tasks
+    col_name : str
+        Specify the task name
+    task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional
+        Task blocks to be used as task towers. If a single Layer, it is copied to all
+        tasks. If a dict, the keys must match the task names
+        (e.g. "click/binary_output", rating/regression_output", "item_id/categorical_output").
+        You might want to use the task_blocks to create a task-specific tower
+        (e.g. MLPBLock([32])) or to customize inputs, targets or sample_weights for a
+        given task. By default None
+    """
     task_block = None
     if task_blocks is not None:
         if isinstance(task_blocks, dict):
