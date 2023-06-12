@@ -172,7 +172,7 @@ model = mm.benchmark.NCFModel(
 # In[11]:
 
 
-get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.legacy.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
 # Let's save our accuracy results
@@ -223,7 +223,7 @@ model = mm.Model.from_block(mm.MLPBlock([64, 32]),
 # In[16]:
 
 
-get_ipython().run_cell_magic('time', '', '\nopt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC(name="auc")])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', '\nopt = tf.keras.optimizers.legacy.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC(name="auc")])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
 # In[17]:
@@ -323,7 +323,7 @@ model = mm.WideAndDeepModel(
 # In[24]:
 
 
-get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC(name="auc")])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.legacy.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC(name="auc")])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
 # *Note*: Here we use a single optimizer (Adagrad), but in the [Wide&Deep paper](https://arxiv.org/abs/1606.07792) the  authors describe to have used the Adagrad optimizer for the deep part and the FTRL optimizer for the wide part, which worked better with sparse inputs according to their experiments. With Merlin Models wou can use multiple optimizers for different sets of parameters, check the API documentation of `MultiOptimizer()` for more details.
@@ -374,7 +374,7 @@ model = mm.DLRMModel(
 # In[28]:
 
 
-get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC(name="auc")])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.legacy.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC(name="auc")])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
 # In[29]:
@@ -420,7 +420,7 @@ model = mm.DCNModel(
 # In[32]:
 
 
-get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC(name="auc")])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.legacy.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC(name="auc")])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
 # In[33]:
