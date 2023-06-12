@@ -213,6 +213,7 @@ def layer_test(
         called in.
       supports_masking: Optional boolean to check the `supports_masking`
         property of the layer. If None, the check will not be performed.
+
     Returns:
       The output data (Numpy array) returned by the layer, for additional
       checks to be done by the calling code.

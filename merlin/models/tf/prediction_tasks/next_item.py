@@ -41,6 +41,7 @@ LOG = logging.getLogger("merlin.models")
 class ItemsPredictionWeightTying(Block):
     """Tying the item embedding weights with the output projection layer matrix [1]
     The output logits are obtained by multiplying the output vector by the item-ids embeddings.
+
     Parameters
     ----------
         schema : Schema
@@ -101,6 +102,7 @@ def ItemsPredictionPopSampled(
     That implementation does not require the actual item frequencies/probabilities
     if the item ids are sorted by frequency. The PopularityBasedSampler
     approximates the item probabilities using the log_uniform (zipfian) distribution.
+
     Parameters:
     -----------
         schema: Schema
@@ -114,10 +116,12 @@ def ItemsPredictionPopSampled(
         ignore_false_negatives: bool
             Ignore sampled items that are equal to the target classes
             Defaults to True
-    Returns:
+
+    Returns
     -------
         A SequenceBlock that performs popularity-based sampling of negatives, scores
         the items and applies the logQ correction for sampled softmax
+
     References
     ----------
     .. [1] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
@@ -169,6 +173,7 @@ def NextItemPredictionTask(
 ) -> MultiClassClassificationTask:
     """
     Function to create the NextItemPrediction task with the right parameters.
+
     Parameters
     ----------
         schema: Schema
@@ -209,6 +214,7 @@ def NextItemPredictionTask(
             Optional extra pre-call block for post-processing the logits, by default None.
             You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`
             for populariy sampling correction.
+
     Returns
     -------
         PredictionTask

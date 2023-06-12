@@ -312,7 +312,7 @@ def sample_batch(
     shuffle: bool
         Whether to sample a random batch or not, by default False.
 
-    Returns:
+    Returns
     -------
     features: Dict[torch.Tensor]
         dictionary of feature tensors.
@@ -352,7 +352,7 @@ def sample_features(
     shuffle: bool
         Whether to sample a random batch or not, by default False.
 
-    Returns:
+    Returns
     -------
     features: Dict[torch.Tensor]
         dictionary of feature tensors.

@@ -70,6 +70,7 @@ def get_dressipi2022(input_path):
     ----------
     path: Union[str, Path]
         Directory to load the raw data from.
+
     Returns
     -------
     train: merlin.io.Dataset

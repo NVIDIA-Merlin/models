@@ -39,6 +39,7 @@ class InBatchSamplerV2(CandidateSampler):
     ----------
     .. [1] Yi, Xinyang, et al. "Sampling-bias-corrected neural modeling for large corpus item
        recommendations." Proceedings of the 13th ACM Conference on Recommender Systems. 2019.
+
     Parameters
     ----------
     batch_size : int, optional
