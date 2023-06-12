@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../../../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/_modules/merlin/models/tf/prediction_tasks/classification.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/_modules/merlin/models/tf/prediction_tasks/classification.html" />
   <!--[if lt IE 9]>
     <script src="../../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -183,12 +183,39 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="BinaryClassificationTask.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BinaryClassificationTask.html#merlin.models.tf.BinaryClassificationTask.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Projects the input with the output layer to a single logit</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputs : tf.Tensor</span>
+<span class="sd">            Input tensor</span>
+<span class="sd">        training : bool, optional</span>
+<span class="sd">            Flag that indicates whether it is training or not, by default False</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            Tensor with the classification probabilities</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="BinaryClassificationTask.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BinaryClassificationTask.html#merlin.models.tf.BinaryClassificationTask.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the output shape based on the input shape</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tf.TensorShape</span>
+<span class="sd">            The input shape</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.TensorShape</span>
+<span class="sd">            The output shape</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BinaryClassificationTask.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BinaryClassificationTask.html#merlin.models.tf.BinaryClassificationTask.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a Python dict containing the configuration of the model.&quot;&quot;&quot;</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_serialize_keras_objects</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>

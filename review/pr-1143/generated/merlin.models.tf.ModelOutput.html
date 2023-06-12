@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.ModelOutput.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/generated/merlin.models.tf.ModelOutput.html" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -104,7 +104,7 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>to_call</strong> (<em>Layer</em>) – The layer to call in the forward-pass of the model</p></li>
 <li><p><strong>default_loss</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>tf.keras.losses.Loss</em><em>]</em>) – Default loss to set if the user does not specify one</p></li>
-<li><p><strong>get_default_metrics</strong> (<em>Callable</em>) – A function returning the list of default metrics to set
+<li><p><strong>default_metrics_fn</strong> (<em>Callable</em>) – A function returning the list of default metrics to set
 if the user does not specify any</p></li>
 <li><p><strong>name</strong> (<em>Optional</em><em>[</em><em>Text</em><em>]</em><em>, </em><em>optional</em>) – Task name, by default None</p></li>
 <li><p><strong>target</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>]</em><em>, </em><em>optional</em>) – Label name, by default None</p></li>
@@ -202,7 +202,7 @@ by default 1.</p></li>
 <td><p>Retrieves the output shape(s) of a layer at a given node.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ModelOutput.get_task_name" title="merlin.models.tf.ModelOutput.get_task_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_task_name</span></code></a>(target_name)</p></td>
-<td><p></p></td>
+<td><p>Returns the name of the task :param target_name: Name of the target :type target_name: str</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
 <td><p>Returns the current weights of the layer, as NumPy arrays.</p></td>
@@ -355,8 +355,19 @@ by default 1.</p></li>
 
 <dl class="py method">
 <dt id="merlin.models.tf.ModelOutput.get_task_name">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">get_task_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/outputs/base.html#ModelOutput.get_task_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ModelOutput.get_task_name" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">get_task_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><a class="reference internal" href="../_modules/merlin/models/tf/outputs/base.html#ModelOutput.get_task_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ModelOutput.get_task_name" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the name of the task
+:param target_name: Name of the target
+:type target_name: str</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the task name, which includes the target name</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.ModelOutput.from_config">

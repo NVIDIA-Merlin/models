@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../../../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/_modules/merlin/models/tf/transforms/sequence.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/_modules/merlin/models/tf/transforms/sequence.html" />
   <!--[if lt IE 9]>
     <script src="../../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -124,6 +124,7 @@
 <span class="sd">        padding_idx: int</span>
 <span class="sd">            The padding index value.</span>
 <span class="sd">            Defaults to 0.</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">        targets: tf.Tensor</span>
@@ -1057,10 +1058,29 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ReplaceMaskedEmbeddings.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the block.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">supports_masking</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 <div class="viewcode-block" id="ReplaceMaskedEmbeddings.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html#merlin.models.tf.ReplaceMaskedEmbeddings.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Builds the block&#39;s internal variables.</span>
+
+<span class="sd">        This method creates a trainable embedding to replace masked interactions in the input.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tf.TensorShape</span>
+<span class="sd">            Shape of the input tensor.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the last dimension of the input shape is None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The last dim of inputs cannot be None&quot;</span><span class="p">)</span>

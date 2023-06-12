@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.RetrievalModelV2.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/generated/merlin.models.tf.RetrievalModelV2.html" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -141,7 +141,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(inputs[, targets, training, testing, …])</p></td>
-<td><p></p></td>
+<td><p>Method for forward pass of the model.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_train_test</span></code>(x[, y, sample_weight, …])</p></td>
 <td><p>Apply the model’s call method during Train or Test modes and prepare Prediction (v2) or PredictionOutput (v1 - depreciated) objects</p></td>
@@ -237,7 +237,7 @@
 <td><p>Retrieves the output shape(s) of a layer at a given node.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_sample_inputs</span></code>([batch_size])</p></td>
-<td><p></p></td>
+<td><p>Generates sample inputs for the model.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weight_paths</span></code>()</p></td>
 <td><p>Retrieve all the variables and their paths for the model.</p></td>
@@ -264,7 +264,7 @@
 <td><p>Logic to consolidate metrics results extracted from standard Keras Model.compute_metrics()</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs_by_name</span></code>()</p></td>
-<td><p></p></td>
+<td><p>Returns the task names from the model outputs</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs_by_target</span></code>()</p></td>
 <td><p>Method to index the model’s prediction blocks by target names.</p></td>
@@ -279,7 +279,7 @@
 <td><p>Returns predictions for a single batch of samples.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_step</span></code>(data)</p></td>
-<td><p></p></td>
+<td><p>Custom predict step to obtain the outputs</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prediction_tasks_by_name</span></code>()</p></td>
 <td><p></p></td>
@@ -381,7 +381,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">first</span></code></p></td>
-<td><p></p></td>
+<td><p>The first <cite>Block</cite> in the model.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">frozen_blocks</span></code></p></td>
 <td><p>Get frozen blocks of model, only on which you called freeze_blocks before, the result dose not include those blocks frozen in other methods, for example, if you create the embedding and set the <cite>trainable</cite> as False, it would not be tracked by this property, but you can also call unfreeze_blocks on those blocks.</p></td>
@@ -411,7 +411,7 @@
 <td><p>Specify whether to compile the model with XLA.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">last</span></code></p></td>
-<td><p></p></td>
+<td><p>The last <cite>Block</cite> in the model.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">layers</span></code></p></td>
 <td><p></p></td>
@@ -426,7 +426,7 @@
 <td><p>Returns the model’s display labels for all outputs.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_outputs</span></code></p></td>
-<td><p></p></td>
+<td><p>Returns a list with the ModelOutput in the model</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></p></td>
 <td><p>Name of the layer (string), set in the constructor.</p></td>
@@ -453,7 +453,7 @@
 <td><p>Retrieves the output shape(s) of a layer.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prediction_tasks</span></code></p></td>
-<td><p></p></td>
+<td><p>Returns the Prediction tasks in the model.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.RetrievalModelV2.query_encoder" title="merlin.models.tf.RetrievalModelV2.query_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">query_encoder</span></code></a></p></td>
 <td><p></p></td>
@@ -498,12 +498,12 @@
 </table>
 <dl class="py method">
 <dt id="merlin.models.tf.RetrievalModelV2.query_embeddings">
-<code class="sig-name descname"><span class="pre">query_embeddings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html#merlin.schema.ColumnSchema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.ColumnSchema</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html#merlin.schema.Schema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.Schema</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html#merlin.schema.Tags" title="(in Merlin Core)"><span class="pre">merlin.schema.tags.Tags</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><a class="reference internal" href="../_modules/merlin/models/tf/models/base.html#RetrievalModelV2.query_embeddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.RetrievalModelV2.query_embeddings" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">query_embeddings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html#merlin.schema.ColumnSchema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.ColumnSchema</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html#merlin.schema.Schema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.Schema</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html#merlin.schema.Tags" title="(in Merlin Core)"><span class="pre">merlin.schema.tags.Tags</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><a class="reference internal" href="../_modules/merlin/models/tf/models/base.html#RetrievalModelV2.query_embeddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.RetrievalModelV2.query_embeddings" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.RetrievalModelV2.candidate_embeddings">
-<code class="sig-name descname"><span class="pre">candidate_embeddings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html#merlin.schema.ColumnSchema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.ColumnSchema</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html#merlin.schema.Schema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.Schema</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html#merlin.schema.Tags" title="(in Merlin Core)"><span class="pre">merlin.schema.tags.Tags</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><a class="reference internal" href="../_modules/merlin/models/tf/models/base.html#RetrievalModelV2.candidate_embeddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.RetrievalModelV2.candidate_embeddings" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">candidate_embeddings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html#merlin.schema.ColumnSchema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.ColumnSchema</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html#merlin.schema.Schema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.Schema</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html#merlin.schema.Tags" title="(in Merlin Core)"><span class="pre">merlin.schema.tags.Tags</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.io.html#merlin.io.Dataset" title="(in Merlin Core)"><span class="pre">merlin.io.dataset.Dataset</span></a><a class="reference internal" href="../_modules/merlin/models/tf/models/base.html#RetrievalModelV2.candidate_embeddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.RetrievalModelV2.candidate_embeddings" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
