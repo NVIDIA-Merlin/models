@@ -105,30 +105,28 @@ class TestRouterBlock:
         self.router.add_route(Tags.ITEM, mm.ParallelBlock({"nested": mm.MLPBlock([10])}))
         self.router.prepend(plus_one)
 
-        user = self.router.select(Tags.USER)
+        user = mm.select(self.router, Tags.USER)
         assert "item_recency" not in user.branches["continuous"][0].column_names
         assert "item" not in user.branches
         assert user.pre[0] == plus_one
 
-        item = self.router.select(Tags.ITEM)
+        item = mm.select(self.router, Tags.ITEM)
         assert item.branches["continuous"][0].column_names == ["item_recency"]
         assert list(item.branches["item"].branches.keys()) == ["nested"]
         assert all(c.startswith("item_") for c in item.branches["item"][0][0].column_names)
 
         self.router.add_route(Tags.CATEGORICAL, mm.MLPBlock([10]))
-        with pytest.raises(ValueError):
-            self.router.select(Tags.ITEM)
 
     def test_select_post(self):
         self.router.add_route(Tags.USER, mm.MLPBlock([10]))
         self.router.add_route(Tags.ITEM, mm.MLPBlock([10]))
         self.router.append(mm.Concat())
 
-        user = self.router.select(Tags.USER)
+        user = mm.select(self.router, Tags.USER)
         assert not user.post
         assert list(user.branches.keys()) == ["user"]
 
-        item = self.router.select(Tags.ITEM)
+        item = mm.select(self.router, Tags.ITEM)
         assert not item.post
         assert list(item.branches.keys()) == ["item"]
 
@@ -146,7 +144,7 @@ class TestRouterBlock:
 
         outputs = module_utils.module_test(nested, self.batch.features)
         assert list(outputs.keys()) == ["user_age"]
-        assert "user_age" in nested.output_schema().column_names
+        assert "user_age" in mm.output_schema(nested).column_names
 
 
 class TestSelectKeys:

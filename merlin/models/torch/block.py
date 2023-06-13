@@ -25,14 +25,12 @@ from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
-from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin
-from merlin.models.torch.utils.schema_utils import _input_schema as input_schema
-from merlin.models.torch.utils.schema_utils import _output_schema as output_schema
+from merlin.models.torch.utils.schema_utils import input_schema, output_schema
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
 
 
-class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
+class Block(BlockContainer, RegistryMixin):
     """A base-class that calls it's modules sequentially.
 
     Parameters
@@ -47,10 +45,8 @@ class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
 
     registry = registry
 
-    def __init__(self, *module: nn.Module, name: Optional[str] = None, track_schema: bool = True):
+    def __init__(self, *module: nn.Module, name: Optional[str] = None):
         super().__init__(*module, name=name)
-        if track_schema:
-            self._register_schema_tracking_hook()
 
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
@@ -151,12 +147,12 @@ class ParallelBlock(Block):
         If True, the schema of the output tensors are tracked.
     """
 
-    def __init__(self, *inputs: Union[nn.Module, Dict[str, nn.Module]], track_schema: bool = True):
+    def __init__(self, *inputs: Union[nn.Module, Dict[str, nn.Module]]):
         pre = BlockContainer()
         branches = BlockContainerDict(*inputs)
         post = BlockContainer()
 
-        super().__init__(track_schema=track_schema)
+        super().__init__()
 
         self.pre = pre
         self.branches = branches
@@ -197,7 +193,7 @@ class ParallelBlock(Block):
 
             # We need to check whether or not the branch container has a forward-method
             # This is a bit of a hack, but this seems to work in torchscript as well.
-            if hasattr(branch_container, "output_schema"):
+            if hasattr(branch_container, "registry"):
                 branch = branch_container(branch, batch=batch)
             else:
                 for module in branch_container.values:
@@ -371,6 +367,12 @@ class ParallelBlock(Block):
     def __bool__(self) -> bool:
         return bool(self.branches) or bool(self.pre) or bool(self.post)
 
+    def __eq__(self, other) -> bool:
+        return self.pre == other.pre and self.branches == other.branches and self.post == other.post
+
+    def __hash__(self) -> int:
+        return hash((self.pre, self.branches, self.post))
+
     def __repr__(self) -> str:
         indent_str = "    "
         branches = repr(self.branches)[len("BlockContainerDict") :]
@@ -413,29 +415,40 @@ def set_pre(module: nn.Module, pre: BlockContainer):
         return set_pre(module[0], pre)
 
 
+@input_schema.register(BlockContainer)
+def _(module: BlockContainer, input: Schema):
+    return input_schema(module[0], input) if module else input
+
+
 @input_schema.register(ParallelBlock)
-def _input_schema_parallel_block(module: ParallelBlock):
+def _(module: ParallelBlock, input: Schema):
+    if module.pre:
+        return input_schema(module.pre)
+
     schema = Schema()
-
-    if module.post:
-        return input_schema(module.post)
-
     for branch in module.branches.values():
-        schema += input_schema(branch)
+        schema += input_schema(branch, input)
 
     return schema
 
 
-@input_schema.register(BlockContainer)
-def _input_schema_block(module: BlockContainer):
-    return input_schema(module[-1])
-
-
 @output_schema.register(ParallelBlock)
-def _output_schema_parallel_block(module: ParallelBlock, input_schema: Schema):
-    pass
+def _(module: ParallelBlock, input: Schema):
+    if module.post:
+        return output_schema(module.post, input)
+
+    output = Schema()
+    for name, branch in module.branches.items():
+        branch_schema = output_schema(branch, input)
+
+        if len(branch_schema) == 1 and branch_schema.first.name == "output":
+            branch_schema = Schema([branch_schema.first.with_name(name)])
+
+        output += branch_schema
+
+    return output
 
 
 @output_schema.register(BlockContainer)
-def _output_schema_block(module: BlockContainer, input_schema: Schema):
-    pass
+def _(module: BlockContainer, input: Schema):
+    return output_schema(module[-1], input) if module else input

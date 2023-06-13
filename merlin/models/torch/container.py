@@ -174,6 +174,15 @@ class BlockContainer(nn.Module):
     def __bool__(self) -> bool:
         return bool(self.values)
 
+    def __eq__(self, other) -> bool:
+        if len(self) != len(other):
+            return False
+
+        return all(a == b for a, b in zip(self, other))
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.values))
+
     def __repr__(self) -> str:
         sequential = repr(self.values)
 
@@ -349,3 +358,9 @@ class BlockContainerDict(nn.ModuleDict):
 
     def _get_name(self) -> str:
         return super()._get_name() if self._name is None else self._name
+
+    def __eq__(self, other: "BlockContainerDict") -> bool:
+        return all(other[key] == val if key in other else False for key, val in self.items())
+
+    def __hash__(self) -> int:
+        return hash(tuple(sorted(self._modules.items())))

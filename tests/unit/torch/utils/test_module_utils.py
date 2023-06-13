@@ -129,7 +129,7 @@ class TestModuleTest:
         input_data = torch.randn(1, 5)
 
         with pytest.raises(RuntimeError, match="Failed to script the module"):
-            module_test(module, input_data, method="script")
+            module_test(module, input_data, method="script", schema_trace=False)
 
     def test_output_dict(self):
         # Define a module that returns a dictionary
@@ -207,7 +207,7 @@ class TestModuleTest:
         with pytest.raises(
             ValueError, match="The outputs of the original and scripted modules are not the same"
         ):
-            module_test(module, input_data, method="script")
+            module_test(module, input_data, method="script", schema_trace=False)
 
     def test_module_test_output_tuple_mismatch(self):
         # Define a module that returns a tuple with different tensors each time

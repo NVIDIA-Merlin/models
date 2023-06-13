@@ -1,3 +1,4 @@
+import inspect
 from typing import (
     Callable,
     Dict,
@@ -17,7 +18,7 @@ from merlin.dispatch.lazy import LazyDispatcher
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import ParallelBlock
 from merlin.models.torch.container import BlockContainer
-from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin, input_schema, output_schema
+from merlin.models.torch.utils.schema_utils import input_schema, output_schema
 from merlin.schema import ColumnSchema, Schema, Tags
 
 Selection = Union[Schema, ColumnSchema, Callable[[Schema], Schema], Tags]
@@ -30,19 +31,6 @@ class _SelectDispatch(LazyDispatcher):
             output = to_select.select(selection)
         else:
             output = super().__call__(to_select, selection)
-
-        if isinstance(to_select, nn.Module):
-            from merlin.models.torch.inputs.tabular import TabularInputBlock
-
-            try:
-                if isinstance(to_select, TabularInputBlock):
-                    a = 5
-
-                in_schema = select_schema(input_schema(to_select), selection)
-                to_exclude = (input_schema(to_select) - in_schema).column_names
-                output._output_schema = to_select.output_schema().excluding_by_name(to_exclude)
-            except (AttributeError, RuntimeError):
-                pass
 
         return output
 
@@ -228,6 +216,8 @@ class SelectKeys(nn.Module, Selectable):
             schema = Schema([schema])
 
         self.schema = schema
+        self.input_schema = schema
+        self.output_schema = schema
         self.column_names = schema.column_names
 
     def select(self, selection: Selection) -> "SelectKeys":
@@ -244,7 +234,7 @@ class SelectKeys(nn.Module, Selectable):
             A new SelectKeys instance with the selected schema.
         """
 
-        return SelectKeys(select_schema(self.schema, selection))
+        return SelectKeys(select(self.schema, selection))
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """Only keep the inputs that are present in the schema.
@@ -318,6 +308,8 @@ class SelectFeatures(nn.Module):
     def __init__(self, schema: Optional[Schema] = None):
         super().__init__()
         self.select_keys = SelectKeys(schema=schema)
+        if schema:
+            self.setup_schema(schema)
 
     def setup_schema(self, schema: Schema):
         """Set up the schema for the SelectFeatures.
@@ -329,6 +321,8 @@ class SelectFeatures(nn.Module):
         """
         self.select_keys.setup_schema(schema)
         self.embedding_names = schema.select_by_tag(Tags.EMBEDDING).column_names
+        self.input_schema = self.select_keys.input_schema
+        self.output_schema = self.select_keys.output_schema
 
     def select(self, selection: Selection) -> "SelectFeatures":
         """Select a subset of the schema based on the provided selection.
@@ -363,7 +357,7 @@ BlockT = TypeVar("BlockT", bound=BlockContainer)
 
 
 @select.register(BlockContainer)
-def _select_block(container: BlockT, selection: Selection) -> BlockT:
+def _(container: BlockT, selection: Selection) -> BlockT:
     if isinstance(container, ParallelBlock):
         return _select_parallel_block(container, selection)
 
@@ -384,23 +378,25 @@ def _select_block(container: BlockT, selection: Selection) -> BlockT:
         for module in container.values[1:]:
             try:
                 selected_module = select(module, selection)
+                outputs.append(selected_module)
             except ValueError:
                 selected_module = None
+                break
 
-            if not selected_module:
-                schema = getattr(first, "schema", None)
-                selected_schema = getattr(selected_first, "schema", None)
-                if schema and selected_schema:
-                    diff = set(schema.column_names) - set(selected_schema.column_names)
-                    raise ValueError(
-                        f"Cannot remove {diff} from {container} "
-                        f"because {module} does not support selection. ",
-                        "If it does, please implement a `select` method.",
-                    )
+            # if not selected_module:
+            #     schema = getattr(first, "schema", None)
+            #     selected_schema = getattr(selected_first, "schema", None)
+            #     if schema and selected_schema:
+            #         diff = set(schema.column_names) - set(selected_schema.column_names)
+            #         raise ValueError(
+            #             f"Cannot remove {diff} from {container} "
+            #             f"because {module} does not support selection. ",
+            #             "If it does, please implement a `select` method.",
+            #         )
 
-                raise ValueError(f"Cannot select from {module}")
+            #     raise ValueError(f"Cannot select from {module}")
 
-            outputs.append(selected_module)
+            # outputs.append(selected_module)
 
     return container.__class__(*outputs, name=container._name)
 
@@ -433,7 +429,10 @@ def _select_parallel_block(
     else:
         post = BlockContainer()
 
-    output = parallel.replace(pre=pre, branches=branches, post=post)
+    replace_kwargs = {"pre": pre, "branches": branches, "post": post}
+    if "selection" in inspect.signature(parallel.replace).parameters:
+        replace_kwargs["selection"] = selection
+    output = parallel.replace(**replace_kwargs)
 
     return output
 
@@ -449,11 +448,16 @@ def _extract_parallel(main, selection, route, name=None):
         else:
             output_branches[branch_name] = branch
 
-    return main.replace(branches=output_branches)
+    # TODO: What to do with post?
+    replace_kwargs = {"branches": output_branches}
+    if "selection" in inspect.signature(main.replace).parameters:
+        replace_kwargs["selection"] = selection
+
+    return main.replace(**replace_kwargs)
 
 
 @extract.register(BlockContainer)
-def _extract_block(main, selection, route, name=None):
+def _(main, selection, route, name=None):
     if isinstance(main, ParallelBlock):
         return _extract_parallel(main, selection, route=route, name=name)
 
@@ -472,15 +476,17 @@ def _extract_block(main, selection, route, name=None):
 
     output = main.__class__()
     for i, module in enumerate(main):
-        output.append(extract.extract(module, selection, route[i], name=name))
+        if i < len(route):
+            output.append(extract.extract(module, selection, route[i], name=name))
 
     return output
 
 
 @extract.register(SelectKeys)
-def _extract_select_keys(main, selection, route, name=None):
+def _(main, selection, route, name=None):
     main_schema = input_schema(main)
     route_schema = input_schema(route)
+
     diff = main_schema.excluding_by_name(route_schema.column_names)
 
     return SelectKeys(diff)

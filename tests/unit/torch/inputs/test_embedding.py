@@ -16,7 +16,7 @@ class TestEmbeddingTable:
 
         table = EmbeddingTable(lambda col: 10, item_id_col_schema)
         assert table
-        assert table.schema == Schema([item_id_col_schema])
+        assert table.input_schema == Schema([item_id_col_schema])
         assert table.num_embeddings == 11
 
         table = EmbeddingTable(10, Schema([item_id_col_schema, user_id_col_schema]))

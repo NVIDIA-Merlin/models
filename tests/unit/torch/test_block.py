@@ -19,6 +19,7 @@ import pytest
 import torch
 from torch import nn
 
+import merlin.models.torch as mm
 from merlin.models.torch import link
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import Block, ParallelBlock
@@ -51,13 +52,7 @@ class TestBlock:
 
         assert torch.equal(inputs, outputs)
 
-        schema = block.output_schema()
-        assert schema.first.dtype.name == str(outputs.dtype).split(".")[-1]
-
-    def test_no_schema_tracking(self):
-        block = Block(track_schema=False)
-        with pytest.raises(RuntimeError, match="Schema-tracking hook not registered"):
-            block.output_schema()
+        assert not mm.output_schema(block)
 
     def test_insertion(self):
         block = Block()
@@ -162,9 +157,8 @@ class TestParallelBlock:
         pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
 
         inputs = torch.randn(1, 3)
-        outputs = pb(inputs)
-
-        schema = pb.output_schema()
+        outputs = mm.trace_schema(pb, inputs)
+        schema = mm.output_schema(pb)
 
         for name in outputs:
             assert name in schema.column_names

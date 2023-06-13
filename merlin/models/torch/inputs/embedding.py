@@ -79,10 +79,10 @@ class EmbeddingTable(nn.Module, Selectable):
         if isinstance(schema, ColumnSchema):
             schema = Schema([schema])
 
-        self.schema = Schema()
+        self.input_schema = Schema()
         for col in schema:
             self.add_feature(col)
-        if self.schema:
+        if self.input_schema:
             self.table = self.create_table()
 
     def create_table(self) -> nn.Module:
@@ -94,7 +94,7 @@ class EmbeddingTable(nn.Module, Selectable):
         """
 
         if callable(self.dim):
-            self.dim = self.dim(self.schema)
+            self.dim = self.dim(self.input_schema)
 
         return nn.Embedding(self.num_embeddings, self.dim)
 
@@ -296,7 +296,7 @@ class EmbeddingTable(nn.Module, Selectable):
             to_add += domain.max
 
         self.feature_to_domain[col_schema.name] = self.domains[domain.name]
-        self.schema += Schema([col_schema])
+        self.input_schema += Schema([col_schema])
 
         if self.num_embeddings == 0:
             self.num_embeddings = 1
@@ -349,7 +349,7 @@ class EmbeddingTable(nn.Module, Selectable):
                 domain.min += diff
                 domain.max += diff
 
-        self.schema[feature_name] = col_schema
+        self.input_schema[feature_name] = col_schema
 
         # Update the total number of embeddings
         self.num_embeddings += diff
@@ -359,9 +359,10 @@ class EmbeddingTable(nn.Module, Selectable):
         return self
 
     def select(self, selection: Selection) -> Selectable:
-        selected = select(self.schema, selection)
+        selected = select(self.input_schema, selection)
 
         if not selected:
+            # return None
             raise ValueError(f"Selection {selection} not found in the table")
 
         return self
@@ -370,7 +371,7 @@ class EmbeddingTable(nn.Module, Selectable):
     def output_schema(self) -> Schema:
         output = Schema()
 
-        for col in self.schema:
+        for col in self.input_schema:
             dims = (None, self.dim) if self.seq_combiner else (None, None, self.dim)
             tags = [Tags.EMBEDDING]
 
@@ -415,7 +416,7 @@ class EmbeddingTable(nn.Module, Selectable):
         Returns:
             bool: True if the table contains features, False otherwise.
         """
-        return bool(self.schema)
+        return bool(self.input_schema)
 
 
 class EmbeddingTables(ParallelBlock, Selectable):
@@ -485,7 +486,9 @@ class EmbeddingTables(ParallelBlock, Selectable):
         selected_branches = {}
         for key, val in self.branches.items():
             try:
-                selected_branches[key] = select(val, selection)
+                selected = select(val, selection)
+                if selected:
+                    selected_branches[key] = selected
             except ValueError:
                 pass
 

@@ -1,4 +1,5 @@
-from typing import Dict, Tuple, Union
+import types
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -7,78 +8,183 @@ from merlin.dispatch.lazy import LazyDispatcher
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
-class _InputSchemaDispatch(LazyDispatcher):
-    def __call__(self, module: nn.Module) -> Schema:
-        return super().__call__(module)
+class _LazyDispatchPyTorch(LazyDispatcher):
+    def __init__(self, func_or_name):
+        super().__init__(func_or_name)
+        self._tensor_registry = {}
+
+    def register_tensor(self, tensor_type, func=None):
+        if func is None:
+            return lambda f: self.register_tensor(tensor_type, f)
+        self._tensor_registry[tensor_type] = func
+
+        return func
+
+    def tensors(self, inputs):
+        for tensor_type, func in self._tensor_registry.items():
+            if torch.jit.isinstance(inputs, tensor_type):
+                return func(inputs)
+
+        raise NotImplementedError(f"Schema not registered for {type(inputs)}")
+
+    def get_schema(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema]) -> Schema:
+        if isinstance(inputs, Schema):
+            return inputs
+        return self.tensors(inputs)
 
 
-class _OutputSchemaDispatch(LazyDispatcher):
-    def __call__(self, module: nn.Module, input_schema: Schema) -> Schema:
+class _InputSchemaDispatch(_LazyDispatchPyTorch):
+    def __call__(self, module: nn.Module, inputs: Optional[Schema] = None) -> Schema:
+        if hasattr(module, "input_schema"):
+            output = module.input_schema
+            if isinstance(output, types.MethodType):
+                return output()
+
+            return output
+
+        input_schemas = getattr(module, "__input_schemas", None)
+        if input_schemas:
+            if len(input_schemas) == 1:
+                return input_schemas[0]
+
+            if inputs is None:
+                raise ValueError("Must provide inputs to get output schema")
+
+            # TODO: Fix this properly
+            i = module.__input_schemas.index(inputs)
+
+            return input_schemas[i]
+
         try:
-            return super().__call__(module, input_schema)
+            return super().__call__(module, inputs)
         except NotImplementedError:
-            if not hasattr(module, "_tracked_schema"):
-                raise RuntimeError("Schema-tracking hook not registered for module")
+            raise ValueError(
+                f"Could not get output schema of {module} " "please call mm.trace_schema first."
+            )
 
-            ...
+    def trace(
+        self, module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema]
+    ) -> Schema:
+        inputs_schema = self.get_schema(inputs)
+
+        try:
+            return super().__call__(module, inputs_schema)
+        except NotImplementedError:
+            return inputs_schema
 
 
-_input_schema = _InputSchemaDispatch("input_schema")
-_output_schema = _OutputSchemaDispatch("output_schema")
+class _OutputSchemaDispatch(_LazyDispatchPyTorch):
+    def __call__(self, module: nn.Module, inputs: Optional[Schema] = None) -> Schema:
+        if hasattr(module, "output_schema"):
+            output = module.output_schema
+            if isinstance(output, types.MethodType):
+                return output()
+
+            return output
+
+        output_schemas = getattr(module, "__output_schemas", None)
+        if output_schemas:
+            if len(output_schemas) == 1:
+                return output_schemas[0]
+
+            if inputs is None:
+                raise ValueError("Must provide inputs to get output schema")
+
+            # TODO: Fix this properly
+            i = module.__input_schemas.index(inputs)
+
+            return output_schemas[i]
+
+        try:
+            return super().__call__(module, inputs)
+        except NotImplementedError:
+            raise ValueError(
+                f"Could not get output schema of {module} " "please call mm.trace_schema first."
+            )
+
+    def trace(
+        self,
+        module: nn.Module,
+        inputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema],
+        outputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema],
+    ) -> Schema:
+        _input_schema = input_schema.get_schema(inputs)
+        _output_schema = self.get_schema(outputs)
+
+        try:
+            return super().__call__(module, _input_schema)
+        except NotImplementedError:
+            return _output_schema
 
 
-def trace_schema(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]]):
+input_schema = _InputSchemaDispatch("input_schema")
+output_schema = _OutputSchemaDispatch("output_schema")
+
+
+@output_schema.register_tensor(torch.Tensor)
+def _tensor_to_schema(input, name="output"):
+    kwargs = dict(dims=input.shape[1:], dtype=input.dtype)
+
+    if len(input.shape) > 1 and input.dtype != torch.int32:
+        kwargs["tags"] = [Tags.EMBEDDING]
+
+    return Schema([ColumnSchema(name, **kwargs)])
+
+
+@input_schema.register_tensor(torch.Tensor)
+def _(input):
+    return _tensor_to_schema(input, "input")
+
+
+@input_schema.register_tensor(Dict[str, torch.Tensor])
+@output_schema.register_tensor(Dict[str, torch.Tensor])
+def _(input):
+    output = Schema()
+    for k, v in sorted(input.items()):
+        output += _tensor_to_schema(v, k)
+
+    return output
+
+
+@input_schema.register_tensor(Tuple[torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
+def _(input):
+    output = Schema()
+
+    for i, v in enumerate(input):
+        output += _tensor_to_schema(v, str(i))
+
+    return output
+
+
+def trace_schema(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], **kwargs):
     hooks = []
 
     def _hook(mod: nn.Module, input: Tuple[torch.Tensor], output: torch.Tensor):
-        if not hasattr(mod, "__traced_schema"):
-            mod.__traced_schema = {}
+        if not hasattr(mod, "__input_schemas"):
+            mod.__input_schemas = ()
+            mod.__output_schemas = ()
 
-        # Collect all inputs information
-        # TODO: Make this more generic
-        if isinstance(input[0], torch.Tensor):
-            input_schema = Schema(
-                ColumnSchema("input", dims=input[0].shape[1:], dtype=input[0].dtype)
-            )
-        elif isinstance(input[0], dict):
-            input_schema = Schema(
-                [
-                    ColumnSchema(k, dims=v.shape[1:], dtype=v.dtype)
-                    for k, v in sorted(input[0].items())
-                ]
-            )
-        elif isinstance(input[0], (tuple, list)):
-            input_schema = Schema(
-                [
-                    ColumnSchema(str(i), dims=v.shape[1:], dtype=v.dtype)
-                    for i, v in enumerate(input[0])
-                ]
-            )
-        else:
-            raise ValueError(f"Unhandled input type: {type(input[0])}")
+        _input_schema = input_schema.trace(mod, input[0])
+        if _input_schema not in mod.__input_schemas:
+            mod.__input_schemas += (_input_schema,)
+            mod.__output_schemas += (output_schema.trace(mod, _input_schema, output),)
 
-        # Convert to string to use as a dictionary key
-        key = str(input_schema)
-
-        # Save output shape and dtype
-        out_shape = output.data.shape
-        out_dtype = output.dtype
-
-        mod.__traced_schema[key] = {
-            "output_shape": out_shape,
-            "output_dtype": out_dtype,
-        }
-
-    for m in module.modules():
-        custom_modules = list(_output_schema.dispatcher.registry.keys())
+    def add_hook(m):
+        custom_modules = list(output_schema.dispatcher.registry.keys())
         if len(custom_modules) > 0 and isinstance(m, tuple(custom_modules[1:])):
-            continue
-        if m.__class__ in (nn.ModuleList, nn.ModuleDict):
-            continue
+            return
 
         hooks.append(m.register_forward_hook(_hook))
 
-    output = module(inputs)
+    module.apply(add_hook)
+    output = module(inputs, **kwargs)
 
     for hook in hooks:
         hook.remove()
@@ -186,7 +292,7 @@ class SchemaTrackingMixin:
         return super().eval()
 
 
-def input_schema(module) -> Schema:
+def get_input_schema(module) -> Schema:
     """
     Get the input schema of a module.
 
@@ -211,19 +317,19 @@ def input_schema(module) -> Schema:
     schema = Schema()
     if hasattr(module, "items"):
         for value in module.values():
-            schema += input_schema(value)
+            schema += get_input_schema(value)
 
     else:
         # check if iterable
         try:
-            return input_schema(module[0])
+            return get_input_schema(module[0])
         except TypeError:
             pass
 
     return schema
 
 
-def output_schema(module) -> Schema:
+def get_output_schema(module) -> Schema:
     """
     Get the output schema of a module.
 
@@ -245,12 +351,12 @@ def output_schema(module) -> Schema:
     schema = Schema()
     if hasattr(module, "items"):
         for value in module.values():
-            schema += output_schema(value)
+            schema += get_output_schema(value)
 
     else:
         # check if iterable
         try:
-            return output_schema(module[-1])
+            return get_output_schema(module[-1])
         except TypeError:
             pass
 

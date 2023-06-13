@@ -1,9 +1,11 @@
 from typing import List, Optional, Sequence
 
+import torch
 from torch import nn
 
 from merlin.models.torch.block import Block
 from merlin.models.torch.transforms.agg import Concat, MaybeAgg
+from merlin.models.torch.utils.schema_utils import Schema, output_schema
 
 
 class MLPBlock(Block):
@@ -58,6 +60,7 @@ class MLPBlock(Block):
 
         if not isinstance(units, list):
             units = list(units)
+        self.out_features = units[-1]
 
         for dim in units:
             modules.append(nn.LazyLinear(dim))
@@ -79,3 +82,10 @@ class MLPBlock(Block):
                     modules.append(nn.Dropout(dropout))
 
         super().__init__(*modules)
+
+
+@output_schema.register(nn.LazyLinear)
+@output_schema.register(nn.Linear)
+@output_schema.register(MLPBlock)
+def _output_schema_block(module: nn.LazyLinear, input: Schema):
+    return output_schema.tensors(torch.ones((1, module.out_features), dtype=float))

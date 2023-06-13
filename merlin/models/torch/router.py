@@ -3,21 +3,15 @@ from typing import Optional
 
 from torch import nn
 
-from merlin.models.torch.block import Block, ParallelBlock, get_pre, set_pre
-from merlin.models.torch.container import BlockContainer, BlockContainerDict
-from merlin.models.torch.selection import (
-    Selectable,
-    Selection,
-    SelectKeys,
-    _select_parallel_block,
-    select,
-    selection_name,
-)
+from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.container import BlockContainerDict
+from merlin.models.torch.selection import Selectable, Selection, SelectKeys, select, selection_name
 from merlin.models.torch.utils.schema_utils import setup_schema
 from merlin.schema import Schema
 
 
-class RouterBlock(ParallelBlock, Selectable):
+class RouterBlock(ParallelBlock):
+    # class RouterBlock(ParallelBlock, Selectable):
     """A block that routes features by selecting them from a selectable object.
 
     Example usage::
@@ -76,7 +70,7 @@ class RouterBlock(ParallelBlock, Selectable):
             The router block with the new route added.
         """
 
-        routing_module = self.selectable.select(selection)
+        routing_module = select(self.selectable, selection)
         if module is not None:
             setup_schema(module, routing_module.schema)
 
@@ -167,43 +161,48 @@ class RouterBlock(ParallelBlock, Selectable):
 
         return self.__class__(self)
 
-    def select(self, selection: Selection) -> "RouterBlock":
-        """Select a subset of the branches based on the provided selection.
+    # def select(self, selection: Selection) -> "RouterBlock":
+    #     """Select a subset of the branches based on the provided selection.
 
-        Parameters
-        ----------
-        selection : Selection
-            The selection to apply to the branches.
+    #     Parameters
+    #     ----------
+    #     selection : Selection
+    #         The selection to apply to the branches.
 
-        Returns
-        -------
-        RouterBlock
-            A new router block with the selected branches.
-        """
+    #     Returns
+    #     -------
+    #     RouterBlock
+    #         A new router block with the selected branches.
+    #     """
 
-        selected = select(self.selectable, selection)
-        output = _select_parallel_block(self, selection)
-        if output:
-            if isinstance(selected, SelectKeys):
-                selected_keys = selected
-            else:
-                selected_keys = SelectKeys(selected.schema)
-            if not self.pre or (self.pre and self.pre[0] != selected_keys):
-                if all(get_pre(self.branches[key]) for key in output.branches):
-                    for key in output.branches:
-                        pre = get_pre(self.branches[key])
-                        if pre and pre[0] != selected_keys:
-                            set_pre(output.branches[key], BlockContainer(selected_keys, *self.pre))
-                elif selected_keys not in list(output.branches.modules()):
-                    output.pre = BlockContainer(selected_keys, *self.pre)
+    #     selected = select(self.selectable, selection)
+    #     output = _select_parallel_block(self, selection)
+    #     if output:
+    #         if isinstance(selected, SelectKeys):
+    #             selected_keys = selected
+    #         else:
+    #             selected_keys = SelectKeys(selected.schema)
+    #         if not self.pre or (self.pre and self.pre[0] != selected_keys):
+    #             if all(get_pre(self.branches[key]) for key in output.branches):
+    #                 for key in output.branches:
+    #                     pre = get_pre(self.branches[key])
+    #                     if pre and pre[0] != selected_keys:
+    #                         set_pre(output.branches[key],
+    # BlockContainer(selected_keys, *self.pre))
+    #             elif selected_keys not in list(output.branches.modules()):
+    #                 output.pre = BlockContainer(selected_keys, *self.pre)
 
-        return output
+    #     return output
 
-    def replace(self, pre=None, branches=None, post=None) -> "RouterBlock":
+    def replace(self, pre=None, branches=None, post=None, selection=None) -> "RouterBlock":
         if isinstance(branches, dict):
             branches = BlockContainerDict(branches)
 
-        output = self.__class__(self.selectable)
+        selected = select(self.selectable.schema, selection)
+        if not selected:
+            return ParallelBlock()
+
+        output = self.__class__(selected)
         output.pre = pre if pre is not None else self.pre
         output.branches = branches if branches is not None else self.branches
         output.post = post if post is not None else self.post

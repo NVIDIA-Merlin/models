@@ -26,6 +26,7 @@ from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.selection import SelectFeatures, Selection, SelectKeys, extract, select
 from merlin.models.torch.transforms.agg import Concat, Stack
+from merlin.models.torch.utils.schema_utils import input_schema, output_schema, trace_schema
 
 __all__ = [
     "Batch",
@@ -50,4 +51,7 @@ __all__ = [
     "TabularInputBlock",
     "Concat",
     "Stack",
+    "input_schema",
+    "trace_schema",
+    "output_schema",
 ]

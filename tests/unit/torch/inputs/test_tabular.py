@@ -3,8 +3,6 @@ import torch
 
 import merlin.models.torch as mm
 from merlin.models.torch.inputs.embedding import infer_embedding_dim
-from merlin.models.torch.selection import output_schema, select_schema
-from merlin.models.torch.utils.schema_utils import trace_schema
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -21,10 +19,10 @@ class TestTabularInputBlock:
 
         outputs = self.input_block(self.batch.features)
 
-        for name in select_schema(self.schema, Tags.CONTINUOUS).column_names:
+        for name in mm.select(self.schema, Tags.CONTINUOUS).column_names:
             assert name in outputs
 
-        for name in select_schema(self.schema, Tags.CATEGORICAL).column_names:
+        for name in mm.select(self.schema, Tags.CATEGORICAL).column_names:
             assert name in outputs
             assert outputs[name].shape == (10, 10)
 
@@ -32,10 +30,10 @@ class TestTabularInputBlock:
         input_block = mm.TabularInputBlock(self.schema, init="defaults")
         outputs = input_block(self.batch.features)
 
-        for name in select_schema(self.schema, Tags.CONTINUOUS).column_names:
+        for name in mm.select(self.schema, Tags.CONTINUOUS).column_names:
             assert name in outputs
 
-        for name in select_schema(self.schema, Tags.CATEGORICAL).column_names:
+        for name in mm.select(self.schema, Tags.CATEGORICAL).column_names:
             assert name in outputs
             assert outputs[name].shape == (
                 10,
@@ -54,23 +52,42 @@ class TestTabularInputBlock:
             mm.TabularInputBlock(self.schema, init="unknown")
 
     def test_extract_route_two_tower(self):
-        input_block = mm.TabularInputBlock(self.schema, init="defaults")  # , agg="concat"
+        input_block = mm.TabularInputBlock(self.schema, init="defaults")
         towers = input_block.reroute()
         towers.add_route(Tags.USER, mm.MLPBlock([10]))
         towers.add_route(Tags.ITEM, mm.MLPBlock([10]))
 
-        outputs = trace_schema(towers, self.batch.features)
+        input_cols = {
+            "user_id",
+            "country",
+            "user_age",
+            "user_genres",
+            "item_id",
+            "item_category",
+            "item_recency",
+            "item_genres",
+        }
+        assert set(mm.input_schema(towers).column_names) == input_cols
+        assert mm.output_schema(towers).column_names == ["user", "item"]
+
+        categorical = mm.select(towers, Tags.CATEGORICAL)
+        outputs = mm.trace_schema(towers, self.batch.features)
+
+        assert mm.extract(towers, Tags.CATEGORICAL)[1] == categorical
+        assert set(mm.input_schema(towers).column_names) == input_cols
+        assert mm.output_schema(towers).column_names == ["user", "item"]
 
         outputs = towers(self.batch.features)
         assert outputs["user"].shape == (10, 10)
         assert outputs["item"].shape == (10, 10)
 
         new_inputs, route = mm.extract(towers, Tags.USER)
+        assert mm.output_schema(new_inputs).column_names == ["user", "item"]
 
         assert "user" in new_inputs.branches
         assert new_inputs.branches["user"][0].select_keys.column_names == ["user"]
         assert "user" in route.branches
-        assert output_schema(route).select_by_tag(Tags.EMBEDDING).column_names == ["user"]
+        assert mm.output_schema(route).select_by_tag(Tags.EMBEDDING).column_names == ["user"]
 
     def test_extract_route_embeddings(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
