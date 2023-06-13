@@ -25,7 +25,7 @@ BACKEND_ALIASES = {
     "lightfm": "lightfm",
     "xgb": "xgboost",
 }
-OTHER_MARKERS = {"unit", "integration", "example", "datasets", "horovod", "transformers"}
+OTHER_MARKERS = {"unit", "integration", "examples", "datasets", "horovod", "transformers"}
 SHARED_MODULES = {
     "/datasets/",
     "/models/config/",
