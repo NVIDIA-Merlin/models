@@ -22,12 +22,12 @@ tests-changed:
 	coverage html --include 'merlin/models/*'
 
 tests-tf:
-	coverage run -m pytest --durations=100 --dist=loadfile --numprocesses=auto -rsx tests -m "tensorflow and not (integration or example)" || exit 1
+	coverage run -m pytest --durations=100 --dist=loadfile --numprocesses=auto -rsx tests -m "tensorflow and not (integration or example or notebook)" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
 tests-tf-examples:
-	coverage run -m pytest -rsx tests -m "tensorflow and example" || exit 1
+	coverage run -m pytest -rsx tests -m "tensorflow and (example or notebook)" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
