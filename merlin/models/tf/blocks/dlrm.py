@@ -34,52 +34,55 @@ def DLRMBlock(
     *,
     embedding_dim: int = None,
     embedding_options: EmbeddingOptions = None,
+    embeddings: Optional[Block] = None,
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
-    embeddings: Optional[Block] = None,
 ) -> SequentialBlock:
     """Builds the DLRM architecture, as proposed in the following
-    `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.
+     `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.
 
-    References
-    ----------
-    .. [1] Naumov, Maxim, et al. "Deep learning recommendation model for
-       personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
+     References
+     ----------
+     .. [1] Naumov, Maxim, et al. "Deep learning recommendation model for
+        personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
 
-    Parameters
-    ----------
-    schema : Schema
-        The `Schema` with the input features
-    bottom_block : Block
-        The `Block` that combines the continuous features (typically a `MLPBlock`)
-    top_block : Optional[Block], optional
-        The optional `Block` that combines the outputs of bottom layer and of
-        the factorization machine layer, by default None
-    embedding_dim : Optional[int], optional
-        Dimension of the embeddings, by default None
-    embedding_options : EmbeddingOptions
-        Options for the input embeddings.
-        - embedding_dim_default: int - Default dimension of the embedding
-        table, when the feature is not found in ``embedding_dims``, by default 64
-        - infer_embedding_sizes : bool, Automatically defines the embedding
-        dimension from the feature cardinality in the schema, by default False,
-        which needs to be kept False for the DLRM architecture.
+     Parameters
+     ----------
+     schema : Schema
+         The `Schema` with the input features
+     embedding_dim : Optional[int], optional
+         Dimension of the embeddings, by default None
+     embedding_options : EmbeddingOptions
+         Options for the input embeddings.
+         - embedding_dim_default: int - Default dimension of the embedding
+         table, when the feature is not found in ``embedding_dims``, by default 64
+         - infer_embedding_sizes : bool, Automatically defines the embedding
+         dimension from the feature cardinality in the schema, by default False,
+         which needs to be kept False for the DLRM architecture.
+    embeddings: Optional[Block]
+         If provided creates a ParallelBlock with an EmbeddingTable for each
+         categorical feature in the schema.
+     bottom_block : Block
+         The `Block` that combines the continuous features (typically a `MLPBlock`)
+     top_block : Optional[Block], optional
+         The optional `Block` that combines the outputs of bottom layer and of
+         the factorization machine layer, by default None
 
-    Returns
-    -------
-    SequentialBlock
-        The DLRM block
+     Returns
+     -------
+     SequentialBlock
+         The DLRM block
 
-    Raises
-    ------
-    ValueError
-        The schema is required by DLRM
-    ValueError
-        The bottom_block is required by DLRM
-    ValueError
-        The embedding_dim (X) needs to match the last layer of bottom MLP (Y).
-    ValueError
-        Only one-of `embeddings` or `embedding_options` can be used.
+     Raises
+     ------
+     ValueError
+         The schema is required by DLRM
+     ValueError
+         The bottom_block is required by DLRM
+     ValueError
+         The embedding_dim (X) needs to match the last layer of bottom MLP (Y).
+     ValueError
+         Only one-of `embeddings` or `embedding_options` can be used.
     """
     if schema is None:
         raise ValueError("The schema is required by DLRM")

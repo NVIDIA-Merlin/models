@@ -44,7 +44,6 @@ def InputBlock(
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     seq: bool = False,
-    max_seq_length: Optional[int] = None,
     add_continuous_branch: bool = True,
     continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
     continuous_projection: Optional[Block] = None,
@@ -71,10 +70,13 @@ def InputBlock(
     ----------
     schema: Schema
         Schema of the input data. This Schema object will be automatically generated using
-        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
+        [NVTabular](https://nvidia-merlin.github.io/NVTabular/stable/Introduction.html).
         Next to this, it's also possible to construct it manually.
     branches: Dict[str, Block], optional
         Dictionary of branches to use inside the InputBlock.
+    pre: Optional[BlockType]
+        Transformations to apply on the inputs before the module is
+        called (before 'forward'). Default is None.
     post: Optional[BlockType]
         Transformations to apply on the inputs after the module is
         called (so **after** `forward`).
@@ -260,7 +262,7 @@ def InputBlockV2(
     ----------
     schema : Schema
         Schema of the input data. This Schema object will be automatically generated using
-        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
+        [NVTabular](https://nvidia-merlin.github.io/NVTabular/stable/Introduction.html).
         Next to this, it's also possible to construct it manually.
     categorical : Union[Tags, Layer], defaults to `Tags.CATEGORICAL`
         A block or column-selector to use for categorical-features.

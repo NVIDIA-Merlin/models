@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import logging
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -34,7 +34,14 @@ from merlin.schema import ColumnSchema, Schema
 LOG = logging.getLogger("merlin_models")
 
 
-def default_binary_metrics():
+def default_binary_metrics() -> List[tf.keras.metrics.Metric]:
+    """Returns the default binary metrics
+
+    Returns
+    -------
+    List[tf.keras.metrics.Metric]
+        List with metrics for binary classification
+    """
     return (
         tf.keras.metrics.Precision(name="precision"),
         tf.keras.metrics.Recall(name="recall"),
@@ -44,6 +51,14 @@ def default_binary_metrics():
 
 
 def default_categorical_prediction_metrics(k=10):
+    """Returns the default top-k metrics for
+    categorical classification
+
+    Returns
+    -------
+    List[tf.keras.metrics.Metric]
+        List with top-k metrics for categorical classification
+    """
     return (
         RecallAt(k),
         MRRAt(k),
@@ -70,8 +85,6 @@ class BinaryOutput(ModelOutput):
         by default None
     name: str, optional
         The name of the task.
-    task_block: Block, optional
-        The block to use for the task.
     logits_temperature: float, optional
         Parameter used to reduce model overconfidence, so that logits / T.
         by default 1.
@@ -304,6 +317,8 @@ class EmbeddingTablePrediction(Layer):
         The embedding table to use as the weight matrix
     bias_initializer : str, optional
         Initializer for the bias vector, by default "zeros"
+    use_bias: bool, optional
+        Whether to add a bias term to weight-tying, by default False
 
     References:
     ----------
@@ -312,18 +327,20 @@ class EmbeddingTablePrediction(Layer):
     arXiv:1611.01462 (2016).
     """
 
-    def __init__(self, table: EmbeddingTable, bias_initializer="zeros", **kwargs):
+    def __init__(self, table: EmbeddingTable, bias_initializer="zeros", use_bias=False, **kwargs):
         self.table = table
         self.num_classes = table.input_dim
         self.bias_initializer = bias_initializer
+        self.use_bias = use_bias
         super().__init__(**kwargs)
 
     def build(self, input_shape):
-        self.bias = self.add_weight(
-            name="output_layer_bias",
-            shape=(self.num_classes,),
-            initializer=self.bias_initializer,
-        )
+        if self.use_bias:
+            self.bias = self.add_weight(
+                name="output_layer_bias",
+                shape=(self.num_classes,),
+                initializer=self.bias_initializer,
+            )
         self.table.build(input_shape)
         return super().build(input_shape)
 
@@ -333,7 +350,8 @@ class EmbeddingTablePrediction(Layer):
             original_inputs = inputs
             inputs = inputs.flat_values
         logits = tf.matmul(inputs, self.table.table.embeddings, transpose_b=True)
-        logits = tf.nn.bias_add(logits, self.bias)
+        if self.use_bias:
+            logits = tf.nn.bias_add(logits, self.bias)
         if is_ragged:
             logits = original_inputs.with_flat_values(logits)
         return logits
