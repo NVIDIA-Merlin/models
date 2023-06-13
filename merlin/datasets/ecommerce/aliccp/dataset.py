@@ -56,7 +56,7 @@ def get_aliccp(
     1. Download the raw data from
     [tianchi.aliyun.com](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1).
     2. Unzip the raw data to a directory.
-    3. Run `prepare_alliccp(data_dir)` to convert the raw data to parquet files.
+    3. Run `prepare_aliccp(data_dir)` to convert the raw data to parquet files.
 
     Downloading & preparing the data can take quite a while.
     In case you want to use this dataset to run our tutorials, you can also opt for synthetic data.
@@ -98,7 +98,7 @@ def get_aliccp(
     raw_path = p / "raw"
     if not raw_path.exists():
         raw_path.mkdir(parents=True)
-        prepare_alliccp(path, output_dir=raw_path, file_size=file_size, **kwargs)
+        prepare_aliccp(path, output_dir=raw_path, file_size=file_size, **kwargs)
 
     nvt_path = p / transformed_name
     train_path, valid_path = nvt_path / "train", nvt_path / "valid"
@@ -112,7 +112,7 @@ def get_aliccp(
     return train, valid
 
 
-def prepare_alliccp(
+def prepare_aliccp(
     data_dir: Union[str, Path],
     convert_train: bool = True,
     convert_test: bool = True,
