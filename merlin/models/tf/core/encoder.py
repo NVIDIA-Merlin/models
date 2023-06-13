@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021, NVIDIA CORPORATION.
+# Copyright (c) 2023, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -88,6 +88,22 @@ class Encoder(tf.keras.Model):
         batch_size: int,
         **kwargs,
     ) -> merlin.io.Dataset:
+        """Encodes the given dataset and index.
+
+        Parameters
+        ----------
+        dataset: merlin.io.Dataset
+            The dataset to encode.
+        index: Union[str, ColumnSchema, Schema, Tags]
+            The index to use for encoding.
+        batch_size: int
+            The batch size for encoding.
+
+        Returns
+        -------
+        merlin.io.Dataset
+            The encoded dataset.
+        """
         if isinstance(index, Schema):
             output_schema = index
         elif isinstance(index, ColumnSchema):
@@ -117,12 +133,14 @@ class Encoder(tf.keras.Model):
         **kwargs,
     ) -> merlin.io.Dataset:
         """Batched prediction using Dask.
+
         Parameters
         ----------
         dataset: merlin.io.Dataset
             Dataset to predict on.
         batch_size: int
             Batch size to use for prediction.
+
         Returns
         -------
         merlin.io.Dataset
@@ -166,6 +184,23 @@ class Encoder(tf.keras.Model):
         return merlin.io.Dataset(predictions)
 
     def call(self, inputs, *, targets=None, training=False, testing=False, **kwargs):
+        """Calls the model on new inputs and returns the outputs as tensors.
+
+        Parameters
+        ----------
+        inputs : tensor-like or dict/tuple of tensors.
+            Tensors or dict/tuple of tensors representing the input batch.
+        targets : tensor-like, optional
+            Tensors representing the target data.
+        training : bool, optional
+            Whether the model is in training mode.
+        testing : bool, optional
+            Whether the model is in testing mode.
+
+        Returns
+        -------
+        A tensor or dict of tensors corresponding to the result of calling the layer.
+        """
         inputs = self._prepare_features(inputs, targets=targets)
         if isinstance(inputs, tuple):
             inputs, targets = inputs
@@ -180,6 +215,17 @@ class Encoder(tf.keras.Model):
         )
 
     def __call__(self, inputs, **kwargs):
+        """Overrides the default __call__ method to remove "features" from inputs.
+
+        Parameters
+        ----------
+        inputs : tensor-like or dict/tuple of tensors.
+            Tensors or dict/tuple of tensors representing the input batch.
+
+        Returns
+        -------
+        A tensor or dict of tensors corresponding to the result of calling the layer.
+        """
         # We remove features here since we don't expect them at inference time
         # Inside the `call` method, we will add them back by assuming inputs=features
         if "features" in kwargs:
@@ -188,6 +234,13 @@ class Encoder(tf.keras.Model):
         return super().__call__(inputs, **kwargs)
 
     def build(self, input_shape):
+        """Creates the variables of the layer.
+
+        Parameters
+        ----------
+        input_shape: Tuple[int]
+            The shape of the input data.
+        """
         self._prepare_features.build(input_shape)
         input_shape = self._prepare_features.compute_output_shape(input_shape)
 
@@ -196,18 +249,40 @@ class Encoder(tf.keras.Model):
             self._build_input_shape = input_shape
 
     def compute_output_shape(self, input_shape):
+        """Computes the output shape of the layer.
+
+        Parameters
+        ----------
+        input_shape: Tuple[int]
+            The shape of the input data.
+
+        Returns
+        -------
+        Tuple[int]
+            The output shape of the layer.
+        """
         input_shape = self._prepare_features.compute_output_shape(input_shape)
         return combinators.compute_output_shape_sequentially(list(self.to_call), input_shape)
 
     def train_step(self, data):
-        """Train step"""
+        """Performs a training step.
+
+        Train step method is not implemented and Raises an error as the
+        Encoder block is not meant to be trained by itself and can only be
+        trained as part of a model.
+        """
         raise NotImplementedError(
             "This block is not meant to be trained by itself. ",
             "It can only be trained as part of a model.",
         )
 
     def fit(self, *args, **kwargs):
-        """Fit model"""
+        """Fits the model.
+
+        Fit method is not implemented and Raises an error as the Encoder block
+        is not meant to be trained by itself and can only be trained as part
+        of a model.
+        """
         raise NotImplementedError(
             "This block is not meant to be trained by itself. ",
             "It can only be trained as part of a model.",
@@ -245,6 +320,7 @@ class Encoder(tf.keras.Model):
 
     @property
     def to_call(self):
+        """Provides the list of blocks to be called during the execution of the model."""
         if self.pre:
             yield self.pre
 
@@ -256,22 +332,40 @@ class Encoder(tf.keras.Model):
 
     @property
     def has_schema(self) -> bool:
+        """Returns True as this class does contain a schema."""
         return True
 
     @property
     def schema(self) -> Schema:
+        """Returns the schema of the model."""
         return self._schema
 
     @property
     def first(self):
+        """Returns the first block of the model."""
         return self.blocks[0]
 
     @property
     def last(self):
+        """Returns the last block of the model."""
         return self.blocks[-1]
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
+        """Creates a new instance of the class by deserializing.
+
+        Parameters
+        ----------
+        config: dict
+            A dictionary, typically the output of get_config.
+        custom_objects: dict, optional
+            A dictionary mapping the names of layers to the corresponding
+            functions and classes.
+
+        Returns
+        -------
+        A new instance of Encoder.
+        """
         pre = config.pop("pre", None)
         post = config.pop("post", None)
         layers = [
@@ -291,6 +385,13 @@ class Encoder(tf.keras.Model):
         return output
 
     def get_config(self):
+        """Returns the configuration of the model as a dictionary.
+
+        Returns
+        -------
+        dict
+            The configuration of the model.
+        """
         config = tf_utils.maybe_serialize_keras_objects(self, {}, ["pre", "post"])
         for i, layer in enumerate(self.blocks):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
@@ -526,23 +627,91 @@ class TopKEncoder(Encoder, BaseModel):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingEncoder(Encoder):
+    """Creates an Encoder from an EmbeddingTable.
+    Typically used with RetrievalModelV2.
+
+    Parameters
+    ----------
+    schema : Union[ColumnSchema, Schema]
+        The ColumnSchema of the column for which the
+        embedding table needs to be created.
+        If a Schema is passed, only the first column
+        is considered
+    dim : int
+        Dimension of the embeddings
+    embeddings_initializer : Union[str, tf.keras.layers.Layer], optional
+        Initializer for the `embeddings`
+        matrix (see `keras.initializers`). By default "uniform"
+    embeddings_regularizer : Union[str, tf.keras.layers.Layer], optional
+        Regularizer function applied to
+        the `embeddings` matrix (see `keras.regularizers`)., by default None
+    activity_regularizer : Union[str, tf.keras.layers.Layer], optional
+        Sets a layer that applies an update to the cost function based
+        input activity, by default None
+    embeddings_constraint : Union[str, tf.keras.layers.Layer], optional
+        Constraint function applied to
+        the `embeddings` matrix (see `keras.constraints`), by default None
+    mask_zero : bool, optional
+        Whether or not the input value 0 is a special "padding"
+        value that should be masked out.
+        This is useful when using recurrent layers
+        which may take variable length input.
+        If this is `True`, then all subsequent layers
+        in the model need to support masking or an exception will be raised.
+        If mask_zero is set to True, as a consequence, index 0 cannot be
+        used in the vocabulary (input_dim should equal size of
+        vocabulary + 1), by default False
+    input_length : int, optional
+        This argument is required if you are going to connect
+        `Flatten` then `Dense` layers upstream
+        (without it, the shape of the dense outputs cannot be computed),
+        by default None
+    sequence_combiner : Optional[CombinerType], optional
+        A string specifying how to combine embedding results for each
+        entry ("mean", "sqrtn" and "sum" are supported) or a layer.
+        Default is None (no combiner used), by default None
+    trainable : bool, optional
+        Whether the layer's variables should be trainable, by default True
+    name : str, optional
+        String name of the layer, by default None
+    dtype : optional
+        The dtype of the layer's computations and weights. Can also be a
+        `tf.keras.mixed_precision.Policy`, which allows the computation and weight
+        dtype to differ. Default of `None` means to use
+        `tf.keras.mixed_precision.global_policy()`, which is a float32 policy
+        unless set to different value., by default None
+    dynamic : bool, optional
+        Set this to `True` if your layer should only be run eagerly, and
+        should not be used to generate a static computation graph.
+        This would be the case for a Tree-RNN or a recursive network,
+        for example, or generally for any layer that manipulates tensors
+        using Python control flow. If `False`, we assume that the layer can
+        safely be used to generate a static computation graph., by default False
+    embeddings_l2_batch_regularization : Optional[Union[float, Dict[str, float]]], optional
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        by default 0.0, by default 0.0
+    post : Optional[tf.keras.layers.Layer], optional
+        _description_, by default None
+    **kwargs: Forwarded Encoder parameters
+    """
+
     def __init__(
         self,
         schema: Union[ColumnSchema, Schema],
         dim: int,
-        embeddings_initializer="uniform",
-        embeddings_regularizer=None,
-        activity_regularizer=None,
-        embeddings_constraint=None,
-        mask_zero=False,
-        input_length=None,
+        embeddings_initializer: Optional[Union[str, tf.keras.layers.Layer]] = "uniform",
+        embeddings_regularizer: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        activity_regularizer: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        embeddings_constraint: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        mask_zero: bool = False,
+        input_length: int = None,
         sequence_combiner: Optional[CombinerType] = None,
-        trainable=True,
-        name=None,
+        trainable: bool = True,
+        name: str = None,
         dtype=None,
-        dynamic=False,
-        post: Optional[tf.keras.layers.Layer] = None,
+        dynamic: bool = False,
         embeddings_l2_batch_regularization: Optional[Union[float, Dict[str, float]]] = 0.0,
+        post: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):
         if isinstance(schema, ColumnSchema):

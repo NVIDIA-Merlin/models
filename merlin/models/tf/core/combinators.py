@@ -702,6 +702,11 @@ class WithShortcut(ParallelBlock):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ResidualBlock(WithShortcut):
+    """
+    Creates a shortcut connection where the residuals are
+    summed to the output of the block
+    """
+
     def __init__(
         self,
         block: Union[tf.keras.layers.Layer, Block],

@@ -236,6 +236,18 @@ class FMPairwiseInteraction(Block):
         return 0.5 * tf.subtract(summed_square, squared_sum)
 
     def compute_output_shape(self, input_shapes):
+        """Computes the output shape based on the input shapes
+
+        Parameters
+        ----------
+        input_shapes : tf.TensorShape
+            The input shapes
+
+        Returns
+        -------
+        tf.TensorShape
+            The output shape
+        """
         if len(input_shapes) != 3:
             raise ValueError("Found shape {} without 3 dimensions".format(input_shapes))
         return (input_shapes[0], input_shapes[2])
@@ -281,6 +293,7 @@ def FMBlock(
     factors_dim : Optional[int], optional
         If fm_input_block is not provided, the factors_dim is used to define the
         embeddings dim to instantiate InputBlockV2, by default None
+
     Returns
     -------
     tf.Tensor

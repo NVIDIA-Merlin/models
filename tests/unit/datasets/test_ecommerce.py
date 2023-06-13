@@ -88,7 +88,7 @@ def test_synthetic_aliccp_raw_data(tmp_path):
     MAYBE_ALICCP_DATA is None,
     reason="ALI-CCP data is not available, pass it through env variable $DATA_PATH_ALICCP",
 )
-def test_get_alliccp():
+def test_get_aliccp():
     data_path = MAYBE_ALICCP_DATA
 
     nvt_workflow = ecommerce.default_aliccp_transformation(add_target_encoding=False)
@@ -104,10 +104,10 @@ def test_get_alliccp():
     MAYBE_ALICCP_DATA is None,
     reason="ALI-CCP data is not available, pass it through env variable $DATA_PATH_ALICCP",
 )
-def test_prepare_alliccp(tmp_path):
+def test_prepare_aliccp(tmp_path):
     data_path = MAYBE_ALICCP_DATA
 
-    ecommerce.prepare_alliccp(data_path, file_size=50, max_num_rows=100, output_dir=tmp_path)
+    ecommerce.prepare_aliccp(data_path, file_size=50, max_num_rows=100, output_dir=tmp_path)
     output_files = list(tmp_path.glob("*/*"))
 
     assert len(output_files) == 2
@@ -118,7 +118,7 @@ def test_prepare_alliccp(tmp_path):
     MAYBE_ALICCP_DATA is None,
     reason="ALI-CCP data is not available, pass it through env variable $DATA_PATH_ALICCP",
 )
-def test_transform_alliccp(tmp_path):
+def test_transform_aliccp(tmp_path):
     data_path = MAYBE_ALICCP_DATA
 
     ecommerce.transform_aliccp(data_path, tmp_path)

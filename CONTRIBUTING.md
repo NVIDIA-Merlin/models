@@ -23,7 +23,7 @@ into three categories:
 
 ### Your first issue
 
-1. Read the project's [README.md](https://github.com/NVIDIA-Merlin/models/blob/main/README.md)
+1. Read the project's [README.md](https://github.com/NVIDIA-Merlin/models/blob/stable/README.md)
    to learn how to setup the development environment.
 2. Find an issue to work on. The best way is to look for the [good first issue](https://github.com/NVIDIA-Merlin/models/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
    or [help wanted](https://github.com/NVIDIA-Merlin/models/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) labels.
@@ -116,7 +116,7 @@ deep_block: Block
 ```
 
 The [Intersphinx](https://docs.readthedocs.io/en/stable/guides/intersphinx.html)
-extension truncates the text to [Schema](https://nvidia-merlin.github.io/core/main/api/merlin.schema.html)
+extension truncates the text to [Schema](https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html)
 and makes it a link.
 
 ## Attribution

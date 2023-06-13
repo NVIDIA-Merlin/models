@@ -180,6 +180,7 @@ def extract_topk(
         by default 1e-6
     seed : int, optional
         Random seed to use for tie breaking
+
     Returns
     -------
     Tuple(tf.Tensor,tf.Tensor,tf.Tensor)
@@ -360,6 +361,7 @@ def get_candidate_probs(
     is_prob_distribution: bool, optional
         If True, the item_freq_probs should be a probability distribution of the items.
         If False, the item frequencies is converted to probabilities
+
     Returns
     -------
         A tensor with the item probability distributon
@@ -483,6 +485,7 @@ def check_inputs_mask_compatible_shape(
     inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
 ):
     """Check if the shape and the type of the input and mask tensors are compatible.
+
     Parameters
     ----------
     inputs : Union[tf.Tensor, tf.RaggedTensor]
