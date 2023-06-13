@@ -13,12 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import inspect
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Tuple, Type, TypeVar, Union
 
 import torch
 import torch.nn as nn
+
+from merlin.dataloader.torch import Loader
+from merlin.io import Dataset
+from merlin.models.torch.batch import Batch, sample_batch
 
 
 def is_tabular(module: torch.nn.Module) -> bool:
@@ -180,3 +183,105 @@ def _all_close_dict(left, right):
     for key in left.keys():
         if not torch.allclose(left[key], right[key]):
             raise ValueError("The outputs of the original and scripted modules are not the same")
+
+
+ToSearch = TypeVar("ToSearch", bound=Type[nn.Module])
+
+
+def find_all_instances(module: nn.Module, to_search: ToSearch) -> List[ToSearch]:
+    """
+    This function searches a given PyTorch module for all the child module that
+    matches a specific type of a module.
+
+    Parameters
+    ----------
+    module: nn.Module
+        The PyTorch module to search through.
+    to_search: ToSearch
+        The specific PyTorch module type or an instance to search for.
+
+    Returns
+    -------
+    List[ToSearch]
+        A list of all instances found in 'module' that match 'to_search'.
+    """
+    if isinstance(to_search, nn.Module):
+        to_search = type(to_search)
+
+    if isinstance(module, to_search):
+        return [module]
+    elif module == to_search:
+        return [module]
+
+    results = []
+    children = module.children()
+    for sub_module in children:
+        results.extend(find_all_instances(sub_module, to_search))
+
+    return results
+
+
+def get_all_children(module: nn.Module) -> List[nn.Module]:
+    """
+    This function traverses a PyTorch module and retrieves all child modules,
+    including nested children.
+
+    Parameters
+    ----------
+    module: nn.Module
+        The PyTorch module whose children are to be retrieved.
+
+    Returns
+    -------
+    List[nn.Module]
+        A list of all child modules contained within the given module.
+    """
+    children = []
+    for child in module.children():
+        if isinstance(child, nn.Module):
+            children.append(child)
+        children.extend(get_all_children(child))
+
+    return children
+
+
+def initialize(module, data: Union[Dataset, Loader, Batch]):
+    """
+    This function is useful for initializing a PyTorch module with specific
+    data prior to training or evaluation. It ensures that the module is
+    prepared to process the provided data on the appropriate device.
+
+    Parameters
+    ----------
+    module: nn.Module
+        The PyTorch module to initialize.
+    data: Union[Dataset, Loader, Batch]
+        The data to use for initialization. Can be an instance of a Merlin
+        Dataset, Loader, or Batch.
+
+    Returns
+    -------
+    The module after being invoked with the batch's features. The type of this
+    output depends on the module's forward method.
+
+    Raises
+    ------
+    RuntimeError
+        If the data is not an instance of Dataset, Loader, or Batch.
+    """
+    if isinstance(data, (Loader, Dataset)):
+        module.double()  # TODO: Put in data-loader PR to standardize on float-32
+        batch = sample_batch(data, batch_size=1, shuffle=False)
+    elif isinstance(data, Batch):
+        batch = data
+    else:
+        raise RuntimeError(f"Unexpected input type: {type(data)}")
+
+    module.to(batch.device())
+
+    if hasattr(module, "model_outputs"):
+        for model_out in module.model_outputs():
+            for metric in model_out.metrics:
+                metric.to(batch.device())
+
+    return module(batch.features, batch=batch)

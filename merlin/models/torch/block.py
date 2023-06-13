@@ -29,7 +29,7 @@ from merlin.models.utils.registry import RegistryMixin
 
 
 class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
-    """A base-class that calls it's modules sequentially.
+    """A base-class that calls its modules sequentially.
 
     Parameters
     ----------
@@ -114,7 +114,7 @@ class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
 
 
 class ParallelBlock(Block):
-    """A base-class that calls it's modules in parallel.
+    """A base-class that calls its modules in parallel.
 
     A ParallelBlock contains multiple branches that will be executed
     in parallel. Each branch can contain multiple modules, and
