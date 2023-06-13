@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/generated/merlin.models.tf.ReplaceMaskedEmbeddings.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/generated/merlin.models.tf.ReplaceMaskedEmbeddings.html" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -112,7 +112,8 @@ the transformer block.</p>
 <dl class="py method">
 <dt id="merlin.models.tf.ReplaceMaskedEmbeddings.__init__">
 <code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#ReplaceMaskedEmbeddings.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ReplaceMaskedEmbeddings.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Initializes the block.</p>
+</dd></dl>
 
 <p class="rubric">Methods</p>
 <table class="longtable docutils align-default">
@@ -122,7 +123,7 @@ the transformer block.</p>
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ReplaceMaskedEmbeddings.__init__" title="merlin.models.tf.ReplaceMaskedEmbeddings.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(**kwargs)</p></td>
-<td><p></p></td>
+<td><p>Initializes the block.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_loss</span></code>(losses, **kwargs)</p></td>
 <td><p>Add loss tensor(s), potentially dependent on layer inputs.</p></td>
@@ -143,7 +144,7 @@ the transformer block.</p>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ReplaceMaskedEmbeddings.build" title="merlin.models.tf.ReplaceMaskedEmbeddings.build"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code></a>(input_shape)</p></td>
-<td><p></p></td>
+<td><p>Builds the block’s internal variables.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_from_config</span></code>(config)</p></td>
 <td><p></p></td>
@@ -381,7 +382,23 @@ the transformer block.</p>
 <dl class="py method">
 <dt id="merlin.models.tf.ReplaceMaskedEmbeddings.build">
 <code class="sig-name descname"><span class="pre">build</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/transforms/sequence.html#ReplaceMaskedEmbeddings.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ReplaceMaskedEmbeddings.build" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Builds the block’s internal variables.</p>
+<p>This method creates a trainable embedding to replace masked interactions in the input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shape</strong> (<em>tf.TensorShape</em>) – Shape of the input tensor.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)">None</a></p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.11)"><strong>ValueError</strong></a> – If the last dimension of the input shape is None.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.ReplaceMaskedEmbeddings.call">

@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../../../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/_modules/merlin/models/tf/blocks/interaction.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/_modules/merlin/models/tf/blocks/interaction.html" />
   <!--[if lt IE 9]>
     <script src="../../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -320,6 +320,18 @@
         <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">summed_square</span><span class="p">,</span> <span class="n">squared_sum</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="FMPairwiseInteraction.compute_output_shape"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.FMPairwiseInteraction.html#merlin.models.tf.FMPairwiseInteraction.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the output shape based on the input shapes</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shapes : tf.TensorShape</span>
+<span class="sd">            The input shapes</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.TensorShape</span>
+<span class="sd">            The output shape</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Found shape </span><span class="si">{}</span><span class="s2"> without 3 dimensions&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">))</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">input_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_shapes</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span></div></div>
@@ -365,6 +377,7 @@
 <span class="sd">    factors_dim : Optional[int], optional</span>
 <span class="sd">        If fm_input_block is not provided, the factors_dim is used to define the</span>
 <span class="sd">        embeddings dim to instantiate InputBlockV2, by default None</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    tf.Tensor</span>
