@@ -8,7 +8,7 @@
       <link rel="stylesheet" href="../../../../../_static/togglebutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/mystnb.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/css/custom.css" type="text/css" />
-    <link rel="canonical" href="https://nvidia-merlin.github.io/models/main/_modules/merlin/models/tf/models/base.html" />
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/_modules/merlin/models/tf/models/base.html" />
   <!--[if lt IE 9]>
     <script src="../../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -106,7 +106,17 @@
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span> <span class="k">as</span> <span class="n">SequenceCollection</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">runtime_checkable</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">TYPE_CHECKING</span><span class="p">,</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">List</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">,</span>
+    <span class="n">Protocol</span><span class="p">,</span>
+    <span class="n">Sequence</span><span class="p">,</span>
+    <span class="n">Union</span><span class="p">,</span>
+    <span class="n">runtime_checkable</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -190,7 +200,12 @@
 
 
 <span class="k">class</span> <span class="nc">MetricsComputeCallback</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">Callback</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Callback that handles when to compute metrics.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Callback that handles when to compute metrics.&quot;</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    train_metrics_steps : int, optional</span>
+<span class="sd">        Frequency (number of steps) to compute train metrics, by default 1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_metrics_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics_steps</span> <span class="o">=</span> <span class="n">train_metrics_steps</span>
@@ -251,7 +266,15 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ModelBlock</span><span class="p">(</span><span class="n">Block</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Block that extends `tf.keras.Model` to make it saveable.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Block that extends `tf.keras.Model` to make it saveable.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    block : Block</span>
+<span class="sd">        Block to be turned into a model</span>
+<span class="sd">    prep_features : Optional[bool], optional</span>
+<span class="sd">        Whether features need to be prepared or not, by default True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">Block</span><span class="p">,</span> <span class="n">prep_features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -369,6 +392,10 @@
 
 
 <span class="k">class</span> <span class="nc">BaseModel</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base model, that overrides Keras model methods</span>
+<span class="sd">    to compile, compute metrics and loss and also</span>
+<span class="sd">    to compute the train, eval, predict steps&quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
@@ -745,6 +772,10 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">prediction_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the Prediction tasks in the model.</span>
+<span class="sd">        Going to be deprecated in favor of model_outputs()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">PredictionTask</span>
 
         <span class="n">results</span> <span class="o">=</span> <span class="n">find_all_instances_in_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">PredictionTask</span><span class="p">)</span>
@@ -778,6 +809,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">model_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ModelOutput</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list with the ModelOutput in the model&quot;&quot;&quot;</span>
         <span class="n">results</span> <span class="o">=</span> <span class="n">find_all_instances_in_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ModelOutput</span><span class="p">)</span>
         <span class="c1"># Ensures tasks are sorted by name, so that they match the metrics</span>
         <span class="c1"># which are sorted the same way by Keras</span>
@@ -786,6 +818,7 @@
         <span class="k">return</span> <span class="n">results</span>
 
     <span class="k">def</span> <span class="nf">outputs_by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ModelOutput</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the task names from the model outputs&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">task</span><span class="o">.</span><span class="n">full_name</span><span class="p">:</span> <span class="n">task</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_outputs</span><span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">outputs_by_target</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">ModelOutput</span><span class="p">]]:</span>
@@ -1260,6 +1293,7 @@
         <span class="k">return</span> <span class="n">metrics</span>
 
     <span class="k">def</span> <span class="nf">predict_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Custom predict step to obtain the outputs&quot;&quot;&quot;</span>
         <span class="n">x</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">unpack_x_y_sample_weight</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;predict_pre&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
@@ -1643,8 +1677,13 @@
 <span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Merlin Model class</span>
 
+<span class="sd">    `Model` is the main base class that represents a model in Merlin Models.</span>
+<span class="sd">    It can be configured with a number of pre and post processing blocks and can manage a context.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
+<span class="sd">    blocks : list</span>
+<span class="sd">        List of `Block` instances in the model</span>
 <span class="sd">    context : Optional[ModelContext], optional</span>
 <span class="sd">        ModelContext is used to store/retrieve public variables across blocks,</span>
 <span class="sd">        by default None.</span>
@@ -1670,6 +1709,7 @@
         <span class="n">prep_features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new `Model` instance.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="n">context</span> <span class="o">=</span> <span class="n">context</span> <span class="ow">or</span> <span class="n">ModelContext</span><span class="p">()</span>
@@ -1819,6 +1859,27 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">built</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method for forward pass of the model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputs : Tensor or dict of Tensor</span>
+<span class="sd">            Input Tensor(s) for the model</span>
+<span class="sd">        targets : Tensor or dict of Tensor, optional</span>
+<span class="sd">            Target Tensor(s) for the model</span>
+<span class="sd">        training : bool, optional</span>
+<span class="sd">            Flag to indicate whether the model is in training phase</span>
+<span class="sd">        testing : bool, optional</span>
+<span class="sd">            Flag to indicate whether the model is in testing phase</span>
+<span class="sd">        output_context : bool, optional</span>
+<span class="sd">            Flag to indicate whether to return the context along with the output</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Tensor or tuple of Tensor and ModelContext</span>
+<span class="sd">            Output of the model, and optionally the context</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
         <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
@@ -1879,10 +1940,32 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">first</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The first `Block` in the model.</span>
+
+<span class="sd">        This property provides a simple way to quickly access the first `Block` in the model&#39;s</span>
+<span class="sd">        sequence of blocks.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Block</span>
+<span class="sd">            The first `Block` in the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">last</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The last `Block` in the model.</span>
+
+<span class="sd">        This property provides a simple way to quickly access the last `Block` in the model&#39;s</span>
+<span class="sd">        sequence of blocks.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Block</span>
+<span class="sd">            The last `Block` in the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="nd">@classmethod</span>
@@ -1931,6 +2014,25 @@
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a model from its config.</span>
+
+<span class="sd">        This method recreates a model instance from a configuration dictionary and</span>
+<span class="sd">        optional custom objects.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config : dict</span>
+<span class="sd">            The configuration dictionary representing the model.</span>
+<span class="sd">        custom_objects : dict, optional</span>
+<span class="sd">            Dictionary mapping names to custom classes or functions to be considered</span>
+<span class="sd">            during deserialization.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Model</span>
+<span class="sd">            The created `Model` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pre</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;pre&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">post</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;post&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">schema</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;schema&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -1967,6 +2069,22 @@
         <span class="k">return</span> <span class="n">model</span>
 
     <span class="k">def</span> <span class="nf">get_sample_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates sample inputs for the model.</span>
+
+<span class="sd">        This method creates a dictionary of sample inputs for each input feature, useful for</span>
+<span class="sd">        testing or initializing the model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        batch_size : int, optional</span>
+<span class="sd">            The batch size for the sample inputs. If not specified, defaults to 2.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary mapping feature names to sample input tensors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span> <span class="ow">or</span> <span class="mi">2</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">inputs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -2012,6 +2130,18 @@
             <span class="k">return</span> <span class="n">inputs</span>
 
     <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the model configuration as a dictionary.</span>
+
+<span class="sd">        This method returns a dictionary containing the configuration of the model.</span>
+<span class="sd">        The dictionary includes the configuration of each block in the model,</span>
+<span class="sd">        as well as additional properties such as `pre` and `post` layers, and the `schema`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            The configuration of the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_serialize_keras_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">{},</span> <span class="p">[</span><span class="s2">&quot;pre&quot;</span><span class="p">,</span> <span class="s2">&quot;post&quot;</span><span class="p">])</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">schema_to_tensorflow_metadata_json</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">):</span>
@@ -2169,6 +2299,8 @@
 
 <span class="nd">@runtime_checkable</span>
 <span class="k">class</span> <span class="nc">RetrievalBlock</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol class for a RetrievalBlock&quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">query_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Block</span><span class="p">:</span>
         <span class="o">...</span>
 
@@ -2572,7 +2704,26 @@
         <span class="k">return</span> <span class="n">topk_model</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">_maybe_convert_merlin_dataset</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_maybe_convert_merlin_dataset</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts the Dataset to a Loader with the given</span>
+<span class="sd">    batch_size and shuffle options</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data</span>
+<span class="sd">        Dataset instance</span>
+<span class="sd">    batch_size : int</span>
+<span class="sd">        Batch size</span>
+<span class="sd">    shuffle : bool, optional</span>
+<span class="sd">        Enables data shuffling during loading, by default True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Any</span>
+<span class="sd">        Returns a Loader instance if a Dataset, otherwise returns the data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Check if merlin-dataset is passed</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;to_ddf&quot;</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">batch_size</span><span class="p">:</span>
