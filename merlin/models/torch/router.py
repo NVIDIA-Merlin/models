@@ -3,10 +3,9 @@ from typing import Optional
 
 from torch import nn
 
+from merlin.models.torch import schema
 from merlin.models.torch.block import Block, ParallelBlock
 from merlin.models.torch.container import BlockContainerDict
-from merlin.models.torch.selection import Selectable, Selection, SelectKeys, select, selection_name
-from merlin.models.torch.utils.schema_utils import setup_schema
 from merlin.schema import Schema
 
 
@@ -32,16 +31,18 @@ class RouterBlock(ParallelBlock):
         The selectable object from which to select features.
     """
 
-    def __init__(self, selectable: Selectable):
+    def __init__(self, selectable: schema.Selectable):
         super().__init__()
         if isinstance(selectable, Schema):
+            from merlin.models.torch.inputs.select import SelectKeys
+
             selectable = SelectKeys(selectable)
 
-        self.selectable: Selectable = selectable
+        self.selectable: schema.Selectable = selectable
 
     def add_route(
         self,
-        selection: Selection,
+        selection: schema.Selection,
         module: Optional[nn.Module] = None,
         name: Optional[str] = None,
     ) -> "RouterBlock":
@@ -70,9 +71,9 @@ class RouterBlock(ParallelBlock):
             The router block with the new route added.
         """
 
-        routing_module = select(self.selectable, selection)
+        routing_module = schema.select(self.selectable, selection)
         if module is not None:
-            setup_schema(module, routing_module.schema)
+            schema.setup_schema(module, routing_module.schema)
 
             if isinstance(module, ParallelBlock):
                 branch = module.prepend(routing_module)
@@ -81,7 +82,7 @@ class RouterBlock(ParallelBlock):
         else:
             branch = routing_module
 
-        _name: str = name or selection_name(selection)
+        _name: str = name or schema.selection_name(selection)
         if _name in self.branches:
             raise ValueError(f"Branch with name {_name} already exists")
         self.branches[_name] = branch
@@ -89,7 +90,7 @@ class RouterBlock(ParallelBlock):
         return self
 
     def add_route_for_each(
-        self, selection: Selection, module: nn.Module, shared=False
+        self, selection: schema.Selection, module: nn.Module, shared=False
     ) -> "RouterBlock":
         """Add a new route for each column in a selection.
 
@@ -118,7 +119,7 @@ class RouterBlock(ParallelBlock):
 
             return self
 
-        selected = select(self.selectable.schema, selection)
+        selected = schema.select(self.selectable.schema, selection)
 
         for col in selected:
             col_module = module if shared else deepcopy(module)
@@ -198,7 +199,7 @@ class RouterBlock(ParallelBlock):
         if isinstance(branches, dict):
             branches = BlockContainerDict(branches)
 
-        selected = select(self.selectable.schema, selection)
+        selected = schema.select(self.selectable.schema, selection)
         if not selected:
             return ParallelBlock()
 

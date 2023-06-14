@@ -14,18 +14,19 @@
 # limitations under the License.
 #
 
+import inspect
 import textwrap
 from copy import deepcopy
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, TypeVar, Union
 
 import torch
 from torch import nn
 
+from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
-from merlin.models.torch.utils.schema_utils import input_schema, output_schema
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
 
@@ -415,31 +416,31 @@ def set_pre(module: nn.Module, pre: BlockContainer):
         return set_pre(module[0], pre)
 
 
-@input_schema.register(BlockContainer)
+@schema.input.register(BlockContainer)
 def _(module: BlockContainer, input: Schema):
-    return input_schema(module[0], input) if module else input
+    return schema.input(module[0], input) if module else input
 
 
-@input_schema.register(ParallelBlock)
+@schema.input.register(ParallelBlock)
 def _(module: ParallelBlock, input: Schema):
     if module.pre:
-        return input_schema(module.pre)
+        return schema.input(module.pre)
 
-    schema = Schema()
+    out_schema = Schema()
     for branch in module.branches.values():
-        schema += input_schema(branch, input)
+        out_schema += schema.input(branch, input)
 
-    return schema
+    return out_schema
 
 
-@output_schema.register(ParallelBlock)
+@schema.output.register(ParallelBlock)
 def _(module: ParallelBlock, input: Schema):
     if module.post:
-        return output_schema(module.post, input)
+        return schema.output(module.post, input)
 
     output = Schema()
     for name, branch in module.branches.items():
-        branch_schema = output_schema(branch, input)
+        branch_schema = schema.output(branch, input)
 
         if len(branch_schema) == 1 and branch_schema.first.name == "output":
             branch_schema = Schema([branch_schema.first.with_name(name)])
@@ -449,6 +450,137 @@ def _(module: ParallelBlock, input: Schema):
     return output
 
 
-@output_schema.register(BlockContainer)
+@schema.output.register(BlockContainer)
 def _(module: BlockContainer, input: Schema):
-    return output_schema(module[-1], input) if module else input
+    return schema.output(module[-1], input) if module else input
+
+
+BlockT = TypeVar("BlockT", bound=BlockContainer)
+
+
+@schema.select.register(BlockContainer)
+def _(container: BlockT, selection: schema.Selection) -> BlockT:
+    if isinstance(container, ParallelBlock):
+        return _select_parallel_block(container, selection)
+
+    outputs = []
+
+    if not container.values:
+        return container.__class__()
+
+    first = container.values[0]
+    selected_first = schema.select(first, selection)
+    if not selected_first:
+        return container.__class__()
+    if first == selected_first:
+        return container
+
+    outputs.append(selected_first)
+    if len(container.values) > 1:
+        for module in container.values[1:]:
+            try:
+                selected_module = schema.select(module, selection)
+                outputs.append(selected_module)
+            except ValueError:
+                selected_module = None
+                break
+
+            # if not selected_module:
+            #     schema = getattr(first, "schema", None)
+            #     selected_schema = getattr(selected_first, "schema", None)
+            #     if schema and selected_schema:
+            #         diff = set(schema.column_names) - set(selected_schema.column_names)
+            #         raise ValueError(
+            #             f"Cannot remove {diff} from {container} "
+            #             f"because {module} does not support selection. ",
+            #             "If it does, please implement a `select` method.",
+            #         )
+
+            #     raise ValueError(f"Cannot select from {module}")
+
+            # outputs.append(selected_module)
+
+    return container.__class__(*outputs, name=container._name)
+
+
+SelectT = TypeVar("SelectT", bound=schema.Selectable)
+ParallelT = TypeVar("ParallelT", bound=ParallelBlock)
+
+
+def _select_parallel_block(
+    parallel: ParallelT,
+    selection: schema.Selection,
+) -> ParallelT:
+    branches = {}
+
+    pre = parallel.pre
+    if pre:
+        selected = schema.select(pre, selection)
+        if not selected:
+            return ParallelBlock()
+
+        pre = selected
+
+    for key, val in parallel.branches.items():
+        selected = schema.select(val, selection)
+        if selected:
+            branches[key] = selected
+
+    if len(branches) == len(parallel.branches):
+        post = parallel.post
+    else:
+        post = BlockContainer()
+
+    replace_kwargs = {"pre": pre, "branches": branches, "post": post}
+    if "selection" in inspect.signature(parallel.replace).parameters:
+        replace_kwargs["selection"] = selection
+    output = parallel.replace(**replace_kwargs)
+
+    return output
+
+
+def _extract_parallel(main, selection, route, name=None):
+    output_branches = {}
+
+    for branch_name, branch in main.branches.items():
+        if branch_name in route:
+            out = schema.extract.extract(branch, selection, route[branch_name], name=branch_name)
+            if out:
+                output_branches[branch_name] = out
+        else:
+            output_branches[branch_name] = branch
+
+    # TODO: What to do with post?
+    replace_kwargs = {"branches": output_branches}
+    if "selection" in inspect.signature(main.replace).parameters:
+        replace_kwargs["selection"] = selection
+
+    return main.replace(**replace_kwargs)
+
+
+@schema.extract.register(BlockContainer)
+def _(main, selection, route, name=None):
+    if isinstance(main, ParallelBlock):
+        return _extract_parallel(main, selection, route=route, name=name)
+
+    main_schema = schema.input(main)
+    route_schema = schema.input(route)
+
+    if main_schema == route_schema:
+        from merlin.models.torch.inputs.select import SelectFeatures
+
+        out_schema = schema.output(main)
+        if len(out_schema) == 1 and out_schema.first.name == "output":
+            out_schema = Schema([out_schema.first.with_name(name)])
+
+        if not out_schema:
+            raise ValueError(f"No output schema found in {route}.")
+
+        return SelectFeatures(out_schema)
+
+    output = main.__class__()
+    for i, module in enumerate(main):
+        if i < len(route):
+            output.append(schema.extract.extract(module, selection, route[i], name=name))
+
+    return output

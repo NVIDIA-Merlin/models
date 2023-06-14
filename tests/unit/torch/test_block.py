@@ -52,7 +52,7 @@ class TestBlock:
 
         assert torch.equal(inputs, outputs)
 
-        assert not mm.output_schema(block)
+        assert not mm.schema.output(block)
 
     def test_insertion(self):
         block = Block()
@@ -157,8 +157,8 @@ class TestParallelBlock:
         pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
 
         inputs = torch.randn(1, 3)
-        outputs = mm.trace_schema(pb, inputs)
-        schema = mm.output_schema(pb)
+        outputs = mm.schema.trace(pb, inputs)
+        schema = mm.schema.output(pb)
 
         for name in outputs:
             assert name in schema.column_names

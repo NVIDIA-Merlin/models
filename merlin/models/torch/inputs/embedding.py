@@ -7,7 +7,7 @@ from torch import nn
 
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import ParallelBlock
-from merlin.models.torch.selection import Selectable, Selection, select
+from merlin.models.torch.schema import Selectable, Selection, select
 from merlin.models.utils.schema_utils import get_embedding_size_from_cardinality
 from merlin.schema import ColumnSchema, Schema, Tags
 

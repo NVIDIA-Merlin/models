@@ -3,18 +3,18 @@ from typing import Dict, Optional, Union
 import torch
 from torch import nn
 
+from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer
 from merlin.models.torch.registry import registry
-from merlin.models.torch.selection import Selectable, Selection, select_schema
 
 
-class AggModule(nn.Module, Selectable):
-    def select(self, selection: Selection) -> "AggModule":
+class AggModule(nn.Module, schema.Selectable):
+    def select(self, selection: schema.Selection) -> "AggModule":
         if not hasattr(self, "schema"):
             raise ValueError(f"Schema not set in {self}, so cannot select.")
 
-        selected = select_schema(self.schema, selection)
+        selected = schema.select(self.schema, selection)
         if selected == self.schema:
             return self
 

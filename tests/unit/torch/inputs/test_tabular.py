@@ -19,10 +19,10 @@ class TestTabularInputBlock:
 
         outputs = self.input_block(self.batch.features)
 
-        for name in mm.select(self.schema, Tags.CONTINUOUS).column_names:
+        for name in mm.schema.select(self.schema, Tags.CONTINUOUS).column_names:
             assert name in outputs
 
-        for name in mm.select(self.schema, Tags.CATEGORICAL).column_names:
+        for name in mm.schema.select(self.schema, Tags.CATEGORICAL).column_names:
             assert name in outputs
             assert outputs[name].shape == (10, 10)
 
@@ -30,10 +30,10 @@ class TestTabularInputBlock:
         input_block = mm.TabularInputBlock(self.schema, init="defaults")
         outputs = input_block(self.batch.features)
 
-        for name in mm.select(self.schema, Tags.CONTINUOUS).column_names:
+        for name in mm.schema.select(self.schema, Tags.CONTINUOUS).column_names:
             assert name in outputs
 
-        for name in mm.select(self.schema, Tags.CATEGORICAL).column_names:
+        for name in mm.schema.select(self.schema, Tags.CATEGORICAL).column_names:
             assert name in outputs
             assert outputs[name].shape == (
                 10,
@@ -67,27 +67,27 @@ class TestTabularInputBlock:
             "item_recency",
             "item_genres",
         }
-        assert set(mm.input_schema(towers).column_names) == input_cols
-        assert mm.output_schema(towers).column_names == ["user", "item"]
+        assert set(mm.schema.input(towers).column_names) == input_cols
+        assert mm.schema.output(towers).column_names == ["user", "item"]
 
-        categorical = mm.select(towers, Tags.CATEGORICAL)
-        outputs = mm.trace_schema(towers, self.batch.features)
+        categorical = mm.schema.select(towers, Tags.CATEGORICAL)
+        outputs = mm.schema.trace(towers, self.batch.features)
 
-        assert mm.extract(towers, Tags.CATEGORICAL)[1] == categorical
-        assert set(mm.input_schema(towers).column_names) == input_cols
-        assert mm.output_schema(towers).column_names == ["user", "item"]
+        assert mm.schema.extract(towers, Tags.CATEGORICAL)[1] == categorical
+        assert set(mm.schema.input(towers).column_names) == input_cols
+        assert mm.schema.output(towers).column_names == ["user", "item"]
 
         outputs = towers(self.batch.features)
         assert outputs["user"].shape == (10, 10)
         assert outputs["item"].shape == (10, 10)
 
-        new_inputs, route = mm.extract(towers, Tags.USER)
-        assert mm.output_schema(new_inputs).column_names == ["user", "item"]
+        new_inputs, route = mm.schema.extract(towers, Tags.USER)
+        assert mm.schema.output(new_inputs).column_names == ["user", "item"]
 
         assert "user" in new_inputs.branches
         assert new_inputs.branches["user"][0].select_keys.column_names == ["user"]
         assert "user" in route.branches
-        assert mm.output_schema(route).select_by_tag(Tags.EMBEDDING).column_names == ["user"]
+        assert mm.schema.output(route).select_by_tag(Tags.EMBEDDING).column_names == ["user"]
 
     def test_extract_route_embeddings(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
@@ -95,7 +95,7 @@ class TestTabularInputBlock:
         outputs = input_block(self.batch.features)
         assert outputs.shape == (10, 107)
 
-        no_embs, emb_route = mm.extract(input_block, Tags.CATEGORICAL)
+        no_embs, emb_route = mm.schema.extract(input_block, Tags.CATEGORICAL)
 
         assert no_embs
 
@@ -105,7 +105,7 @@ class TestTabularInputBlock:
         outputs = input_block(self.batch.features)
         assert outputs.shape == (10, 107)
 
-        no_user_id, user_id_route = mm.extract(input_block, ColumnSchema("user_id"))
+        no_user_id, user_id_route = mm.schema.extract(input_block, ColumnSchema("user_id"))
 
         assert no_user_id
 
@@ -122,6 +122,6 @@ class TestTabularInputBlock:
         outputs = input_block(self.batch.features)
         assert outputs.shape == (10, 73)
 
-        no_user_id, user_id_route = mm.extract(input_block, Tags.USER_ID)
+        no_user_id, user_id_route = mm.schema.extract(input_block, Tags.USER_ID)
 
         assert no_user_id

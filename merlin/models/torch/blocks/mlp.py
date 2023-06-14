@@ -4,8 +4,8 @@ import torch
 from torch import nn
 
 from merlin.models.torch.block import Block
+from merlin.models.torch.schema import Schema, output
 from merlin.models.torch.transforms.agg import Concat, MaybeAgg
-from merlin.models.torch.utils.schema_utils import Schema, output_schema
 
 
 class MLPBlock(Block):
@@ -84,8 +84,8 @@ class MLPBlock(Block):
         super().__init__(*modules)
 
 
-@output_schema.register(nn.LazyLinear)
-@output_schema.register(nn.Linear)
-@output_schema.register(MLPBlock)
+@output.register(nn.LazyLinear)
+@output.register(nn.Linear)
+@output.register(MLPBlock)
 def _output_schema_block(module: nn.LazyLinear, input: Schema):
-    return output_schema.tensors(torch.ones((1, module.out_features), dtype=float))
+    return output.tensors(torch.ones((1, module.out_features), dtype=float))

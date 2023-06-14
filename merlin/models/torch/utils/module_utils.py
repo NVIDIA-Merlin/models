@@ -22,7 +22,7 @@ import torch.nn as nn
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.torch.batch import Batch, sample_batch
-from merlin.models.torch.utils.schema_utils import trace_schema
+from merlin.models.torch import schema
 
 
 def is_tabular(module: torch.nn.Module) -> bool:
@@ -139,7 +139,7 @@ def module_test(module: nn.Module, input_data, method="script", schema_trace=Tru
     # Check if the module can be called with the provided inputs
     try:
         if schema_trace:
-            original_output = trace_schema(module, input_data, **kwargs)
+            original_output = schema.trace(module, input_data, **kwargs)
         else:
             original_output = module(input_data, **kwargs)
     except Exception as e:

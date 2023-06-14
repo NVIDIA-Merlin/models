@@ -1,6 +1,6 @@
 import pytest
 
-from merlin.models.torch.selection import Selectable, select, select_schema, selection_name
+from merlin.models.torch.schema import Selectable, select, select_schema, selection_name
 from merlin.schema import ColumnSchema, Schema, Tags
 
 

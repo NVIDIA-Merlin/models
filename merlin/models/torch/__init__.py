@@ -14,19 +14,19 @@
 # limitations under the License.
 #
 
+from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import Block, ParallelBlock
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.models.base import Model
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
+from merlin.models.torch.inputs.select import SelectFeatures, SelectKeys
 from merlin.models.torch.inputs.tabular import TabularInputBlock
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import BinaryOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.router import RouterBlock
-from merlin.models.torch.selection import SelectFeatures, Selection, SelectKeys, extract, select
 from merlin.models.torch.transforms.agg import Concat, Stack
-from merlin.models.torch.utils.schema_utils import input_schema, output_schema, trace_schema
 
 __all__ = [
     "Batch",
@@ -36,7 +36,6 @@ __all__ = [
     "Model",
     "EmbeddingTable",
     "EmbeddingTables",
-    "extract",
     "ParallelBlock",
     "MLPBlock",
     "ModelOutput",
@@ -46,12 +45,8 @@ __all__ = [
     "RouterBlock",
     "SelectKeys",
     "SelectFeatures",
-    "Selection",
-    "select",
     "TabularInputBlock",
     "Concat",
     "Stack",
-    "input_schema",
-    "trace_schema",
-    "output_schema",
+    "schema",
 ]

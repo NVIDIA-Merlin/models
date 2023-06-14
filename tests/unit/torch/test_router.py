@@ -61,11 +61,11 @@ class TestRouterBlock:
 
         dummy = Dummy()
         self.router.add_route(Tags.CONTINUOUS, dummy)
-        assert dummy.schema == mm.select(self.schema, Tags.CONTINUOUS)
+        assert dummy.schema == mm.schema.select(self.schema, Tags.CONTINUOUS)
 
         dummy_2 = Dummy()
         self.router.add_route_for_each(ColumnSchema("user_id"), dummy_2, shared=True)
-        assert dummy_2.schema == mm.select(self.schema, ColumnSchema("user_id"))
+        assert dummy_2.schema == mm.schema.select(self.schema, ColumnSchema("user_id"))
 
     def test_add_route_parallel_block(self):
         class FakeEmbeddings(mm.ParallelBlock):
@@ -105,12 +105,12 @@ class TestRouterBlock:
         self.router.add_route(Tags.ITEM, mm.ParallelBlock({"nested": mm.MLPBlock([10])}))
         self.router.prepend(plus_one)
 
-        user = mm.select(self.router, Tags.USER)
+        user = mm.schema.select(self.router, Tags.USER)
         assert "item_recency" not in user.branches["continuous"][0].column_names
         assert "item" not in user.branches
         assert user.pre[0] == plus_one
 
-        item = mm.select(self.router, Tags.ITEM)
+        item = mm.schema.select(self.router, Tags.ITEM)
         assert item.branches["continuous"][0].column_names == ["item_recency"]
         assert list(item.branches["item"].branches.keys()) == ["nested"]
         assert all(c.startswith("item_") for c in item.branches["item"][0][0].column_names)
@@ -122,11 +122,11 @@ class TestRouterBlock:
         self.router.add_route(Tags.ITEM, mm.MLPBlock([10]))
         self.router.append(mm.Concat())
 
-        user = mm.select(self.router, Tags.USER)
+        user = mm.schema.select(self.router, Tags.USER)
         assert not user.post
         assert list(user.branches.keys()) == ["user"]
 
-        item = mm.select(self.router, Tags.ITEM)
+        item = mm.schema.select(self.router, Tags.ITEM)
         assert not item.post
         assert list(item.branches.keys()) == ["item"]
 
@@ -144,37 +144,4 @@ class TestRouterBlock:
 
         outputs = module_utils.module_test(nested, self.batch.features)
         assert list(outputs.keys()) == ["user_age"]
-        assert "user_age" in mm.output_schema(nested).column_names
-
-
-class TestSelectKeys:
-    @pytest.fixture(autouse=True)
-    def setup_method(self, music_streaming_data):
-        self.batch: Batch = sample_batch(music_streaming_data, batch_size=10)
-        self.schema: Schema = music_streaming_data.schema
-        self.user_schema: Schema = mm.select(self.schema, Tags.USER)
-
-    def test_forward(self):
-        select_user = mm.SelectKeys(self.user_schema)
-        outputs = select_user(self.batch.features)
-
-        assert select_user.schema == self.user_schema
-
-        for col in {"user_id", "country", "user_age"}:
-            assert col in outputs
-
-        assert "user_genres__values" in outputs
-        assert "user_genres__offsets" in outputs
-        assert select_user != nn.LayerNorm(10)
-
-    def test_select(self):
-        select_user = mm.SelectKeys(self.user_schema)
-
-        user_id = Schema([self.user_schema["user_id"]])
-        assert select_user.select(ColumnSchema("user_id")).schema == user_id
-        assert select_user.select(Tags.USER).schema == self.user_schema
-
-    def test_setup_schema(self):
-        select_user = mm.SelectKeys()
-        select_user.setup_schema(self.user_schema["user_id"])
-        assert select_user.schema == Schema([self.user_schema["user_id"]])
+        assert "user_age" in mm.schema.output(nested).column_names
