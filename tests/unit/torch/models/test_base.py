@@ -25,7 +25,7 @@ from merlin.io import Dataset
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.models.base import compute_loss
 from merlin.models.torch.utils import module_utils
-from merlin.schema import ColumnSchema, Schema
+from merlin.schema import ColumnSchema
 
 
 class PlusOne(nn.Module):
@@ -43,14 +43,7 @@ class TestModel:
         model = mm.Model(mm.Block(), mm.Block())
         assert isinstance(model, mm.Model)
         assert len(model) == 2
-        assert model.schema is None
         assert model.optimizer is torch.optim.Adam
-
-    def test_init_schema(self):
-        schema = Schema([ColumnSchema("foo")])
-        model = mm.Model(mm.Block(), mm.Block(), schema=schema)
-        assert len(model) == 2
-        assert model.schema.first.name == "foo"
 
     def test_init_optimizer(self):
         optimizer = torch.optim.SGD
@@ -188,15 +181,6 @@ class TestModel:
     def test_last(self):
         model = mm.Model(mm.Block(name="a"), mm.Block(name="b"), mm.Block(name="c"))
         assert model.last()._name == "c"
-
-    def test_input_schema(self):
-        schema = Schema([ColumnSchema("foo"), ColumnSchema("bar")])
-        model = mm.Model(mm.Block(), mm.Block(), schema=schema)
-        assert model.input_schema() == schema
-
-    def test_no_input_schema(self):
-        model = mm.Model(mm.Block(), mm.Block())
-        assert model.input_schema() == Schema([])
 
     def test_output_schema(self):
         model = mm.Model(mm.Block())
