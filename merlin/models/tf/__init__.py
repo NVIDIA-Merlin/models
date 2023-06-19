@@ -133,6 +133,7 @@ from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.utils.dependencies import is_transformers_available
 
 if is_transformers_available():
+    import transformers
     from merlin.models.tf.transformers.block import (
         AlbertBlock,
         BertBlock,
