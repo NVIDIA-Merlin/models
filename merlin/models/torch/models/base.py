@@ -26,7 +26,6 @@ from merlin.models.torch.block import Block
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils import module_utils
 from merlin.models.utils.registry import camelcase_to_snakecase
-from merlin.schema import Schema
 
 
 class Model(LightningModule, Block):
@@ -62,7 +61,6 @@ class Model(LightningModule, Block):
     def __init__(
         self,
         *blocks: nn.Module,
-        schema: Optional[Schema] = None,
         optimizer=torch.optim.Adam,
     ):
         super().__init__()
@@ -72,7 +70,6 @@ class Model(LightningModule, Block):
         for module in blocks:
             self.values.append(self.wrap_module(module))
 
-        self.schema = schema
         self.optimizer = optimizer
 
     def initialize(self, data: Union[Dataset, Loader, Batch]):
@@ -120,24 +117,6 @@ class Model(LightningModule, Block):
     def last(self) -> nn.Module:
         """Returns the last block in the model."""
         return self.values[-1]
-
-    def input_schema(self) -> Schema:
-        """Returns the input schema of the model."""
-        if self.schema:
-            return self.schema
-        # TODO: Implement logic when TabularInputBlock is available.
-        return Schema([])
-
-    # def output_schema(self) -> Schema:
-    #     output_schemas = []
-    #     for child in module_utils.get_all_children(self):
-    #         if hasattr(child, "output_schema"):
-    #             output_schemas.append(child.output_schema())
-
-    #     if not output_schemas:
-    #         raise RuntimeError("No output schema found")
-
-    #     return reduce(lambda a, b: a + b, output_schemas)  # type: ignore
 
 
 def compute_loss(

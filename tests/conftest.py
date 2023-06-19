@@ -22,7 +22,6 @@ from pathlib import Path
 
 import distributed
 import psutil
-import numpy as np
 import pytest
 from asvdb import BenchmarkInfo, utils
 
