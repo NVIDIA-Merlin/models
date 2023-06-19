@@ -51,8 +51,7 @@ class TestBlock:
         outputs = module_utils.module_test(block, inputs, batch=Batch(inputs))
 
         assert torch.equal(inputs, outputs)
-
-        assert not mm.schema.output(block)
+        assert mm.schema.output(block) == mm.schema.output.tensors(inputs)
 
     def test_insertion(self):
         block = Block()

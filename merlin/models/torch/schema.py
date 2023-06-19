@@ -131,7 +131,12 @@ class _OutputSchemaDispatch(_LazyDispatchPyTorch):
         _output_schema = self.get_schema(outputs)
 
         try:
-            return super().__call__(module, _input_schema)
+            output = super().__call__(module, _input_schema)
+
+            if output == _input_schema:
+                return _output_schema
+
+            return output
         except NotImplementedError:
             return _output_schema
 
