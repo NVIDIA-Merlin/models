@@ -13,7 +13,8 @@ TRITON_SERVER_PATH = shutil.which("tritonserver")
 
 @pytest.mark.skipif(not TRITON_SERVER_PATH, reason="triton server not found")
 @testbook(
-    REPO_ROOT / "examples/usecases/transformers-next-item-prediction-with-pretrained-embeddings.ipynb",
+    REPO_ROOT
+    / "examples/usecases/transformers-next-item-prediction-with-pretrained-embeddings.ipynb",
     timeout=720,
     execute=False,
 )
@@ -26,7 +27,6 @@ def test_next_item_prediction(tb, tmpdir):
         os.environ["NUM_EPOCHS"] = "1"
         """
     )
-    #import pdb; pdb.set_trace()
     tb.execute_cell(list(range(0, 42)))
 
     with utils.run_triton_server(f"{tmpdir}/ensemble", grpc_port=8001):
