@@ -313,18 +313,15 @@ class Batch:
 
     #     return Batch(features=features, targets=targets, sequences=self.sequences)
 
-    def to(
-        self,
-        dtype: torch.dtype,
-    ) -> "Batch":
+    def to(self, dtype: torch.dtype, device: Optional[torch.device] = None) -> "Batch":
         features = {}
         for k, v in self.features.items():
             _dtype = dtype if v.is_floating_point() or v.is_complex() else None
-            features[k] = v.to(dtype=_dtype)
+            features[k] = v.to(dtype=_dtype, device=device if device is not None else self.device())
         targets = {}
         for k, v in self.targets.items():
             _dtype = dtype if v.is_floating_point() or v.is_complex() else None
-            targets[k] = v.to(dtype=_dtype)
+            targets[k] = v.to(dtype=_dtype, device=device if device is not None else self.device())
 
         return Batch(features=features, targets=targets, sequences=self.sequences)
 
