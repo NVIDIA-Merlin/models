@@ -8,7 +8,7 @@ from merlin.core.dispatch import DataFrameLike, concat, concat_columns
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.utils.schema_utils import Selection, select_schema
-from merlin.schema import Schema
+from merlin.schema import ColumnSchema, Schema
 from merlin.table import TensorTable
 
 OUT_KEY = "output"
@@ -160,27 +160,89 @@ class Encoder:
             if unique:
                 ddf = ddf.drop_duplicates(index_schema.column_names, keep="first")
 
+        output_schema = self.encoded_schema(
+            ddf.head(), input_schema=schema, passthrough_schema=index_schema
+        )
+        output_dtypes = {col.name: col.dtype.to("numpy") for col in output_schema}
+
         output = ddf.map_partitions(
             self.encode_df,
             batch_size=batch_size,
             input_schema=schema,
             passthrough_schema=index_schema,
+            meta=output_dtypes,
         )
+
         if index:
             output = output.set_index(index_schema.column_names)
+            output_schema = output_schema.excluding_by_name(index_schema.column_names)
 
-        return Dataset(output, schema=self.encoded_schema(schema, index_schema) or None)
+        return Dataset(output, schema=output_schema)
 
-    def encoded_schema(self, input_schema: Schema, index_schema: Schema) -> Schema:
-        del input_schema
+    def _module_schema(self, sample_df: DFType) -> Schema:
+        """Get encoder module output schema.
+
+        Parameters
+        ----------
+        sample_df : DFType
+            Sample DataFrame containing inputs to the module.
+
+        Returns
+        -------
+        Schema
+            Output Schema describing module output
+        """
         module_schema = None
+        sample_x, _ = Loader(Dataset(sample_df), 2).peek()
+        sample_output = self.module(sample_x)
         if hasattr(self.module, "output_schema"):
             module_schema = self.module.output_schema()
+        else:
+            sample_output_table = to_tensor_table(sample_output)
+            module_schema = Schema(
+                [
+                    ColumnSchema(column, dtype=sample_output_table[column].dtype)
+                    for column in sample_output_table.columns
+                ]
+            )
+        return module_schema
 
-        if index_schema and module_schema:
-            return index_schema + module_schema
+    def encoded_schema(
+        self, sample_df: DFType, input_schema: Schema, passthrough_schema: Schema
+    ) -> Schema:
+        """Return the output schema corresponding to the output
 
-        return Schema()
+        Parameters
+        ----------
+        sample_df : DFType
+            dataframe with sample of inputs to encoder module
+        input_schema : Schema
+            schema describing inputs
+        passthrough_schema : Schema
+            schema describing inputs passed through to the output dataframe
+
+        Returns
+        -------
+        Schema
+            schema describing output dataframe
+        """
+        module_schema = self._module_schema(sample_df)
+
+        if passthrough_schema:
+            output_schema = passthrough_schema + module_schema
+        else:
+            output_schema = module_schema
+
+        # Ensure order of schema columns match output dataframe
+        sample_output_df = self.encode_df(
+            sample_df,
+            batch_size=2,
+            input_schema=input_schema,
+            passthrough_schema=passthrough_schema,
+        )
+        output_schema = Schema([output_schema[column] for column in sample_output_df.columns])
+
+        return output_schema
 
     def encode_df(
         self,
@@ -201,6 +263,11 @@ class Encoder:
             The schema of the input DataFrame, by default None.
         passthrough_schema : Optional[Schema], optional
             The schema that should pass through the encoding, by default None.
+
+        Returns
+        -------
+        DFType
+            Encoded output DataFrame
         """
         dataset = Dataset(df, schema=input_schema)
         loader = Loader(dataset, batch_size=batch_size or len(df))
@@ -317,26 +384,29 @@ class Predictor(Encoder):
 
         return output_df
 
-    def encoded_schema(self, input_schema: Schema, index_schema: Schema) -> Schema:
-        del index_schema
+    def encoded_schema(
+        self, sample_df: DFType, input_schema: Schema, passthrough_schema: Schema
+    ) -> Schema:
+        module_schema = self._module_schema(sample_df)
 
-        module_schema = Schema()
-        if hasattr(self.module, "output_schema"):
-            module_schema = self.module.output_schema()
+        renamed_module_schema = Schema()
+        for col in module_schema:
+            name = col.name
+            if col.name in input_schema.column_names:
+                name += self.prediction_suffix
+            renamed_module_schema[name] = col.with_name(name)
 
-        if not module_schema:
-            return Schema()
+        output_schema = input_schema + renamed_module_schema
 
-        out_schema = input_schema.copy()
-        for col in module_schema.column_names:
-            if col in input_schema.column_names:
-                name = col + self.prediction_suffix
-                col = module_schema[col].with_name(name)
-                out_schema[name] = col
-            else:
-                out_schema[col] = module_schema[col]
+        sample_output_df = self.encode_df(
+            sample_df,
+            batch_size=2,
+            input_schema=input_schema,
+            passthrough_schema=passthrough_schema,
+        )
+        output_schema = Schema([output_schema[column] for column in sample_output_df.columns])
 
-        return out_schema
+        return output_schema
 
 
 def to_tensor_table(

@@ -46,7 +46,8 @@ class TestEncoder:
         output = encoder(music_streaming_data, batch_size=10, index=Tags.USER_ID, unique=False)
         output_df = output.compute()
         assert len(output_df) == 100
-        assert set(output.schema.column_names) == {"user_id", "testing"}
+        assert set(output.schema.column_names) == {"testing"}
+        assert output_df.index.name == "user_id"
 
     def test_tensor_dict(self):
         encoder = Encoder(TensorOutputModel())
