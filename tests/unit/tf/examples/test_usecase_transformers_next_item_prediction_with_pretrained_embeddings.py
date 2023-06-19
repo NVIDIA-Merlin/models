@@ -29,10 +29,10 @@ def test_next_item_prediction(tb, tmpdir):
         os.environ["MINIMUM_SESSION_LENGTH"] = "2"
         """
     )
-    tb.execute_cell(list(range(0, 42)))
+    tb.execute_cell(list(range(0, 48)))
 
     with utils.run_triton_server(f"{tmpdir}/ensemble", grpc_port=8001):
-        tb.execute_cell(list(range(42, len(tb.cells))))
+        tb.execute_cell(list(range(48, len(tb.cells))))
 
     predicted_hashed_url_id = tb.ref("predicted_hashed_url_id").item()
     assert predicted_hashed_url_id >= 0 and predicted_hashed_url_id <= 1002
