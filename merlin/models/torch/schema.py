@@ -198,7 +198,7 @@ def trace(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]
 
     def add_hook(m):
         custom_modules = list(output.dispatcher.registry.keys())
-        if len(custom_modules) > 0 and isinstance(m, tuple(custom_modules[1:])):
+        if m and isinstance(m, tuple(custom_modules[1:])):
             return
 
         hooks.append(m.register_forward_hook(_hook))

@@ -42,14 +42,14 @@ class TestModel:
     def test_init_default(self):
         model = mm.Model(mm.Block(), mm.Block())
         assert isinstance(model, mm.Model)
-        assert len(model.blocks) == 2
+        assert len(model) == 2
         assert model.schema is None
         assert model.optimizer is torch.optim.Adam
 
     def test_init_schema(self):
         schema = Schema([ColumnSchema("foo")])
         model = mm.Model(mm.Block(), mm.Block(), schema=schema)
-        assert len(model.blocks) == 2
+        assert len(model) == 2
         assert model.schema.first.name == "foo"
 
     def test_init_optimizer(self):
@@ -62,10 +62,10 @@ class TestModel:
         model = mm.Model(mm.Block(), mm.Block())
         assert torch.equal(model(inputs), inputs)
 
-        model.pre.append(PlusOne())
+        model.prepend(PlusOne())
         assert torch.equal(model(inputs), inputs + 1)
 
-        model.post.append(TimeTwo())
+        model.append(TimeTwo())
         assert torch.equal(model(inputs), (inputs + 1) * 2)
 
     def test_initialize_with_dataset(self):
@@ -104,7 +104,9 @@ class TestModel:
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         model.initialize(mm.Batch(inputs, None))
 
-        outputs = module_utils.module_test(model.to_torchscript(method="script"), inputs)
+        outputs = module_utils.module_test(
+            model.to_torchscript(method="script"), inputs, schema_trace=False
+        )
 
         assert torch.equal(inputs, outputs)
 
@@ -200,16 +202,16 @@ class TestModel:
             "a": torch.tensor([[1.0, 2.0], [3.0, 4.0]]),
             "b": torch.tensor([[5.0, 6.0], [7.0, 8.0]]),
         }
-        outputs = model(inputs)
-        schema = model.output_schema()
+        outputs = mm.schema.trace(model, inputs)
+        schema = mm.schema.output(model)
         for name in outputs:
             assert name in schema.column_names
             assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
 
     def test_no_output_schema(self):
         model = mm.Model(PlusOne())
-        with pytest.raises(RuntimeError, match="No output schema found"):
-            _ = model.output_schema()
+        with pytest.raises(ValueError, match="Could not get output schema of PlusOne()"):
+            mm.schema.output(model)
 
     # def test_train_classification(self, music_streaming_data):
     #     schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])

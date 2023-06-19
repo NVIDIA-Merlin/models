@@ -378,7 +378,6 @@ class EmbeddingTable(nn.Module, Selectable):
         selected = select(self.input_schema, selection)
 
         if not selected:
-            # return None
             raise ValueError(f"Selection {selection} not found in the table")
 
         return self

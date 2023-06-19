@@ -465,7 +465,7 @@ BlockT = TypeVar("BlockT", bound=BlockContainer)
 
 
 @schema.select.register(BlockContainer)
-def _(container: BlockT, selection: schema.Selection) -> BlockT:
+def _select_block(container: BlockT, selection: schema.Selection) -> BlockT:
     if isinstance(container, ParallelBlock):
         return _select_parallel_block(container, selection)
 

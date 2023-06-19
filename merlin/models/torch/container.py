@@ -175,6 +175,9 @@ class BlockContainer(nn.Module):
         return bool(self.values)
 
     def __eq__(self, other) -> bool:
+        if not isinstance(other, BlockContainer):
+            return False
+
         if len(self) != len(other):
             return False
 
@@ -360,6 +363,9 @@ class BlockContainerDict(nn.ModuleDict):
         return super()._get_name() if self._name is None else self._name
 
     def __eq__(self, other: "BlockContainerDict") -> bool:
+        if not isinstance(other, BlockContainerDict):
+            return False
+
         return all(other[key] == val if key in other else False for key, val in self.items())
 
     def __hash__(self) -> int:

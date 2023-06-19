@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from functools import reduce
 from typing import Dict, List, Optional, Sequence, Union
 
 import torch
@@ -24,14 +23,13 @@ from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import Block
-from merlin.models.torch.container import BlockContainer
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils import module_utils
 from merlin.models.utils.registry import camelcase_to_snakecase
 from merlin.schema import Schema
 
 
-class Model(Block, LightningModule):
+class Model(LightningModule, Block):
     """
     Merlin Model class.
 
@@ -67,16 +65,14 @@ class Model(Block, LightningModule):
         schema: Optional[Schema] = None,
         optimizer=torch.optim.Adam,
     ):
-        """Initializes `Model` class"""
         super().__init__()
+
+        # Copied from BlockContainer.__init__
+        self.values = nn.ModuleList()
+        for module in blocks:
+            self.values.append(self.wrap_module(module))
+
         self.schema = schema
-
-        self.pre = BlockContainer(name="pre")
-        self.blocks = BlockContainer(name="blocks")
-        for block in blocks:
-            self.blocks.append(block)
-        self.post = BlockContainer(name="post")
-
         self.optimizer = optimizer
 
     def initialize(self, data: Union[Dataset, Loader, Batch]):
@@ -88,12 +84,8 @@ class Model(Block, LightningModule):
     ):
         """Performs a forward pass through the model."""
         outputs = inputs
-        for pre in self.pre.values:
-            outputs = pre(outputs, batch=batch)
-        for block in self.blocks.values:
+        for block in self.values:
             outputs = block(outputs, batch=batch)
-        for post in self.post.values:
-            outputs = post(outputs, batch=batch)
         return outputs
 
     def training_step(self, batch, batch_idx):
@@ -123,11 +115,11 @@ class Model(Block, LightningModule):
 
     def first(self) -> nn.Module:
         """Returns the first block in the model."""
-        return self.blocks.values[0]
+        return self.values[0]
 
     def last(self) -> nn.Module:
         """Returns the last block in the model."""
-        return self.blocks.values[-1]
+        return self.values[-1]
 
     def input_schema(self) -> Schema:
         """Returns the input schema of the model."""
@@ -136,16 +128,16 @@ class Model(Block, LightningModule):
         # TODO: Implement logic when TabularInputBlock is available.
         return Schema([])
 
-    def output_schema(self) -> Schema:
-        output_schemas = []
-        for child in module_utils.get_all_children(self):
-            if hasattr(child, "output_schema"):
-                output_schemas.append(child.output_schema())
+    # def output_schema(self) -> Schema:
+    #     output_schemas = []
+    #     for child in module_utils.get_all_children(self):
+    #         if hasattr(child, "output_schema"):
+    #             output_schemas.append(child.output_schema())
 
-        if not output_schemas:
-            raise RuntimeError("No output schema found")
+    #     if not output_schemas:
+    #         raise RuntimeError("No output schema found")
 
-        return reduce(lambda a, b: a + b, output_schemas)  # type: ignore
+    #     return reduce(lambda a, b: a + b, output_schemas)  # type: ignore
 
 
 def compute_loss(
