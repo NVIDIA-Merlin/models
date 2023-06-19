@@ -25,6 +25,7 @@ def test_next_item_prediction(tb, tmpdir):
         import os, random
         os.environ["OUTPUT_DATA_DIR"] = "{tmpdir}"
         os.environ["NUM_EPOCHS"] = "1"
+        os.environ["NUM_EXAMPLES"] = "1_000"
         """
     )
     tb.execute_cell(list(range(0, 42)))
