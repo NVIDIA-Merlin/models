@@ -18,9 +18,11 @@ import pytest
 import torch
 import torch.nn as nn
 
+import merlin.models.torch as mm
 from merlin.models.torch import link
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import module_utils, torchscript_utils
+from merlin.schema import Tags
 
 
 class TestBlockContainer:
@@ -35,6 +37,7 @@ class TestBlockContainer:
         module = nn.Linear(20, 30)
         self.block_container.append(module)
         assert len(self.block_container) == 1
+        assert self.block_container != BlockContainer(name="test_container")
 
     def test_append_link(self):
         module = nn.Linear(20, 20)
@@ -161,6 +164,9 @@ class TestBlockContainer:
 
     def test_get_name(self):
         assert self.block_container._get_name() == "test_container"
+
+    def test_select(self):
+        assert not mm.schema.select(self.block_container, Tags.USER)
 
 
 class TestBlockContainerDict:

@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2023, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import pytest
 from torch import nn
 
@@ -19,6 +35,7 @@ class TestSelectKeys:
         outputs = module_utils.module_test(select_user, self.batch.features)
 
         assert select_user.schema == self.user_schema
+        assert select_user.extra_repr() == ", ".join(self.user_schema.column_names)
 
         for col in {"user_id", "country", "user_age"}:
             assert col in outputs
@@ -38,3 +55,20 @@ class TestSelectKeys:
         select_user = mm.SelectKeys()
         select_user.setup_schema(self.user_schema["user_id"])
         assert select_user.schema == Schema([self.user_schema["user_id"]])
+
+
+class TestSelectFeatures:
+    @pytest.fixture(autouse=True)
+    def setup_method(self, music_streaming_data):
+        self.batch: Batch = sample_batch(music_streaming_data, batch_size=10)
+        self.schema: Schema = music_streaming_data.schema
+        self.user_schema: Schema = mm.schema.select(self.schema, Tags.USER)
+
+    def test_forward(self):
+        selected = mm.SelectFeatures(self.user_schema)
+        block = mm.Block(selected)
+        assert selected.select(Tags.USER).select_keys == selected.select_keys
+
+        outputs = block(self.batch.features["session_id"], batch=self.batch)
+
+        assert len(outputs) == 5

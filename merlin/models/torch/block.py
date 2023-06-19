@@ -369,6 +369,9 @@ class ParallelBlock(Block):
         return bool(self.branches) or bool(self.pre) or bool(self.post)
 
     def __eq__(self, other) -> bool:
+        if not isinstance(other, ParallelBlock):
+            return False
+
         return self.pre == other.pre and self.branches == other.branches and self.post == other.post
 
     def __hash__(self) -> int:
@@ -402,13 +405,16 @@ def get_pre(module: nn.Module) -> BlockContainer:
     if hasattr(module, "pre"):
         return module.pre
 
-    if isinstance(module, BlockContainer):
+    if isinstance(module, BlockContainer) and module:
         return get_pre(module[0])
 
     return BlockContainer()
 
 
 def set_pre(module: nn.Module, pre: BlockContainer):
+    if not isinstance(pre, BlockContainer):
+        pre = BlockContainer(pre)
+
     if hasattr(module, "pre"):
         module.pre = pre
 

@@ -22,7 +22,7 @@ from torch import nn
 import merlin.models.torch as mm
 from merlin.models.torch import link
 from merlin.models.torch.batch import Batch
-from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.block import Block, ParallelBlock, get_pre, set_pre
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Tags
@@ -244,3 +244,31 @@ class TestParallelBlock:
 
         with pytest.raises(IndexError):
             pb["invalid_key"]
+
+    def test_set_pre(self):
+        pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+        set_pre(pb, PlusOne())
+        assert len(pb.pre) == 1
+
+        block = Block(pb)
+        assert not get_pre(Block())
+        set_pre(block, PlusOne())
+        assert len(get_pre(block)) == 1
+
+    def test_input_schema_pre(self):
+        pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+        outputs = mm.schema.trace(pb, torch.randn(1, 3))
+        input_schema = mm.schema.input(pb)
+        assert len(input_schema) == 1
+        assert len(mm.schema.output(pb)) == 2
+        assert len(outputs) == 2
+
+        pb2 = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+        assert not get_pre(pb2)
+        pb2.prepend(pb)
+        assert not get_pre(pb2) == pb
+        assert get_pre(pb2)[0] == pb
+        pb2.append(pb)
+
+        assert input_schema == mm.schema.input(pb2)
+        assert mm.schema.output(pb2) == mm.schema.output(pb)

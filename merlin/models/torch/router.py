@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2023, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from copy import deepcopy
 from typing import Optional
 
@@ -10,7 +26,6 @@ from merlin.schema import Schema
 
 
 class RouterBlock(ParallelBlock):
-    # class RouterBlock(ParallelBlock, Selectable):
     """A block that routes features by selecting them from a selectable object.
 
     Example usage::
@@ -155,10 +170,6 @@ class RouterBlock(ParallelBlock):
         RouterBlock
             A new router block with the current block as its selectable.
         """
-
-        if hasattr(self, "_forward_called"):
-            # We don't need to track the schema since we will be using the nested router
-            self._handle.remove()
 
         return self.__class__(self)
 
