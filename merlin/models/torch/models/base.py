@@ -74,7 +74,7 @@ class Model(LightningModule, Block):
 
     def initialize(self, data: Union[Dataset, Loader, Batch]):
         """Initializes the model based on a given data set."""
-        return module_utils.initialize(self, data)
+        return module_utils.initialize(self, data, dtype=self._dtype)
 
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None

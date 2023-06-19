@@ -159,3 +159,6 @@ class TorchScriptWrapper(nn.Module):
         self, memo: Optional[Set[nn.Module]] = None, prefix: str = "", remove_duplicate: bool = True
     ):
         return self.to_wrap.named_modules(memo, prefix, remove_duplicate)
+
+    def _apply(self, fn):
+        return self.to_wrap._apply(fn)

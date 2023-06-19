@@ -249,7 +249,7 @@ def get_all_children(module: nn.Module) -> List[nn.Module]:
     return children
 
 
-def initialize(module, data: Union[Dataset, Loader, Batch]):
+def initialize(module, data: Union[Dataset, Loader, Batch], dtype=torch.float32):
     """
     This function is useful for initializing a PyTorch module with specific
     data prior to training or evaluation. It ensures that the module is
@@ -274,18 +274,23 @@ def initialize(module, data: Union[Dataset, Loader, Batch]):
         If the data is not an instance of Dataset, Loader, or Batch.
     """
     if isinstance(data, (Loader, Dataset)):
-        module.double()  # TODO: Put in data-loader PR to standardize on float-32
         batch = sample_batch(data, batch_size=1, shuffle=False)
     elif isinstance(data, Batch):
         batch = data
     else:
         raise RuntimeError(f"Unexpected input type: {type(data)}")
 
-    module.to(batch.device())
+    if dtype:
+        module.to(device=batch.device(), dtype=dtype)
+        batch = batch.to(dtype=dtype)
+    else:
+        module.to(device=batch.device())
 
     if hasattr(module, "model_outputs"):
         for model_out in module.model_outputs():
             for metric in model_out.metrics:
                 metric.to(batch.device())
 
-    return module(batch.features, batch=batch)
+    from merlin.models.torch import schema
+
+    return schema.trace(module, batch.features, batch=batch)
