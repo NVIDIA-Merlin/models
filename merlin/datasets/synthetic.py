@@ -49,6 +49,8 @@ KNOWN_DATASETS: Dict[str, Path] = {
     "booking.com": HERE / "ecommerce/booking/transformed/",
     "booking.com-raw": HERE / "ecommerce/booking/raw/",
     "transactions": HERE / "ecommerce/transactions",
+    "sigir-browsing": HERE / "ecommerce/sigir/browsing_train",
+    "sigir-sku": HERE / "ecommerce/sigir/sku_information",
 }
 
 

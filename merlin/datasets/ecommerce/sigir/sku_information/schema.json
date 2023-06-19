@@ -1,0 +1,132 @@
+{
+    "feature": [
+        {
+            "name": "product_sku_hash",
+            "type": "INT",
+            "intDomain": {
+                "name": "product_sku_hash",
+                "max": "999",
+                "isCategorical": true
+            },
+            "annotation": {
+                "tag": [
+                    "id",
+                    "categorical",
+                    "item"
+                ],
+                "extraMetadata": [
+                    {
+                        "num_buckets": null,
+                        "freq_threshold": 0.0,
+                        "max_size": 1000.0,
+                        "cat_path": ".//categories/unique.product_sku_hash.parquet",
+                        "embedding_sizes": {
+                            "cardinality": 1000.0,
+                            "dimension": 77.0
+                        },
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        },
+        {
+            "name": "description_vector",
+            "type": "FLOAT",
+            "floatDomain": {
+                "min": -0.44,
+                "max": 0.603
+            },
+            "annotation": {
+                "tag": [
+                    "item"
+                ],
+                "extraMetadata": [
+                    {
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ],
+                            [
+                                50,
+                                50
+                            ]
+                        ],
+                        "is_list": true,
+                        "is_ragged": true,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        },
+        {
+            "name": "category_hash",
+            "type": "INT",
+            "intDomain": {
+                "name": "category_hash",
+                "max": "174",
+                "isCategorical": true
+            },
+            "annotation": {
+                "tag": [
+                    "item",
+                    "item_id",
+                    "categorical",
+                    "id"
+                ],
+                "extraMetadata": [
+                    {
+                        "num_buckets": null,
+                        "freq_threshold": 0.0,
+                        "max_size": 1000.0,
+                        "start_index": 0.0,
+                        "cat_path": ".//categories/unique.category_hash.parquet",
+                        "embedding_sizes": {
+                            "cardinality": 175.0,
+                            "dimension": 29.0
+                        },
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        },
+        {
+            "name": "price_bucket",
+            "type": "FLOAT",
+            "annotation": {
+                "tag": [
+                    "continuous"
+                ],
+                "extraMetadata": [
+                    {
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        }
+    ]
+}
