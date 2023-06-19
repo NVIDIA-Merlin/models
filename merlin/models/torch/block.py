@@ -491,21 +491,6 @@ def _(container: BlockT, selection: schema.Selection) -> BlockT:
                 selected_module = None
                 break
 
-            # if not selected_module:
-            #     schema = getattr(first, "schema", None)
-            #     selected_schema = getattr(selected_first, "schema", None)
-            #     if schema and selected_schema:
-            #         diff = set(schema.column_names) - set(selected_schema.column_names)
-            #         raise ValueError(
-            #             f"Cannot remove {diff} from {container} "
-            #             f"because {module} does not support selection. ",
-            #             "If it does, please implement a `select` method.",
-            #         )
-
-            #     raise ValueError(f"Cannot select from {module}")
-
-            # outputs.append(selected_module)
-
     return container.__class__(*outputs, name=container._name)
 
 

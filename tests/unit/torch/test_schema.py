@@ -54,7 +54,7 @@ class TestSelectSchema:
 
     def test_exceptions(self):
         with pytest.raises(ValueError, match="is not valid"):
-            select_schema(self.schema, 1)
+            select(self.schema, 1)
 
         with pytest.raises(ValueError, match="is not valid"):
             select_schema(1, 1)
