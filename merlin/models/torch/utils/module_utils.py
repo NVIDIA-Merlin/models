@@ -21,8 +21,8 @@ import torch.nn as nn
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
-from merlin.models.torch.batch import Batch, sample_batch
 from merlin.models.torch import schema
+from merlin.models.torch.batch import Batch, sample_batch
 
 
 def is_tabular(module: torch.nn.Module) -> bool:

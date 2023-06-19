@@ -18,10 +18,10 @@ from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import Block, ParallelBlock
 from merlin.models.torch.blocks.mlp import MLPBlock
-from merlin.models.torch.models.base import Model
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
 from merlin.models.torch.inputs.select import SelectFeatures, SelectKeys
 from merlin.models.torch.inputs.tabular import TabularInputBlock
+from merlin.models.torch.models.base import Model
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import BinaryOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
