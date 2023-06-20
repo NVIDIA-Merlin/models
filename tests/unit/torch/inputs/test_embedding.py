@@ -89,7 +89,7 @@ class TestEmbeddingTable:
     def test_multiple_features(self, item_id_col_schema, user_id_col_schema):
         et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]))
         input_dict = {"item_id": torch.tensor([0, 1, 2]), "user_id": torch.tensor([0, 1, 2])}
-        output = module_utils.module_test(et, input_dict)
+        output = module_utils.module_test(et, input_dict, batch=mm.Batch(input_dict))
 
         assert isinstance(output, dict)
         assert isinstance(output["item_id"], torch.Tensor)
@@ -105,7 +105,7 @@ class TestEmbeddingTable:
             "user_id": torch.tensor([0, 1, 2]),
             "item_id": torch.tensor([[0, 1], [1, 2], [2, 3]]),
         }
-        output = module_utils.module_test(et, input_dict)
+        output = module_utils.module_test(et, input_dict, batch=mm.Batch(input_dict))
 
         assert isinstance(output, dict)
         assert isinstance(output["item_id"], torch.Tensor)
@@ -125,7 +125,7 @@ class TestEmbeddingTable:
             "user_id": torch.tensor([0, 1, 2]),
             "item_id": torch.tensor([[0, 1], [1, 2], [2, 3]]),
         }
-        output = module_utils.module_test(et, input_dict)
+        output = module_utils.module_test(et, input_dict, batch=mm.Batch(input_dict))
 
         assert isinstance(output, dict)
         assert isinstance(output["item_id"], torch.Tensor)
@@ -144,7 +144,7 @@ class TestEmbeddingTable:
             "item_id__values": torch.tensor([0, 1, 1, 2, 2, 3]),
             "item_id__offsets": torch.tensor([0, 2, 4, 6]),
         }
-        output = module_utils.module_test(et, input_dict)
+        output = module_utils.module_test(et, input_dict, batch=mm.Batch(input_dict))
 
         assert isinstance(output, dict)
         assert isinstance(output["item_id"], torch.Tensor)
@@ -162,7 +162,7 @@ class TestEmbeddingTable:
             "item_id__values": torch.tensor([0, 1, 1, 2, 2, 3]),
             "item_id__offsets": torch.tensor([0, 2, 4, 6]),
         }
-        output = module_utils.module_test(et, input_dict)
+        output = module_utils.module_test(et, input_dict, batch=mm.Batch(input_dict))
 
         assert isinstance(output, dict)
         assert isinstance(output["item_id"], torch.Tensor)
@@ -258,7 +258,7 @@ class TestEmbeddingTables:
         }
 
         to_call = embs if not nested else mm.ParallelBlock({"a": embs})
-        output = module_utils.module_test(to_call, input_dict)
+        output = module_utils.module_test(to_call, input_dict, batch=mm.Batch(input_dict))
 
         assert output["item_id"].shape == (3, 10)
         assert output["user_id"].shape == (3, 8)
