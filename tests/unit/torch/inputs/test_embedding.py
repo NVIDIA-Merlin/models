@@ -3,6 +3,7 @@ import pytest
 import torch
 from torch import nn
 
+import merlin.models.torch as mm
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
 from merlin.models.torch.utils import module_utils
 from merlin.schema import ColumnSchema, Schema, Tags
@@ -79,7 +80,7 @@ class TestEmbeddingTable:
     def test_forward_dict_single(self, item_id_col_schema):
         et = EmbeddingTable(8, item_id_col_schema)
         input_dict = {"item_id": torch.tensor([0, 1, 2])}
-        output = et(input_dict)
+        output = module_utils.module_test(et, input_dict)
 
         assert isinstance(output, dict)
         assert isinstance(output["item_id"], torch.Tensor)
@@ -88,7 +89,7 @@ class TestEmbeddingTable:
     def test_multiple_features(self, item_id_col_schema, user_id_col_schema):
         et = EmbeddingTable(8, Schema([item_id_col_schema, user_id_col_schema]))
         input_dict = {"item_id": torch.tensor([0, 1, 2]), "user_id": torch.tensor([0, 1, 2])}
-        output = et(input_dict)
+        output = module_utils.module_test(et, input_dict)
 
         assert isinstance(output, dict)
         assert isinstance(output["item_id"], torch.Tensor)
@@ -245,7 +246,8 @@ class TestEmbeddingTables:
         with pytest.raises(ValueError):
             embs.select("unknown")
 
-    def test_forward(self, item_id_col_schema, user_id_col_schema):
+    @pytest.mark.parametrize("nested", [False, True])
+    def test_forward(self, item_id_col_schema, user_id_col_schema, nested):
         embs = EmbeddingTables(
             {"user_id": 8, "item_id": 10}, Schema([item_id_col_schema, user_id_col_schema])
         )
@@ -255,7 +257,8 @@ class TestEmbeddingTables:
             "item_id": torch.tensor([0, 1, 2]),
         }
 
-        output = module_utils.module_test(embs, input_dict)
+        to_call = embs if not nested else mm.ParallelBlock({"a": embs})
+        output = module_utils.module_test(to_call, input_dict)
 
         assert output["item_id"].shape == (3, 10)
         assert output["user_id"].shape == (3, 8)

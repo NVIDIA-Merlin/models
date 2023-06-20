@@ -120,7 +120,6 @@ class BlockContainer(nn.Module):
 
     def unwrap(self) -> nn.ModuleList:
         return self
-        # return nn.ModuleList(iter(self))
 
     def wrap_module(
         self, module: nn.Module
@@ -218,7 +217,10 @@ class BlockContainerDict(nn.ModuleDict):
     """
 
     def __init__(
-        self, *inputs: Union[nn.Module, Dict[str, nn.Module]], name: Optional[str] = None
+        self,
+        *inputs: Union[nn.Module, Dict[str, nn.Module]],
+        name: Optional[str] = None,
+        block_cls=BlockContainer
     ) -> None:
         if not inputs:
             inputs = [{}]
@@ -226,6 +228,7 @@ class BlockContainerDict(nn.ModuleDict):
         if all(isinstance(x, dict) for x in inputs):
             modules = reduce(lambda a, b: dict(a, **b), inputs)  # type: ignore
 
+        self._block_cls = block_cls
         super().__init__(modules)
         self._name: str = name
 
@@ -349,8 +352,8 @@ class BlockContainerDict(nn.ModuleDict):
         return self
 
     def add_module(self, name: str, module: Optional[nn.Module]) -> None:
-        if module and not isinstance(module, BlockContainer):
-            module = BlockContainer(module)
+        if module and not isinstance(module, self._block_cls):
+            module = self._block_cls(module)
 
         output = super().add_module(name, module)
 

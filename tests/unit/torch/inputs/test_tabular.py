@@ -3,6 +3,7 @@ import torch
 
 import merlin.models.torch as mm
 from merlin.models.torch.inputs.embedding import infer_embedding_dim
+from merlin.models.torch.utils import module_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -17,7 +18,7 @@ class TestTabularInputBlock:
         self.input_block.add_route(Tags.CONTINUOUS)
         self.input_block.add_route(Tags.CATEGORICAL, mm.EmbeddingTable(10, seq_combiner="mean"))
 
-        outputs = self.input_block(self.batch.features)
+        outputs = module_utils.module_test(self.input_block, self.batch.features)
 
         for name in mm.schema.select(self.schema, Tags.CONTINUOUS).column_names:
             assert name in outputs
@@ -28,7 +29,7 @@ class TestTabularInputBlock:
 
     def test_init_detaults(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults")
-        outputs = input_block(self.batch.features)
+        outputs = module_utils.module_test(input_block, self.batch.features)
 
         for name in mm.schema.select(self.schema, Tags.CONTINUOUS).column_names:
             assert name in outputs
@@ -42,6 +43,7 @@ class TestTabularInputBlock:
 
     def test_init_agg(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
+
         outputs = input_block(self.batch.features)
 
         assert isinstance(outputs, torch.Tensor)

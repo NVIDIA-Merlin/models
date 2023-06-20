@@ -297,22 +297,6 @@ class Batch:
 
         raise ValueError("Batch is empty")
 
-    # def to(
-    #     self,
-    #     device: Union[str, torch.device],
-    #     dtype: Optional[torch.dtype] = None,
-    # ) -> "Batch":
-    #     features = {}
-    #     for k, v in self.features.items():
-    #         _dtype = dtype if v.is_floating_point() or v.is_complex() else None
-    #         features[k] = v.to(device=device, dtype=_dtype)
-    #     targets = {}
-    #     for k, v in self.targets.items():
-    #         _dtype = dtype if v.is_floating_point() or v.is_complex() else None
-    #         targets[k] = v.to(device=device, dtype=_dtype)
-
-    #     return Batch(features=features, targets=targets, sequences=self.sequences)
-
     def to(self, dtype: torch.dtype, device: Optional[torch.device] = None) -> "Batch":
         features = {}
         for k, v in self.features.items():

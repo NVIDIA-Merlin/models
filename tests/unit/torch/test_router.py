@@ -61,7 +61,7 @@ class TestRouterBlock:
 
         self.router.add_route(Tags.CONTINUOUS, CustomSelect())
 
-        outputs = self.router(self.batch.features)
+        outputs = module_utils.module_test(self.router, self.batch.features)
         assert set(outputs.keys()) == set(self.schema.select_by_tag(Tags.CONTINUOUS).column_names)
         assert len(self.router["continuous"]) == 2
         assert isinstance(self.router["continuous"][0], mm.SelectKeys)
@@ -103,7 +103,8 @@ class TestRouterBlock:
         else:
             assert dense_pos != dense_age
 
-        outputs = self.router(self.batch.features)
+        outputs = module_utils.module_test(self.router, self.batch.features)
+
         assert set(outputs.keys()) == set(self.schema.select_by_tag(Tags.CONTINUOUS).column_names)
 
         for value in outputs.values():

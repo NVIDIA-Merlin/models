@@ -149,9 +149,9 @@ class ParallelBlock(Block):
     """
 
     def __init__(self, *inputs: Union[nn.Module, Dict[str, nn.Module]]):
-        pre = BlockContainer()
-        branches = BlockContainerDict(*inputs)
-        post = BlockContainer()
+        pre = Block()
+        branches = BlockContainerDict(*inputs, block_cls=Block)
+        post = Block()
 
         super().__init__()
 
@@ -185,38 +185,26 @@ class ParallelBlock(Block):
         Dict[str, torch.Tensor]
             The output tensors.
         """
-        for module in self.pre.values:
-            inputs = module(inputs, batch=batch)
+        _inputs = self.pre(inputs, batch=batch)
 
         outputs = {}
         for name, branch_container in self.branches.items():
-            branch = inputs
+            branch_out = branch_container(_inputs, batch=batch)
 
-            # We need to check whether or not the branch container has a forward-method
-            # This is a bit of a hack, but this seems to work in torchscript as well.
-            if hasattr(branch_container, "registry"):
-                branch = branch_container(branch, batch=batch)
-            else:
-                for module in branch_container.values:
-                    branch = module(branch, batch=batch)
+            if torch.jit.isinstance(branch_out, torch.Tensor):
+                outputs.update({name: branch_out})
+            elif torch.jit.isinstance(branch_out, Dict[str, torch.Tensor]):
+                for key in branch_out.keys():
+                    if key in outputs:
+                        raise RuntimeError(f"Duplicate output name: {key}")
 
-            if isinstance(branch, torch.Tensor):
-                branch_dict = {name: branch}
-            elif torch.jit.isinstance(branch, Dict[str, torch.Tensor]):
-                branch_dict = branch
+                outputs.update(branch_out)
             else:
                 raise TypeError(
-                    f"Branch output must be a tensor or a dictionary of tensors. Got {type(branch)}"
+                    f"Branch output must be a tensor or a dictionary of tensors. Got {_inputs}"
                 )
 
-            for key in branch_dict.keys():
-                if key in outputs:
-                    raise RuntimeError(f"Duplicate output name: {key}")
-
-            outputs.update(branch_dict)
-
-        for module in self.post.values:
-            outputs = module(outputs, batch=batch)
+        outputs = self.post(outputs, batch=batch)
 
         return outputs
 
