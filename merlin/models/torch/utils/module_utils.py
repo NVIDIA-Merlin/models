@@ -136,11 +136,12 @@ def module_test(module: nn.Module, input_data, method="script", schema_trace=Tru
 
     from merlin.models.torch.batch import Batch
 
-    if "batch" in kwargs:
-        module.to(device=kwargs["batch"].device())
-    elif isinstance(input_data, Batch):
+    if isinstance(input_data, Batch):
+        module.to(device=input_data.device())
         kwargs["batch"] = input_data
         input_data = input_data.features
+    elif "batch" in kwargs:
+        module.to(device=kwargs["batch"].device())
 
     # Check if the module can be called with the provided inputs
     try:
