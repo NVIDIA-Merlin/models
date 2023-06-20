@@ -1,0 +1,209 @@
+{
+    "feature": [
+        {
+            "name": "session_id_hash",
+            "type": "INT",
+            "intDomain": {
+                "name": "session_id_hash",
+                "max": "999",
+                "isCategorical": true
+            },
+            "annotation": {
+                "tag": [
+                    "item_id",
+                    "item",
+                    "categorical",
+                    "id"
+                ],
+                "extraMetadata": [
+                    {
+                        "num_buckets": null,
+                        "freq_threshold": 0.0,
+                        "max_size": 1000.0,
+                        "start_index": 0.0,
+                        "cat_path": ".//categories/unique.session_id_hash.parquet",
+                        "embedding_sizes": {
+                            "cardinality": 1000.0,
+                            "dimension": 77.0
+                        },
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        },
+        {
+            "name": "event_type",
+            "type": "INT",
+            "intDomain": {
+                "name": "event_type",
+                "max": "2",
+                "isCategorical": true
+            },
+            "annotation": {
+                "tag": [
+                    "categorical"
+                ],
+                "extraMetadata": [
+                    {
+                        "num_buckets": null,
+                        "freq_threshold": 0.0,
+                        "max_size": 1000.0,
+                        "start_index": 0.0,
+                        "cat_path": ".//categories/unique.event_type.parquet",
+                        "embedding_sizes": {
+                            "cardinality": 3.0,
+                            "dimension": 16.0
+                        },
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        },
+        {
+            "name": "product_action",
+            "type": "INT",
+            "intDomain": {
+                "name": "product_action",
+                "max": "4",
+                "isCategorical": true
+            },
+            "annotation": {
+                "tag": [
+                    "categorical"
+                ],
+                "extraMetadata": [
+                    {
+                        "num_buckets": null,
+                        "freq_threshold": 0.0,
+                        "max_size": 1000.0,
+                        "start_index": 0.0,
+                        "cat_path": ".//categories/unique.product_action.parquet",
+                        "embedding_sizes": {
+                            "cardinality": 5.0,
+                            "dimension": 16.0
+                        },
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        },
+        {
+            "name": "product_sku_hash",
+            "type": "INT",
+            "intDomain": {
+                "name": "product_sku_hash",
+                "max": "999",
+                "isCategorical": true
+            },
+            "annotation": {
+                "tag": [
+                    "categorical"
+                ],
+                "extraMetadata": [
+                    {
+                        "num_buckets": null,
+                        "freq_threshold": 0.0,
+                        "max_size": 1000.0,
+                        "start_index": 0.0,
+                        "cat_path": ".//categories/unique.product_sku_hash.parquet",
+                        "embedding_sizes": {
+                            "cardinality": 1000.0,
+                            "dimension": 77.0
+                        },
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        },
+        {
+            "name": "hashed_url",
+            "type": "INT",
+            "intDomain": {
+                "name": "hashed_url",
+                "max": "999",
+                "isCategorical": true
+            },
+            "annotation": {
+                "tag": [
+                    "categorical"
+                ],
+                "extraMetadata": [
+                    {
+                        "num_buckets": null,
+                        "freq_threshold": 0.0,
+                        "max_size": 1000.0,
+                        "start_index": 0.0,
+                        "cat_path": ".//categories/unique.hashed_url.parquet",
+                        "embedding_sizes": {
+                            "cardinality": 1000.0,
+                            "dimension": 77.0
+                        },
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        },
+        {
+            "name": "server_timestamp_epoch_ms",
+            "type": "FLOAT",
+            "annotation": {
+                "tag": [
+                    "continuous"
+                ],
+                "extraMetadata": [
+                    {
+                        "_dims": [
+                            [
+                                0.0,
+                                null
+                            ]
+                        ],
+                        "is_list": false,
+                        "is_ragged": false,
+                        "dtype_item_size": 64.0
+                    }
+                ]
+            }
+        }
+    ]
+}
