@@ -25,6 +25,26 @@ from merlin.schema import ColumnSchema, Schema, Tags
 
 Selection = Union[Schema, ColumnSchema, Callable[[Schema], Schema], Tags]
 ToSelectT = TypeVar("ToSelectT")
+NAMESPACE_TAGS = [Tags.CONTEXT, Tags.USER, Tags.ITEM, Tags.SESSION]
+
+
+def default_tag_propagation(inputs: Schema, outputs: Schema):
+    if inputs:
+        to_return = Schema()
+        namespaces = []
+
+        for tag in NAMESPACE_TAGS:
+            namespace = inputs.select_by_tag(tag)
+            if namespace and len(namespace) == len(inputs):
+                namespaces.append(tag)
+
+        if namespaces:
+            for col in outputs:
+                to_return[col.name] = col.with_tags(namespaces)
+
+            return to_return
+
+    return outputs
 
 
 class _LazyDispatchPyTorch(LazyDispatcher):
@@ -93,11 +113,30 @@ class _InputSchemaDispatch(_LazyDispatchPyTorch):
 
 
 class _OutputSchemaDispatch(_LazyDispatchPyTorch):
+    def register(self, cls, func=None, tag_propagation_func=default_tag_propagation):
+        if tag_propagation_func:
+
+            def _func(module: nn.Module, input: Schema) -> Schema:
+                return tag_propagation_func(input, func(module, input))
+
+            if func is None:
+                return lambda f: self.register(cls, f, tag_propagation_func=tag_propagation_func)
+
+            return self.dispatcher.register(cls, func=_func)
+
+        return super().register(cls, func=func)
+
     def __call__(self, module: nn.Module, inputs: Optional[Schema] = None) -> Schema:
+        try:
+            _inputs = input(module)
+            inputs = _inputs
+        except ValueError:
+            pass
+
         if hasattr(module, "output_schema"):
             output = module.output_schema
             if isinstance(output, types.MethodType):
-                return output()
+                return default_tag_propagation(inputs, output())
 
             return output
 

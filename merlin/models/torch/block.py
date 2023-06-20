@@ -192,6 +192,9 @@ class ParallelBlock(Block):
             branch_out = branch_container(_inputs, batch=batch)
 
             if torch.jit.isinstance(branch_out, torch.Tensor):
+                if name in outputs:
+                    raise RuntimeError(f"Duplicate output name: {name}")
+
                 outputs.update({name: branch_out})
             elif torch.jit.isinstance(branch_out, Dict[str, torch.Tensor]):
                 for key in branch_out.keys():
@@ -548,7 +551,7 @@ def _(main, selection, route, name=None):
     if main_schema == route_schema:
         from merlin.models.torch.inputs.select import SelectFeatures
 
-        out_schema = schema.output(main)
+        out_schema = schema.output(main, main_schema)
         if len(out_schema) == 1 and out_schema.first.name == "output":
             out_schema = Schema([out_schema.first.with_name(name)])
 

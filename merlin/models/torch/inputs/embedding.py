@@ -390,15 +390,14 @@ class EmbeddingTable(nn.Module, Selectable):
             dims = (None, self.dim) if self.seq_combiner else (None, None, self.dim)
             tags = [Tags.EMBEDDING]
 
-            # TODO: Is there a better way to do this?
-            if Tags.SESSION in col.tags:
-                tags.append(Tags.SESSION)
-            if Tags.USER in col.tags:
-                tags.append(Tags.USER)
-            if Tags.ITEM in col.tags:
-                tags.append(Tags.ITEM)
-            if Tags.CONTEXT in col.tags:
-                tags.append(Tags.CONTEXT)
+            # if Tags.SESSION in col.tags:
+            #     tags.append(Tags.SESSION)
+            # if Tags.USER in col.tags:
+            #     tags.append(Tags.USER)
+            # if Tags.ITEM in col.tags:
+            #     tags.append(Tags.ITEM)
+            # if Tags.CONTEXT in col.tags:
+            #     tags.append(Tags.CONTEXT)
 
             name = col.name + "_embedding"
             output[name] = ColumnSchema(name, dims=dims, tags=tags)
