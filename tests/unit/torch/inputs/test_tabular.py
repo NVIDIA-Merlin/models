@@ -18,7 +18,7 @@ class TestTabularInputBlock:
         self.input_block.add_route(Tags.CONTINUOUS)
         self.input_block.add_route(Tags.CATEGORICAL, mm.EmbeddingTable(10, seq_combiner="mean"))
 
-        outputs = module_utils.module_test(self.input_block, self.batch.features)
+        outputs = module_utils.module_test(self.input_block, self.batch)
 
         for name in mm.schema.select(self.schema, Tags.CONTINUOUS).column_names:
             assert name in outputs
@@ -29,7 +29,7 @@ class TestTabularInputBlock:
 
     def test_init_detaults(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults")
-        outputs = module_utils.module_test(input_block, self.batch.features)
+        outputs = module_utils.module_test(input_block, self.batch)
 
         for name in mm.schema.select(self.schema, Tags.CONTINUOUS).column_names:
             assert name in outputs
@@ -73,7 +73,7 @@ class TestTabularInputBlock:
         assert mm.schema.output(towers).column_names == ["user", "item"]
 
         categorical = mm.schema.select(towers, Tags.CATEGORICAL)
-        outputs = mm.schema.trace(towers, self.batch.features)
+        outputs = module_utils.module_test(towers, self.batch)
 
         assert mm.schema.extract(towers, Tags.CATEGORICAL)[1] == categorical
         assert set(mm.schema.input(towers).column_names) == input_cols
@@ -94,7 +94,7 @@ class TestTabularInputBlock:
     def test_extract_route_embeddings(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
 
-        outputs = input_block(self.batch.features)
+        outputs = module_utils.module_test(input_block, self.batch)
         assert outputs.shape == (10, 107)
 
         no_embs, emb_route = mm.schema.extract(input_block, Tags.CATEGORICAL)
@@ -104,7 +104,7 @@ class TestTabularInputBlock:
     def test_extract_route_nesting(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
 
-        outputs = input_block(self.batch.features)
+        outputs = module_utils.module_test(input_block, self.batch)
         assert outputs.shape == (10, 107)
 
         no_user_id, user_id_route = mm.schema.extract(input_block, ColumnSchema("user_id"))
@@ -121,7 +121,7 @@ class TestTabularInputBlock:
             ),
         )
 
-        outputs = input_block(self.batch.features)
+        outputs = module_utils.module_test(input_block, self.batch)
         assert outputs.shape == (10, 73)
 
         no_user_id, user_id_route = mm.schema.extract(input_block, Tags.USER_ID)

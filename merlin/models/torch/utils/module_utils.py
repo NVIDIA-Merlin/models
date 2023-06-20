@@ -138,6 +138,9 @@ def module_test(module: nn.Module, input_data, method="script", schema_trace=Tru
 
     if "batch" in kwargs:
         module.to(device=kwargs["batch"].device())
+    elif isinstance(input_data, Batch):
+        kwargs["batch"] = input_data
+        input_data = input_data.features
 
     # Check if the module can be called with the provided inputs
     try:
