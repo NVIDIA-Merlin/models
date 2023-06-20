@@ -99,9 +99,8 @@ class TestTabularInputBlock:
         no_embs, emb_route = mm.schema.extract(input_block, Tags.CATEGORICAL)
         output_schema = mm.schema.output(emb_route)
 
-        # TODO: Fix this, should be 3 user/item features
-        assert len(output_schema.select_by_tag(Tags.USER)) == 2
-        assert len(output_schema.select_by_tag(Tags.ITEM)) == 2
+        assert len(output_schema.select_by_tag(Tags.USER)) == 3
+        assert len(output_schema.select_by_tag(Tags.ITEM)) == 3
         assert len(output_schema.select_by_tag(Tags.SESSION)) == 1
 
         assert no_embs

@@ -23,7 +23,7 @@ from torch import nn
 
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import ParallelBlock
-from merlin.models.torch.schema import Selectable, Selection, select
+from merlin.models.torch.schema import NAMESPACE_TAGS, Selectable, Selection, select
 from merlin.models.utils.schema_utils import get_embedding_size_from_cardinality
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -390,14 +390,10 @@ class EmbeddingTable(nn.Module, Selectable):
             dims = (None, self.dim) if self.seq_combiner else (None, None, self.dim)
             tags = [Tags.EMBEDDING]
 
-            # if Tags.SESSION in col.tags:
-            #     tags.append(Tags.SESSION)
-            # if Tags.USER in col.tags:
-            #     tags.append(Tags.USER)
-            # if Tags.ITEM in col.tags:
-            #     tags.append(Tags.ITEM)
-            # if Tags.CONTEXT in col.tags:
-            #     tags.append(Tags.CONTEXT)
+            # Namespace tags in the input schema should be propagated to the output schema
+            for tag in NAMESPACE_TAGS:
+                if tag in col.tags:
+                    tags.append(tag)
 
             name = col.name + "_embedding"
             output[name] = ColumnSchema(name, dims=dims, tags=tags)
