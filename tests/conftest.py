@@ -18,6 +18,7 @@
 from __future__ import absolute_import
 
 import platform
+import warnings
 from pathlib import Path
 
 import distributed
@@ -88,7 +89,14 @@ except ModuleNotFoundError:
 
 
 def pytest_collection_modifyitems(items):
-    changed_backends = ci_utils.get_changed_backends()
+    try:
+        changed_backends = ci_utils.get_changed_backends()
+    except Exception as e:
+        warnings.warn(
+            f"Running all tests because CI utils failed to detect backend changes: {e}", UserWarning
+        )
+        changed_backends = ci_utils.BACKEND_ALIASES.values()
+
     full_name_to_alias = {v: k for k, v in ci_utils.BACKEND_ALIASES.items()}
 
     for item in items:
