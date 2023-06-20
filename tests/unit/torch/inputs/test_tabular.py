@@ -43,8 +43,7 @@ class TestTabularInputBlock:
 
     def test_init_agg(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
-
-        outputs = input_block(self.batch.features)
+        outputs = module_utils.module_test(input_block, self.batch)
 
         assert isinstance(outputs, torch.Tensor)
         assert outputs.shape == (10, 107)
