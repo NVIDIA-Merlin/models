@@ -21,6 +21,7 @@ import torch.nn as nn
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
+from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch, sample_batch
 
 
@@ -98,7 +99,7 @@ def check_batch_arg(module: nn.Module) -> Tuple[bool, bool]:
     return False, False
 
 
-def module_test(module: nn.Module, input_data, method="script", **kwargs):
+def module_test(module: nn.Module, input_data, method="script", schema_trace=True, **kwargs):
     """
     Tests a given PyTorch module for TorchScript compatibility by scripting or tracing it,
     and then comparing the output of the original and the scripted/traced module.
@@ -135,9 +136,19 @@ def module_test(module: nn.Module, input_data, method="script", **kwargs):
 
     from merlin.models.torch.batch import Batch
 
+    if isinstance(input_data, Batch):
+        module.to(device=input_data.device())
+        kwargs["batch"] = input_data
+        input_data = input_data.features
+    elif "batch" in kwargs:
+        module.to(device=kwargs["batch"].device())
+
     # Check if the module can be called with the provided inputs
     try:
-        original_output = module(input_data, **kwargs)
+        if schema_trace:
+            original_output = schema.trace(module, input_data, **kwargs)
+        else:
+            original_output = module(input_data, **kwargs)
     except Exception as e:
         raise RuntimeError(f"Failed to call the module with provided inputs: {e}")
 
@@ -221,31 +232,7 @@ def find_all_instances(module: nn.Module, to_search: ToSearch) -> List[ToSearch]
     return results
 
 
-def get_all_children(module: nn.Module) -> List[nn.Module]:
-    """
-    This function traverses a PyTorch module and retrieves all child modules,
-    including nested children.
-
-    Parameters
-    ----------
-    module: nn.Module
-        The PyTorch module whose children are to be retrieved.
-
-    Returns
-    -------
-    List[nn.Module]
-        A list of all child modules contained within the given module.
-    """
-    children = []
-    for child in module.children():
-        if isinstance(child, nn.Module):
-            children.append(child)
-        children.extend(get_all_children(child))
-
-    return children
-
-
-def initialize(module, data: Union[Dataset, Loader, Batch]):
+def initialize(module, data: Union[Dataset, Loader, Batch], dtype=torch.float32):
     """
     This function is useful for initializing a PyTorch module with specific
     data prior to training or evaluation. It ensures that the module is
@@ -270,18 +257,23 @@ def initialize(module, data: Union[Dataset, Loader, Batch]):
         If the data is not an instance of Dataset, Loader, or Batch.
     """
     if isinstance(data, (Loader, Dataset)):
-        module.double()  # TODO: Put in data-loader PR to standardize on float-32
         batch = sample_batch(data, batch_size=1, shuffle=False)
     elif isinstance(data, Batch):
         batch = data
     else:
         raise RuntimeError(f"Unexpected input type: {type(data)}")
 
-    module.to(batch.device())
+    if dtype:
+        module.to(device=batch.device(), dtype=dtype)
+        batch = batch.to(dtype=dtype)
+    else:
+        module.to(device=batch.device())
 
     if hasattr(module, "model_outputs"):
         for model_out in module.model_outputs():
             for metric in model_out.metrics:
                 metric.to(batch.device())
 
-    return module(batch.features, batch=batch)
+    from merlin.models.torch import schema
+
+    return schema.trace(module, batch.features, batch=batch)

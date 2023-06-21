@@ -4,9 +4,18 @@ import torch
 from merlin.models.torch.block import Block
 from merlin.models.torch.transforms.agg import Concat, MaybeAgg, Stack
 from merlin.models.torch.utils import module_utils
+from merlin.schema import Schema
 
 
 class TestConcat:
+    def test_init(self):
+        concat = Concat(dim=1)
+        assert concat.dim == 1
+        assert concat.extra_repr() == ""
+
+        with pytest.raises(ValueError, match="Schema not set in"):
+            concat.select(Schema())
+
     def test_valid_input(self):
         concat = Concat(dim=1)
         input_tensors = {

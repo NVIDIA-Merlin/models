@@ -119,7 +119,7 @@ class BlockContainer(nn.Module):
         return self
 
     def unwrap(self) -> nn.ModuleList:
-        return nn.ModuleList(iter(self))
+        return self
 
     def wrap_module(
         self, module: nn.Module
@@ -170,6 +170,21 @@ class BlockContainer(nn.Module):
 
         return self
 
+    def __bool__(self) -> bool:
+        return bool(self.values)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, BlockContainer):
+            return False
+
+        if len(self) != len(other):
+            return False
+
+        return all(a == b for a, b in zip(self, other))
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.values))
+
     def __repr__(self) -> str:
         sequential = repr(self.values)
 
@@ -202,7 +217,10 @@ class BlockContainerDict(nn.ModuleDict):
     """
 
     def __init__(
-        self, *inputs: Union[nn.Module, Dict[str, nn.Module]], name: Optional[str] = None
+        self,
+        *inputs: Union[nn.Module, Dict[str, nn.Module]],
+        name: Optional[str] = None,
+        block_cls=BlockContainer
     ) -> None:
         if not inputs:
             inputs = [{}]
@@ -210,6 +228,7 @@ class BlockContainerDict(nn.ModuleDict):
         if all(isinstance(x, dict) for x in inputs):
             modules = reduce(lambda a, b: dict(a, **b), inputs)  # type: ignore
 
+        self._block_cls = block_cls
         super().__init__(modules)
         self._name: str = name
 
@@ -333,13 +352,24 @@ class BlockContainerDict(nn.ModuleDict):
         return self
 
     def add_module(self, name: str, module: Optional[nn.Module]) -> None:
-        if module and not isinstance(module, BlockContainer):
-            module = BlockContainer(module, name=name[0].upper() + name[1:])
+        if module and not isinstance(module, self._block_cls):
+            module = self._block_cls(module)
 
-        return super().add_module(name, module)
+        output = super().add_module(name, module)
+
+        return output
 
     def unwrap(self) -> Dict[str, nn.ModuleList]:
         return {k: v.unwrap() for k, v in self.items()}
 
     def _get_name(self) -> str:
         return super()._get_name() if self._name is None else self._name
+
+    def __eq__(self, other: "BlockContainerDict") -> bool:
+        if not isinstance(other, BlockContainerDict):
+            return False
+
+        return all(other[key] == val if key in other else False for key, val in self.items())
+
+    def __hash__(self) -> int:
+        return hash(tuple(sorted(self._modules.items())))
