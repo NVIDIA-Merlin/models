@@ -25,7 +25,7 @@ from merlin.io import Dataset
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.models.base import compute_loss
 from merlin.models.torch.utils import module_utils
-from merlin.schema import ColumnSchema, Schema
+from merlin.schema import ColumnSchema
 
 
 class PlusOne(nn.Module):
@@ -40,17 +40,11 @@ class TimeTwo(nn.Module):
 
 class TestModel:
     def test_init_default(self):
-        model = mm.Model(mm.Block(), mm.Block())
+        model = mm.Model(mm.Block(), nn.Linear(10, 10))
         assert isinstance(model, mm.Model)
-        assert len(model.blocks) == 2
-        assert model.schema is None
+        assert len(model) == 2
         assert model.optimizer is torch.optim.Adam
-
-    def test_init_schema(self):
-        schema = Schema([ColumnSchema("foo")])
-        model = mm.Model(mm.Block(), mm.Block(), schema=schema)
-        assert len(model.blocks) == 2
-        assert model.schema.first.name == "foo"
+        assert isinstance(model.configure_optimizers(), torch.optim.Adam)
 
     def test_init_optimizer(self):
         optimizer = torch.optim.SGD
@@ -62,10 +56,10 @@ class TestModel:
         model = mm.Model(mm.Block(), mm.Block())
         assert torch.equal(model(inputs), inputs)
 
-        model.pre.append(PlusOne())
+        model.prepend(PlusOne())
         assert torch.equal(model(inputs), inputs + 1)
 
-        model.post.append(TimeTwo())
+        model.append(TimeTwo())
         assert torch.equal(model(inputs), (inputs + 1) * 2)
 
     def test_initialize_with_dataset(self):
@@ -104,7 +98,9 @@ class TestModel:
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         model.initialize(mm.Batch(inputs, None))
 
-        outputs = module_utils.module_test(model.to_torchscript(method="script"), inputs)
+        outputs = module_utils.module_test(
+            model.to_torchscript(method="script"), inputs, schema_trace=False
+        )
 
         assert torch.equal(inputs, outputs)
 
@@ -136,9 +132,11 @@ class TestModel:
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),
         )
+
         feature = [[1.0, 2.0], [3.0, 4.0]]
         target = [[0.0], [1.0]]
         dataset = Dataset(pd.DataFrame({"feature": feature, "target": target}))
+
         with Loader(dataset, batch_size=1) as loader:
             model.initialize(loader)
             batch = loader.peek()
@@ -185,31 +183,22 @@ class TestModel:
         model = mm.Model(mm.Block(name="a"), mm.Block(name="b"), mm.Block(name="c"))
         assert model.last()._name == "c"
 
-    def test_input_schema(self):
-        schema = Schema([ColumnSchema("foo"), ColumnSchema("bar")])
-        model = mm.Model(mm.Block(), mm.Block(), schema=schema)
-        assert model.input_schema() == schema
-
-    def test_no_input_schema(self):
-        model = mm.Model(mm.Block(), mm.Block())
-        assert model.input_schema() == Schema([])
-
     def test_output_schema(self):
         model = mm.Model(mm.Block())
         inputs = {
             "a": torch.tensor([[1.0, 2.0], [3.0, 4.0]]),
             "b": torch.tensor([[5.0, 6.0], [7.0, 8.0]]),
         }
-        outputs = model(inputs)
-        schema = model.output_schema()
+        outputs = mm.schema.trace(model, inputs)
+        schema = mm.schema.output(model)
         for name in outputs:
             assert name in schema.column_names
             assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
 
     def test_no_output_schema(self):
         model = mm.Model(PlusOne())
-        with pytest.raises(RuntimeError, match="No output schema found"):
-            _ = model.output_schema()
+        with pytest.raises(ValueError, match="Could not get output schema of PlusOne()"):
+            mm.schema.output(model)
 
     # def test_train_classification(self, music_streaming_data):
     #     schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])

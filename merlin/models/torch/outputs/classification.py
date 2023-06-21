@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 from torch import nn
 from torchmetrics import AUROC, Accuracy, Metric, Precision, Recall
@@ -56,7 +56,7 @@ class BinaryOutput(ModelOutput):
             metrics=metrics,
         )
 
-    def setup_schema(self, target: Optional[ColumnSchema]):
+    def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
 
         Parameters
@@ -64,6 +64,12 @@ class BinaryOutput(ModelOutput):
         target: Optional[ColumnSchema]
             The schema defining the column properties.
         """
+        if isinstance(target, Schema):
+            if len(target) != 1:
+                raise ValueError("Schema must contain exactly one column.")
+
+            target = target.first
+
         _target = target.with_dtype(md.float32)
         if "domain" not in target.properties:
             _target = _target.with_properties(

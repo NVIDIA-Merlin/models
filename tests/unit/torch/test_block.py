@@ -19,9 +19,10 @@ import pytest
 import torch
 from torch import nn
 
+import merlin.models.torch as mm
 from merlin.models.torch import link
 from merlin.models.torch.batch import Batch
-from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.block import Block, ParallelBlock, get_pre, set_pre
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Tags
@@ -50,14 +51,7 @@ class TestBlock:
         outputs = module_utils.module_test(block, inputs, batch=Batch(inputs))
 
         assert torch.equal(inputs, outputs)
-
-        schema = block.output_schema()
-        assert schema.first.dtype.name == str(outputs.dtype).split(".")[-1]
-
-    def test_no_schema_tracking(self):
-        block = Block(track_schema=False)
-        with pytest.raises(RuntimeError, match="Schema-tracking hook not registered"):
-            block.output_schema()
+        assert mm.schema.output(block) == mm.schema.output.tensors(inputs)
 
     def test_insertion(self):
         block = Block()
@@ -130,6 +124,7 @@ class TestParallelBlock:
         assert isinstance(pb.pre, BlockContainer)
         assert isinstance(pb.branches, BlockContainerDict)
         assert isinstance(pb.post, BlockContainer)
+        assert pb.__repr__().startswith("ParallelBlock")
 
     def test_init_list_of_dict(self):
         pb = ParallelBlock(({"test": PlusOne()}))
@@ -157,13 +152,23 @@ class TestParallelBlock:
         with pytest.raises(RuntimeError):
             pb(inputs)
 
+    def test_forward_tensor_duplicate(self):
+        class PlusOneKey(nn.Module):
+            def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+                return inputs["2"] + 1
+
+        pb = ParallelBlock({"1": PlusOneDict(), "2": PlusOneKey()})
+        inputs = {"2": torch.randn(1, 3)}
+
+        with pytest.raises(RuntimeError):
+            pb(inputs)
+
     def test_schema_tracking(self):
         pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
 
         inputs = torch.randn(1, 3)
-        outputs = pb(inputs)
-
-        schema = pb.output_schema()
+        outputs = mm.schema.trace(pb, inputs)
+        schema = mm.schema.output(pb)
 
         for name in outputs:
             assert name in schema.column_names
@@ -186,6 +191,9 @@ class TestParallelBlock:
         assert pb[-1][0] == module
         assert pb[2][0] == module
 
+        repr = pb.__repr__()
+        assert "(post):" in repr
+
         module_utils.module_test(pb, torch.randn(1, 3))
 
     def test_prepend(self):
@@ -195,6 +203,9 @@ class TestParallelBlock:
         assert len(pb.pre._modules) == 1
 
         assert pb[0][0] == module
+
+        repr = pb.__repr__()
+        assert "(pre):" in repr
 
         module_utils.module_test(pb, torch.randn(1, 3))
 
@@ -243,3 +254,31 @@ class TestParallelBlock:
 
         with pytest.raises(IndexError):
             pb["invalid_key"]
+
+    def test_set_pre(self):
+        pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+        set_pre(pb, PlusOne())
+        assert len(pb.pre) == 1
+
+        block = Block(pb)
+        assert not get_pre(Block())
+        set_pre(block, PlusOne())
+        assert len(get_pre(block)) == 1
+
+    def test_input_schema_pre(self):
+        pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+        outputs = mm.schema.trace(pb, torch.randn(1, 3))
+        input_schema = mm.schema.input(pb)
+        assert len(input_schema) == 1
+        assert len(mm.schema.output(pb)) == 2
+        assert len(outputs) == 2
+
+        pb2 = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+        assert not get_pre(pb2)
+        pb2.prepend(pb)
+        assert not get_pre(pb2) == pb
+        assert get_pre(pb2)[0] == pb
+        pb2.append(pb)
+
+        assert input_schema == mm.schema.input(pb2)
+        assert mm.schema.output(pb2) == mm.schema.output(pb)

@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, Final, Optional, Union
+from typing import Dict, Final, Optional, Set, Union
 
 import torch
 from torch import nn
@@ -134,6 +134,7 @@ class TorchScriptWrapper(nn.Module):
             "accepts_dict",
             "accepts_batch",
             "requires_batch",
+            "output_schema",
             "to_wrap",
             "unwrap",
         ]:
@@ -144,3 +145,20 @@ class TorchScriptWrapper(nn.Module):
 
     def __repr__(self):
         return self.to_wrap.__repr__()
+
+    def __eq__(self, value) -> bool:
+        if not isinstance(value, TorchScriptWrapper):
+            return self.to_wrap == value
+
+        return self.to_wrap == value.to_wrap
+
+    def __hash__(self):
+        return hash(self.to_wrap)
+
+    def named_modules(
+        self, memo: Optional[Set[nn.Module]] = None, prefix: str = "", remove_duplicate: bool = True
+    ):
+        return self.to_wrap.named_modules(memo, prefix, remove_duplicate)
+
+    def _apply(self, fn):
+        return self.to_wrap._apply(fn)

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
 import torch
 from torch import nn
 from torchmetrics import AUROC, Accuracy, Precision, Recall
@@ -55,6 +56,9 @@ class TestBinaryOutput:
         assert binary_output.output_schema.first.properties["domain"]["name"] == "foo"
         assert binary_output.output_schema.first.properties["domain"]["min"] == 0
         assert binary_output.output_schema.first.properties["domain"]["max"] == 1
+
+        with pytest.raises(ValueError):
+            binary_output.setup_schema(Schema(["a", "b"]))
 
     def test_custom_loss(self):
         binary_output = mm.BinaryOutput(loss=nn.BCELoss())

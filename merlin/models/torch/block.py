@@ -14,22 +14,25 @@
 # limitations under the License.
 #
 
+import inspect
+import textwrap
 from copy import deepcopy
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, TypeVar, Union
 
 import torch
 from torch import nn
 
+from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
-from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin
 from merlin.models.utils.registry import RegistryMixin
+from merlin.schema import Schema
 
 
-class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
-    """A base-class that calls its modules sequentially.
+class Block(BlockContainer, RegistryMixin):
+    """A base-class that calls it's modules sequentially.
 
     Parameters
     ----------
@@ -43,10 +46,8 @@ class Block(BlockContainer, SchemaTrackingMixin, RegistryMixin):
 
     registry = registry
 
-    def __init__(self, *module: nn.Module, name: Optional[str] = None, track_schema: bool = True):
+    def __init__(self, *module: nn.Module, name: Optional[str] = None):
         super().__init__(*module, name=name)
-        if track_schema:
-            self._register_schema_tracking_hook()
 
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
@@ -147,12 +148,12 @@ class ParallelBlock(Block):
         If True, the schema of the output tensors are tracked.
     """
 
-    def __init__(self, *inputs: Union[nn.Module, Dict[str, nn.Module]], track_schema: bool = True):
-        pre = BlockContainer(name="pre")
-        branches = BlockContainerDict(*inputs)
-        post = BlockContainer(name="post")
+    def __init__(self, *inputs: Union[nn.Module, Dict[str, nn.Module]]):
+        pre = Block()
+        branches = BlockContainerDict(*inputs, block_cls=Block)
+        post = Block()
 
-        super().__init__(track_schema=track_schema)
+        super().__init__()
 
         self.pre = pre
         self.branches = branches
@@ -184,36 +185,29 @@ class ParallelBlock(Block):
         Dict[str, torch.Tensor]
             The output tensors.
         """
-        for module in self.pre.values:
-            inputs = module(inputs, batch=batch)
+        _inputs = self.pre(inputs, batch=batch)
 
         outputs = {}
         for name, branch_container in self.branches.items():
-            branch = inputs
+            branch_out = branch_container(_inputs, batch=batch)
 
-            if hasattr(branch_container, "branches"):
-                branch = branch_container(branch, batch=batch)
-            else:
-                for module in branch_container.values:
-                    branch = module(branch, batch=batch)
+            if torch.jit.isinstance(branch_out, torch.Tensor):
+                if name in outputs:
+                    raise RuntimeError(f"Duplicate output name: {name}")
 
-            if isinstance(branch, torch.Tensor):
-                branch_dict = {name: branch}
-            elif torch.jit.isinstance(branch, Dict[str, torch.Tensor]):
-                branch_dict = branch
+                outputs.update({name: branch_out})
+            elif torch.jit.isinstance(branch_out, Dict[str, torch.Tensor]):
+                for key in branch_out.keys():
+                    if key in outputs:
+                        raise RuntimeError(f"Duplicate output name: {key}")
+
+                outputs.update(branch_out)
             else:
                 raise TypeError(
-                    f"Branch output must be a tensor or a dictionary of tensors. Got {type(branch)}"
+                    f"Branch output must be a tensor or a dictionary of tensors. Got {_inputs}"
                 )
 
-            for key in branch_dict.keys():
-                if key in outputs:
-                    raise RuntimeError(f"Duplicate output name: {key}")
-
-            outputs.update(branch_dict)
-
-        for module in self.post.values:
-            outputs = module(outputs, batch=batch)
+        outputs = self.post(outputs, batch=batch)
 
         return outputs
 
@@ -321,6 +315,29 @@ class ParallelBlock(Block):
 
         return self
 
+    def replace(self, pre=None, branches=None, post=None) -> "ParallelBlock":
+        """Replaces the pre-processing, branching and post-processing stages.
+
+        Parameters
+        ----------
+        pre : Optional[BlockContainer], default=None
+            The pre-processing stage.
+        branches : Optional[BlockContainerDict], default=None
+            The branching stage.
+        post : Optional[BlockContainer], default=None
+            The post-processing stage.
+
+        Returns
+        -------
+        ParallelBlock
+            The current object itself.
+        """
+        output = ParallelBlock(branches if branches is not None else self.branches)
+        output.pre = pre if pre is not None else self.pre
+        output.post = post if post is not None else self.post
+
+        return output
+
     def __getitem__(self, idx: Union[slice, int, str]):
         if isinstance(idx, str) and idx in self.branches:
             return self.branches[idx]
@@ -338,3 +355,211 @@ class ParallelBlock(Block):
 
     def __contains__(self, name):
         return name in self.branches
+
+    def __bool__(self) -> bool:
+        return bool(self.branches) or bool(self.pre) or bool(self.post)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ParallelBlock):
+            return False
+
+        return self.pre == other.pre and self.branches == other.branches and self.post == other.post
+
+    def __hash__(self) -> int:
+        return hash((self.pre, self.branches, self.post))
+
+    def __repr__(self) -> str:
+        indent_str = "    "
+        branches = repr(self.branches)[len("BlockContainerDict") :]
+
+        pre = ""
+        if self.pre:
+            pre = textwrap.indent("(pre): " + repr(self.pre), indent_str)
+
+        post = ""
+        if self.post:
+            post = textwrap.indent("(post): " + repr(self.post), indent_str)
+
+        if self.pre or self.post:
+            branches = textwrap.indent("(branches): " + branches, indent_str)
+            output = ""
+            for o in [pre, branches, post]:
+                if o:
+                    output += "\n" + o
+
+            return f"{self._get_name()}({output}\n)"
+
+        return self._get_name() + branches
+
+
+def get_pre(module: nn.Module) -> BlockContainer:
+    if hasattr(module, "pre"):
+        return module.pre
+
+    if isinstance(module, BlockContainer) and module:
+        return get_pre(module[0])
+
+    return BlockContainer()
+
+
+def set_pre(module: nn.Module, pre: BlockContainer):
+    if not isinstance(pre, BlockContainer):
+        pre = BlockContainer(pre)
+
+    if hasattr(module, "pre"):
+        module.pre = pre
+
+    if isinstance(module, BlockContainer):
+        return set_pre(module[0], pre)
+
+
+@schema.input.register(BlockContainer)
+def _(module: BlockContainer, input: Schema):
+    return schema.input(module[0], input) if module else input
+
+
+@schema.input.register(ParallelBlock)
+def _(module: ParallelBlock, input: Schema):
+    if module.pre:
+        return schema.input(module.pre)
+
+    out_schema = Schema()
+    for branch in module.branches.values():
+        out_schema += schema.input(branch, input)
+
+    return out_schema
+
+
+@schema.output.register(ParallelBlock)
+def _(module: ParallelBlock, input: Schema):
+    if module.post:
+        return schema.output(module.post, input)
+
+    output = Schema()
+    for name, branch in module.branches.items():
+        branch_schema = schema.output(branch, input)
+
+        if len(branch_schema) == 1 and branch_schema.first.name == "output":
+            branch_schema = Schema([branch_schema.first.with_name(name)])
+
+        output += branch_schema
+
+    return output
+
+
+@schema.output.register(BlockContainer)
+def _(module: BlockContainer, input: Schema):
+    return schema.output(module[-1], input) if module else input
+
+
+BlockT = TypeVar("BlockT", bound=BlockContainer)
+
+
+@schema.select.register(BlockContainer)
+def _select_block(container: BlockT, selection: schema.Selection) -> BlockT:
+    if isinstance(container, ParallelBlock):
+        return _select_parallel_block(container, selection)
+
+    outputs = []
+
+    if not container.values:
+        return container.__class__()
+
+    first = container.values[0]
+    selected_first = schema.select(first, selection)
+    if not selected_first:
+        return container.__class__()
+    if first == selected_first:
+        return container
+
+    outputs.append(selected_first)
+    if len(container.values) > 1:
+        for module in container.values[1:]:
+            try:
+                selected_module = schema.select(module, selection)
+                outputs.append(selected_module)
+            except ValueError:
+                selected_module = None
+                break
+
+    return container.__class__(*outputs, name=container._name)
+
+
+SelectT = TypeVar("SelectT", bound=schema.Selectable)
+ParallelT = TypeVar("ParallelT", bound=ParallelBlock)
+
+
+def _select_parallel_block(
+    parallel: ParallelT,
+    selection: schema.Selection,
+) -> ParallelT:
+    branches = {}
+
+    pre = parallel.pre
+    if pre:
+        selected = schema.select(pre, selection)
+        if not selected:
+            return ParallelBlock()
+
+        pre = selected
+
+    for key, val in parallel.branches.items():
+        selected = schema.select(val, selection)
+        if selected:
+            branches[key] = selected
+
+    if len(branches) == len(parallel.branches):
+        post = parallel.post
+    else:
+        post = BlockContainer()
+
+    replace_kwargs = {"pre": pre, "branches": branches, "post": post}
+    if "selection" in inspect.signature(parallel.replace).parameters:
+        replace_kwargs["selection"] = selection
+    output = parallel.replace(**replace_kwargs)
+
+    return output
+
+
+def _extract_parallel(main, selection, route, name=None):
+    output_branches = {}
+
+    for branch_name, branch in main.branches.items():
+        if branch_name in route:
+            out = schema.extract.extract(branch, selection, route[branch_name], name=branch_name)
+            if out:
+                output_branches[branch_name] = out
+        else:
+            output_branches[branch_name] = branch
+
+    # TODO: What to do with post?
+    replace_kwargs = {"branches": output_branches}
+    if "selection" in inspect.signature(main.replace).parameters:
+        replace_kwargs["selection"] = selection
+
+    return main.replace(**replace_kwargs)
+
+
+@schema.extract.register(BlockContainer)
+def _(main, selection, route, name=None):
+    if isinstance(main, ParallelBlock):
+        return _extract_parallel(main, selection, route=route, name=name)
+
+    main_schema = schema.input(main)
+    route_schema = schema.input(route)
+
+    if main_schema == route_schema:
+        from merlin.models.torch.inputs.select import SelectFeatures
+
+        out_schema = schema.output(main, main_schema)
+        if len(out_schema) == 1 and out_schema.first.name == "output":
+            out_schema = Schema([out_schema.first.with_name(name)])
+
+        return SelectFeatures(out_schema)
+
+    output = main.__class__()
+    for i, module in enumerate(main):
+        if i < len(route):
+            output.append(schema.extract.extract(module, selection, route[i], name=name))
+
+    return output

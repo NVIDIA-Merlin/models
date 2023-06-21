@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2023, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from typing import Dict
 
 import pytest
@@ -18,6 +34,9 @@ class ToFloat(nn.Module):
 class PlusOneDict(nn.Module):
     def forward(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         return {k: v + 1 for k, v in inputs.items()}
+
+    def select(self, selection):
+        return self
 
 
 class TestRouterBlock:
@@ -42,7 +61,7 @@ class TestRouterBlock:
 
         self.router.add_route(Tags.CONTINUOUS, CustomSelect())
 
-        outputs = self.router(self.batch.features)
+        outputs = module_utils.module_test(self.router, self.batch.features)
         assert set(outputs.keys()) == set(self.schema.select_by_tag(Tags.CONTINUOUS).column_names)
         assert len(self.router["continuous"]) == 2
         assert isinstance(self.router["continuous"][0], mm.SelectKeys)
@@ -58,11 +77,11 @@ class TestRouterBlock:
 
         dummy = Dummy()
         self.router.add_route(Tags.CONTINUOUS, dummy)
-        assert dummy.schema == mm.select_schema(self.schema, Tags.CONTINUOUS)
+        assert dummy.schema == mm.schema.select(self.schema, Tags.CONTINUOUS)
 
         dummy_2 = Dummy()
         self.router.add_route_for_each(ColumnSchema("user_id"), dummy_2, shared=True)
-        assert dummy_2.schema == mm.select_schema(self.schema, ColumnSchema("user_id"))
+        assert dummy_2.schema == mm.schema.select(self.schema, ColumnSchema("user_id"))
 
     def test_add_route_parallel_block(self):
         class FakeEmbeddings(mm.ParallelBlock):
@@ -73,7 +92,8 @@ class TestRouterBlock:
 
     @pytest.mark.parametrize("shared", [True, False])
     def test_add_route_for_each(self, shared):
-        block = mm.Block(mm.Concat(), ToFloat(), nn.LazyLinear(10)).to(self.batch.device())
+        block = mm.Block(mm.Concat(), ToFloat(), nn.LazyLinear(10))
+        block.to(self.batch.device())
         self.router.add_route_for_each(Tags.CONTINUOUS, block, shared=shared)
 
         dense_pos = self.router.branches["position"][1][-1]
@@ -83,7 +103,8 @@ class TestRouterBlock:
         else:
             assert dense_pos != dense_age
 
-        outputs = self.router(self.batch.features)
+        outputs = module_utils.module_test(self.router, self.batch.features)
+
         assert set(outputs.keys()) == set(self.schema.select_by_tag(Tags.CONTINUOUS).column_names)
 
         for value in outputs.values():
@@ -97,12 +118,34 @@ class TestRouterBlock:
         plus_one = PlusOneDict()
 
         self.router.add_route(Tags.CONTINUOUS)
-        self.router.add_route(Tags.CATEGORICAL)
+        self.router.add_route(Tags.USER, mm.MLPBlock([10]))
+        self.router.add_route(Tags.ITEM, mm.ParallelBlock({"nested": mm.MLPBlock([10])}))
         self.router.prepend(plus_one)
 
-        router = self.router.select(Tags.CATEGORICAL)
-        assert router.selectable.schema == self.schema.select_by_tag(Tags.CATEGORICAL)
-        assert router[0][0] == plus_one
+        user = mm.schema.select(self.router, Tags.USER)
+        assert "item_recency" not in user.branches["continuous"][0].column_names
+        assert "item" not in user.branches
+        assert user.pre[0] == plus_one
+
+        item = mm.schema.select(self.router, Tags.ITEM)
+        assert item.branches["continuous"][0].column_names == ["item_recency"]
+        assert list(item.branches["item"].branches.keys()) == ["nested"]
+        assert all(c.startswith("item_") for c in item.branches["item"][0][0].column_names)
+
+        self.router.add_route(Tags.CATEGORICAL, mm.MLPBlock([10]))
+
+    def test_select_post(self):
+        self.router.add_route(Tags.USER, mm.MLPBlock([10]))
+        self.router.add_route(Tags.ITEM, mm.MLPBlock([10]))
+        self.router.append(mm.Concat())
+
+        user = mm.schema.select(self.router, Tags.USER)
+        assert not user.post
+        assert list(user.branches.keys()) == ["user"]
+
+        item = mm.schema.select(self.router, Tags.ITEM)
+        assert not item.post
+        assert list(item.branches.keys()) == ["item"]
 
     def test_double_add(self):
         self.router.add_route(Tags.CONTINUOUS)
@@ -111,43 +154,12 @@ class TestRouterBlock:
 
     def test_nested(self):
         self.router.add_route(Tags.CONTINUOUS)
+        self.router(self.batch.features)
 
-        nested = self.router.nested_router()
+        nested = self.router.reroute()
         nested.add_route(Tags.USER)
         assert "user" in nested
 
         outputs = module_utils.module_test(nested, self.batch.features)
         assert list(outputs.keys()) == ["user_age"]
-        assert "user_age" in nested.output_schema().column_names
-
-
-class TestSelectKeys:
-    @pytest.fixture(autouse=True)
-    def setup_method(self, music_streaming_data):
-        self.batch: Batch = sample_batch(music_streaming_data, batch_size=10)
-        self.schema: Schema = music_streaming_data.schema
-        self.user_schema: Schema = mm.select_schema(self.schema, Tags.USER)
-
-    def test_forward(self):
-        select_user = mm.SelectKeys(self.user_schema)
-        outputs = select_user(self.batch.features)
-
-        assert select_user.schema == self.user_schema
-
-        for col in {"user_id", "country", "user_age"}:
-            assert col in outputs
-
-        assert "user_genres__values" in outputs
-        assert "user_genres__offsets" in outputs
-
-    def test_select(self):
-        select_user = mm.SelectKeys(self.user_schema)
-
-        user_id = Schema([self.user_schema["user_id"]])
-        assert select_user.select(ColumnSchema("user_id")).schema == user_id
-        assert select_user.select(Tags.USER).schema == self.user_schema
-
-    def test_setup_schema(self):
-        select_user = mm.SelectKeys()
-        select_user.setup_schema(self.user_schema["user_id"])
-        assert select_user.schema == Schema([self.user_schema["user_id"]])
+        assert "user_age" in mm.schema.output(nested).column_names
