@@ -16,3 +16,4 @@
 import pytest
 
 pytest.importorskip("torch")
+pytest.importorskip("pytorch_lightning")
