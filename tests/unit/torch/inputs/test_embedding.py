@@ -39,7 +39,7 @@ class TestEmbeddingTable:
         assert table == user_table
 
         with pytest.raises(ValueError):
-            table.select("unknown")
+            table.select(None)
 
         with pytest.raises(ValueError):
             table.select(Tags.SEQUENCE)
@@ -244,7 +244,7 @@ class TestEmbeddingTables:
         assert item_embs["item_id"][0].num_embeddings == 11
 
         with pytest.raises(ValueError):
-            embs.select("unknown")
+            embs.select(None)
 
     @pytest.mark.parametrize("nested", [False, True])
     def test_forward(self, item_id_col_schema, user_id_col_schema, nested):

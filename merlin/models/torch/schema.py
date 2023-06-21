@@ -15,15 +15,15 @@
 #
 
 import types
-from typing import Callable, Dict, Optional, Tuple, TypeVar, Union
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import nn
 
 from merlin.dispatch.lazy import LazyDispatcher
-from merlin.schema import ColumnSchema, Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags, TagSet
 
-Selection = Union[Schema, ColumnSchema, Callable[[Schema], Schema], Tags]
+Selection = Union[Schema, ColumnSchema, Callable[[Schema], Schema], Tags, TagSet, List[Tags]]
 ToSelectT = TypeVar("ToSelectT")
 NAMESPACE_TAGS = [Tags.CONTEXT, Tags.USER, Tags.ITEM, Tags.SESSION]
 
@@ -379,8 +379,19 @@ def select_schema(schema: Schema, selection: Selection) -> Schema:
         selected = Schema([schema[selection.name]])
     elif callable(selection):
         selected = selection(schema)
-    elif isinstance(selection, Tags):
+    elif isinstance(selection, (Tags, TagSet)):
         selected = schema.select_by_tag(selection)
+    elif isinstance(selection, str):
+        selected = Schema([schema[selection]])
+    elif isinstance(selection, (list, tuple)):
+        if all(isinstance(s, str) for s in selection):
+            selected = Schema([schema[s] for s in selection])
+        elif all(isinstance(s, ColumnSchema) for s in selection):
+            selected = Schema([schema[s.name] for s in selection])
+        elif all(isinstance(s, (Tags, TagSet)) for s in selection):
+            selected = schema.select_by_tag(selection)
+        else:
+            raise ValueError(f"Selection {selection} is not valid")
     else:
         raise ValueError(f"Selection {selection} is not valid")
 

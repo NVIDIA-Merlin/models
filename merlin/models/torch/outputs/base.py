@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from copy import deepcopy
 from typing import Optional, Sequence
 
 import torch
@@ -100,3 +101,20 @@ class ModelOutput(Block):
         self.target = torch.zeros(1, dtype=torch.float32)
 
         return self.train(False)
+
+    def copy(self):
+        metrics = self.metrics
+        self.metrics = []
+
+        output = deepcopy(self)
+
+        copied_metrics = []
+        for metric in metrics:
+            m = metric.__class__()
+            m.load_state_dict(metric.state_dict())
+            copied_metrics.append(m)
+
+        self.metrics = metrics
+        output.metrics = copied_metrics
+
+        return output

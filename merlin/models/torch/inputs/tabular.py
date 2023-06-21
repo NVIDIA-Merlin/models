@@ -47,7 +47,7 @@ class TabularInputBlock(RouterBlock):
     Registry of initializer functions. Initializers are functions that perform some form of
     initialization operation on a TabularInputBlock instance.
     """
-    initializers = Registry("initializers")
+    initializers = Registry("input-initializers")
 
     def __init__(
         self,

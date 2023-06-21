@@ -25,6 +25,7 @@ from merlin.models.torch.models.base import Model
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import BinaryOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
+from merlin.models.torch.outputs.tabular import TabularOutputBlock
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.transforms.agg import Concat, Stack
 
@@ -39,6 +40,7 @@ __all__ = [
     "ParallelBlock",
     "MLPBlock",
     "ModelOutput",
+    "TabularOutputBlock",
     "ParallelBlock",
     "Sequence",
     "RegressionOutput",

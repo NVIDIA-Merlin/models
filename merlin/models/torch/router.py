@@ -46,7 +46,7 @@ class RouterBlock(ParallelBlock):
         The selectable object from which to select features.
     """
 
-    def __init__(self, selectable: schema.Selectable):
+    def __init__(self, selectable: schema.Selectable, prepend_routing_module: bool = True):
         super().__init__()
         if isinstance(selectable, Schema):
             from merlin.models.torch.inputs.select import SelectKeys
@@ -54,6 +54,7 @@ class RouterBlock(ParallelBlock):
             selectable = SelectKeys(selectable)
 
         self.selectable: schema.Selectable = selectable
+        self.prepend_routing_module = prepend_routing_module
 
     def add_route(
         self,
@@ -90,12 +91,18 @@ class RouterBlock(ParallelBlock):
         if module is not None:
             schema.setup_schema(module, routing_module.schema)
 
-            if isinstance(module, ParallelBlock):
-                branch = module.prepend(routing_module)
+            if self.prepend_routing_module:
+                if isinstance(module, ParallelBlock):
+                    branch = module.prepend(routing_module)
+                else:
+                    branch = Block(routing_module, module)
             else:
-                branch = Block(routing_module, module)
+                branch = module
         else:
-            branch = routing_module
+            if self.prepend_routing_module:
+                branch = routing_module
+            else:
+                raise ValueError("Must provide a module.")
 
         _name: str = name or schema.selection_name(selection)
         if _name in self.branches:
@@ -137,7 +144,14 @@ class RouterBlock(ParallelBlock):
         selected = schema.select(self.selectable.schema, selection)
 
         for col in selected:
-            col_module = module if shared else deepcopy(module)
+            if shared:
+                col_module = module
+            else:
+                if hasattr(module, "copy"):
+                    col_module = module.copy()
+                else:
+                    col_module = deepcopy(module)
+
             self.add_route(col, col_module, name=col.name)
 
         return self
