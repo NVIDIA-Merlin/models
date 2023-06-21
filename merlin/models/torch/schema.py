@@ -30,15 +30,14 @@ NAMESPACE_TAGS = [Tags.CONTEXT, Tags.USER, Tags.ITEM, Tags.SESSION]
 
 def default_tag_propagation(inputs: Schema, outputs: Schema):
     if inputs:
-        to_return = Schema()
         namespaces = []
-
         for tag in NAMESPACE_TAGS:
             namespace = inputs.select_by_tag(tag)
             if namespace and len(namespace) == len(inputs):
                 namespaces.append(tag)
 
         if namespaces:
+            to_return = Schema()
             for col in outputs:
                 to_return[col.name] = col.with_tags(namespaces)
 
@@ -254,6 +253,71 @@ def trace(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]
         hook.remove()
 
     return module_out
+
+
+def features(module: nn.Module) -> Schema:
+    """Extract the feature schema from a PyTorch Module.
+
+    This function operates by applying the `get_feature_schema` method
+    to each submodule within the provided PyTorch Module. It checks
+    if the submodule has a `feature_schema` attribute and, if so,
+    adds this to the output schema.
+
+    Parameters
+    ----------
+    module : nn.Module
+        The PyTorch Module from which to extract the feature schema.
+
+    Returns
+    -------
+    Schema
+        The feature schema extracted from the PyTorch Module.
+
+    """
+
+    feature_schema = Schema()
+
+    def get_feature_schema(module):
+        nonlocal feature_schema
+        if hasattr(module, "feature_schema"):
+            feature_schema += module.feature_schema
+
+    module.apply(get_feature_schema)
+
+    return feature_schema
+
+
+def targets(module: nn.Module) -> Schema:
+    """
+    Extract the target schema from a PyTorch Module.
+
+    This function operates by applying the `get_target_schema` method
+    to each submodule within the provided PyTorch Module. It checks
+    if the submodule has a `target_schema` attribute and, if so,
+    adds this to the output schema.
+
+    Parameters
+    ----------
+    module : nn.Module
+        The PyTorch Module from which to extract the target schema.
+
+    Returns
+    -------
+    Schema
+        The target schema extracted from the PyTorch Module.
+
+    """
+
+    target_schema = Schema()
+
+    def get_target_schema(module):
+        nonlocal target_schema
+        if hasattr(module, "target_schema"):
+            target_schema += module.target_schema
+
+    module.apply(get_target_schema)
+
+    return target_schema
 
 
 def setup_schema(module: nn.Module, schema: Schema):

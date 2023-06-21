@@ -15,8 +15,16 @@
 #
 
 import pytest
+from torch import nn
 
-from merlin.models.torch.schema import Selectable, select, select_schema, selection_name
+from merlin.models.torch.schema import (
+    Selectable,
+    features,
+    select,
+    select_schema,
+    selection_name,
+    targets,
+)
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -100,3 +108,28 @@ class TestSelectable:
         selectable.schema == Schema([])
         with pytest.raises(NotImplementedError):
             selectable.select(1)
+
+
+class MockModule(nn.Module):
+    def __init__(self, feature_schema=None, target_schema=None):
+        super().__init__()
+        self.feature_schema = feature_schema
+        self.target_schema = target_schema
+
+
+class TestFeatures:
+    def test_features(self):
+        schema = Schema([ColumnSchema("a"), ColumnSchema("b")])
+
+        module = MockModule(feature_schema=schema)
+        assert features(module) == schema
+        assert targets(module) == Schema()
+
+
+class TestTargets:
+    def test_targets(self):
+        schema = Schema([ColumnSchema("a"), ColumnSchema("b")])
+
+        module = MockModule(target_schema=schema)
+        assert targets(module) == schema
+        assert features(module) == Schema()

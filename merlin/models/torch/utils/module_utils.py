@@ -232,30 +232,6 @@ def find_all_instances(module: nn.Module, to_search: ToSearch) -> List[ToSearch]
     return results
 
 
-def get_all_children(module: nn.Module) -> List[nn.Module]:
-    """
-    This function traverses a PyTorch module and retrieves all child modules,
-    including nested children.
-
-    Parameters
-    ----------
-    module: nn.Module
-        The PyTorch module whose children are to be retrieved.
-
-    Returns
-    -------
-    List[nn.Module]
-        A list of all child modules contained within the given module.
-    """
-    children = []
-    for child in module.children():
-        if isinstance(child, nn.Module):
-            children.append(child)
-        children.extend(get_all_children(child))
-
-    return children
-
-
 def initialize(module, data: Union[Dataset, Loader, Batch], dtype=torch.float32):
     """
     This function is useful for initializing a PyTorch module with specific

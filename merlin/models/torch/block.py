@@ -555,9 +555,6 @@ def _(main, selection, route, name=None):
         if len(out_schema) == 1 and out_schema.first.name == "output":
             out_schema = Schema([out_schema.first.with_name(name)])
 
-        if not out_schema:
-            raise ValueError(f"No output schema found in {route}.")
-
         return SelectFeatures(out_schema)
 
     output = main.__class__()

@@ -15,6 +15,7 @@
 #
 
 import pytest
+import torch
 from torch import nn
 
 import merlin.models.torch as mm
@@ -66,9 +67,28 @@ class TestSelectFeatures:
 
     def test_forward(self):
         selected = mm.SelectFeatures(self.user_schema)
-        block = mm.Block(selected)
+        block = mm.Block(nn.Identity(), selected)
         assert selected.select(Tags.USER).select_keys == selected.select_keys
 
-        outputs = block(self.batch.features["session_id"], batch=self.batch)
-
+        outputs = mm.schema.trace(block, self.batch.features["session_id"], batch=self.batch)
         assert len(outputs) == 5
+        assert mm.schema.input(block).column_names == ["input"]
+        assert mm.schema.features(block).column_names == [
+            "user_id",
+            "country",
+            "user_age",
+            "user_genres",
+        ]
+
+    def test_embeddings(self):
+        schema = Schema(
+            [
+                ColumnSchema("user_embedding", tags=[Tags.EMBEDDING, Tags.USER], dims=(10,)),
+            ]
+        )
+
+        selected = mm.SelectFeatures(schema)
+        outputs = selected(self.batch, batch=mm.Batch({"user_embedding": torch.randn(10, 10)}))
+
+        assert "user" in outputs
+        assert outputs["user"].shape == (10, 10)

@@ -167,6 +167,7 @@ class SelectFeatures(nn.Module):
         self.select_keys.setup_schema(schema)
         self.embedding_names = schema.select_by_tag(Tags.EMBEDDING).column_names
         self.input_schema = self.select_keys.input_schema
+        self.feature_schema = self.input_schema
         self.output_schema = self.select_keys.output_schema
 
     def select(self, selection: schema.Selection) -> "SelectFeatures":

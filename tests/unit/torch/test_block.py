@@ -152,6 +152,17 @@ class TestParallelBlock:
         with pytest.raises(RuntimeError):
             pb(inputs)
 
+    def test_forward_tensor_duplicate(self):
+        class PlusOneKey(nn.Module):
+            def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+                return inputs["2"] + 1
+
+        pb = ParallelBlock({"1": PlusOneDict(), "2": PlusOneKey()})
+        inputs = {"2": torch.randn(1, 3)}
+
+        with pytest.raises(RuntimeError):
+            pb(inputs)
+
     def test_schema_tracking(self):
         pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
 

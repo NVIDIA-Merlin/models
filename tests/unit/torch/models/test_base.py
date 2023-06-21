@@ -40,10 +40,11 @@ class TimeTwo(nn.Module):
 
 class TestModel:
     def test_init_default(self):
-        model = mm.Model(mm.Block(), mm.Block())
+        model = mm.Model(mm.Block(), nn.Linear(10, 10))
         assert isinstance(model, mm.Model)
         assert len(model) == 2
         assert model.optimizer is torch.optim.Adam
+        assert isinstance(model.configure_optimizers(), torch.optim.Adam)
 
     def test_init_optimizer(self):
         optimizer = torch.optim.SGD
