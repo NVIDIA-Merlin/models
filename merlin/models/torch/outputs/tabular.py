@@ -54,11 +54,11 @@ class TabularOutputBlock(RouterBlock):
         Class method to register an initializer function with the given name.
 
         Example Usage::
-            @TabularOutputBlock.register_init("defaults")
+            @TabularOutputBlock.register_init("some-name")
             def defaults(block: TabularOutputBlock):
                 block.add_route_for_each([Tags.CONTINUOUS, Tags.REGRESSION], RegressionOutput())
 
-            inputs = TabularOutputBlock(init="defaults")
+            outputs = TabularOutputBlock(init="some-name")
 
         Args:
             name (str): The name to assign to the initializer function.

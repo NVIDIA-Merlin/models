@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
 import torch
 from torch import nn
 from torchmetrics import MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError
@@ -48,6 +49,9 @@ class TestRegressionOutput:
         assert reg_output.output_schema.first.name == "foo"
         assert reg_output.output_schema.first.dtype == md.float32
         assert Tags.CONTINUOUS in reg_output.output_schema.first.tags
+
+        with pytest.raises(ValueError):
+            reg_output.setup_schema(Schema(["a", "b"]))
 
     def test_default_loss(self):
         reg_output = mm.RegressionOutput()

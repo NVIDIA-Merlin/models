@@ -2,7 +2,8 @@ import pytest
 import torch
 
 import merlin.models.torch as mm
-from merlin.schema import Schema
+from merlin.models.torch.utils import module_utils
+from merlin.schema import Schema, Tags
 
 
 class TestTabularOutputBlock:
@@ -18,8 +19,16 @@ class TestTabularOutputBlock:
         assert isinstance(output_block["click"], mm.BinaryOutput)
         assert isinstance(output_block["like"], mm.BinaryOutput)
 
-        outputs = output_block(torch.rand(10, 10))
+        outputs = module_utils.module_test(output_block, torch.rand(10, 10))
 
         assert "play_percentage" in outputs
         assert "click" in outputs
         assert "like" in outputs
+
+    def test_exceptions(self):
+        with pytest.raises(ValueError, match="not found"):
+            mm.TabularOutputBlock(self.schema, init="not_found")
+
+        outputs = mm.TabularOutputBlock(self.schema)
+        with pytest.raises(ValueError):
+            outputs.add_route(Tags.CATEGORICAL)
