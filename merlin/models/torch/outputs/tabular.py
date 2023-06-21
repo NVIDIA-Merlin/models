@@ -27,6 +27,24 @@ Initializer = Callable[["TabularOutputBlock"], Any]
 
 
 class TabularOutputBlock(RouterBlock):
+    """
+    A block for outputting tabular data. This is a special type of block that
+    can route data based on specified conditions, as well as perform initialization
+    and aggregation operations.
+
+    Example Usage::
+        inputs = TabularOutputBlock(init="defaults")
+
+    Args:
+        init (Optional[Union[str, Initializer]]): An initializer to apply to the block.
+            This can be either a string (in which case it should be the name of
+            an initializer in the registry), or a callable Initializer function.
+    """
+
+    """
+    Registry of initializer functions. Initializers are functions that perform some form of
+    initialization operation on a TabularInputBlock instance.
+    """
     initializers = Registry("output-initializers")
 
     def __init__(
