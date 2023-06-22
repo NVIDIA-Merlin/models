@@ -29,7 +29,7 @@
 # 
 # This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
 # 
-# In [Iterating over Deep Learning Models using Merlin Models](https://nvidia-merlin.github.io/models/main/examples/03-Exploring-different-models.html), we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.
+# In [Iterating over Deep Learning Models using Merlin Models](https://nvidia-merlin.github.io/models/stable/examples/03-Exploring-different-models.html), we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.
 # 
 # 
 # In this example, we combine pre-existing blocks and demonstrate how to create the [DLRM](https://arxiv.org/abs/1906.00091) architecture.
@@ -295,7 +295,7 @@ model.save(os.path.join(DATA_FOLDER, "custom_dlrm"))
 
 # ## Conclusion 
 # 
-# Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, output blocks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our [documentation](https://nvidia-merlin.github.io/models/main/) to discover more. You can also [contribute](https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md) to the library by submitting new RecSys architectures and custom building Blocks.  
+# Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, output blocks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our [documentation](https://nvidia-merlin.github.io/models/stable/) to discover more. You can also [contribute](https://github.com/NVIDIA-Merlin/models/blob/stable/CONTRIBUTING.md) to the library by submitting new RecSys architectures and custom building Blocks.  
 # 
 # 
 # 

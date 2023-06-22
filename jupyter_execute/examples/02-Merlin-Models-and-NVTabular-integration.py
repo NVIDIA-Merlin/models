@@ -348,4 +348,4 @@ metrics
 # 
 # In the next notebooks, we will explore multiple ranking models with Merlin Models.
 # 
-# You can learn more about NVTabular, its functionality and supported ops by visiting our [github repository](https://github.com/NVIDIA-Merlin/NVTabular/) or exploring the [examples](https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples), such as [`Getting Started MovieLens`](https://github.com/NVIDIA-Merlin/NVTabular/blob/main/examples/getting-started-movielens/02-ETL-with-NVTabular.ipynb) or [`Scaling Criteo`](https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples/scaling-criteo).
+# You can learn more about NVTabular, its functionality and supported ops by visiting our [github repository](https://github.com/NVIDIA-Merlin/NVTabular/) or exploring the [examples](https://github.com/NVIDIA-Merlin/NVTabular/tree/stable/examples), such as [`Getting Started MovieLens`](https://github.com/NVIDIA-Merlin/NVTabular/blob/stable/examples/getting-started-movielens/02-ETL-with-NVTabular.ipynb) or [`Scaling Criteo`](https://github.com/NVIDIA-Merlin/NVTabular/tree/stable/examples/scaling-criteo).
