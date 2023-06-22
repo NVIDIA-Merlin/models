@@ -1,7 +1,8 @@
+import pytest
 from torch import nn
 
 import merlin.models.torch as mm
-from merlin.models.torch.utils.traversal_utils import find
+from merlin.models.torch.utils.traversal_utils import find, leaf
 
 
 class TestFind:
@@ -63,3 +64,34 @@ class TestFind:
             }
         )
         assert len(find(block, ToFind)) == 3
+
+
+class TestLeaf:
+    def test_simple(self):
+        lin = nn.Linear(10, 20)
+        assert leaf(lin) == lin
+
+    def test_nested(self):
+        model = nn.Sequential(nn.Linear(10, 20))
+        assert isinstance(leaf(model), nn.Linear)
+        assert isinstance(leaf(nn.Sequential(model)), nn.Linear)
+
+    def test_custom_module(self):
+        class CustomModule(nn.Module):
+            def __init__(self):
+                super(CustomModule, self).__init__()
+                self.layer = nn.Linear(10, 20)
+
+        model = CustomModule()
+        assert isinstance(leaf(model), nn.Linear)
+
+    def test_exception(self):
+        class CustomModule(nn.Module):
+            def __init__(self):
+                super(CustomModule, self).__init__()
+                self.layer1 = nn.Linear(10, 20)
+                self.layer2 = nn.Linear(20, 30)
+
+        model = CustomModule()
+        with pytest.raises(ValueError):
+            leaf(model)

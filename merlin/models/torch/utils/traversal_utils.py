@@ -78,20 +78,51 @@ def find(module: nn.Module, to_search: Union[PredicateFn, Type[ModuleType]]) -> 
     return result
 
 
-def first(module: nn.Module, to_search: Union[PredicateFn, Type[ModuleType]]) -> ModuleType:
-    found = find(module, to_search)
-    if not found:
-        raise ValueError("No matching modules found.")
+def leaf(module) -> nn.Module:
+    """
+    Recursively fetch the deepest child module.
 
-    return found[0]
+    Example usage::
+        >>> model = nn.Sequential(nn.Linear(10, 20))
+        >>> print(leaf(model))
+        Linear(in_features=10, out_features=20, bias=True)
+
+    Parameters
+    ----------
+    module : torch.nn.Module
+        PyTorch module to fetch the deepest child from.
+
+    Returns
+    -------
+    torch.nn.Module
+        The deepest child module.
+
+    Raises
+    ------
+    ValueError
+        If any level of the module has more than one child.
+    """
+
+    children = list(module.children())
+    if len(children) == 0:
+        # If no children, return the module itself (the leaf).
+        return module
+    elif len(children) == 1:
+        # If one child, recurse.
+        return leaf(children[0])
+    else:
+        # If more than one child, throw an exception.
+        raise ValueError(
+            f"Module {module} has multiple children, cannot determine the deepest child."
+        )
 
 
 class TraversableMixin:
     def find(self, to_search: Union[PredicateFn, Type[ModuleType]]) -> List[ModuleType]:
         return find(self, to_search)
 
-    def first(self, to_search: Union[PredicateFn, Type[ModuleType]]) -> ModuleType:
-        return first(self, to_search)
+    def leaf(self) -> nn.Module:
+        return leaf(self)
 
     @torch.jit.ignore
     def select(self, selection: schema.Selection) -> Self:
