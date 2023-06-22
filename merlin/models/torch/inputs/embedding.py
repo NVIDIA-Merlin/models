@@ -417,9 +417,6 @@ class EmbeddingTable(nn.Module, Selectable):
         """
         return "_".join([domain.name for domain in self.domains.values()])
 
-    def leaf(self):
-        return self
-
     def extra_repr(self) -> str:
         return f"features: {', '.join(self.feature_to_domain.keys())}"
 
