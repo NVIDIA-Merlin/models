@@ -6,7 +6,6 @@ from torch import nn
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.torch.predict import Encoder, Predictor
-from merlin.models.torch.utils.schema_utils import SchemaTrackingMixin
 from merlin.schema import Tags
 
 
@@ -15,7 +14,7 @@ class TensorOutputModel(nn.Module):
         return x["position"] * 2
 
 
-class DictOutputModel(SchemaTrackingMixin, nn.Module):
+class DictOutputModel(nn.Module):
     def __init__(self, output_name: str = "testing"):
         super().__init__()
         self.name = output_name
