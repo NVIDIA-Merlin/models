@@ -119,9 +119,32 @@ def leaf(module) -> nn.Module:
 
 class TraversableMixin:
     def find(self, to_search: Union[PredicateFn, Type[ModuleType]]) -> List[ModuleType]:
+        """
+        Traverse the current module and find submodules matching a given condition.
+
+        Parameters
+        ----------
+        to_search : Union[Callable[[ModuleType], bool], Type[ModuleType]]
+            The condition to match. Can be either a subclass of nn.Module, in which case
+            submodules of that type are searched, or a Callable, which is applied to each
+            submodule and should return True for matches.
+
+        Returns
+        -------
+        List[ModuleType]
+            List of matching submodules.
+        """
         return find(self, to_search)
 
     def leaf(self) -> nn.Module:
+        """
+        Recursively fetch the deepest child module.
+
+        Returns
+        -------
+        torch.nn.Module
+            The deepest child module.
+        """
         return leaf(self)
 
     @torch.jit.ignore
