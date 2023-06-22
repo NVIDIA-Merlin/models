@@ -7,7 +7,7 @@ from torch import nn
 from merlin.core.dispatch import DataFrameLike, concat, concat_columns
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
-from merlin.models.utils.schema_utils import Selection, select_schema
+from merlin.models.torch.schema import Selection, select
 from merlin.schema import ColumnSchema, Schema
 from merlin.table import TensorTable
 
@@ -147,7 +147,7 @@ class Encoder:
             raise ValueError("data must be a DataFrameLike, a Dataset, or a Loader")
 
         if self.selection:
-            schema = select_schema(schema, self.selection)
+            schema = select(schema, self.selection)
             dataset = Dataset(dataset.to_ddf(), schema=schema)
             ddf = dataset.to_ddf()[schema.column_names]
         else:
@@ -155,7 +155,7 @@ class Encoder:
 
         index_schema = None
         if index:
-            index_schema = select_schema(schema, index)
+            index_schema = select(schema, index)
 
             if unique:
                 ddf = ddf.drop_duplicates(index_schema.column_names, keep="first")
