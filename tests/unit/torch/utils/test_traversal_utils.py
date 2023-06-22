@@ -84,16 +84,10 @@ class TestLeaf:
                 self.layer = nn.Linear(10, 20)
 
         model = CustomModule()
-        assert isinstance(leaf(model), nn.Linear)
+        assert isinstance(leaf(model), CustomModule)
 
     def test_exception(self):
-        class CustomModule(nn.Module):
-            def __init__(self):
-                super(CustomModule, self).__init__()
-                self.layer1 = nn.Linear(10, 20)
-                self.layer2 = nn.Linear(20, 30)
-
-        model = CustomModule()
+        model = nn.Sequential(nn.Linear(10, 20), nn.Linear(10, 20))
         with pytest.raises(ValueError):
             leaf(model)
 

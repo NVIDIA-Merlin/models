@@ -103,15 +103,29 @@ def leaf(module) -> nn.Module:
         If any level of the module has more than one child.
     """
 
+    from merlin.models.torch.container import BlockContainer, BlockContainerDict
+
+    containers = (
+        nn.Sequential,
+        nn.ModuleList,
+        nn.ModuleDict,
+        BlockContainerDict,
+        BlockContainer,
+    )
+
     children = list(module.children())
-    if len(children) == 0:
+    if len(children) == 0 or not isinstance(module, containers):
         # If no children, return the module itself (the leaf).
         return module
     elif len(children) == 1:
-        if hasattr(children[0], "leaf"):
-            return children[0].leaf()
-        # If one child, recurse.
-        return leaf(children[0])
+        child = children[0]
+
+        if hasattr(child, "unwrap"):
+            child = child.unwrap()
+
+        if hasattr(child, "leaf"):
+            return child.leaf()
+        return leaf(child)
     else:
         # If more than one child, throw an exception.
         raise ValueError(
