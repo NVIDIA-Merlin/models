@@ -27,7 +27,7 @@ from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
-from merlin.models.torch.utils.traversal_utils import TraversableMixin
+from merlin.models.torch.utils.traversal_utils import TraversableMixin, leaf
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
 
@@ -347,6 +347,19 @@ class ParallelBlock(Block):
         output.post = post if post is not None else self.post
 
         return output
+
+    def leaf(self) -> nn.Module:
+        if self.pre:
+            raise ValueError("Cannot call leaf() on a ParallelBlock with a pre-processing stage")
+
+        if len(self.branches) != 1:
+            raise ValueError("Cannot call leaf() on a ParallelBlock with multiple branches")
+
+        first = list(self.branches.values())[0]
+        if hasattr(first, "leaf"):
+            return first.leaf()
+
+        return leaf(first)
 
     def __getitem__(self, idx: Union[slice, int, str]):
         if isinstance(idx, str) and idx in self.branches:

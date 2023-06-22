@@ -108,6 +108,8 @@ def leaf(module) -> nn.Module:
         # If no children, return the module itself (the leaf).
         return module
     elif len(children) == 1:
+        if hasattr(children[0], "leaf"):
+            return children[0].leaf()
         # If one child, recurse.
         return leaf(children[0])
     else:

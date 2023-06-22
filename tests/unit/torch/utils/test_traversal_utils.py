@@ -3,6 +3,7 @@ from torch import nn
 
 import merlin.models.torch as mm
 from merlin.models.torch.utils.traversal_utils import find, leaf
+from merlin.schema import Schema, Tags
 
 
 class TestFind:
@@ -95,3 +96,9 @@ class TestLeaf:
         model = CustomModule()
         with pytest.raises(ValueError):
             leaf(model)
+
+    def test_embedding(self, user_id_col_schema):
+        input_block = mm.TabularInputBlock(Schema([user_id_col_schema]), init="defaults")
+        user_emb = input_block.select(Tags.USER_ID).leaf()
+
+        assert isinstance(user_emb, mm.EmbeddingTable)
