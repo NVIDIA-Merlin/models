@@ -130,12 +130,13 @@ class TestCategoricalTarget:
 
 class TestEmbeddingTablePrediction:
     def test_forward(self, user_id_col_schema):
-        input_block = mm.TabularInputBlock(Schema([user_id_col_schema]), init="defaults")
-        user_emb = mm.schema.select(input_block, Tags.USER_ID)
+        input_block = mm.TabularInputBlock(
+            Schema([user_id_col_schema]), init="defaults", agg="concat"
+        )
+        user_emb = input_block.select(Tags.USER_ID).leaf()
+        prediction = EmbeddingTablePrediction(user_emb)
 
-        model = EmbeddingTablePrediction(feature=user_id_col_schema)
-
-        inputs = torch.randn(5, 11)
-        output = model(inputs)
+        inputs = torch.randn(5, 8)
+        output = prediction(inputs)
 
         assert output.shape == (5, 21)

@@ -16,7 +16,7 @@
 
 from typing import Any, Callable, Optional, Union
 
-from merlin.models.torch.outputs.classification import BinaryOutput
+from merlin.models.torch.outputs.classification import BinaryOutput, CategoricalOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.schema import Selection, select
@@ -101,4 +101,5 @@ def defaults(block: TabularOutputBlock):
         block (TabularOutputBlock): The block to initialize.
     """
     block.add_route_for_each([Tags.CONTINUOUS, Tags.REGRESSION], RegressionOutput())
-    block.add_route_for_each([Tags.BINARY_CLASSIFICATION, Tags.BINARY], BinaryOutput())
+    block.add_route_for_each(BinaryOutput.schema_selection, BinaryOutput())
+    block.add_route_for_each(CategoricalOutput.schema_selection, CategoricalOutput())

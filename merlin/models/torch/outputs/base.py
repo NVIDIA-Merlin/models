@@ -21,7 +21,7 @@ from torch import nn
 from torchmetrics import Metric
 
 from merlin.models.torch.block import Block
-from merlin.schema import ColumnSchema, Schema
+from merlin.models.torch.transforms.bias import LogitsTemperatureScaler
 
 
 class ModelOutput(Block):
@@ -47,12 +47,13 @@ class ModelOutput(Block):
 
     Parameters
     ----------
-    schema: Optional[ColumnSchema]
-        The schema defining the column properties.
     loss: nn.Module
         The loss function used for training.
     metrics: Sequence[Metric]
         The metrics used for evaluation.
+    logits_temperature: float, optional
+        Parameter used to reduce model overconfidence, so that logits / T.
+        by default 1.0
     name: Optional[str]
         The name of the model output.
     """
@@ -60,9 +61,9 @@ class ModelOutput(Block):
     def __init__(
         self,
         *module: nn.Module,
-        schema: Optional[ColumnSchema] = None,
         loss: Optional[nn.Module] = None,
         metrics: Sequence[Metric] = (),
+        logits_temperature: float = 1.0,
         name: Optional[str] = None,
     ):
         """Initializes a ModelOutput object."""
@@ -70,21 +71,10 @@ class ModelOutput(Block):
 
         self.loss = loss
         self.metrics = metrics
-        self.output_schema: Schema = Schema()
 
-        if schema:
-            self.setup_schema(schema)
         self.create_target_buffer()
-
-    def setup_schema(self, schema: Optional[ColumnSchema]):
-        """Set up the schema for the output.
-
-        Parameters
-        ----------
-        schema: ColumnSchema or None
-            The schema defining the column properties.
-        """
-        self.output_schema = Schema([schema])
+        if logits_temperature != 1.0:
+            self.append(LogitsTemperatureScaler(logits_temperature))
 
     def create_target_buffer(self):
         self.register_buffer("target", torch.zeros(1, dtype=torch.float32))

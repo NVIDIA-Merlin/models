@@ -13,15 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 import torch
 from torch import nn
-from torchmetrics import AUROC, Accuracy, Metric, Precision, Recall
+from torchmetrics import AUROC, Accuracy, AveragePrecision, Metric, Precision, Recall
 
 import merlin.dtypes as md
-from merlin.core.dispatch import DataFrameType
-from merlin.io import Dataset
 from merlin.models.torch.inputs.embedding import EmbeddingTable
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.schema import ColumnSchema, Schema, Tags
@@ -79,6 +77,19 @@ class BinaryOutput(ModelOutput):
             )
 
         self.output_schema = Schema([_target])
+        if not self.metrics:
+            self.metrics = self.default_metrics()
+
+    @classmethod
+    def schema_selection(cls, schema: Schema) -> Schema:
+        """Returns a schema containing all binary targets."""
+        output = Schema()
+        output += schema.select_by_tag([Tags.BINARY_CLASSIFICATION, Tags.BINARY])
+        for col in schema.select_by_tag([Tags.CATEGORICAL]):
+            if col.int_domain and col.int_domain.max == 1:
+                output += col
+
+        return output
 
 
 class CategoricalOutput(ModelOutput):
@@ -88,30 +99,23 @@ class CategoricalOutput(ModelOutput):
             Schema, ColumnSchema, EmbeddingTable, "CategoricalTarget", "EmbeddingTablePrediction"
         ],
         loss=nn.CrossEntropyLoss(),
-        metrics: Sequence[Metric] = (),
-        # logits_temperature: float = 1.0,
+        metrics: Optional[Sequence[Metric]] = None,
+        logits_temperature: float = 1.0,
     ):
-        # if to_call is not None:
-        #     if isinstance(to_call, (Schema, ColumnSchema)):
-        #         _to_call = CategoricalTarget(to_call)
-        #         if isinstance(to_call, Schema):
-        #             to_call = to_call.first
-        #         target_name = target_name or to_call.name
-        #     elif isinstance(to_call, EmbeddingTable):
-        #         _to_call = EmbeddingTablePrediction(to_call)
-        #         if len(to_call.schema) == 1:
-        #             target_name = _to_call.table.schema.first.name
-        #         else:
-        #             raise ValueError("Can't infer the target automatically, please provide it.")
-        #     else:
-        #         _to_call = to_call
-
         super().__init__(
-            to_call if to_call else (),
             loss=loss,
             metrics=metrics,
-            # logits_temperature=logits_temperature,
+            logits_temperature=logits_temperature,
         )
+
+        if isinstance(to_call, (Schema, ColumnSchema)):
+            self.setup_schema(to_call)
+        elif isinstance(to_call, EmbeddingTable):
+            self.prepend(EmbeddingTablePrediction(to_call))
+        elif isinstance(to_call, (CategoricalTarget, EmbeddingTablePrediction)):
+            self.prepend(to_call)
+        else:
+            raise ValueError(f"Invalid to_call type: {type(to_call)}")
 
     def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
@@ -126,19 +130,33 @@ class CategoricalOutput(ModelOutput):
                 raise ValueError("Schema must contain exactly one column.")
 
             target = target.first
+        to_call = CategoricalTarget(target)
+        if isinstance(self[0], CategoricalTarget):
+            self[0] = to_call
+        else:
+            self.prepend(to_call)
+        self.output_schema = categorical_output_schema(target, self[0].num_classes)
+        self.num_classes = to_call.num_classes
 
-        _target = target.with_dtype(md.float32).with_tags([Tags.CONTINUOUS])
+        if not self.metrics:
+            self.metrics = self.default_metrics()
 
-        self.output_schema = Schema([_target])
+    def default_metrics(self) -> List[Metric]:
+        return (
+            AveragePrecision(task="multiclass", num_classes=self.num_classes),
+            Precision(task="multiclass", num_classes=self.num_classes),
+            Recall(task="multiclass", num_classes=self.num_classes),
+        )
 
-    def create_output_schema(self, target: ColumnSchema) -> Schema:
-        return categorical_output_schema(target, self.to_call.num_classes)
+    @classmethod
+    def schema_selection(cls, schema: Schema) -> Schema:
+        """Returns a schema containing all categorical targets."""
+        output = Schema()
+        for col in schema.select_by_tag([Tags.CATEGORICAL]):
+            if col.int_domain and col.int_domain.max > 1:
+                output += col
 
-    def to_dataset(self, gpu=None) -> Dataset:
-        return self.to_call.to_dataset(gpu=gpu)
-
-    def to_df(self, gpu=None) -> DataFrameType:
-        return self.to_call.to_df(gpu=gpu)
+        return output
 
 
 class CategoricalTarget(nn.Module):
@@ -176,12 +194,6 @@ class CategoricalTarget(nn.Module):
     def embeddings(self) -> nn.Parameter:
         return self.linear.weight.t()
 
-    # def to_dataset(self, gpu=None) -> Dataset:
-    #     return Dataset(self.to_df(gpu=gpu))
-
-    # def to_df(self, gpu=None) -> DataFrameType:
-    #     return tensor_to_df(self.linear.weight, gpu=gpu)
-
     @property
     def is_initialized(self) -> bool:
         return not isinstance(self.linear, nn.LazyLinear)
@@ -210,7 +222,7 @@ class EmbeddingTablePrediction(nn.Module):
         self.num_classes = table.num_embeddings
         self.bias_initializer = bias_initializer
         self.bias = nn.Parameter(
-            torch.empty(self.num_classes, dtype=torch.float32, device=table.weight.device)
+            torch.empty(self.num_classes, dtype=torch.float32, device=self.embeddings().device)
         )
 
     def reset_parameters(self) -> None:
@@ -229,12 +241,6 @@ class EmbeddingTablePrediction(nn.Module):
         # TODO: Make sure that we check if the table holds multiple features
         # If so, we need to add domain.min to the inputs
         return self.table.table(inputs)
-
-    # def to_dataset(self, gpu=None) -> Dataset:
-    #     return self.table.to_dataset(gpu=gpu)
-
-    # def to_df(self, gpu=None) -> DataFrameType:
-    #     return self.table.to_df(gpu=gpu)
 
 
 def _fix_shape_and_dtype(output, target):
