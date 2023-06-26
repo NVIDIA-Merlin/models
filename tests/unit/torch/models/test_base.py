@@ -15,6 +15,7 @@
 #
 import pandas as pd
 import pytest
+import pytorch_lightning as pl
 import torch
 from torch import nn
 from torchmetrics import AUROC, Accuracy, Precision, Recall
@@ -200,22 +201,21 @@ class TestModel:
         with pytest.raises(ValueError, match="Could not get output schema of PlusOne()"):
             mm.schema.output(model)
 
-    # def test_train_classification(self, music_streaming_data):
-    #     schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
-    #     music_streaming_data.schema = schema
+    def test_train_classification_with_lightning_trainer(self, music_streaming_data):
+        schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
+        music_streaming_data.schema = schema
 
-    #     model = mm.Model(
-    #        mm.TabularInputBlock(schema),
-    #        mm.MLPBlock([4, 2]),
-    #        mm.BinaryOutput(schema.select_by_name("click").first),
-    #        schema=schema,
-    #     )
+        model = mm.Model(
+            mm.TabularInputBlock(schema, init="defaults"),
+            mm.MLPBlock([4, 2]),
+            mm.BinaryOutput(schema.select_by_name("click").first),
+        )
 
-    #     trainer = pl.Trainer(max_epochs=1)
+        trainer = pl.Trainer(max_epochs=1)
 
-    #     with Loader(music_streaming_data, batch_size=16) as loader:
-    #         model.initialize(loader)
-    #         trainer.fit(model, loader)
+        with Loader(music_streaming_data, batch_size=16) as loader:
+            model.initialize(loader)
+            trainer.fit(model, loader)
 
 
 class TestComputeLoss:
