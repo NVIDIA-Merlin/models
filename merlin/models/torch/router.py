@@ -100,6 +100,8 @@ class RouterBlock(ParallelBlock):
                 branch = module
         else:
             if self.prepend_routing_module:
+                if not routing_module:
+                    return self
                 branch = routing_module
             else:
                 raise ValueError("Must provide a module.")

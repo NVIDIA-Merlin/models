@@ -188,9 +188,15 @@ class _SelectDispatch(LazyDispatcher):
 
         return output
 
+    def dispatched(self, to_select: ToSelectT, selection: Selection) -> ToSelectT:
+        return super().__call__(to_select, selection)
+
 
 class _ExtractDispatch(LazyDispatcher):
     def __call__(self, module: nn.Module, selection: Selection) -> Tuple[nn.Module, nn.Module]:
+        if hasattr(module, "extract"):
+            return module.extract(selection)
+
         extraction = select(module, selection)
         module_with_extraction = self.extract(module, selection, extraction)
 
