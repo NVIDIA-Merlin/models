@@ -217,6 +217,9 @@ class TestModel:
             model.initialize(loader)
             trainer.fit(model, loader)
 
+        assert trainer.logged_metrics["train_loss"] > 0.0
+        assert trainer.num_training_batches == 7  # 100 rows // 16 per batch + 1 for last batch
+
 
 class TestComputeLoss:
     def test_tensor_inputs(self):
