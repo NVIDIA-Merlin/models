@@ -14,9 +14,21 @@
 # limitations under the License.
 #
 
+import builtins
 from copy import deepcopy
 from functools import reduce
-from typing import Dict, Iterator, Optional, Sequence, Union
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    Optional,
+    Protocol,
+    Tuple,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
@@ -24,7 +36,78 @@ from torch._jit_internal import _copy_to_script_wrapper
 from merlin.models.torch.utils import torchscript_utils
 
 
-class BlockContainer(nn.Module):
+@runtime_checkable
+class HasBool(Protocol):
+    def __bool__(self) -> bool:
+        ...
+
+
+_TModule = TypeVar("_TModule", bound=nn.Module)
+ModuleFunc = Callable[[nn.Module], nn.Module]
+ModulePredicate = Callable[[nn.Module], Union[bool, HasBool]]
+
+
+class ContainerMixin:
+    def filter(self: _TModule, func: ModulePredicate) -> _TModule:
+        output = self.__class__()
+
+        for module in self:
+            if func(module):
+                output.append(module)
+
+        return output
+
+    def flatmap(self: _TModule, func: ModuleFunc) -> _TModule:
+        if not hasattr(self, "flatten"):
+            raise NotImplementedError("flatmap requires flatten")
+
+        return self.map(func).flatten()
+
+    def forall(self, func: ModulePredicate) -> bool:
+        return all(func(module) for module in self)
+
+    def map(self: _TModule, func: ModulePredicate) -> _TModule:
+        output = self.__class__()
+
+        for module in self:
+            output.append(func(module))
+
+        return output
+
+    def mapi(self: _TModule, func) -> _TModule:
+        output = self.__class__()
+
+        for i, module in enumerate(self):
+            output.append(func(i, module))
+
+        return output
+
+    def choose(self: _TModule, func: ModulePredicate) -> _TModule:
+        output = self.__class__()
+
+        for module in self:
+            f_out = func(module)
+            if f_out:
+                output.append(f_out)
+
+        return output
+
+    def walk(self: _TModule, func: ModulePredicate) -> _TModule:
+        "Like choose but recurses into children"
+
+        def _walk(module):
+            if hasattr(module, "walk"):
+                return module.walk(func)
+
+            return func(module)
+
+        return self.choose(_walk)
+
+    def zip(self, other: Iterable[_TModule]) -> Iterable[Tuple[_TModule, _TModule]]:
+        return builtins.zip(self, other)
+
+
+class BlockContainer(nn.Module, Iterable[_TModule]):
     """A container class for PyTorch `nn.Module` that allows for manipulation and traversal
     of multiple sub-modules as if they were a list. The modules are automatically wrapped
     in a TorchScriptWrapper for TorchScript compatibility.
