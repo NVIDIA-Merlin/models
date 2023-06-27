@@ -109,7 +109,7 @@ class TestCategoricalTarget:
         assert output.shape == (5, 21)
 
     def test_forward_with_activation(self, user_id_col_schema):
-        model = CategoricalTarget(feature=user_id_col_schema, activation=nn.ReLU)
+        model = CategoricalTarget(feature=user_id_col_schema, activation=nn.ReLU())
 
         inputs = torch.randn(5, 11)
         output = model(inputs)

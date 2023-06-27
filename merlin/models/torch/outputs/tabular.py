@@ -96,6 +96,7 @@ def defaults(block: TabularOutputBlock):
     This function adds a route for each of the following tags:
         - Tags.CONTINUOUS/Tags.REGRESSION -> RegressionOutput
         - Tags.BINARY_CLASSIFICATION/Tags.BINARY -> BinaryOutput
+        - Tags.MULTI_CLASS_CLASSIFICATION/Tags.CATEGORICAL -> CategoricalOutput
 
     Args:
         block (TabularOutputBlock): The block to initialize.

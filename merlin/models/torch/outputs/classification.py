@@ -171,6 +171,26 @@ class CategoricalOutput(ModelOutput):
 
 
 class CategoricalTarget(nn.Module):
+    """Prediction of a categorical feature.
+
+    Parameters
+    --------------
+    feature: Union[ColumnSchema, Schema], optional
+        Schema of the column being targeted. The schema must contain an
+        'int_domain' specifying the maximum integer value representing the
+        categorical classes.
+    activation: callable, optional
+        Activation function to be applied to the output of the linear layer.
+        If None, no activation function is applied.
+    bias: bool, default=True
+        If set to False, the layer will not learn an additive bias.
+
+    Returns
+    ---------
+    torch.Tensor
+        The tensor output of the forward method.
+    """
+
     def __init__(
         self,
         feature: Optional[Union[Schema, ColumnSchema]] = None,
@@ -178,6 +198,7 @@ class CategoricalTarget(nn.Module):
         bias: bool = True,
     ):
         super().__init__()
+
         if isinstance(feature, Schema):
             assert len(feature) == 1, "Schema can have max 1 feature"
             col_schema = feature.first
@@ -189,36 +210,63 @@ class CategoricalTarget(nn.Module):
         self.num_classes = col_schema.int_domain.max + 1
 
         self.linear = nn.LazyLinear(self.num_classes, bias=bias)
-        if activation is not None:
-            self.activation = activation()
+        self.activation = activation
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the forward pass of the module and applies the activation function if present.
+
+        Parameters
+        --------------
+        inputs: torch.Tensor
+            Input tensor for the forward pass.
+
+        Returns
+        ---------
+        torch.Tensor
+            Output tensor from the forward pass of the model.
+        """
         output = self.linear(inputs)
-        if hasattr(self, "activation"):
+        if self.activation is not None:
             output = self.activation(output)
 
         return output
 
     def embedding_lookup(self, ids: torch.Tensor) -> torch.Tensor:
+        """
+        Selects the embeddings for the given indices.
+
+        Parameters
+        --------------
+        ids: torch.Tensor
+            Tensor containing indices for which embeddings are to be returned.
+
+        Returns
+        ---------
+        torch.Tensor
+            The corresponding embeddings.
+        """
         return torch.index_select(self.embeddings(), 1, ids).t()
 
     def embeddings(self) -> nn.Parameter:
-        return self.linear.weight.t()
+        """
+        Returns the embeddings from the weight matrix.
 
-    @property
-    def is_initialized(self) -> bool:
-        return not isinstance(self.linear, nn.LazyLinear)
+        Returns
+        ---------
+        nn.Parameter
+            The embeddings.
+        """
+        return self.linear.weight.t()
 
 
 class EmbeddingTablePrediction(nn.Module):
-    """Prediction of a categorical feature using weight-sharing [1] with an embedding table
+    """Prediction of a categorical feature using weight-sharing [1] with an embedding table.
 
     Parameters
     ----------
     table : EmbeddingTable
-        The embedding table to use as the weight matrix
-    bias_initializer : str, optional
-        Initializer for the bias vector, by default "zeros"
+        The embedding table to use as the weight matrix.
 
     References:
     ----------
@@ -227,49 +275,66 @@ class EmbeddingTablePrediction(nn.Module):
     arXiv:1611.01462 (2016).
     """
 
-    def __init__(self, table: EmbeddingTable, bias_initializer="zeros"):
+    def __init__(self, table: EmbeddingTable):
         super().__init__()
         self.table = table
         self.num_classes = table.num_embeddings
-        self.bias_initializer = bias_initializer
-        self.bias = nn.Parameter(
-            torch.empty(self.num_classes, dtype=torch.float32, device=self.embeddings().device)
-        )
-
-    def reset_parameters(self) -> None:
-        if self.bias_initializer == "zeros":
-            nn.init.constant_(self.bias, 0)
-        else:
-            raise ValueError(f"Unknown initializer {self.bias_initializer}")
+        device = self.table.table.weight.device
+        self.bias = nn.Parameter(torch.zeros(self.num_classes, dtype=torch.float32, device=device))
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        return nn.functional.linear(inputs, self.embeddings(), self.bias)
+        """Forward pass of the model using input tensor.
+
+        Parameters
+        ----------
+        inputs : torch.Tensor
+            Input tensor for the forward pass.
+
+        Returns
+        ----------
+        torch.Tensor
+            Output tensor of the forward pass.
+        """
+        return torch.matmul(inputs, self.embeddings().t()).add(self.bias)
 
     def embeddings(self) -> nn.Parameter:
+        """Fetch the weight matrix from the embedding table.
+
+        Returns
+        ----------
+        nn.Parameter
+            Weight matrix from the embedding table.
+        """
         return self.table.table.weight
 
     def embedding_lookup(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Fetch the embeddings for given indices from the embedding table.
+
+        Parameters
+        ----------
+        ids : torch.Tensor
+            Tensor containing indices for which embeddings are to be returned.
+
+        Returns
+        ----------
+        torch.Tensor
+            The corresponding embeddings.
+        """
         # TODO: Make sure that we check if the table holds multiple features
         # If so, we need to add domain.min to the inputs
         return self.table.table(inputs)
 
 
-def _fix_shape_and_dtype(output, target):
-    if len(output.shape) == len(target.shape) + 1 and output.shape[-1] == 1:
-        output = output.squeeze(-1)
-
-    return output, target.type_as(output)
-
-
 def categorical_output_schema(target: ColumnSchema, num_classes: int) -> Schema:
     """Return the output schema given the target column schema."""
     _target = target.with_dtype(md.float32)
-    if "domain" not in _target.properties:
+    if "domain" not in target.properties:
         _target = _target.with_properties(
-            {
-                "domain": {"min": 0, "max": 1.0, "name": _target.name},
-                "value_count": {"min": num_classes, "max": num_classes},
-            }
+            {"domain": {"min": 0, "max": 1, "name": _target.name}},
+        )
+    if "value_count" not in target.properties:
+        _target = _target.with_properties(
+            {"value_count": {"min": num_classes, "max": num_classes}},
         )
 
     return Schema([_target])
