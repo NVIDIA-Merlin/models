@@ -98,6 +98,7 @@ class BinaryOutput(ModelOutput):
 class CategoricalOutput(ModelOutput):
     """
     A prediction block for categorical targets.
+
     Parameters
     ----------
     to_call : Union[ColumnSchema, EmbeddingTable, CategoricalTarget,
