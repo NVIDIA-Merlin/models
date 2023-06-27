@@ -101,6 +101,6 @@ def defaults(block: TabularOutputBlock):
     Args:
         block (TabularOutputBlock): The block to initialize.
     """
-    block.add_route_for_each([Tags.CONTINUOUS, Tags.REGRESSION], RegressionOutput())
-    block.add_route_for_each(BinaryOutput.schema_selection, BinaryOutput())
-    block.add_route_for_each(CategoricalOutput.schema_selection, CategoricalOutput())
+    block.add_route_for_each([Tags.CONTINUOUS, Tags.REGRESSION], RegressionOutput)
+    block.add_route_for_each(BinaryOutput.schema_selection, BinaryOutput)
+    block.add_route_for_each(CategoricalOutput.schema_selection, CategoricalOutput)

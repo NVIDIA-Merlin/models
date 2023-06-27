@@ -15,6 +15,7 @@
 #
 
 from copy import deepcopy
+from inspect import isclass
 from typing import Optional
 
 from torch import nn
@@ -149,7 +150,9 @@ class RouterBlock(ParallelBlock):
             if shared:
                 col_module = module
             else:
-                if hasattr(module, "copy"):
+                if isclass(module):
+                    col_module = module(col)
+                elif hasattr(module, "copy"):
                     col_module = module.copy()
                 else:
                     col_module = deepcopy(module)

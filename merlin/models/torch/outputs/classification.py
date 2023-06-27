@@ -117,9 +117,7 @@ class CategoricalOutput(ModelOutput):
             logits_temperature=logits_temperature,
         )
 
-        if to_call is None:
-            self.prepend(EmbeddingTablePrediction(EmbeddingTable()))
-        elif isinstance(to_call, (Schema, ColumnSchema)):
+        if isinstance(to_call, (Schema, ColumnSchema)):
             self.setup_schema(to_call)
         elif isinstance(to_call, (EmbeddingTable)):
             self.prepend(EmbeddingTablePrediction(to_call))
@@ -279,8 +277,9 @@ class EmbeddingTablePrediction(nn.Module):
         super().__init__()
         self.table = table
         self.num_classes = table.num_embeddings
-        device = self.table.table.weight.device
-        self.bias = nn.Parameter(torch.zeros(self.num_classes, dtype=torch.float32, device=device))
+        self.bias = nn.Parameter(
+            torch.zeros(self.num_classes, dtype=torch.float32, device=self.embeddings().device)
+        )
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Forward pass of the model using input tensor.
