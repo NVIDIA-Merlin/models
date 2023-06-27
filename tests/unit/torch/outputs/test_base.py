@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np
 import torch
 from torch import nn
 from torchmetrics import AUROC, Accuracy
 
 import merlin.models.torch as mm
 from merlin.models.torch.utils import module_utils
-from merlin.schema import ColumnSchema, Schema, Tags
+from merlin.schema import Schema
 
 
 class TestModelOutput:
@@ -31,7 +30,7 @@ class TestModelOutput:
 
         assert isinstance(model_output, mm.ModelOutput)
         assert model_output.loss is loss
-        assert model_output.metrics == ()
+        assert model_output.metrics is None
         assert model_output.output_schema == Schema()
 
     def test_identity(self):
@@ -51,15 +50,6 @@ class TestModelOutput:
         model_output = mm.ModelOutput(block, loss=loss, metrics=metrics)
 
         assert model_output.metrics == metrics
-
-    def test_setup_schema(self):
-        block = mm.Block()
-        loss = nn.BCEWithLogitsLoss()
-        schema = ColumnSchema("feature", dtype=np.int32, tags=[Tags.CONTINUOUS])
-        model_output = mm.ModelOutput(block, loss=loss, schema=schema)
-
-        assert isinstance(model_output.output_schema, Schema)
-        assert model_output.output_schema.first == schema
 
     def test_eval_resets_target(self):
         block = mm.Block()

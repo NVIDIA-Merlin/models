@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 from torch import nn
 from torchmetrics import MeanSquaredError, Metric
@@ -52,6 +52,11 @@ class RegressionOutput(ModelOutput):
             loss=loss or self.DEFAULT_LOSS_CLS(),
             metrics=metrics or [m() for m in self.DEFAULT_METRICS_CLS],
         )
+        if schema:
+            self.setup_schema(schema)
+
+        if not self.metrics:
+            self.metrics = self.default_metrics()
 
     def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
@@ -62,7 +67,7 @@ class RegressionOutput(ModelOutput):
             The schema defining the column properties.
         """
         if isinstance(target, Schema):
-            if len(target) != 1:
+            if len(target) > 1:
                 raise ValueError("Schema must contain exactly one column.")
 
             target = target.first
@@ -70,3 +75,8 @@ class RegressionOutput(ModelOutput):
         _target = target.with_dtype(md.float32).with_tags([Tags.CONTINUOUS])
 
         self.output_schema = Schema([_target])
+
+    def default_metrics(self) -> List[Metric]:
+        return [
+            MeanSquaredError(),
+        ]

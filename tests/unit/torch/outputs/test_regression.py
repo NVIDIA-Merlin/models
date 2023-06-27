@@ -31,7 +31,6 @@ class TestRegressionOutput:
         assert isinstance(reg_output, mm.RegressionOutput)
         assert isinstance(reg_output.loss, nn.MSELoss)
         assert reg_output.metrics == [MeanSquaredError()]
-        assert reg_output.output_schema == Schema()
 
     def test_identity(self):
         reg_output = mm.RegressionOutput()
@@ -91,7 +90,7 @@ class TestRegressionOutput:
 
     def test_custom_metrics(self):
         reg_output = mm.RegressionOutput(
-            metrics=(MeanAbsoluteError(), MeanAbsolutePercentageError())
+            metrics=[MeanAbsoluteError(), MeanAbsolutePercentageError()]
         )
         features = torch.randn(3, 2)
         targets = torch.randn(3, 1)
