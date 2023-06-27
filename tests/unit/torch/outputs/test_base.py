@@ -46,7 +46,7 @@ class TestModelOutput:
     def test_setup_metrics(self):
         block = mm.Block()
         loss = nn.BCEWithLogitsLoss()
-        metrics = (Accuracy(task="binary"), AUROC(task="binary"))
+        metrics = [Accuracy(task="binary"), AUROC(task="binary")]
         model_output = mm.ModelOutput(block, loss=loss, metrics=metrics)
 
         assert model_output.metrics == metrics
@@ -61,3 +61,16 @@ class TestModelOutput:
         assert torch.equal(model_output.target, torch.ones(1))
         model_output.eval()
         assert torch.equal(model_output.target, torch.zeros(1))
+
+    def test_copy(self):
+        block = mm.Block()
+        loss = nn.BCEWithLogitsLoss()
+        metrics = [Accuracy(task="multiclass", num_classes=11)]
+        model_output = mm.ModelOutput(block, loss=loss, metrics=metrics)
+
+        model_copy = model_output.copy()
+        assert model_copy.loss is not loss
+        assert isinstance(model_copy.loss, nn.BCEWithLogitsLoss)
+        assert model_copy.metrics[0] is not metrics[0]
+        assert model_copy.metrics[0].__class__.__name__ == "MulticlassAccuracy"
+        assert model_copy.metrics[0].num_classes == 11

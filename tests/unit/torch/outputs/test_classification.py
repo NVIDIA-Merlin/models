@@ -161,6 +161,10 @@ class TestCategoricalOutput:
         num_classes = int_domain_max + 1
         assert outputs.shape == (3, num_classes)
 
+    def test_invalid_type_error(self):
+        with pytest.raises(ValueError, match="Invalid to_call type"):
+            mm.CategoricalOutput("invalid to_call")
+
 
 class TestCategoricalTarget:
     def test_init(self, user_id_col_schema):

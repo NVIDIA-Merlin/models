@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import inspect
 from copy import deepcopy
 from typing import Optional, Sequence
 
@@ -103,11 +104,17 @@ class ModelOutput(Block):
 
         copied_metrics = []
         for metric in metrics:
-            m = metric.__class__()
+            params = inspect.signature(metric.__class__.__init__).parameters
+            kwargs = {}
+            for arg_name, arg_value in params.items():
+                if arg_name in metric.__dict__:
+                    kwargs[arg_name] = metric.__dict__[arg_name]
+            m = metric.__class__(**kwargs)
             m.load_state_dict(metric.state_dict())
             copied_metrics.append(m)
 
         self.metrics = metrics
         output.metrics = copied_metrics
+        output.loss = deepcopy(self.loss)
 
         return output
