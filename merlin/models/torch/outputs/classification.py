@@ -96,6 +96,23 @@ class BinaryOutput(ModelOutput):
 
 
 class CategoricalOutput(ModelOutput):
+    """
+    A prediction block for categorical targets.
+    Parameters
+    ----------
+    to_call : Union[ColumnSchema, EmbeddingTable, CategoricalTarget,
+              EmbeddingTablePrediction]
+        The instance to be called for generating predictions.
+    loss : nn.Module, optional
+        The loss function to use for the output model, defaults to
+        torch.nn.CrossEntropyLoss.
+    metrics : Optional[Sequence[Metric]], optional
+        The metrics to evaluate the model output.
+    logits_temperature: float, optional
+        Parameter used to reduce model overconfidence, so that logits / T.
+        by default 1.0
+    """
+
     def __init__(
         self,
         to_call: Optional[
@@ -152,6 +169,7 @@ class CategoricalOutput(ModelOutput):
         self.output_schema = categorical_output_schema(target, self[0].num_classes)
 
     def default_metrics(self) -> List[Metric]:
+        """Returns the default metrics used for multi-class classification."""
         return [
             AveragePrecision(task="multiclass", num_classes=self.num_classes),
             Precision(task="multiclass", num_classes=self.num_classes),
