@@ -86,6 +86,82 @@ class TestBinaryOutput:
         )
 
 
+class TestCategoricalOutput:
+    def test_init(self):
+        int_domain_max = 3
+        schema = (
+            ColumnSchema("foo")
+            .with_dtype(md.int32)
+            .with_properties({"domain": {"name": "bar", "min": 0, "max": int_domain_max}})
+        )
+        categorical_output = mm.CategoricalOutput(schema)
+
+        assert isinstance(categorical_output, mm.CategoricalOutput)
+        assert isinstance(categorical_output.loss, nn.CrossEntropyLoss)
+        assert sorted(m.__class__.__name__ for m in categorical_output.metrics) == [
+            "MulticlassAveragePrecision",
+            "MulticlassPrecision",
+            "MulticlassRecall",
+        ]
+        output_schema = categorical_output.output_schema.first
+        assert output_schema.dtype == md.float32
+        assert output_schema.properties["domain"]["min"] == 0
+        assert output_schema.properties["domain"]["max"] == int_domain_max
+        assert (
+            output_schema.properties["value_count"]["min"]
+            == output_schema.properties["value_count"]["max"]
+            == int_domain_max + 1
+        )
+
+    def test_called_with_schema(self):
+        int_domain_max = 3
+        schema = (
+            ColumnSchema("foo")
+            .with_dtype(md.int32)
+            .with_properties({"domain": {"name": "bar", "min": 0, "max": int_domain_max}})
+        )
+        categorical_output = mm.CategoricalOutput(schema)
+
+        inputs = torch.randn(3, 2)
+        outputs = module_utils.module_test(categorical_output, inputs)
+
+        num_classes = int_domain_max + 1
+        assert outputs.shape == (3, num_classes)
+
+    def test_called_with_categorical_target(self):
+        int_domain_max = 3
+        schema = (
+            ColumnSchema("foo")
+            .with_dtype(md.int32)
+            .with_properties({"domain": {"name": "bar", "min": 0, "max": int_domain_max}})
+        )
+        target = mm.CategoricalTarget(schema)
+        categorical_output = mm.CategoricalOutput(target)
+
+        inputs = torch.randn(3, 2)
+        outputs = module_utils.module_test(categorical_output, inputs)
+
+        num_classes = int_domain_max + 1
+        assert outputs.shape == (3, num_classes)
+
+    def test_called_with_embedding_table(self):
+        embedding_dim = 8
+        int_domain_max = 3
+        schema = (
+            ColumnSchema("foo")
+            .with_dtype(md.int32)
+            .with_properties({"domain": {"name": "bar", "min": 0, "max": int_domain_max}})
+        )
+        table = mm.EmbeddingTable(embedding_dim, schema)
+        categorical_output = mm.CategoricalOutput(table)
+
+        inputs = torch.randn(3, embedding_dim)
+        outputs = module_utils.module_test(categorical_output, inputs)
+
+        num_classes = int_domain_max + 1
+        assert outputs.shape == (3, num_classes)
+
+
 class TestCategoricalTarget:
     def test_init(self, user_id_col_schema):
         schema = Schema([user_id_col_schema])
@@ -140,3 +216,21 @@ class TestEmbeddingTablePrediction:
         output = prediction(inputs)
 
         assert output.shape == (5, 21)
+
+    def test_embedding_lookup(self):
+        embedding_dim = 8
+        int_domain_max = 3
+        schema = (
+            ColumnSchema("foo")
+            .with_dtype(md.int32)
+            .with_properties({"domain": {"name": "bar", "min": 0, "max": int_domain_max}})
+        )
+        table = mm.EmbeddingTable(embedding_dim, schema)
+        model = mm.EmbeddingTablePrediction(table)
+
+        batch_size = 16
+        ids = torch.randint(0, int_domain_max, (batch_size,))
+        outputs = model.embedding_lookup(ids)
+
+        assert outputs.shape == (batch_size, embedding_dim)
+        assert model.embeddings().shape == (int_domain_max + 1, embedding_dim)

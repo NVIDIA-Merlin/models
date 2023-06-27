@@ -126,6 +126,8 @@ class CategoricalOutput(ModelOutput):
         else:
             raise ValueError(f"Invalid to_call type: {type(to_call)}")
 
+        self.num_classes = self[0].num_classes
+
         if not self.metrics:
             self.metrics = self.default_metrics()
 
@@ -143,12 +145,11 @@ class CategoricalOutput(ModelOutput):
 
             target = target.first
         to_call = CategoricalTarget(target)
-        if isinstance(self[0], CategoricalTarget):
+        if len(self) > 0 and isinstance(self[0], CategoricalTarget):
             self[0] = to_call
         else:
             self.prepend(to_call)
         self.output_schema = categorical_output_schema(target, self[0].num_classes)
-        self.num_classes = to_call.num_classes
 
     def default_metrics(self) -> List[Metric]:
         return [
@@ -294,7 +295,7 @@ class EmbeddingTablePrediction(nn.Module):
         torch.Tensor
             Output tensor of the forward pass.
         """
-        return torch.matmul(inputs, self.embeddings().t()).add(self.bias)
+        return nn.functional.linear(inputs, self.embeddings(), self.bias)
 
     def embeddings(self) -> nn.Parameter:
         """Fetch the weight matrix from the embedding table.
