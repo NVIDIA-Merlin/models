@@ -30,7 +30,7 @@ class BinaryOutput(ModelOutput):
 
     Parameters
     ----------
-    schema: Optional[ColumnSchema])
+    schema: Union[ColumnSchema, Schema], optional
         The schema defining the column properties. Default is None.
     loss: nn.Module
         The loss function used for training. Default is nn.BCEWithLogitsLoss().
@@ -101,9 +101,8 @@ class CategoricalOutput(ModelOutput):
 
     Parameters
     ----------
-    to_call : Union[ColumnSchema, EmbeddingTable, CategoricalTarget,
-              EmbeddingTablePrediction]
-        The instance to be called for generating predictions.
+    schema: Union[ColumnSchema, Schema], optional
+        The schema defining the column properties. Default is None.
     loss : nn.Module, optional
         The loss function to use for the output model, defaults to
         torch.nn.CrossEntropyLoss.
@@ -116,38 +115,47 @@ class CategoricalOutput(ModelOutput):
 
     def __init__(
         self,
-        to_call: Optional[
-            Union[
-                Schema,
-                ColumnSchema,
-                EmbeddingTable,
-                "CategoricalTarget",
-                "EmbeddingTablePrediction",
-            ]
-        ] = None,
-        loss=nn.CrossEntropyLoss(),
+        schema: Optional[Union[ColumnSchema, Schema]] = None,
+        loss: nn.Module = nn.CrossEntropyLoss(),
         metrics: Optional[Sequence[Metric]] = None,
         logits_temperature: float = 1.0,
+        weight_tying: Optional[EmbeddingTable] = None,
     ):
         super().__init__(
             loss=loss,
             metrics=metrics,
             logits_temperature=logits_temperature,
         )
+        self.weight_tying = weight_tying
 
-        if isinstance(to_call, (Schema, ColumnSchema)):
-            self.setup_schema(to_call)
-        elif isinstance(to_call, (EmbeddingTable)):
-            self.prepend(EmbeddingTablePrediction(to_call))
-        elif isinstance(to_call, (CategoricalTarget, EmbeddingTablePrediction)):
-            self.prepend(to_call)
-        else:
-            raise ValueError(f"Invalid to_call type: {type(to_call)}")
+        if schema:
+            self.setup_schema(schema)
 
-        self.num_classes = self[0].num_classes
+    # def setup(
+    #     self,
+    #     to_call: Optional[
+    #         Union[
+    #             Schema,
+    #             ColumnSchema,
+    #             EmbeddingTable,
+    #             "CategoricalTarget",
+    #             "EmbeddingTablePrediction",
+    #         ]
+    #     ] = None
+    # ):
+    #     if isinstance(to_call, (Schema, ColumnSchema)):
+    #         self.setup_schema(to_call)
+    #     elif isinstance(to_call, (EmbeddingTable)):
+    #         self.prepend(EmbeddingTablePrediction(to_call))
+    #     elif isinstance(to_call, (CategoricalTarget, EmbeddingTablePrediction)):
+    #         self.prepend(to_call)
+    #     else:
+    #         raise ValueError(f"Invalid to_call type: {type(to_call)}")
 
-        if not self.metrics:
-            self.metrics = self.default_metrics()
+    #     self.num_classes = self[0].num_classes
+
+    #     if not self.metrics:
+    #         self.metrics = self.default_metrics()
 
     def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
@@ -163,18 +171,22 @@ class CategoricalOutput(ModelOutput):
 
             target = target.first
         to_call = CategoricalTarget(target)
-        if len(self) > 0 and isinstance(self[0], CategoricalTarget):
-            self[0] = to_call
-        else:
-            self.prepend(to_call)
-        self.output_schema = categorical_output_schema(target, self[0].num_classes)
+        self.num_classes = to_call.num_classes
 
-    def default_metrics(self) -> List[Metric]:
+        self.prepend(to_call)
+
+        self.output_schema = categorical_output_schema(target, self.num_classes)
+
+    def tie_weights(self, embedding_table: EmbeddingTable):
+        self.weight_tying = embedding_table
+
+    @classmethod
+    def default_metrics(cls, num_classes: int) -> List[Metric]:
         """Returns the default metrics used for multi-class classification."""
         return [
-            AveragePrecision(task="multiclass", num_classes=self.num_classes),
-            Precision(task="multiclass", num_classes=self.num_classes),
-            Recall(task="multiclass", num_classes=self.num_classes),
+            AveragePrecision(task="multiclass", num_classes=num_classes),
+            Precision(task="multiclass", num_classes=num_classes),
+            Recall(task="multiclass", num_classes=num_classes),
         ]
 
     @classmethod
@@ -223,9 +235,9 @@ class CategoricalTarget(nn.Module):
         else:
             col_schema = feature
 
-        self.schema = col_schema
         self.target_name = col_schema.name
         self.num_classes = col_schema.int_domain.max + 1
+        self.output_schema = categorical_output_schema(col_schema, self[0].num_classes)
 
         self.linear = nn.LazyLinear(self.num_classes, bias=bias)
         self.activation = activation
