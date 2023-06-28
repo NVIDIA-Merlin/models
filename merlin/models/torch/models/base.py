@@ -62,6 +62,7 @@ class Model(LightningModule, Block):
         self,
         *blocks: nn.Module,
         optimizer=torch.optim.Adam,
+        batch_block: nn.Module = None,
     ):
         super().__init__()
 
@@ -79,6 +80,11 @@ class Model(LightningModule, Block):
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ):
+        if not batch:
+            batch = Batch(inputs, None)
+
+        batch = self.batch_block(batch)
+
         """Performs a forward pass through the model."""
         outputs = inputs
         for block in self.values:

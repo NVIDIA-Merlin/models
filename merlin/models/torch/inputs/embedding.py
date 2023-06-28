@@ -374,6 +374,14 @@ class EmbeddingTable(nn.Module, Selectable):
 
         return self
 
+    def feature_weights(self, name: str):
+        if name not in self.domains:
+            raise ValueError()
+
+        domain = self.domains[name]
+
+        return self.table.weights[domain.min : domain.max]
+
     def select(self, selection: Selection) -> Selectable:
         selected = select(self.input_schema, selection)
 
