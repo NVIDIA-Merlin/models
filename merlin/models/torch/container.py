@@ -15,6 +15,7 @@
 #
 
 import builtins
+import inspect
 from copy import deepcopy
 from functools import reduce
 from typing import (
@@ -58,10 +59,24 @@ class ContainerMixin:
         return output
 
     def flatmap(self: _TModule, func: ModuleFunc) -> _TModule:
-        if not hasattr(self, "flatten"):
-            raise NotImplementedError("flatmap requires flatten")
+        if not callable(func):
+            raise TypeError(f"Expected callable function, received: {type(func).__name__}")
 
-        return self.map(func).flatten()
+        try:
+            mapped = self.map(func)
+        except Exception as e:
+            raise RuntimeError("Failed to map function over the module") from e
+
+        output = self.__class__()
+
+        try:
+            for sublist in mapped:
+                for item in sublist:
+                    output.append(item)
+        except TypeError as e:
+            raise TypeError("Function did not return an iterable object") from e
+
+        return output
 
     def forall(self, func: ModulePredicate) -> bool:
         return all(func(module) for module in self)
@@ -97,7 +112,16 @@ class ContainerMixin:
 
         def _walk(module):
             if hasattr(module, "walk"):
-                return module.walk(func)
+                walk_sig = inspect.signature(module.walk)
+                if len(walk_sig.parameters) == 1 and isinstance(
+                    list(walk_sig.parameters.values())[0].annotation, Callable
+                ):
+                    return module.walk(func)
+                else:
+                    raise TypeError(
+                        "Expected walk method to have a single argument of type Callable",
+                        f", got {walk_sig}",
+                    )
 
             return func(module)
 
@@ -106,8 +130,14 @@ class ContainerMixin:
     def zip(self, other: Iterable[_TModule]) -> Iterable[Tuple[_TModule, _TModule]]:
         return builtins.zip(self, other)
 
+    def __add__(self, module) -> _TModule:
+        return self.__class__(*self, module)
 
-class BlockContainer(nn.Module, Iterable[_TModule]):
+    def __radd__(self, module) -> _TModule:
+        return self.__class__(module, *self)
+
+
+class BlockContainer(nn.Module, Iterable[_TModule], ContainerMixin):
     """A container class for PyTorch `nn.Module` that allows for manipulation and traversal
     of multiple sub-modules as if they were a list. The modules are automatically wrapped
     in a TorchScriptWrapper for TorchScript compatibility.
@@ -287,7 +317,7 @@ class BlockContainerDict(nn.ModuleDict):
         self,
         *inputs: Union[nn.Module, Dict[str, nn.Module]],
         name: Optional[str] = None,
-        block_cls=BlockContainer
+        block_cls=BlockContainer,
     ) -> None:
         if not inputs:
             inputs = [{}]
