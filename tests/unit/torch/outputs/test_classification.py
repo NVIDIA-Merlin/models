@@ -106,7 +106,7 @@ class TestCategoricalOutput:
         output_schema = categorical_output.output_schema.first
         assert output_schema.dtype == md.float32
         assert output_schema.properties["domain"]["min"] == 0
-        assert output_schema.properties["domain"]["max"] == int_domain_max
+        assert output_schema.properties["domain"]["max"] == 1
         assert (
             output_schema.properties["value_count"]["min"]
             == output_schema.properties["value_count"]["max"]
@@ -164,6 +164,16 @@ class TestCategoricalOutput:
     def test_invalid_type_error(self):
         with pytest.raises(ValueError, match="Invalid to_call type"):
             mm.CategoricalOutput("invalid to_call")
+
+    def test_multiple_column_schema_error(self, item_id_col_schema, user_id_col_schema):
+        schema = Schema([item_id_col_schema])
+        assert len(schema) == 1
+        _ = mm.CategoricalOutput(schema)
+
+        schema_with_two_columns = schema + Schema([user_id_col_schema])
+        assert len(schema_with_two_columns) == 2
+        with pytest.raises(ValueError, match="must contain exactly one"):
+            _ = mm.CategoricalOutput(schema_with_two_columns)
 
 
 class TestCategoricalTarget:

@@ -347,10 +347,9 @@ class EmbeddingTablePrediction(nn.Module):
 def categorical_output_schema(target: ColumnSchema, num_classes: int) -> Schema:
     """Return the output schema given the target column schema."""
     _target = target.with_dtype(md.float32)
-    if "domain" not in target.properties:
-        _target = _target.with_properties(
-            {"domain": {"min": 0, "max": 1, "name": _target.name}},
-        )
+    _target = _target.with_properties(
+        {"domain": {"min": 0, "max": 1, "name": _target.name}},
+    )
     if "value_count" not in target.properties:
         _target = _target.with_properties(
             {"value_count": {"min": num_classes, "max": num_classes}},

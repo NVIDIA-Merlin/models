@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
 import torch
 from torch import nn
 from torchmetrics import AUROC, Accuracy
@@ -74,3 +75,13 @@ class TestModelOutput:
         assert model_copy.metrics[0] is not metrics[0]
         assert model_copy.metrics[0].__class__.__name__ == "MulticlassAccuracy"
         assert model_copy.metrics[0].num_classes == 11
+
+    @pytest.mark.parametrize("logits_temperature", [0.1, 0.9])
+    def test_logits_temperature_scaler(self, logits_temperature):
+        block = mm.Block()
+        model_output = mm.ModelOutput(block, logits_temperature=logits_temperature)
+        inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+
+        outputs = module_utils.module_test(model_output, inputs)
+
+        assert torch.allclose(inputs / logits_temperature, outputs)
