@@ -6,8 +6,9 @@ import torch
 
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.sequences import (
-    TabularBatchPadding,
+    TabularMaskLast,
     TabularMaskRandom,
+    TabularPadding,
     TabularPredictNext,
     TabularSequenceTransform,
 )
@@ -53,16 +54,15 @@ class TestPadBatch:
 
     def test_padded_features(self, sequence_batch, sequence_schema):
         _max_sequence_length = 8
-        padding_op = TabularBatchPadding(
+        padding_op = TabularPadding(
             schema=sequence_schema, max_sequence_length=_max_sequence_length
         )
         padded_batch = padding_op(sequence_batch)
 
         assert torch.equal(padded_batch.sequences.length("a"), torch.Tensor([2, 0, 3]))
-        assert set(padded_batch.features.keys()) == set(sequence_schema.column_names)
+        assert set(padded_batch.features.keys()) == set(["a", "b", "c_dense"])
         for feature in ["a", "b", "c_dense"]:
             assert padded_batch.features[feature].shape[1] == _max_sequence_length
-        assert torch.equal(padded_batch.features["d_context"], sequence_batch.features["d_context"])
 
     def test_batch_invalid_lengths(self):
         # Test when targets is not a tensor nor a dictionary of tensors
@@ -73,7 +73,7 @@ class TestPadBatch:
             ValueError,
             match="The sequential inputs must have the same length for each row in the batch",
         ):
-            padding_op = TabularBatchPadding(schema=Schema(["a", "b"]))
+            padding_op = TabularPadding(schema=Schema(["a", "b"]))
             padding_op(
                 Batch(
                     {
@@ -93,7 +93,7 @@ class TestPadBatch:
             "target_2__values": target_values,
             "target_2__offsets": target_offsets,
         }
-        padding_op = TabularBatchPadding(
+        padding_op = TabularPadding(
             schema=sequence_schema, max_sequence_length=_max_sequence_length
         )
         padded_batch = padding_op(sequence_batch)
@@ -131,10 +131,7 @@ class TestTabularSequenceTransform:
 
     @pytest.fixture
     def padded_batch(self, sequence_schema, sequence_batch):
-        _max_sequence_length = 5
-        padding_op = TabularBatchPadding(
-            schema=sequence_schema, max_sequence_length=_max_sequence_length
-        )
+        padding_op = TabularPadding(schema=sequence_schema)
         return padding_op(sequence_batch)
 
     def test_tabular_sequence_transform_wrong_inputs(self, padded_batch, sequence_schema):
@@ -163,39 +160,29 @@ class TestTabularSequenceTransform:
                 )
             )
 
-        with pytest.raises(
-            ValueError,
-            match=re.escape(
-                "Sequential target column (d_context) must be a 2D tensor, but shape is 1"
-            ),
-        ):
-            transform = TabularSequenceTransform(schema=sequence_schema, target="d_context")
-            transform._check_target_shape(padded_batch)
-
-    def test_transform_predict_next(self, padded_batch, sequence_schema):
+    def test_transform_predict_next(self, sequence_batch, padded_batch, sequence_schema):
         transform = TabularPredictNext(
             schema=sequence_schema.select_by_tag(Tags.SEQUENCE), target="a"
         )
         assert transform.target_name == ["a"]
 
-        batch_output = transform(padded_batch)
+        batch_output = transform(sequence_batch)
 
-        assert list(batch_output.features.keys()) == ["a", "b", "c_dense", "d_context"]
+        assert list(batch_output.features.keys()) == ["a", "b", "c_dense"]
         for k in ["a", "b", "c_dense"]:
             assert torch.equal(batch_output.features[k], padded_batch.features[k][:, :-1])
-        assert torch.equal(batch_output.features["d_context"], padded_batch.features["d_context"])
         assert torch.equal(batch_output.sequences.length("a"), torch.Tensor([2, 1, 3]))
 
-    def test_transform_mask_random(self, padded_batch, sequence_schema):
+    def test_transform_mask_random(self, sequence_batch, padded_batch, sequence_schema):
         transform = TabularMaskRandom(
             schema=sequence_schema.select_by_tag(Tags.SEQUENCE), target="a"
         )
         assert transform.target_name == ["a"]
 
-        batch_output = transform(padded_batch)
+        batch_output = transform(sequence_batch)
 
-        assert list(batch_output.features.keys()) == ["a", "b", "c_dense", "d_context"]
-        for name in ["a", "b", "c_dense", "d_context"]:
+        assert list(batch_output.features.keys()) == ["a", "b", "c_dense"]
+        for name in ["a", "b", "c_dense"]:
             assert torch.equal(batch_output.features[name], padded_batch.features[name])
         assert torch.equal(batch_output.sequences.length("a"), torch.Tensor([3, 2, 4]))
 
@@ -204,3 +191,27 @@ class TestTabularSequenceTransform:
         assert torch.all(batch_output.sequences.mask("a").sum(1) != pad_mask.sum(1))
         # check that at least one candidate is masked
         assert torch.all(batch_output.sequences.mask("a").sum(1) > 0)
+
+    def test_transform_mask_last(self, sequence_batch, padded_batch, sequence_schema):
+        transform = TabularMaskLast(schema=sequence_schema.select_by_tag(Tags.SEQUENCE), target="a")
+        assert transform.target_name == ["a"]
+
+        batch_output = transform(sequence_batch)
+
+        assert list(batch_output.features.keys()) == ["a", "b", "c_dense"]
+        for name in ["a", "b", "c_dense"]:
+            assert torch.equal(batch_output.features[name], padded_batch.features[name])
+        assert torch.equal(batch_output.sequences.length("a"), torch.Tensor([3, 2, 4]))
+
+        # check one candidate (last) per row is masked
+        assert torch.all(batch_output.sequences.mask("a").sum(1) == 1)
+        assert torch.all(
+            batch_output.sequences.mask("a")
+            == torch.Tensor(
+                [
+                    [False, False, True, False],
+                    [False, True, False, False],
+                    [False, False, False, True],
+                ]
+            )
+        )
