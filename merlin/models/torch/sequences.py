@@ -267,7 +267,7 @@ class TabularPredictNext(TabularSequenceTransform):
         transform = TabularPredictNext(
             schema=schema.select_by_tag(Tags.SEQUENCE), target="a"
         )
-        batch_output = transform(padded_batch)
+        batch_output = transform(batch)
 
     """
 
@@ -333,6 +333,13 @@ class TabularMaskRandom(TabularSequenceTransform):
         Probability of a candidate to be selected (masked) as a label of the given sequence.
         Note: We enforce that at least one candidate is masked for each sequence, so that it
         is useful for training, by default 0.2
+
+    Examples:
+        transform = TabularMaskRandom(
+            schema=schema.select_by_tag(Tags.SEQUENCE), target="a", masking_prob=0.4
+        )
+        batch_output = transform(batch)
+
     """
 
     def __init__(
@@ -407,17 +414,14 @@ class TabularMaskLast(TabularSequenceTransform):
     target : Union[str, List[str], Tags, ColumnSchema, Schema]
         The sequential input column(s) that will be used to compute the masked positions.
         Targets can be one or multiple input features with the same sequence length.
-    """
 
-    def __init__(
-        self,
-        schema: Schema,
-        target: Union[str, Tags, ColumnSchema],
-        masking_prob: float = 0.2,
-        **kwargs,
-    ):
-        self.masking_prob = masking_prob
-        super().__init__(schema, target, **kwargs)
+    Examples:
+        transform = TabularMaskLast(
+            schema=schema.select_by_tag(Tags.SEQUENCE), target="a"
+        )
+        batch_output = transform(batch)
+
+    """
 
     def forward(self, batch: Batch, **kwargs) -> Tuple:
         if self.apply_padding:
