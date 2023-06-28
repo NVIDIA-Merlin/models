@@ -1,4 +1,3 @@
-import re
 from itertools import accumulate
 
 import pytest

@@ -51,8 +51,10 @@ class TabularPadding(nn.Module):
         padded_batch = padding_op(Batch(feaures))
 
     Note:
-        - If the schema includes continuous list features, please make sure they are normalized between [0,1]
-        As we will pad them to `max_sequence_length` using the minimum value `0.0`.
+        If the schema contains continuous list features,
+        ensure that they are normalized within the range of [0, 1].
+        This is necessary because we will be padding them
+        to a max_sequence_length using the minimum value of 0.0.
     """
 
     def __init__(
