@@ -38,7 +38,8 @@ class TestBinaryOutput:
             Precision(task="binary"),
             Recall(task="binary"),
         ]
-        assert binary_output.output_schema == Schema()
+        with pytest.raises(ValueError):
+            mm.schema.output(binary_output)
 
     def test_identity(self):
         binary_output = mm.BinaryOutput()
@@ -103,7 +104,7 @@ class TestCategoricalOutput:
             "MulticlassPrecision",
             "MulticlassRecall",
         ]
-        output_schema = categorical_output.output_schema.first
+        output_schema = categorical_output[0].output_schema.first
         assert output_schema.dtype == md.float32
         assert output_schema.properties["domain"]["min"] == 0
         assert output_schema.properties["domain"]["max"] == 1
@@ -112,6 +113,7 @@ class TestCategoricalOutput:
             == output_schema.properties["value_count"]["max"]
             == int_domain_max + 1
         )
+        assert mm.schema.output(categorical_output) == categorical_output[0].output_schema
 
     def test_called_with_schema(self):
         int_domain_max = 3
@@ -128,23 +130,7 @@ class TestCategoricalOutput:
         num_classes = int_domain_max + 1
         assert outputs.shape == (3, num_classes)
 
-    def test_called_with_categorical_target(self):
-        int_domain_max = 3
-        schema = (
-            ColumnSchema("foo")
-            .with_dtype(md.int32)
-            .with_properties({"domain": {"name": "bar", "min": 0, "max": int_domain_max}})
-        )
-        target = mm.CategoricalTarget(schema)
-        categorical_output = mm.CategoricalOutput(target)
-
-        inputs = torch.randn(3, 2)
-        outputs = module_utils.module_test(categorical_output, inputs)
-
-        num_classes = int_domain_max + 1
-        assert outputs.shape == (3, num_classes)
-
-    def test_called_with_embedding_table(self):
+    def test_weight_tying(self):
         embedding_dim = 8
         int_domain_max = 3
         schema = (
@@ -153,7 +139,7 @@ class TestCategoricalOutput:
             .with_properties({"domain": {"name": "bar", "min": 0, "max": int_domain_max}})
         )
         table = mm.EmbeddingTable(embedding_dim, schema)
-        categorical_output = mm.CategoricalOutput(table)
+        categorical_output = mm.CategoricalOutput.with_weight_tying(table)
 
         inputs = torch.randn(3, embedding_dim)
         outputs = module_utils.module_test(categorical_output, inputs)
@@ -161,8 +147,11 @@ class TestCategoricalOutput:
         num_classes = int_domain_max + 1
         assert outputs.shape == (3, num_classes)
 
+        cat_output = mm.CategoricalOutput(schema).tie_weights(table)
+        assert isinstance(cat_output[0], EmbeddingTablePrediction)
+
     def test_invalid_type_error(self):
-        with pytest.raises(ValueError, match="Invalid to_call type"):
+        with pytest.raises(ValueError, match="Target must be a ColumnSchema or Schema"):
             mm.CategoricalOutput("invalid to_call")
 
     def test_multiple_column_schema_error(self, item_id_col_schema, user_id_col_schema):
@@ -217,17 +206,55 @@ class TestCategoricalTarget:
         assert hidden_vectors.shape == (3, 11)
         assert model.embeddings().shape == (11, 21)
 
+    def test_forward_model_output(self):
+        int_domain_max = 3
+        schema = (
+            ColumnSchema("foo")
+            .with_dtype(md.int32)
+            .with_properties({"domain": {"name": "bar", "min": 0, "max": int_domain_max}})
+        )
+        target = mm.CategoricalTarget(schema)
+        categorical_output = mm.ModelOutput(target, loss=nn.CrossEntropyLoss())
+        assert mm.schema.output(categorical_output).column_names == ["foo"]
+
+        inputs = torch.randn(3, 2)
+        outputs = module_utils.module_test(categorical_output, inputs)
+        num_classes = int_domain_max + 1
+        assert outputs.shape == (3, num_classes)
+
 
 class TestEmbeddingTablePrediction:
+    def test_init_multiple_int_domains(self, user_id_col_schema, item_id_col_schema):
+        input_block = mm.TabularInputBlock(Schema([user_id_col_schema, item_id_col_schema]))
+        input_block.add_route(Tags.CATEGORICAL, mm.EmbeddingTable(10))
+        table = mm.schema.select(input_block, Tags.USER_ID).leaf()
+
+        with pytest.raises(ValueError):
+            EmbeddingTablePrediction(table)
+
+        with pytest.raises(ValueError):
+            EmbeddingTablePrediction.with_weight_tying(input_block)
+
+        with pytest.raises(ValueError):
+            EmbeddingTablePrediction.with_weight_tying(input_block, "a")
+
+        with pytest.raises(ValueError):
+            EmbeddingTablePrediction.with_weight_tying(input_block, Tags.CATEGORICAL)
+
+        assert isinstance(EmbeddingTablePrediction(table, Tags.USER_ID), EmbeddingTablePrediction)
+        assert isinstance(
+            EmbeddingTablePrediction.with_weight_tying(input_block, Tags.USER_ID),
+            EmbeddingTablePrediction,
+        )
+
     def test_forward(self, user_id_col_schema):
         input_block = mm.TabularInputBlock(
             Schema([user_id_col_schema]), init="defaults", agg="concat"
         )
-        user_emb = input_block.select(Tags.USER_ID).leaf()
-        prediction = EmbeddingTablePrediction(user_emb)
+        prediction = EmbeddingTablePrediction.with_weight_tying(input_block, Tags.USER_ID)
 
         inputs = torch.randn(5, 8)
-        output = prediction(inputs)
+        output = module_utils.module_test(prediction, inputs)
 
         assert output.shape == (5, 21)
 

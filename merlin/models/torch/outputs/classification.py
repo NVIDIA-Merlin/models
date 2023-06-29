@@ -123,7 +123,7 @@ class CategoricalOutput(ModelOutput):
     ):
         super().__init__(
             loss=loss,
-            metrics=metrics,
+            metrics=metrics or [],
             logits_temperature=logits_temperature,
         )
 
@@ -133,17 +133,28 @@ class CategoricalOutput(ModelOutput):
     @classmethod
     def with_weight_tying(
         cls,
-        selection: schema.Selection,
         block: nn.Module,
+        selection: Optional[schema.Selection] = None,
         loss: nn.Module = nn.CrossEntropyLoss(),
         metrics: Optional[Sequence[Metric]] = None,
         logits_temperature: float = 1.0,
     ) -> "CategoricalOutput":
         self = cls(loss=loss, metrics=metrics, logits_temperature=logits_temperature)
-        self = self.tie_weights(selection, block)
-        self.output_schema = categorical_output_schema(self[0].col_schema, self.num_classes)
+        self = self.tie_weights(block, selection)
         if not self.metrics:
             self.metrics = self.default_metrics(self.num_classes)
+
+        return self
+
+    def tie_weights(
+        self, block: nn.Module, selection: Optional[schema.Selection] = None
+    ) -> "CategoricalOutput":
+        prediction = EmbeddingTablePrediction.with_weight_tying(block, selection)
+        self.num_classes = prediction.num_classes
+        if self:
+            self[0] = prediction
+        else:
+            self.prepend(prediction)
 
         return self
 
@@ -155,6 +166,9 @@ class CategoricalOutput(ModelOutput):
         target: Optional[ColumnSchema]
             The schema defining the column properties.
         """
+        if not isinstance(target, (ColumnSchema, Schema)):
+            raise ValueError(f"Target must be a ColumnSchema or Schema, got {target}.")
+
         if isinstance(target, Schema):
             if len(target) != 1:
                 raise ValueError("Schema must contain exactly one column.")
@@ -164,23 +178,8 @@ class CategoricalOutput(ModelOutput):
         to_call = CategoricalTarget(target)
         self.num_classes = to_call.num_classes
         self.prepend(to_call)
-        self.output_schema = categorical_output_schema(target, self.num_classes)
         if not self.metrics:
             self.metrics = self.default_metrics(self.num_classes)
-
-    def tie_weights(self, selection: schema.Selection, block: nn.Module) -> "CategoricalOutput":
-        if isinstance(block, EmbeddingTable):
-            table = block
-        else:
-            try:
-                selected = schema.select(block, selection)
-                table = selected.leaf()
-            except Exception as e:
-                raise ValueError("Could not find embedding table in block.") from e
-
-        self[0] = EmbeddingTablePrediction(table, selection)
-
-        return self
 
     @classmethod
     def default_metrics(cls, num_classes: int) -> List[Metric]:
@@ -239,7 +238,7 @@ class CategoricalTarget(nn.Module):
 
         self.target_name = col_schema.name
         self.num_classes = col_schema.int_domain.max + 1
-        self.output_schema = categorical_output_schema(col_schema, self[0].num_classes)
+        self.output_schema = categorical_output_schema(col_schema, self.num_classes)
 
         self.linear = nn.LazyLinear(self.num_classes, bias=bias)
         self.activation = activation
@@ -319,10 +318,34 @@ class EmbeddingTablePrediction(nn.Module):
             self.add_selection(selection)
         else:
             self.num_classes = table.num_embeddings
-            self.col_name = table.input_schema.first.name
+            self.col_schema = table.input_schema.first
+            self.col_name = self.col_schema.name
         self.bias = nn.Parameter(
             torch.zeros(self.num_classes, dtype=torch.float32, device=self.embeddings().device)
         )
+        self.output_schema = categorical_output_schema(self.col_schema, self.num_classes)
+
+    @classmethod
+    def with_weight_tying(
+        cls,
+        block: nn.Module,
+        selection: Optional[schema.Selection] = None,
+    ) -> "EmbeddingTablePrediction":
+        if isinstance(block, EmbeddingTable):
+            table = block
+        else:
+            if not selection:
+                raise ValueError(
+                    "Must specify a `selection` when providing a block that isn't a table."
+                )
+
+            try:
+                selected = schema.select(block, selection)
+                table = selected.leaf()
+            except Exception as e:
+                raise ValueError("Could not find embedding table in block.") from e
+
+        return cls(table, selection)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Forward pass of the model using input tensor.
@@ -346,6 +369,7 @@ class EmbeddingTablePrediction(nn.Module):
         self.col_schema = selected.first
         self.col_name = self.col_schema.name
         self.num_classes = self.col_schema.int_domain.max + 1
+        self.output_schema = categorical_output_schema(self.col_schema, self.num_classes)
 
         return self
 
@@ -375,7 +399,7 @@ class EmbeddingTablePrediction(nn.Module):
         torch.Tensor
             The corresponding embeddings.
         """
-        return self.table.table({self.col_name: inputs})[self.col_name]
+        return self.table({self.col_name: inputs})[self.col_name]
 
 
 def categorical_output_schema(target: ColumnSchema, num_classes: int) -> Schema:

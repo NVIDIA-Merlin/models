@@ -23,7 +23,6 @@ from torchmetrics import Metric
 
 from merlin.models.torch.block import Block
 from merlin.models.torch.transforms.bias import LogitsTemperatureScaler
-from merlin.schema import Schema
 
 
 class ModelOutput(Block):
@@ -77,8 +76,6 @@ class ModelOutput(Block):
         self.create_target_buffer()
         if logits_temperature != 1.0:
             self.append(LogitsTemperatureScaler(logits_temperature))
-
-        self.output_schema = Schema()
 
     def create_target_buffer(self):
         self.register_buffer("target", torch.zeros(1, dtype=torch.float32))

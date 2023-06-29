@@ -20,7 +20,6 @@ from torchmetrics import AUROC, Accuracy
 
 import merlin.models.torch as mm
 from merlin.models.torch.utils import module_utils
-from merlin.schema import Schema
 
 
 class TestModelOutput:
@@ -32,7 +31,7 @@ class TestModelOutput:
         assert isinstance(model_output, mm.ModelOutput)
         assert model_output.loss is loss
         assert model_output.metrics is None
-        assert model_output.output_schema == Schema()
+        assert not mm.schema.output(model_output)
 
     def test_identity(self):
         block = mm.Block()

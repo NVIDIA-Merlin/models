@@ -380,7 +380,7 @@ class EmbeddingTable(nn.Module, Selectable):
 
         domain = self.domains[name]
 
-        return self.table.weights[domain.min : domain.max]
+        return self.table.weight[int(domain.min) : int(domain.max)]
 
     def select(self, selection: Selection) -> Selectable:
         selected = select(self.input_schema, selection)
