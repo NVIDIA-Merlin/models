@@ -130,6 +130,6 @@ class DLRMBlock(Block):
         interaction: nn.Module = DLRMInteraction(),
     ):
         super().__init__(DLRMInputBlock(schema, dim, bottom_block))
-        self.append(Block(MaybeAgg(Stack()), interaction), link=ShortcutConcatContinuous())
+        self.append(Block(MaybeAgg(Stack(dim=1)), interaction), link=ShortcutConcatContinuous())
         if top_block:
             self.append(top_block)

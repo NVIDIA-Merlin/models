@@ -17,6 +17,12 @@
 from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.blocks.dlrm import (
+    DLRMBlock,
+    DLRMInputBlock,
+    DLRMInteraction,
+    ShortcutConcatContinuous,
+)
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
 from merlin.models.torch.inputs.select import SelectFeatures, SelectKeys
@@ -51,4 +57,8 @@ __all__ = [
     "Concat",
     "Stack",
     "schema",
+    "DLRMBlock",
+    "DLRMInputBlock",
+    "DLRMInteraction",
+    "ShortcutConcatContinuous",
 ]

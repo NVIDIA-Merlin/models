@@ -104,6 +104,9 @@ class Concat(AggModule):
 
         if self.align_dims:
             max_dims = max(tensor.dim() for tensor in sorted_tensors)
+            max_dims = max(
+                max_dims, 2
+            )  # assume first dimension is batch size + at least one feature
             _sorted_tensors = []
             for tensor in sorted_tensors:
                 if tensor.dim() < max_dims:
@@ -140,6 +143,7 @@ class Stack(AggModule):
     dim : int
         The dimension along which the tensors will be stacked.
         Default is 0.
+    unsqeeze: bool
 
     Examples
     --------
