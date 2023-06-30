@@ -910,6 +910,11 @@ def test_two_tower_v2_export_item_tower_embeddings(
 def test_two_tower_v2_export_item_tower_embeddings_with_seq_item_features(
     music_streaming_data: Dataset,
 ):
+    # Changing the schema of the multi-hot "item_genres" feature to be
+    # dense (not ragged)
+    music_streaming_data.schema["item_genres"] = music_streaming_data.schema[
+        "item_genres"
+    ].with_shape(((0, None), (4, 4)))
     schema = music_streaming_data.schema
     user_schema = schema.select_by_tag(Tags.USER)
     candidate_schema = schema.select_by_tag(Tags.ITEM)

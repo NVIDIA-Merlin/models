@@ -72,8 +72,7 @@
     {
       "name": "item_genres",
       "valueCount": {
-        "min": "4",
-        "max": "4"
+        "min": "4"
       },
       "type": "INT",
       "intDomain": {
