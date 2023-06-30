@@ -100,9 +100,10 @@ class TestCategoricalOutput:
         assert isinstance(categorical_output, mm.CategoricalOutput)
         assert isinstance(categorical_output.loss, nn.CrossEntropyLoss)
         assert sorted(m.__class__.__name__ for m in categorical_output.metrics) == [
-            "MulticlassAveragePrecision",
-            "MulticlassPrecision",
-            "MulticlassRecall",
+            "RetrievalHitRate",
+            "RetrievalNormalizedDCG",
+            "RetrievalPrecision",
+            "RetrievalRecall",
         ]
         output_schema = categorical_output[0].output_schema.first
         assert output_schema.dtype == md.float32
