@@ -30,6 +30,8 @@ from merlin.models.torch.utils.traversal_utils import TraversableMixin
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
 
+TensorOrDict = Union[torch.Tensor, Dict[str, torch.Tensor]]
+
 
 @runtime_checkable
 class HasKeys(Protocol):
@@ -53,9 +55,7 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
     def __init__(self, *module: nn.Module, name: Optional[str] = None):
         super().__init__(*module, name=name)
 
-    def forward(
-        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
-    ):
+    def forward(self, inputs: TensorOrDict, batch: Optional[Batch] = None):
         """
         Forward pass through the block. Applies each contained module sequentially on the input.
 
@@ -167,9 +167,7 @@ class ParallelBlock(Block):
         self.branches = branches
         self.post = post
 
-    def forward(
-        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
-    ):
+    def forward(self, inputs: TensorOrDict, batch: Optional[Batch] = None):
         """Forward pass through the block.
 
         The steps are as follows:
@@ -210,6 +208,8 @@ class ParallelBlock(Block):
                         raise RuntimeError(f"Duplicate output name: {key}")
 
                 outputs.update(branch_out)
+            elif torch.jit.isinstance(branch_out, Batch):
+                outputs.update(branch_out.flatten_as_dict(batch))
             else:
                 raise TypeError(
                     f"Branch output must be a tensor or a dictionary of tensors. Got {_inputs}"
@@ -572,6 +572,29 @@ class ShortcutBlock(Block):
             to_return[self.output_name] = output
 
         return to_return
+class BatchBlock(Block):
+    def forward(
+        self, inputs: Union[Batch, TensorOrDict], batch: Optional[Union[Batch, TensorOrDict]] = None
+    ) -> Batch:
+        if torch.jit.isinstance(inputs, Batch):
+            batch = inputs
+        # This allows the data-loader to pass in features, targets
+        elif torch.jit.isinstance(batch, torch.Tensor) or torch.jit.isinstance(
+            batch, Dict[str, torch.Tensor]
+        ):
+            batch = Batch(inputs, batch)
+        elif batch is None:
+            # Do we need logic to remove inputs that are not part of input-schema?
+            batch = Batch(inputs)
+
+        for module in self.values:
+            module_out = module(batch.features, batch=batch)
+            if torch.jit.isinstance(module_out, Batch):
+                batch = module_out
+            elif torch.jit.isinstance(module_out, Dict[str, torch.Tensor]):
+                batch = Batch.from_partial_dict(module_out, batch)
+
+        return batch
 
 
 def _validate_n(n: int) -> None:

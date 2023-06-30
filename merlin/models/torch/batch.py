@@ -277,6 +277,13 @@ class Batch:
 
         raise ValueError("Batch has multiple target, please specify a target name")
 
+    def flatten_as_dict(self, inputs: "Batch") -> Dict[str, torch.Tensor]:
+        raise NotImplementedError()
+
+    @staticmethod
+    def from_partial_dict(input: Dict[str, torch.Tensor], batch: "Batch") -> "Batch":
+        raise NotImplementedError()
+
     def __bool__(self) -> bool:
         return bool(self.features)
 
