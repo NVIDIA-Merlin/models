@@ -72,7 +72,8 @@
     {
       "name": "item_genres",
       "valueCount": {
-        "min": "4"
+        "min": "4",
+        "max": "4"
       },
       "type": "INT",
       "intDomain": {
@@ -98,7 +99,8 @@
       "annotation": {
         "tag": [
           "categorical",
-          "user_id"
+          "user_id",
+          "user"
         ]
       }
     },
