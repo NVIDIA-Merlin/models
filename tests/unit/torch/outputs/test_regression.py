@@ -30,7 +30,7 @@ class TestRegressionOutput:
 
         assert isinstance(reg_output, mm.RegressionOutput)
         assert isinstance(reg_output.loss, nn.MSELoss)
-        assert reg_output.metrics == (MeanSquaredError,)
+        assert reg_output.metrics == [MeanSquaredError()]
         assert reg_output.output_schema == Schema()
 
     def test_identity(self):

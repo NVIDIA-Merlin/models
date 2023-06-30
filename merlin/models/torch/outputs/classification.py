@@ -36,24 +36,22 @@ class BinaryOutput(ModelOutput):
         The metrics used for evaluation. Default includes Accuracy, AUROC, Precision, and Recall.
     """
 
+    DEFAULT_LOSS_CLS = nn.BCEWithLogitsLoss
+    DEFAULT_METRICS_CLS = (Accuracy, AUROC, Precision, Recall)
+
     def __init__(
         self,
         schema: Optional[ColumnSchema] = None,
-        loss: nn.Module = nn.BCEWithLogitsLoss(),
-        metrics: Sequence[Metric] = (
-            Accuracy(task="binary"),
-            AUROC(task="binary"),
-            Precision(task="binary"),
-            Recall(task="binary"),
-        ),
+        loss: Optional[nn.Module] = None,
+        metrics: Sequence[Metric] = (),
     ):
         """Initializes a BinaryOutput object."""
         super().__init__(
             nn.LazyLinear(1),
             nn.Sigmoid(),
             schema=schema,
-            loss=loss,
-            metrics=metrics,
+            loss=loss or self.DEFAULT_LOSS_CLS(),
+            metrics=metrics or [m(task="binary") for m in self.DEFAULT_METRICS_CLS],
         )
 
     def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
