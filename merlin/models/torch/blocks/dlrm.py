@@ -59,7 +59,7 @@ class DLRMInteraction(nn.Module):
      `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.
 
     This forward operation performs elementwise multiplication
-    of the embeddings followed by a reduction sum.
+    followed by a reduction sum (equivalent to a dot product) of all embedding pairs.
 
     {dlrm_reference}
 
