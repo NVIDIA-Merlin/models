@@ -48,7 +48,6 @@ class RegressionOutput(ModelOutput):
         """Initializes a RegressionOutput object."""
         super().__init__(
             nn.LazyLinear(1),
-            schema=schema,
             loss=loss or self.DEFAULT_LOSS_CLS(),
             metrics=metrics or [m() for m in self.DEFAULT_METRICS_CLS],
         )

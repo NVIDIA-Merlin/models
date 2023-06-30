@@ -52,7 +52,6 @@ class BinaryOutput(ModelOutput):
         super().__init__(
             nn.LazyLinear(1),
             nn.Sigmoid(),
-            schema=schema,
             loss=loss or self.DEFAULT_LOSS_CLS(),
             metrics=metrics or [m(task="binary") for m in self.DEFAULT_METRICS_CLS],
         )
