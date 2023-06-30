@@ -31,12 +31,12 @@ class TestBinaryOutput:
 
         assert isinstance(binary_output, mm.BinaryOutput)
         assert isinstance(binary_output.loss, nn.BCEWithLogitsLoss)
-        assert binary_output.metrics == (
+        assert binary_output.metrics == [
             Accuracy(task="binary"),
             AUROC(task="binary"),
             Precision(task="binary"),
             Recall(task="binary"),
-        )
+        ]
         assert binary_output.output_schema == Schema()
 
     def test_identity(self):
