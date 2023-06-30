@@ -143,7 +143,6 @@ class Stack(AggModule):
     dim : int
         The dimension along which the tensors will be stacked.
         Default is 0.
-    unsqeeze: bool
 
     Examples
     --------

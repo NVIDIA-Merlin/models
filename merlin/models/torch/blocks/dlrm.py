@@ -21,7 +21,7 @@ _DLRM_REF = """
 
 @docstring_parameter(dlrm_reference=_DLRM_REF)
 class DLRMInputBlock(TabularInputBlock):
-    """ "Input-block for DLRM model.
+    """Input block for DLRM model.
 
     Parameters
     ----------
@@ -130,6 +130,9 @@ class DLRMBlock(Block):
         interaction: nn.Module = DLRMInteraction(),
     ):
         super().__init__(DLRMInputBlock(schema, dim, bottom_block))
+
+        # link = ShortcutConcatContinuous() if "continuous" in self[0] else None
         self.append(Block(MaybeAgg(Stack(dim=1)), interaction), link=ShortcutConcatContinuous())
+
         if top_block:
             self.append(top_block)
