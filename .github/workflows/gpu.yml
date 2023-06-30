@@ -34,7 +34,7 @@ jobs:
           if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
               extra_pytest_markers="and changed"
           fi
-          cd ${{ github.workspace }}; PYTEST_MARKERS="unit and not (examples or integration or notebook) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-gpu
+          cd ${{ github.workspace }}; PYTEST_MARKERS="unit and not (examples or integration or notebook) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py310-gpu
 
   tests-examples:
     runs-on: 1GPU
@@ -55,4 +55,4 @@ jobs:
           if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
               extra_pytest_markers="and changed"
           fi
-          cd ${{ github.workspace }}; PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py38-gpu
+          cd ${{ github.workspace }}; PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e py310-gpu
