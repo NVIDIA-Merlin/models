@@ -25,7 +25,7 @@ class TestDLRMInputBlock:
         batch_size = 16
         batch = sample_batch(testing_data, batch_size=batch_size)
 
-        outputs = module_utils.module_test(block, batch.features)
+        outputs = module_utils.module_test(block, batch)
 
         for col in schema.select_by_tag(Tags.CATEGORICAL):
             assert outputs[col.name].shape == (batch_size, embedding_dim)
@@ -60,7 +60,7 @@ class TestDLRMBlock:
             bottom_block=mm.MLPBlock([embedding_dim]),
         )
 
-        outputs = module_utils.module_test(block, self.batch.features)
+        outputs = module_utils.module_test(block, self.batch)
 
         num_features = len(self.schema.select_by_tag(Tags.CATEGORICAL)) + 1
         dot_product_dim = (num_features - 1) * num_features // 2
@@ -76,7 +76,7 @@ class TestDLRMBlock:
             top_block=mm.MLPBlock([top_block_dim]),
         )
 
-        outputs = module_utils.module_test(block, self.batch.features)
+        outputs = module_utils.module_test(block, self.batch)
 
         assert list(outputs.shape) == [self.batch_size, top_block_dim]
 
@@ -91,22 +91,22 @@ class TestDLRMBlock:
                 bottom_block=mm.MLPBlock([embedding_dim]),
             )
 
-    def test_dlrm_block_no_continuous_features(self):
+    def test_dlrm_block_no_continuous_features(self, testing_data):
+        schema = testing_data.schema.remove_by_tag(Tags.CONTINUOUS)
+        testing_data.schema = schema
+
         embedding_dim = 32
         block = mm.DLRMBlock(
-            self.schema.remove_by_tag(Tags.CONTINUOUS),
+            schema,
             dim=embedding_dim,
             bottom_block=mm.MLPBlock([embedding_dim]),
         )
-        continuous_features = [col.name for col in self.schema.select_by_tag(Tags.CONTINUOUS)]
-        inputs = {
-            name: self.batch.features[name]
-            for name in sorted(self.batch.features)
-            if name not in continuous_features
-        }
 
-        outputs = module_utils.module_test(block, inputs)
+        batch_size = 16
+        batch = sample_batch(testing_data, batch_size=batch_size)
 
-        num_features = len(self.schema.select_by_tag(Tags.CATEGORICAL))
+        outputs = module_utils.module_test(block, batch)
+
+        num_features = len(schema.select_by_tag(Tags.CATEGORICAL))
         dot_product_dim = (num_features - 1) * num_features // 2
-        assert list(outputs.shape) == [self.batch_size, dot_product_dim]
+        assert list(outputs.shape) == [batch_size, dot_product_dim]
