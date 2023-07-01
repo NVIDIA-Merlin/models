@@ -60,4 +60,4 @@ jobs:
       - name: Run tests
         run: |
           merlin_branch="${{ steps.get-branch-name.outputs.branch }}"
-          MERLIN_BRANCH="$merlin_branch" GIT_COMMIT=$(git rev-parse HEAD) tox -e py38-transformers4rec-cpu
+          MERLIN_BRANCH="$merlin_branch" GIT_COMMIT=$(git rev-parse HEAD) tox -e transformers4rec-cpu
