@@ -30,6 +30,7 @@ class TestBlockContainer:
     def test_init(self):
         assert isinstance(self.block_container, BlockContainer)
         assert self.block_container._name == "test_container"
+        assert self.block_container != ""
 
     def test_append(self):
         module = nn.Linear(20, 30)
@@ -147,6 +148,7 @@ class TestBlockContainerDict:
         assert isinstance(self.container, BlockContainerDict)
         assert self.container._get_name() == "test"
         assert isinstance(self.container.unwrap()["test"], BlockContainer)
+        assert self.container != ""
 
     def test_empty(self):
         container = BlockContainerDict()

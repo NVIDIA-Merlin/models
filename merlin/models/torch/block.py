@@ -459,15 +459,31 @@ class ShortcutBlock(Block):
         self.output_name = output_name
 
     def forward(
-        self, inputs: torch.Tensor, batch: Optional[Batch] = None
+        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ) -> Dict[str, torch.Tensor]:
-        shortcut, output = inputs, inputs
+        if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
+            if self.shortcut_name not in inputs:
+                raise ValueError(f"Shortcut name {self.shortcut_name} not found in inputs {inputs}")
+            shortcut = inputs[self.shortcut_name]
+        else:
+            shortcut = inputs
+
+        output = inputs
         for module in self.values:
-            if getattr(module, "accepts_dict", False):
-                module_output = module(self._create_dict(shortcut, output), batch=batch)
+            if getattr(module, "accepts_dict", False) or hasattr(module, "values"):
+                if torch.jit.isinstance(output, Dict[str, torch.Tensor]):
+                    module_output = module(output, batch=batch)
+                else:
+                    to_pass: Dict[str, torch.Tensor] = {
+                        self.shortcut_name: shortcut,
+                        self.output_name: torch.jit.annotate(torch.Tensor, output),
+                    }
+
+                    module_output = module(to_pass, batch=batch)
+
                 if torch.jit.isinstance(module_output, torch.Tensor):
                     output = module_output
-                elif isinstance(module_output, Dict[str, torch.Tensor]):
+                elif torch.jit.isinstance(module_output, Dict[str, torch.Tensor]):
                     output = module_output[self.output_name]
                 else:
                     raise ValueError(
@@ -475,22 +491,19 @@ class ShortcutBlock(Block):
                         f"with key {self.output_name}",
                     )
             else:
+                if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]) and torch.jit.isinstance(
+                    output, Dict[str, torch.Tensor]
+                ):
+                    output = output[self.output_name]
                 output = module(output, batch=batch)
 
-        return self._create_dict(shortcut, output)
+        to_return = {self.shortcut_name: shortcut}
+        if torch.jit.isinstance(output, Dict[str, torch.Tensor]):
+            to_return.update(output)
+        else:
+            to_return[self.output_name] = output
 
-    def _create_dict(self, shortcut: torch.Tensor, output: torch.Tensor) -> Dict[str, torch.Tensor]:
-        return {self.shortcut_name: shortcut, self.output_name: output}
-
-
-class CrossBlock(Block):
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        x0 = inputs
-        current = inputs
-        for module in self.values:
-            current = x0 * module(current) + current
-
-        return current
+        return to_return
 
 
 def get_pre(module: nn.Module) -> BlockContainer:

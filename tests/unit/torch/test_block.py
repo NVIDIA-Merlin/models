@@ -314,3 +314,11 @@ class TestShortcutBlock:
         assert "shortcut" in output_dict
         assert torch.allclose(output_dict["output"], conv(input_tensor))
         assert torch.allclose(output_dict["shortcut"], input_tensor)
+
+    def test_nesting(self):
+        inputs = torch.rand(5, 5)
+        shortcut = ShortcutBlock(ShortcutBlock(PlusOne()))
+        output = module_utils.module_test(shortcut, inputs)
+
+        assert torch.equal(output["shortcut"], inputs)
+        assert torch.equal(output["output"], inputs + 1)
