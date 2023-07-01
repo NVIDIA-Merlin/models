@@ -110,8 +110,9 @@ class DLRMBlock(Block):
         Note that, the output dimensionality of this block must be equal to ``dim``.
     top_block : Block, optional
         An optional upper-level block of the model.
-    interaction : nn.Module, default=DLRMInteraction()
+    interaction : nn.Module, optional
         Interaction module for DLRM.
+        If not provided, DLRMInteraction will be used by default.
 
     {dlrm_reference}
 
@@ -127,12 +128,14 @@ class DLRMBlock(Block):
         dim: int,
         bottom_block: Block,
         top_block: Optional[Block] = None,
-        interaction: nn.Module = DLRMInteraction(),
+        interaction: Optional[nn.Module] = None,
     ):
         super().__init__(DLRMInputBlock(schema, dim, bottom_block))
 
-        # link = ShortcutConcatContinuous() if "continuous" in self[0] else None
-        self.append(Block(MaybeAgg(Stack(dim=1)), interaction), link=ShortcutConcatContinuous())
+        self.append(
+            Block(MaybeAgg(Stack(dim=1)), interaction or DLRMInteraction()),
+            link=ShortcutConcatContinuous(),
+        )
 
         if top_block:
             self.append(top_block)
