@@ -1,13 +1,13 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import torch
 from torch import nn
 
+from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import Block
 from merlin.models.torch.inputs.embedding import EmbeddingTables
 from merlin.models.torch.inputs.tabular import TabularInputBlock
-from merlin.models.torch.link import Link
-from merlin.models.torch.transforms.agg import MaybeAgg, Stack
+from merlin.models.torch.transforms.agg import Stack
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema, Tags
 
@@ -77,7 +77,7 @@ class DLRMInteraction(nn.Module):
         return interactions_flat
 
 
-class ShortcutConcatContinuous(Link):
+class InteractionBlock(Block):
     """
     A shortcut connection that concatenates
     continuous input features and intermediate outputs.
@@ -85,13 +85,28 @@ class ShortcutConcatContinuous(Link):
     When there's no continuous input, the intermediate output is returned.
     """
 
-    def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        intermediate_output = self.output(inputs)
+    def __init__(
+        self,
+        *module: nn.Module,
+        name: Optional[str] = None,
+        prepend_agg: bool = True,
+    ):
+        if prepend_agg:
+            module = (Stack(dim=1),) + module
+        super().__init__(*module, name=name)
 
-        if "continuous" in inputs:
-            return torch.cat((inputs["continuous"], intermediate_output), dim=1)
+    def forward(
+        self, inputs: Union[Dict[str, torch.Tensor], torch.Tensor], batch: Optional[Batch] = None
+    ) -> torch.Tensor:
+        outputs = inputs
+        for module in self.values:
+            outputs = module(outputs, batch)
 
-        return intermediate_output
+        if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
+            if "continuous" in inputs:
+                return torch.cat((inputs["continuous"], outputs), dim=1)
+
+        return outputs
 
 
 @docstring_parameter(dlrm_reference=_DLRM_REF)
@@ -131,11 +146,6 @@ class DLRMBlock(Block):
         interaction: Optional[nn.Module] = None,
     ):
         super().__init__(DLRMInputBlock(schema, dim, bottom_block))
-
-        self.append(
-            Block(MaybeAgg(Stack(dim=1)), interaction or DLRMInteraction()),
-            link=ShortcutConcatContinuous(),
-        )
-
+        self.append(InteractionBlock(interaction or DLRMInteraction()))
         if top_block:
             self.append(top_block)

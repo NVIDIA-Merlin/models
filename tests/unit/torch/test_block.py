@@ -20,9 +20,15 @@ import torch
 from torch import nn
 
 import merlin.models.torch as mm
-from merlin.models.torch import link
 from merlin.models.torch.batch import Batch
-from merlin.models.torch.block import Block, ParallelBlock, get_pre, set_pre
+from merlin.models.torch.block import (
+    Block,
+    ParallelBlock,
+    ResidualBlock,
+    ShortcutBlock,
+    get_pre,
+    set_pre,
+)
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Tags
@@ -63,8 +69,8 @@ class TestBlock:
 
         assert torch.equal(outputs, inputs + 2)
 
-        block.append(PlusOne(), link="residual")
-        assert isinstance(block[-1], link.Residual)
+        # block.append(PlusOne(), link="residual")
+        # assert isinstance(block[-1], link.Residual)
 
     def test_copy(self):
         block = Block(PlusOne())
@@ -89,18 +95,18 @@ class TestBlock:
         with pytest.raises(ValueError, match="n must be greater than 0"):
             block.repeat(0)
 
-    def test_repeat_with_link(self):
-        block = Block(PlusOne())
+    # def test_repeat_with_link(self):
+    #     block = Block(PlusOne())
 
-        repeated = block.repeat(2, link="residual")
-        assert isinstance(repeated, Block)
-        assert len(repeated) == 2
-        assert isinstance(repeated[-1], link.Residual)
+    #     repeated = block.repeat(2, link="residual")
+    #     assert isinstance(repeated, Block)
+    #     assert len(repeated) == 2
+    #     assert isinstance(repeated[-1], link.Residual)
 
-        inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
-        outputs = module_utils.module_test(repeated, inputs)
+    #     inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+    #     outputs = module_utils.module_test(repeated, inputs)
 
-        assert torch.equal(outputs, (inputs + 1) + (inputs + 1) + 1)
+    #     assert torch.equal(outputs, (inputs + 1) + (inputs + 1) + 1)
 
     def test_from_registry(self):
         @Block.registry.register("my_block")
@@ -282,3 +288,29 @@ class TestParallelBlock:
 
         assert input_schema == mm.schema.input(pb2)
         assert mm.schema.output(pb2) == mm.schema.output(pb)
+
+
+class TestResidualBlock:
+    def test_forward(self):
+        input_tensor = torch.randn(1, 3, 64, 64)
+        conv = nn.Conv2d(3, 3, kernel_size=3, padding=1)
+        residual = ResidualBlock(conv)
+
+        output_tensor = module_utils.module_test(residual, input_tensor)
+        expected_tensor = input_tensor + conv(input_tensor)
+
+        assert torch.allclose(output_tensor, expected_tensor)
+
+
+class TestShortcutBlock:
+    def test_forward(self):
+        input_tensor = torch.randn(1, 3, 64, 64)
+        conv = nn.Conv2d(3, 3, kernel_size=3, padding=1)
+        shortcut = ShortcutBlock(conv)
+
+        output_dict = module_utils.module_test(shortcut, input_tensor)
+
+        assert "output" in output_dict
+        assert "shortcut" in output_dict
+        assert torch.allclose(output_dict["output"], conv(input_tensor))
+        assert torch.allclose(output_dict["shortcut"], input_tensor)
