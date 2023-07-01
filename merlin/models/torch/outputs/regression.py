@@ -36,18 +36,21 @@ class RegressionOutput(ModelOutput):
         The metrics used for evaluation. Default is MeanSquaredError.
     """
 
+    DEFAULT_LOSS_CLS = nn.MSELoss
+    DEFAULT_METRICS_CLS = (MeanSquaredError,)
+
     def __init__(
         self,
         schema: Optional[ColumnSchema] = None,
-        loss: nn.Module = nn.MSELoss(),
-        metrics: Sequence[Metric] = (MeanSquaredError(),),
+        loss: Optional[nn.Module] = None,
+        metrics: Sequence[Metric] = (),
     ):
         """Initializes a RegressionOutput object."""
         super().__init__(
             nn.LazyLinear(1),
             schema=schema,
-            loss=loss,
-            metrics=metrics,
+            loss=loss or self.DEFAULT_LOSS_CLS(),
+            metrics=metrics or [m() for m in self.DEFAULT_METRICS_CLS],
         )
 
     def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):

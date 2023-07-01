@@ -17,7 +17,7 @@
 import inspect
 import textwrap
 from copy import deepcopy
-from typing import Dict, Optional, TypeVar, Union
+from typing import Dict, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import nn
@@ -27,11 +27,12 @@ from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
+from merlin.models.torch.utils.traversal_utils import TraversableMixin, leaf
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
 
 
-class Block(BlockContainer, RegistryMixin):
+class Block(BlockContainer, RegistryMixin, TraversableMixin):
     """A base-class that calls it's modules sequentially.
 
     Parameters
@@ -112,6 +113,15 @@ class Block(BlockContainer, RegistryMixin):
             The copy of the current block.
         """
         return deepcopy(self)
+
+    @torch.jit.ignore
+    def select(self, selection: schema.Selection) -> "Block":
+        return _select_block(self, selection)
+
+    @torch.jit.ignore
+    def extract(self, selection: schema.Selection) -> Tuple[nn.Module, nn.Module]:
+        selected = self.select(selection)
+        return _extract_block(self, selection, selected), selected
 
 
 class ParallelBlock(Block):
@@ -338,6 +348,19 @@ class ParallelBlock(Block):
 
         return output
 
+    def leaf(self) -> nn.Module:
+        if self.pre:
+            raise ValueError("Cannot call leaf() on a ParallelBlock with a pre-processing stage")
+
+        if len(self.branches) != 1:
+            raise ValueError("Cannot call leaf() on a ParallelBlock with multiple branches")
+
+        first = list(self.branches.values())[0]
+        if hasattr(first, "leaf"):
+            return first.leaf()
+
+        return leaf(first)
+
     def __getitem__(self, idx: Union[slice, int, str]):
         if isinstance(idx, str) and idx in self.branches:
             return self.branches[idx]
@@ -541,7 +564,7 @@ def _extract_parallel(main, selection, route, name=None):
 
 
 @schema.extract.register(BlockContainer)
-def _(main, selection, route, name=None):
+def _extract_block(main, selection, route, name=None):
     if isinstance(main, ParallelBlock):
         return _extract_parallel(main, selection, route=route, name=name)
 

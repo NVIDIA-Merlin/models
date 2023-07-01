@@ -1,5 +1,5 @@
 import abc
-import collections
+import collections.abc
 import copy
 from typing import Dict, List, Optional, Sequence, Union, overload
 
@@ -600,7 +600,7 @@ class Filter(TabularBlock):
     def select_by_tag(self, tags: Tags) -> Optional["Filter"]:
         if isinstance(self.feature_names, Tags):
             schema = self.schema.select_by_tag(self.feature_names).select_by_tag(tags)
-        elif isinstance(self.feature_names, collections.Sequence):
+        elif isinstance(self.feature_names, collections.abc.Sequence):
             schema = self.schema.select_by_name(self.feature_names).select_by_tag(tags)
         else:
             raise RuntimeError(
