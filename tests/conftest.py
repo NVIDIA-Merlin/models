@@ -20,6 +20,7 @@ from __future__ import absolute_import
 import platform
 import warnings
 from pathlib import Path
+from unittest.mock import patch
 
 import distributed
 import psutil
@@ -27,6 +28,7 @@ import pytest
 from asvdb import BenchmarkInfo, utils
 
 from merlin.core.utils import Distributed
+from merlin.dataloader.loader_base import LoaderBase
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 from merlin.models.utils import ci_utils
@@ -145,3 +147,17 @@ def get_benchmark_info():
         arch=uname.machine,
         ram="%d" % psutil.virtual_memory().total,
     )
+
+
+@pytest.fixture(scope="function", autouse=True)
+def cleanup_dataloader():
+    """After each test runs. Call .stop() on any dataloaders created during the test.
+    The avoids issues with background threads hanging around and interfering with subsequent tests.
+    This happens when a dataloader is partially consumed (not all batches are iterated through).
+    """
+    with patch.object(
+        LoaderBase, "__iter__", side_effect=LoaderBase.__iter__, autospec=True
+    ) as patched:
+        yield
+        for call in patched.call_args_list:
+            call.args[0].stop()
