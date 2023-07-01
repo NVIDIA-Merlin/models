@@ -322,3 +322,14 @@ class TestShortcutBlock:
 
         assert torch.equal(output["shortcut"], inputs)
         assert torch.equal(output["output"], inputs + 1)
+
+    def test_convert(self):
+        block = Block(PlusOne())
+        shortcut = ShortcutBlock(*block)
+
+        assert isinstance(shortcut[0], PlusOne)
+        inputs = torch.rand(5, 5)
+        assert torch.equal(
+            module_utils.module_test(shortcut, inputs)["output"],
+            module_utils.module_test(ShortcutBlock(PlusOne()), inputs)["output"],
+        )
