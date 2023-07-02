@@ -196,6 +196,11 @@ def compute_loss(
         else:
             raise ValueError(f"Unknown 'predictions' type: {type(predictions)}")
 
+        if _targets.size() != _predictions.size():
+            _targets = _targets.view(_predictions.size())
+        if _targets.type() != _predictions.type():
+            _targets = _targets.type_as(_predictions)
+
         results["loss"] = results["loss"] + model_out.loss(_predictions, _targets) / len(
             model_outputs
         )
