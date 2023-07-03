@@ -84,11 +84,14 @@ class PLEBlock(Block):
         depth: int,
         outputs: ParallelBlock,
     ):
-        cgc = CGCBlock(
-            expert, num_shared_experts, num_task_experts, outputs=outputs, shared_gate=True
-        )
-        super().__init__(*cgc.repeat(depth - 1))
-        self.append(CGCBlock(expert, num_shared_experts, num_task_experts, outputs=outputs))
+        cgc_kwargs = {
+            "expert": expert,
+            "num_shared_experts": num_shared_experts,
+            "num_task_experts": num_task_experts,
+            "outputs": outputs,
+        }
+        super().__init__(*CGCBlock(shared_gate=True, **cgc_kwargs).repeat(depth - 1))
+        self.append(CGCBlock(**cgc_kwargs))
 
 
 class CGCBlock(Block):
