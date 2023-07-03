@@ -43,7 +43,7 @@ jobs:
         uses: NVIDIA-Merlin/.github/actions/branch-name@6f0539fba24f60da2aee63c5925bee7cee3206e3
       - name: Run tests
         run: |
-          if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+          if [ "${{ github.ref }}" != 'refs/heads/main' ]; then
               extra_pytest_markers="and changed"
           fi
           merlin_branch="${{ steps.get-branch-name.outputs.branch }}"
@@ -123,7 +123,7 @@ jobs:
         uses: NVIDIA-Merlin/.github/actions/branch-name@6f0539fba24f60da2aee63c5925bee7cee3206e3
       - name: Run tests
         run: |
-          if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+          if [ "${{ github.ref }}" != 'refs/heads/main' ]; then
               extra_pytest_markers="and changed"
           fi
           merlin_branch="${{ steps.get-branch-name.outputs.branch }}"
