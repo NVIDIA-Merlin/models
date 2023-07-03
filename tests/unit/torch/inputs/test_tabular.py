@@ -71,7 +71,7 @@ class TestTabularInputBlock:
         assert set(mm.schema.input(towers).column_names) == input_cols
         assert mm.schema.output(towers).column_names == ["user", "item"]
 
-        categorical = mm.schema.select(towers, Tags.CATEGORICAL)
+        categorical = towers.select(Tags.CATEGORICAL)
         outputs = module_utils.module_test(towers, self.batch)
 
         assert mm.schema.extract(towers, Tags.CATEGORICAL)[1] == categorical
@@ -111,7 +111,7 @@ class TestTabularInputBlock:
         outputs = module_utils.module_test(input_block, self.batch)
         assert outputs.shape == (10, 107)
 
-        no_user_id, user_id_route = mm.schema.extract(input_block, ColumnSchema("user_id"))
+        no_user_id, user_id_route = input_block.extract(ColumnSchema("user_id"))
 
         assert no_user_id
 

@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import inspect
-from typing import Dict, List, Tuple, Type, TypeVar, Union
+from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -194,42 +194,6 @@ def _all_close_dict(left, right):
     for key in left.keys():
         if not torch.allclose(left[key], right[key]):
             raise ValueError("The outputs of the original and scripted modules are not the same")
-
-
-ToSearch = TypeVar("ToSearch", bound=Type[nn.Module])
-
-
-def find_all_instances(module: nn.Module, to_search: ToSearch) -> List[ToSearch]:
-    """
-    This function searches a given PyTorch module for all the child module that
-    matches a specific type of a module.
-
-    Parameters
-    ----------
-    module: nn.Module
-        The PyTorch module to search through.
-    to_search: ToSearch
-        The specific PyTorch module type or an instance to search for.
-
-    Returns
-    -------
-    List[ToSearch]
-        A list of all instances found in 'module' that match 'to_search'.
-    """
-    if isinstance(to_search, nn.Module):
-        to_search = type(to_search)
-
-    if isinstance(module, to_search):
-        return [module]
-    elif module == to_search:
-        return [module]
-
-    results = []
-    children = module.children()
-    for sub_module in children:
-        results.extend(find_all_instances(sub_module, to_search))
-
-    return results
 
 
 def initialize(module, data: Union[Dataset, Loader, Batch], dtype=torch.float32):

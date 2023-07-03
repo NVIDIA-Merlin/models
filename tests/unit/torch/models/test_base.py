@@ -134,11 +134,11 @@ class TestModel:
             mm.BinaryOutput(ColumnSchema("target")),
         )
 
-        feature = [[1.0, 2.0], [3.0, 4.0]]
-        target = [[0.0], [1.0]]
+        feature = [2.0, 3.0]
+        target = [0.0, 1.0]
         dataset = Dataset(pd.DataFrame({"feature": feature, "target": target}))
 
-        with Loader(dataset, batch_size=1) as loader:
+        with Loader(dataset, batch_size=2) as loader:
             model.initialize(loader)
             batch = loader.peek()
 

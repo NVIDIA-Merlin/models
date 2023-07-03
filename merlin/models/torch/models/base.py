@@ -108,7 +108,7 @@ class Model(LightningModule, Block):
 
     def model_outputs(self) -> List[ModelOutput]:
         """Finds all instances of `ModelOutput` in the model."""
-        return module_utils.find_all_instances(self, ModelOutput)
+        return self.find(ModelOutput)
 
     def first(self) -> nn.Module:
         """Returns the first block in the model."""

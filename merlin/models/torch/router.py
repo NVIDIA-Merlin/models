@@ -88,6 +88,9 @@ class RouterBlock(ParallelBlock):
         """
 
         routing_module = schema.select(self.selectable, selection)
+        if not routing_module:
+            return self
+
         if module is not None:
             schema.setup_schema(module, routing_module.schema)
 
@@ -100,6 +103,8 @@ class RouterBlock(ParallelBlock):
                 branch = module
         else:
             if self.prepend_routing_module:
+                if not routing_module:
+                    return self
                 branch = routing_module
             else:
                 raise ValueError("Must provide a module.")
