@@ -16,8 +16,11 @@ concurrency:
 jobs:
   gpu-ci:
     runs-on: linux-amd64-gpu-p100-latest-1
+    strategy:
+      matrix:
+        image: ["nvcr.io/nvidia/tensorflow:23.06-tf2-py3"]
     container:
-      image: nvcr.io/nvidia/tensorflow:23.06-tf2-py3
+      image: ${{ matrix.image }}
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
     steps:
@@ -31,6 +34,10 @@ jobs:
       - name: Install and upgrade python packages
         run: |
           python -m pip install --upgrade pip tox
+      - uses: actions/cache@v3
+        with:
+          path: .tox
+          key: tox-${{ matrix.image }}-${{ hashFiles('requirements/*.txt') }}
       - name: Get Branch name
         id: get-branch-name
         uses: NVIDIA-Merlin/.github/actions/branch-name@6f0539fba24f60da2aee63c5925bee7cee3206e3
@@ -63,7 +70,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.8
-          cache: "pip"
+      - uses: actions/cache@v3
+        with:
+          path: .tox
+          key: tox-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements/*.txt') }}
       - name: Install and upgrade python packages
         run: |
           python -m pip install --upgrade pip tox
@@ -99,7 +109,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.8
-          cache: "pip"
+      - uses: actions/cache@v3
+        with:
+          path: .tox
+          key: tox-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements/*.txt') }}          
       - name: Install and upgrade python packages
         run: |
           python -m pip install --upgrade pip tox
