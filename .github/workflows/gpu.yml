@@ -33,7 +33,7 @@ jobs:
           python -m pip install --upgrade pip tox
       - name: Get Branch name
         id: get-branch-name
-        uses: NVIDIA-Merlin/.github/actions/branch-name@branch-name-pull-request
+        uses: NVIDIA-Merlin/.github/actions/branch-name@6f0539fba24f60da2aee63c5925bee7cee3206e3
       - name: Run tests
         run: |
           if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
@@ -69,7 +69,7 @@ jobs:
           python -m pip install --upgrade pip tox
       - name: Get Branch name
         id: get-branch-name
-        uses: NVIDIA-Merlin/.github/actions/branch-name@branch-name-pull-request
+        uses: NVIDIA-Merlin/.github/actions/branch-name@6f0539fba24f60da2aee63c5925bee7cee3206e3
       - name: Run tests
         run: |
           if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
