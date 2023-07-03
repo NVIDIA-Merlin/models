@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import collections
+import collections.abc
 import inspect
 from copy import deepcopy
 from dataclasses import dataclass
@@ -268,7 +268,7 @@ class EmbeddingTable(EmbeddingTableBase):
         -------
         An EmbeddingTable if the tags match. If no features match, it returns None.
         """
-        if not isinstance(tags, collections.Sequence):
+        if not isinstance(tags, collections.abc.Sequence):
             tags = [tags]
 
         selected_schema = self.schema.select_by_tag(tags)
