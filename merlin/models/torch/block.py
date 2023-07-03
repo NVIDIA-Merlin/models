@@ -25,9 +25,8 @@ from torch import nn
 from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
-from merlin.models.torch.link import Link, LinkType
 from merlin.models.torch.registry import registry
-from merlin.models.torch.utils.traversal_utils import TraversableMixin, leaf
+from merlin.models.torch.utils.traversal_utils import TraversableMixin
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
 
@@ -41,8 +40,6 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
         Variable length argument list of PyTorch modules to be contained in the block.
     name : Optional[str], default = None
         The name of the block. If None, no name is assigned.
-    track_schema : bool, default = True
-        If True, the schema of the output tensors are tracked.
     """
 
     registry = registry
@@ -73,7 +70,7 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
 
         return inputs
 
-    def repeat(self, n: int = 1, link: Optional[LinkType] = None, name=None) -> "Block":
+    def repeat(self, n: int = 1, name=None) -> "Block":
         """
         Creates a new block by repeating the current block `n` times.
         Each repetition is a deep copy of the current block.
@@ -97,9 +94,6 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
             raise ValueError("n must be greater than 0")
 
         repeats = [self.copy() for _ in range(n - 1)]
-        if link:
-            parsed_link = Link.parse(link)
-            repeats = [parsed_link.copy().setup_link(repeat) for repeat in repeats]
 
         return Block(self, *repeats, name=name)
 
@@ -221,7 +215,7 @@ class ParallelBlock(Block):
 
         return outputs
 
-    def append(self, module: nn.Module, link: Optional[LinkType] = None):
+    def append(self, module: nn.Module):
         """Appends a module to the post-processing stage.
 
         Parameters
@@ -235,7 +229,7 @@ class ParallelBlock(Block):
             The current object itself.
         """
 
-        self.post.append(module, link=link)
+        self.post.append(module)
 
         return self
 
@@ -244,7 +238,7 @@ class ParallelBlock(Block):
 
         return self
 
-    def append_to(self, name: str, module: nn.Module, link: Optional[LinkType] = None):
+    def append_to(self, name: str, module: nn.Module):
         """Appends a module to a specified branch.
 
         Parameters
@@ -260,11 +254,11 @@ class ParallelBlock(Block):
             The current object itself.
         """
 
-        self.branches[name].append(module, link=link)
+        self.branches[name].append(module)
 
         return self
 
-    def prepend_to(self, name: str, module: nn.Module, link: Optional[LinkType] = None):
+    def prepend_to(self, name: str, module: nn.Module):
         """Prepends a module to a specified branch.
 
         Parameters
@@ -279,11 +273,11 @@ class ParallelBlock(Block):
         ParallelBlock
             The current object itself.
         """
-        self.branches[name].prepend(module, link=link)
+        self.branches[name].prepend(module)
 
         return self
 
-    def append_for_each(self, module: nn.Module, shared=False, link: Optional[LinkType] = None):
+    def append_for_each(self, module: nn.Module, shared=False):
         """Appends a module to each branch.
 
         Parameters
@@ -300,11 +294,11 @@ class ParallelBlock(Block):
             The current object itself.
         """
 
-        self.branches.append_for_each(module, shared=shared, link=link)
+        self.branches.append_for_each(module, shared=shared)
 
         return self
 
-    def prepend_for_each(self, module: nn.Module, shared=False, link: Optional[LinkType] = None):
+    def prepend_for_each(self, module: nn.Module, shared=False):
         """Prepends a module to each branch.
 
         Parameters
@@ -321,7 +315,7 @@ class ParallelBlock(Block):
             The current object itself.
         """
 
-        self.branches.prepend_for_each(module, shared=shared, link=link)
+        self.branches.prepend_for_each(module, shared=shared)
 
         return self
 
@@ -356,10 +350,7 @@ class ParallelBlock(Block):
             raise ValueError("Cannot call leaf() on a ParallelBlock with multiple branches")
 
         first = list(self.branches.values())[0]
-        if hasattr(first, "leaf"):
-            return first.leaf()
-
-        return leaf(first)
+        return first.leaf()
 
     def __getitem__(self, idx: Union[slice, int, str]):
         if isinstance(idx, str) and idx in self.branches:
@@ -413,6 +404,167 @@ class ParallelBlock(Block):
             return f"{self._get_name()}({output}\n)"
 
         return self._get_name() + branches
+
+
+class ResidualBlock(Block):
+    """
+    A block that applies each contained module sequentially on the input
+    and performs a residual connection after each module.
+
+    Parameters
+    ----------
+    *module : nn.Module
+        Variable length argument list of PyTorch modules to be contained in the block.
+    name : Optional[str], default = None
+        The name of the block. If None, no name is assigned.
+
+    """
+
+    def forward(self, inputs: torch.Tensor, batch: Optional[Batch] = None):
+        """
+        Forward pass through the block. Applies each contained module sequentially on the input.
+
+        Parameters
+        ----------
+        inputs : Union[torch.Tensor, Dict[str, torch.Tensor]]
+            The input data as a tensor or a dictionary of tensors.
+        batch : Optional[Batch], default = None
+            Optional batch of data. If provided, it is used by the `module`s.
+
+        Returns
+        -------
+        torch.Tensor or Dict[str, torch.Tensor]
+            The output of the block after processing the input.
+        """
+        shortcut, outputs = inputs, inputs
+        for module in self.values:
+            outputs = shortcut + module(outputs, batch=batch)
+
+        return outputs
+
+
+class ShortcutBlock(Block):
+    """
+    A block with a 'shortcut' or a 'skip connection'.
+
+    The shortcut tensor can be propagated through the layers of the module or not,
+    depending on the value of `propagate_shortcut` argument:
+        If `propagate_shortcut` is True, the shortcut tensor is passed through
+        each layer of the module.
+        If `propagate_shortcut` is False, the shortcut tensor is only used as part of
+        the final output dictionary.
+
+    Example usage::
+        >>> shortcut = mm.ShortcutBlock(nn.Identity())
+        >>> shortcut(torch.ones(1, 1))
+            {'shortcut': tensor([[1.]]), 'output': tensor([[1.]])}
+
+    Parameters
+    ----------
+    *module : nn.Module
+        Variable length argument list of PyTorch modules to be contained in the block.
+    name : str, optional
+        The name of the module, by default None.
+    propagate_shortcut : bool, optional
+        If True, propagates the shortcut tensor through the layers of this block, by default False.
+    shortcut_name : str, optional
+        The name to use for the shortcut tensor, by default "shortcut".
+    output_name : str, optional
+        The name to use for the output tensor, by default "output".
+    """
+
+    def __init__(
+        self,
+        *module: nn.Module,
+        name: Optional[str] = None,
+        propagate_shortcut: bool = False,
+        shortcut_name: str = "shortcut",
+        output_name: str = "output",
+    ):
+        super().__init__(*module, name=name)
+        self.shortcut_name = shortcut_name
+        self.output_name = output_name
+        self.propagate_shortcut = propagate_shortcut
+
+    def forward(
+        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Defines the forward propagation of the module.
+
+        Parameters
+        ----------
+        inputs : Union[torch.Tensor, Dict[str, torch.Tensor]]
+            The input tensor or a dictionary of tensors.
+        batch : Batch, optional
+            A batch of inputs, by default None.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            The output tensor as a dictionary.
+
+        Raises
+        ------
+        RuntimeError
+            If the shortcut name is not found in the input dictionary, or
+            if the module does not return a tensor or a dictionary with a key 'output_name'.
+        """
+
+        if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
+            if self.shortcut_name not in inputs:
+                raise RuntimeError(
+                    f"Shortcut name {self.shortcut_name} not found in inputs {inputs}"
+                )
+            shortcut = inputs[self.shortcut_name]
+        else:
+            shortcut = inputs
+
+        output = inputs
+        for module in self.values:
+            if self.propagate_shortcut:
+                if torch.jit.isinstance(output, Dict[str, torch.Tensor]):
+                    module_output = module(output, batch=batch)
+                else:
+                    to_pass: Dict[str, torch.Tensor] = {
+                        self.shortcut_name: shortcut,
+                        self.output_name: torch.jit.annotate(torch.Tensor, output),
+                    }
+
+                    module_output = module(to_pass, batch=batch)
+
+                if torch.jit.isinstance(module_output, torch.Tensor):
+                    output = module_output
+                elif torch.jit.isinstance(module_output, Dict[str, torch.Tensor]):
+                    output = module_output[self.output_name]
+                else:
+                    raise RuntimeError(
+                        f"Module {module} must return a tensor or a dict ",
+                        f"with key {self.output_name}",
+                    )
+            else:
+                if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]) and torch.jit.isinstance(
+                    output, Dict[str, torch.Tensor]
+                ):
+                    output = output[self.output_name]
+                _output = module(output, batch=batch)
+                if torch.jit.isinstance(_output, torch.Tensor) or torch.jit.isinstance(
+                    _output, Dict[str, torch.Tensor]
+                ):
+                    output = _output
+                else:
+                    raise RuntimeError(
+                        f"Module {module} must return a tensor or a dict ",
+                        f"with key {self.output_name}",
+                    )
+
+        to_return = {self.shortcut_name: shortcut}
+        if torch.jit.isinstance(output, Dict[str, torch.Tensor]):
+            to_return.update(output)
+        else:
+            to_return[self.output_name] = output
+
+        return to_return
 
 
 def get_pre(module: nn.Module) -> BlockContainer:
