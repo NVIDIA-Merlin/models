@@ -4,6 +4,7 @@ import pytest
 import torch
 from torch import nn
 
+import merlin.models.torch as mm
 from merlin.models.torch.blocks.cross import CrossBlock, LazyMirrorLinear
 from merlin.models.torch.utils import module_utils
 
@@ -74,6 +75,19 @@ class TestCrossBlock:
         input = torch.randn(5, 10)
         output = module_utils.module_test(crossblock, input)
         assert output.shape == (5, 10)
+
+    def test_with_low_rank(self):
+        crossblock = CrossBlock.with_low_rank(depth=2, low_rank=mm.MLPBlock([5]))
+        assert len(crossblock) == 2
+
+        input = torch.randn(5, 10)
+        output = module_utils.module_test(crossblock, input)
+        assert output.shape == (5, 10)
+
+        assert crossblock[0][0][1].in_features == 10
+        assert crossblock[0][0][1].out_features == 5
+        assert crossblock[0][1].in_features == 5
+        assert crossblock[0][1].out_features == 10
 
     def test_exception(self):
         class ToTuple(nn.Module):
