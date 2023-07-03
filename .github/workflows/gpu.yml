@@ -18,7 +18,7 @@ jobs:
     runs-on: linux-amd64-gpu-p100-latest-1
     strategy:
       matrix:
-        image: ["nvcr.io/nvidia/tensorflow:23.06-tf2-py3"]
+        image: ["nvcr.io/nvidia/tensorflow:23.02-tf2-py3", "nvcr.io/nvidia/tensorflow:23.04-tf2-py3", "nvcr.io/nvidia/tensorflow:23.06-tf2-py3"]
     container:
       image: ${{ matrix.image }}
       env:
