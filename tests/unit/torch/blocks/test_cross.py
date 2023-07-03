@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import nn
 
-from merlin.models.torch.blocks.cross import CrossBlock, CrossLink, LazyMirrorLinear
+from merlin.models.torch.blocks.cross import CrossBlock, LazyMirrorLinear
 from merlin.models.torch.utils import module_utils
 
 
@@ -39,44 +39,36 @@ class TestLazyMirrorLinear:
         assert output.shape == (10, 20)
 
 
-class TestCrossLink:
-    def test_exception(self):
-        with pytest.raises(TypeError):
-            CrossLink(0)
-
-        with pytest.raises(TypeError):
-            CrossLink(nn.Linear(10, 10))
-
-
 class TestCrossBlock:
-    def test_init(self):
-        crossblock = CrossBlock(depth=1)
-        assert len(crossblock) == 2
-        assert len(crossblock[1].output) == 1
+    def test_with_depth(self):
+        crossblock = CrossBlock.with_depth(depth=1)
+        assert len(crossblock) == 1
+        assert isinstance(crossblock[0][0], LazyMirrorLinear)
 
-    def test_init_multiple_depth(self):
-        crossblock = CrossBlock(depth=3)
-        assert len(crossblock) == 2
-        assert len(crossblock[1].output) == 3
+    def test_with_multiple_depth(self):
+        crossblock = CrossBlock.with_depth(depth=3)
+        assert len(crossblock) == 3
+        for module in crossblock:
+            assert isinstance(module[0], LazyMirrorLinear)
 
     def test_crossblock_invalid_depth(self):
         with pytest.raises(ValueError):
-            CrossBlock(depth=0)
+            CrossBlock.with_depth(depth=0)
 
     def test_forward_tensor(self):
-        crossblock = CrossBlock(depth=1)
+        crossblock = CrossBlock.with_depth(depth=1)
         input = torch.randn(5, 10)
         output = module_utils.module_test(crossblock, input)
         assert output.shape == (5, 10)
 
     def test_forward_dict(self):
-        crossblock = CrossBlock(depth=1)
+        crossblock = CrossBlock.with_depth(depth=1)
         inputs = {"a": torch.randn(5, 10), "b": torch.randn(5, 10)}
         output = module_utils.module_test(crossblock, inputs)
         assert output.shape == (5, 20)
 
     def test_forward_multiple_depth(self):
-        crossblock = CrossBlock(depth=3)
+        crossblock = CrossBlock.with_depth(depth=3)
         input = torch.randn(5, 10)
         output = module_utils.module_test(crossblock, input)
         assert output.shape == (5, 10)

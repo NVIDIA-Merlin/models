@@ -1,10 +1,11 @@
+from typing import Dict, Optional, Union
+
 import torch
 from torch import nn
 from torch.nn.modules.lazy import LazyModuleMixin
 
 from merlin.models.torch.block import Block
-from merlin.models.torch.link import Link
-from merlin.models.torch.transforms.agg import Concat, MaybeAgg
+from merlin.models.torch.transforms.agg import Concat
 from merlin.models.utils.doc_utils import docstring_parameter
 
 _DCNV2_REF = """
@@ -58,22 +59,6 @@ class LazyMirrorLinear(LazyModuleMixin, nn.Linear):
                 self.reset_parameters()
 
 
-class CrossLink(Link):
-    def setup_link(self, output: Block) -> "Link":
-        if not isinstance(output, Block):
-            raise TypeError(f"`output` must be a Block, got {type(output)}")
-
-        return super().setup_link(output)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x0 = x
-        current = x
-        for module in self.output.values:
-            current = x0 * module(current) + current
-
-        return current
-
-
 @docstring_parameter(dcn_reference=_DCNV2_REF)
 class CrossBlock(Block):
     """
@@ -89,10 +74,30 @@ class CrossBlock(Block):
     {dcn_reference}
     """
 
-    def __init__(self, depth: int = 1):
+    def __init__(self, *module, name: Optional[str] = None):
+        super().__init__(*module, name=name)
+        self.concat = Concat()
+
+    @classmethod
+    def with_depth(cls, depth: int):
         if not depth > 0:
             raise ValueError(f"`depth` must be greater than 0, got {depth}")
 
-        super().__init__(MaybeAgg(Concat()))
-        # TODO: Add possibility for the low-rank approach (see paper)
-        self.append(Block(LazyMirrorLinear()).repeat(depth), link=CrossLink())
+        return cls(*Block(LazyMirrorLinear()).repeat(depth))
+
+    def forward(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]]) -> torch.Tensor:
+        if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
+            x = self.concat(inputs)
+        else:
+            x = inputs
+
+        x0 = x
+        current = x
+        for module in self.values:
+            module_out = module(current)
+            if not isinstance(module_out, torch.Tensor):
+                raise RuntimeError("CrossBlock expects a Tensor as output")
+
+            current = x0 * module_out + current
+
+        return current
