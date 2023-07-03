@@ -23,7 +23,7 @@ from torchmetrics import AUROC, Accuracy, Precision, Recall
 import merlin.models.torch as mm
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
-from merlin.models.torch.batch import Batch
+from merlin.models.torch.batch import Batch, sample_batch
 from merlin.models.torch.models.base import compute_loss
 from merlin.models.torch.utils import module_utils
 from merlin.schema import ColumnSchema
@@ -201,8 +201,10 @@ class TestModel:
         with pytest.raises(ValueError, match="Could not get output schema of PlusOne()"):
             mm.schema.output(model)
 
-    def test_train_classification_with_lightning_trainer(self, music_streaming_data):
-        schema = music_streaming_data.schema.without(["user_genres", "like", "item_genres"])
+    def test_train_classification_with_lightning_trainer(self, music_streaming_data, batch_size=16):
+        schema = music_streaming_data.schema.select_by_name(
+            ["item_id", "user_id", "user_age", "item_genres", "click"]
+        )
         music_streaming_data.schema = schema
 
         model = mm.Model(
@@ -211,14 +213,17 @@ class TestModel:
             mm.BinaryOutput(schema.select_by_name("click").first),
         )
 
-        trainer = pl.Trainer(max_epochs=1)
+        trainer = pl.Trainer(max_epochs=1, devices=1)
 
-        with Loader(music_streaming_data, batch_size=16) as loader:
+        with Loader(music_streaming_data, batch_size=batch_size) as loader:
             model.initialize(loader)
             trainer.fit(model, loader)
 
         assert trainer.logged_metrics["train_loss"] > 0.0
         assert trainer.num_training_batches == 7  # 100 rows // 16 per batch + 1 for last batch
+
+        batch = sample_batch(music_streaming_data, batch_size)
+        _ = module_utils.module_test(model, batch)
 
 
 class TestComputeLoss:
