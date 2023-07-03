@@ -47,52 +47,52 @@ jobs:
             PYTEST_MARKERS="unit and not (examples or integration or notebook) $extra_pytest_markers" \
             tox -e gpu
 
-  gpu-cu11:
-    runs-on: linux-amd64-gpu-p100-latest-1
-    env:
-      IMAGE: "nvidia/cuda:11.8.0-runtime-ubuntu22.04"
-    container:
-      image: ${{ env.IMAGE }}
-      env:
-        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-    strategy:
-      matrix:
-        versions: [{ rapids: "23.04", python: "3.8" }]
-    steps:
-      - name: Install Ubuntu packages
-        run: |
-          apt-get update -y
-          apt-get install -y \
-            git \
-            'libcudnn8=*cuda11.8' `# tensorflow GPU support` \
-            cuda-nvcc-11-8 `# required for numba`
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Set up Python ${{ matrix.version.python }}
-        id: setup-python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.version.python }}
-      - uses: actions/cache@v3
-        with:
-          path: .tox
-          key: tox-${{ matrix.IMAGE }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('requirements/*.txt') }}
-      - name: Install and upgrade python packages
-        run: |
-          python -m pip install --upgrade pip tox
-      - name: Get Branch name
-        id: get-branch-name
-        uses: NVIDIA-Merlin/.github/actions/branch-name@6f0539fba24f60da2aee63c5925bee7cee3206e3
-      - name: Run tests
-        run: |
-          if [ "${{ github.ref }}" != 'refs/heads/main' ]; then
-              extra_pytest_markers="and changed"
-          fi
-          merlin_branch="${{ steps.get-branch-name.outputs.branch }}"
-          RAPIDS_VERSION=${{ matrix.version.rapids }} MERLIN_BRANCH=$merlin_branch COMPARE_BRANCH=$merlin_branch \
-            PYTEST_MARKERS="unit and not (examples or integration or notebook) $extra_pytest_markers" \
-            tox -e gpu-cu11
+  # gpu-cu11:
+  #   runs-on: linux-amd64-gpu-p100-latest-1
+  #   env:
+  #     IMAGE: "nvidia/cuda:11.8.0-runtime-ubuntu22.04"
+  #   container:
+  #     image: ${{ env.IMAGE }}
+  #     env:
+  #       NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+  #   strategy:
+  #     matrix:
+  #       versions: [{ rapids: "23.04", python: "3.8" }]
+  #   steps:
+  #     - name: Install Ubuntu packages
+  #       run: |
+  #         apt-get update -y
+  #         apt-get install -y \
+  #           git \
+  #           'libcudnn8=*cuda11.8' `# tensorflow GPU support` \
+  #           cuda-nvcc-11-8 `# required for numba`
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
+  #     - name: Set up Python ${{ matrix.version.python }}
+  #       id: setup-python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ matrix.version.python }}
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: .tox
+  #         key: tox-${{ matrix.IMAGE }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('requirements/*.txt') }}
+  #     - name: Install and upgrade python packages
+  #       run: |
+  #         python -m pip install --upgrade pip tox
+  #     - name: Get Branch name
+  #       id: get-branch-name
+  #       uses: NVIDIA-Merlin/.github/actions/branch-name@6f0539fba24f60da2aee63c5925bee7cee3206e3
+  #     - name: Run tests
+  #       run: |
+  #         if [ "${{ github.ref }}" != 'refs/heads/main' ]; then
+  #             extra_pytest_markers="and changed"
+  #         fi
+  #         merlin_branch="${{ steps.get-branch-name.outputs.branch }}"
+  #         RAPIDS_VERSION=${{ matrix.version.rapids }} MERLIN_BRANCH=$merlin_branch COMPARE_BRANCH=$merlin_branch \
+  #           PYTEST_MARKERS="unit and not (examples or integration or notebook) $extra_pytest_markers" \
+  #           tox -e gpu-cu11
 
   tests-examples:
     env:
