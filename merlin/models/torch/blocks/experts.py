@@ -1,8 +1,9 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import torch
 from torch import nn
 
+from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import (
     Block,
     ParallelBlock,
@@ -17,9 +18,8 @@ class MMOEBlock(Block):
     def __init__(
         self, expert: nn.Module, num_experts: int, outputs: Optional[ParallelBlock] = None
     ):
-        super().__init__(
-            ShortcutBlock(repeat_parallel(expert, num_experts, agg="stack"), output_name="experts")
-        )
+        experts = repeat_parallel(expert, num_experts, agg=Stack(dim=1))
+        super().__init__(ShortcutBlock(experts, output_name="experts"))
         if isinstance(outputs, ParallelBlock):
             self.append(repeat_parallel_like(ExpertGateBlock(len(outputs)), outputs))
         else:
@@ -51,18 +51,15 @@ class CGCBlock(Block):
         outputs: ParallelBlock,
         shared_gate: bool = False,
     ):
-        super().__init__(
-            ShortcutBlock(
-                repeat_parallel(expert, num_shared_experts, agg="stack"), output_name="experts"
-            )
-        )
+        shared_experts = repeat_parallel(expert, num_shared_experts, agg="stack")
+        super().__init__(ShortcutBlock(shared_experts, output_name="experts"))
 
         gates = ParallelBlock()
-        for key in outputs.branches:
-            gates[key] = PLEExpertGateBlock(
+        for name in outputs.branches:
+            gates[name] = PLEExpertGateBlock(
                 len(outputs),
                 experts=repeat_parallel(expert, num_task_experts, agg="stack"),
-                name=key,
+                name=name,
             )
         if shared_gate:
             gates["experts"] = ExpertGateBlock(len(outputs))
@@ -74,11 +71,16 @@ class ExpertGateBlock(Block):
     def __init__(self, num_outputs: int):
         super().__init__(GateBlock(num_outputs))
 
-    def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(
+        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
+    ) -> torch.Tensor:
+        if torch.jit.isinstance(inputs, torch.Tensor):
+            raise RuntimeError("ExpertGateBlock requires a dictionary input")
+
         experts = inputs["experts"]
         outputs = inputs["shortcut"]
         for module in self.values:
-            outputs = module(outputs)
+            outputs = module(outputs, batch=batch)
 
         gated = outputs.expand_as(experts)
 
@@ -93,8 +95,10 @@ class PLEExpertGateBlock(Block):
         self.experts = experts
         self.task_name = name
 
-    def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        task_experts = self.experts(inputs["shortcut"])
+    def forward(
+        self, inputs: Dict[str, torch.Tensor], batch: Optional[Batch] = None
+    ) -> torch.Tensor:
+        task_experts = self.experts(inputs["shortcut"], batch=batch)
         experts = self.stack({"experts": inputs["experts"], "task_experts": task_experts})
         task = inputs[self.name] if self.name in inputs else inputs["shortcut"]
 
