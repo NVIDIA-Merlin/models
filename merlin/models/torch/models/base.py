@@ -196,10 +196,10 @@ def compute_loss(
         else:
             raise ValueError(f"Unknown 'predictions' type: {type(predictions)}")
 
-        if _targets.shape != _predictions.shape:
-            _targets = _targets.view(_predictions.shape)
-        if _targets.dtype != _predictions.dtype:
-            _targets = _targets.to(dtype=_predictions.dtype)
+        if _targets.size() != _predictions.size():
+            _targets = _targets.view(_predictions.size())
+        if _targets.type() != _predictions.type():
+            _targets = _targets.type_as(_predictions)
 
         results["loss"] = results["loss"] + model_out.loss(_predictions, _targets) / len(
             model_outputs
