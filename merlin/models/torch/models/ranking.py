@@ -9,14 +9,7 @@ from merlin.models.torch.outputs.tabular import TabularOutputBlock
 from merlin.schema import Schema
 
 
-def DLRMModel(
-    schema: Schema,
-    dim: int,
-    bottom_block: Block,
-    top_block: Optional[Block] = None,
-    interaction: Optional[nn.Module] = None,
-    output_block: Optional[Block] = None,
-) -> Model:
+class DLRMModel(Model):
     """
     The Deep Learning Recommendation Model (DLRM) as proposed in Naumov, et al. [1]
 
@@ -59,17 +52,25 @@ def DLRMModel(
     [1] Naumov, Maxim, et al. "Deep learning recommendation model for
         personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
     """
-    if output_block is None:
-        output_block = TabularOutputBlock(schema, init="defaults")
 
-    dlrm_body = DLRMBlock(
-        schema,
-        dim,
-        bottom_block,
-        top_block=top_block,
-        interaction=interaction,
-    )
+    def __init__(
+        self,
+        schema: Schema,
+        dim: int,
+        bottom_block: Block,
+        top_block: Optional[Block] = None,
+        interaction: Optional[nn.Module] = None,
+        output_block: Optional[Block] = None,
+    ) -> None:
+        if output_block is None:
+            output_block = TabularOutputBlock(schema, init="defaults")
 
-    model = Model(dlrm_body, output_block)
+        dlrm_body = DLRMBlock(
+            schema,
+            dim,
+            bottom_block,
+            top_block=top_block,
+            interaction=interaction,
+        )
 
-    return model
+        super().__init__(dlrm_body, output_block)
