@@ -17,7 +17,7 @@
 import inspect
 import textwrap
 from copy import deepcopy
-from typing import Dict, Optional, Tuple, TypeVar, Union
+from typing import Dict, Final, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import nn
@@ -26,7 +26,7 @@ from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.registry import registry
-from merlin.models.torch.utils.traversal_utils import TraversableMixin, leaf
+from merlin.models.torch.utils.traversal_utils import TraversableMixin
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
 
@@ -43,6 +43,7 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
     """
 
     registry = registry
+    is_block: Final[bool] = True
 
     def __init__(self, *module: nn.Module, name: Optional[str] = None):
         super().__init__(*module, name=name)
@@ -350,10 +351,7 @@ class ParallelBlock(Block):
             raise ValueError("Cannot call leaf() on a ParallelBlock with multiple branches")
 
         first = list(self.branches.values())[0]
-        if hasattr(first, "leaf"):
-            return first.leaf()
-
-        return leaf(first)
+        return first.leaf()
 
     def __getitem__(self, idx: Union[slice, int, str]):
         if isinstance(idx, str) and idx in self.branches:
@@ -451,26 +449,30 @@ class ShortcutBlock(Block):
         self,
         *module: nn.Module,
         name: Optional[str] = None,
+        propagate_shortcut: bool = False,
         shortcut_name: str = "shortcut",
         output_name: str = "output",
     ):
         super().__init__(*module, name=name)
         self.shortcut_name = shortcut_name
         self.output_name = output_name
+        self.propagate_shortcut = propagate_shortcut
 
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ) -> Dict[str, torch.Tensor]:
         if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
             if self.shortcut_name not in inputs:
-                raise ValueError(f"Shortcut name {self.shortcut_name} not found in inputs {inputs}")
+                raise RuntimeError(
+                    f"Shortcut name {self.shortcut_name} not found in inputs {inputs}"
+                )
             shortcut = inputs[self.shortcut_name]
         else:
             shortcut = inputs
 
         output = inputs
         for module in self.values:
-            if getattr(module, "accepts_dict", False) or hasattr(module, "values"):
+            if self.propagate_shortcut:
                 if torch.jit.isinstance(output, Dict[str, torch.Tensor]):
                     module_output = module(output, batch=batch)
                 else:
@@ -486,7 +488,7 @@ class ShortcutBlock(Block):
                 elif torch.jit.isinstance(module_output, Dict[str, torch.Tensor]):
                     output = module_output[self.output_name]
                 else:
-                    raise ValueError(
+                    raise RuntimeError(
                         f"Module {module} must return a tensor or a dict ",
                         f"with key {self.output_name}",
                     )
@@ -495,7 +497,16 @@ class ShortcutBlock(Block):
                     output, Dict[str, torch.Tensor]
                 ):
                     output = output[self.output_name]
-                output = module(output, batch=batch)
+                _output = module(output, batch=batch)
+                if torch.jit.isinstance(_output, torch.Tensor) or torch.jit.isinstance(
+                    _output, Dict[str, torch.Tensor]
+                ):
+                    output = _output
+                else:
+                    raise RuntimeError(
+                        f"Module {module} must return a tensor or a dict ",
+                        f"with key {self.output_name}",
+                    )
 
         to_return = {self.shortcut_name: shortcut}
         if torch.jit.isinstance(output, Dict[str, torch.Tensor]):
