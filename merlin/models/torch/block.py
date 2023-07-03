@@ -445,6 +445,35 @@ class ResidualBlock(Block):
 
 
 class ShortcutBlock(Block):
+    """
+    A block with a 'shortcut' or a 'skip connection'.
+
+    The shortcut tensor can be propagated through the layers of the module or not,
+    depending on the value of `propagate_shortcut` argument:
+        If `propagate_shortcut` is True, the shortcut tensor is passed through
+        each layer of the module.
+        If `propagate_shortcut` is False, the shortcut tensor is only used as part of
+        the final output dictionary.
+
+    Example usage::
+        >>> shortcut = mm.ShortcutBlock(nn.Identity())
+        >>> shortcut(torch.ones(1, 1))
+            {'shortcut': tensor([[1.]]), 'output': tensor([[1.]])}
+
+    Parameters
+    ----------
+    *module : nn.Module
+        Variable length argument list of PyTorch modules to be contained in the block.
+    name : str, optional
+        The name of the module, by default None.
+    propagate_shortcut : bool, optional
+        If True, propagates the shortcut tensor through the layers of this block, by default False.
+    shortcut_name : str, optional
+        The name to use for the shortcut tensor, by default "shortcut".
+    output_name : str, optional
+        The name to use for the output tensor, by default "output".
+    """
+
     def __init__(
         self,
         *module: nn.Module,
@@ -461,6 +490,28 @@ class ShortcutBlock(Block):
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ) -> Dict[str, torch.Tensor]:
+        """
+        Defines the forward propagation of the module.
+
+        Parameters
+        ----------
+        inputs : Union[torch.Tensor, Dict[str, torch.Tensor]]
+            The input tensor or a dictionary of tensors.
+        batch : Batch, optional
+            A batch of inputs, by default None.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            The output tensor as a dictionary.
+
+        Raises
+        ------
+        RuntimeError
+            If the shortcut name is not found in the input dictionary, or
+            if the module does not return a tensor or a dictionary with a key 'output_name'.
+        """
+
         if torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
             if self.shortcut_name not in inputs:
                 raise RuntimeError(
