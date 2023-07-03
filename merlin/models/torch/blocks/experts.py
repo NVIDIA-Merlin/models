@@ -12,9 +12,38 @@ from merlin.models.torch.block import (
     repeat_parallel_like,
 )
 from merlin.models.torch.transforms.agg import Stack
+from merlin.models.utils.doc_utils import docstring_parameter
+
+_PLE_REFERENCE = """
+    References
+    ----------
+    .. [1] Tang, Hongyan, et al. "Progressive layered extraction (ple): A novel multi-task
+    learning (mtl) model for personalized recommendations."
+    Fourteenth ACM Conference on Recommender Systems. 2020.
+"""
 
 
 class MMOEBlock(Block):
+    """
+    Multi-gate Mixture-of-Experts (MMoE) Block introduced in [1].
+
+    References
+    ----------
+    [1] Ma, Jiaqi, et al. "Modeling task relationships in multi-task learning with
+    multi-gate mixture-of-experts." Proceedings of the 24th ACM SIGKDD international
+    conference on knowledge discovery & data mining. 2018.
+
+    Parameters
+    ----------
+    expert : nn.Module
+        The base expert model to be used.
+    num_experts : int
+        The number of experts to be used.
+    outputs : Optional[ParallelBlock]
+        The output block. If it is an instance of ParallelBlock,
+        repeat it for each expert, otherwise use a single ExpertGateBlock.
+    """
+
     def __init__(
         self, expert: nn.Module, num_experts: int, outputs: Optional[ParallelBlock] = None
     ):
@@ -26,7 +55,27 @@ class MMOEBlock(Block):
             self.append(ExpertGateBlock(1))
 
 
+@docstring_parameter(ple_reference=_PLE_REFERENCE)
 class PLEBlock(Block):
+    """
+    Progressive Layered Extraction (PLE) Block  proposed in [1].
+
+    {ple_reference}
+
+    Parameters
+    ----------
+    expert : nn.Module
+        The base expert model to be used.
+    num_shared_experts : int
+        The number of shared experts.
+    num_task_experts : int
+        The number of task-specific experts.
+    depth : int
+        The depth of the network.
+    outputs : ParallelBlock
+        The output block.
+    """
+
     def __init__(
         self,
         expert: nn.Module,
@@ -43,6 +92,25 @@ class PLEBlock(Block):
 
 
 class CGCBlock(Block):
+    """
+    Implements the Customized Gate Control (CGC) proposed in [1].
+
+    {ple_reference}
+
+    Parameters
+    ----------
+    expert : nn.Module
+        The base expert model to be used.
+    num_shared_experts : int
+        The number of shared experts.
+    num_task_experts : int
+        The number of task-specific experts.
+    outputs : ParallelBlock
+        The output block.
+    shared_gate : bool, optional
+        If true, use a shared gate for all tasks. Defaults to False.
+    """
+
     def __init__(
         self,
         expert: nn.Module,
@@ -68,6 +136,14 @@ class CGCBlock(Block):
 
 
 class ExpertGateBlock(Block):
+    """Expert Gate Block.
+
+    Parameters
+    ----------
+    num_outputs : int
+        The number of output channels.
+    """
+
     def __init__(self, num_outputs: int):
         super().__init__(GateBlock(num_outputs))
 
@@ -89,6 +165,19 @@ class ExpertGateBlock(Block):
 
 
 class PLEExpertGateBlock(Block):
+    """
+    Progressive Layered Extraction (PLE) Expert Gate Block.
+
+    Parameters
+    ----------
+    num_outputs : int
+        The number of output channels.
+    experts : nn.Module
+        The expert module.
+    name : str
+        The name of the task.
+    """
+
     def __init__(self, num_outputs: int, experts: nn.Module, name: str):
         super().__init__(GateBlock(num_outputs), name=f"PLEExpertGateBlock[{name}]")
         self.stack = Stack(dim=1)
@@ -106,11 +195,15 @@ class PLEExpertGateBlock(Block):
 
 
 class SoftmaxGate(nn.Module):
+    """Softmax Gate for gating mechanism."""
+
     def forward(self, gate_logits):
         return torch.softmax(gate_logits, dim=1).unsqueeze(2)
 
 
 class GateBlock(Block):
+    """Gate Block for gating mechanism."""
+
     def __init__(self, num_outputs: int):
         super().__init__()
         self.append(nn.LazyLinear(num_outputs))
