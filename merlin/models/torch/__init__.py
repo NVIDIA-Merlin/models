@@ -16,7 +16,8 @@
 
 from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch, Sequence
-from merlin.models.torch.block import Block, ParallelBlock
+from merlin.models.torch.block import Block, ParallelBlock, ResidualBlock, ShortcutBlock
+from merlin.models.torch.blocks.dlrm import DLRMBlock
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
 from merlin.models.torch.inputs.select import SelectFeatures, SelectKeys
@@ -44,11 +45,14 @@ __all__ = [
     "ParallelBlock",
     "Sequence",
     "RegressionOutput",
+    "ResidualBlock",
     "RouterBlock",
     "SelectKeys",
     "SelectFeatures",
+    "ShortcutBlock",
     "TabularInputBlock",
     "Concat",
     "Stack",
     "schema",
+    "DLRMBlock",
 ]

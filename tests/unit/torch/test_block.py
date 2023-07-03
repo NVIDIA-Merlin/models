@@ -20,9 +20,15 @@ import torch
 from torch import nn
 
 import merlin.models.torch as mm
-from merlin.models.torch import link
 from merlin.models.torch.batch import Batch
-from merlin.models.torch.block import Block, ParallelBlock, get_pre, set_pre
+from merlin.models.torch.block import (
+    Block,
+    ParallelBlock,
+    ResidualBlock,
+    ShortcutBlock,
+    get_pre,
+    set_pre,
+)
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Tags
@@ -63,9 +69,6 @@ class TestBlock:
 
         assert torch.equal(outputs, inputs + 2)
 
-        block.append(PlusOne(), link="residual")
-        assert isinstance(block[-1], link.Residual)
-
     def test_copy(self):
         block = Block(PlusOne())
 
@@ -88,19 +91,6 @@ class TestBlock:
 
         with pytest.raises(ValueError, match="n must be greater than 0"):
             block.repeat(0)
-
-    def test_repeat_with_link(self):
-        block = Block(PlusOne())
-
-        repeated = block.repeat(2, link="residual")
-        assert isinstance(repeated, Block)
-        assert len(repeated) == 2
-        assert isinstance(repeated[-1], link.Residual)
-
-        inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
-        outputs = module_utils.module_test(repeated, inputs)
-
-        assert torch.equal(outputs, (inputs + 1) + (inputs + 1) + 1)
 
     def test_from_registry(self):
         @Block.registry.register("my_block")
@@ -282,3 +272,108 @@ class TestParallelBlock:
 
         assert input_schema == mm.schema.input(pb2)
         assert mm.schema.output(pb2) == mm.schema.output(pb)
+
+    def test_leaf(self):
+        block = ParallelBlock({"a": PlusOne()})
+
+        assert isinstance(block.leaf(), PlusOne)
+
+        block.branches["b"] = PlusOne()
+        with pytest.raises(ValueError):
+            block.leaf()
+
+        block.prepend(PlusOne())
+        with pytest.raises(ValueError):
+            block.leaf()
+
+        block = ParallelBlock({"a": nn.Sequential(PlusOne())})
+        assert isinstance(block.leaf(), PlusOne)
+
+
+class TestResidualBlock:
+    def test_forward(self):
+        input_tensor = torch.randn(1, 3, 64, 64)
+        conv = nn.Conv2d(3, 3, kernel_size=3, padding=1)
+        residual = ResidualBlock(conv)
+
+        output_tensor = module_utils.module_test(residual, input_tensor)
+        expected_tensor = input_tensor + conv(input_tensor)
+
+        assert torch.allclose(output_tensor, expected_tensor)
+
+
+class TestShortcutBlock:
+    def test_forward(self):
+        input_tensor = torch.randn(1, 3, 64, 64)
+        conv = nn.Conv2d(3, 3, kernel_size=3, padding=1)
+        shortcut = ShortcutBlock(conv)
+
+        output_dict = module_utils.module_test(shortcut, input_tensor)
+
+        assert "output" in output_dict
+        assert "shortcut" in output_dict
+        assert torch.allclose(output_dict["output"], conv(input_tensor))
+        assert torch.allclose(output_dict["shortcut"], input_tensor)
+
+    def test_nesting(self):
+        inputs = torch.rand(5, 5)
+        shortcut = ShortcutBlock(ShortcutBlock(PlusOne()))
+        output = module_utils.module_test(shortcut, inputs)
+
+        assert torch.equal(output["shortcut"], inputs)
+        assert torch.equal(output["output"], inputs + 1)
+
+    def test_convert(self):
+        block = Block(PlusOne())
+        shortcut = ShortcutBlock(*block)
+        nested = ShortcutBlock(ShortcutBlock(shortcut), propagate_shortcut=True)
+
+        assert isinstance(shortcut[0], PlusOne)
+        inputs = torch.rand(5, 5)
+        assert torch.equal(
+            module_utils.module_test(shortcut, inputs)["output"],
+            module_utils.module_test(nested, inputs)["output"],
+        )
+
+    def test_with_parallel(self):
+        parallel = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
+        shortcut = ShortcutBlock(parallel)
+
+        inputs = torch.rand(5, 5)
+
+        outputs = shortcut(inputs)
+
+        outputs = module_utils.module_test(shortcut, inputs)
+        assert torch.equal(outputs["shortcut"], inputs)
+        assert torch.equal(outputs["a"], inputs + 1)
+        assert torch.equal(outputs["b"], inputs + 1)
+
+    def test_propagate_shortcut(self):
+        class PlusOneShortcut(nn.Module):
+            def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+                return inputs["shortcut"] + 1
+
+        shortcut = ShortcutBlock(PlusOneShortcut(), propagate_shortcut=True)
+        shortcut = ShortcutBlock(shortcut, propagate_shortcut=True)
+        inputs = torch.rand(5, 5)
+        outputs = module_utils.module_test(shortcut, inputs)
+
+        assert torch.equal(outputs["output"], inputs + 1)
+
+        with pytest.raises(RuntimeError):
+            shortcut({"a": inputs})
+
+    def test_exception(self):
+        with_tuple = Block(PlusOneTuple())
+        shortcut = ShortcutBlock(with_tuple)
+
+        with pytest.raises(RuntimeError):
+            module_utils.module_test(shortcut, torch.rand(5, 5))
+
+        class PlusOneShortcutTuple(nn.Module):
+            def forward(self, inputs: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+                return inputs["shortcut"] + 1, inputs["shortcut"]
+
+        shortcut_propagate = ShortcutBlock(PlusOneShortcutTuple(), propagate_shortcut=True)
+        with pytest.raises(RuntimeError):
+            module_utils.module_test(shortcut_propagate, torch.rand(5, 5))
