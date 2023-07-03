@@ -57,7 +57,7 @@ jobs:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
     strategy:
       matrix:
-        versions: [ {rapids: "23.04", python: "3.8"} ]
+        versions: [{ rapids: "23.04", python: "3.8" }]
     steps:
       - name: Install Ubuntu packages
         run: |
@@ -104,7 +104,7 @@ jobs:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
     strategy:
       matrix:
-        versions: [ {rapids: "23.04", python: "3.8"} ]
+        versions: [{ rapids: "23.04", python: "3.8" }]
     steps:
       - name: Install Ubuntu packages
         run: |
