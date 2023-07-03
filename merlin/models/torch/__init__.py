@@ -23,6 +23,7 @@ from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
 from merlin.models.torch.inputs.select import SelectFeatures, SelectKeys
 from merlin.models.torch.inputs.tabular import TabularInputBlock
 from merlin.models.torch.models.base import Model
+from merlin.models.torch.models.ranking import DLRMModel
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import BinaryOutput
 from merlin.models.torch.outputs.regression import RegressionOutput
@@ -55,4 +56,5 @@ __all__ = [
     "Stack",
     "schema",
     "DLRMBlock",
+    "DLRMModel",
 ]

@@ -236,7 +236,7 @@ def initialize(module, data: Union[Dataset, Loader, Batch], dtype=torch.float32)
     if hasattr(module, "model_outputs"):
         for model_out in module.model_outputs():
             for metric in model_out.metrics:
-                metric.to(batch.device())
+                metric.to(device=batch.device())
 
     from merlin.models.torch import schema
 
