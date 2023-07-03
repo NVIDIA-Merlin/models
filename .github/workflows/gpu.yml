@@ -40,8 +40,7 @@ jobs:
               extra_pytest_markers="and changed"
           fi
           merlin_branch="${{ steps.get-branch-name.outputs.branch }}"
-          MERLIN_BRANCH=$merlin_branch \
-            COMPARE_BRANCH=$merlin_branch \
+          MERLIN_BRANCH=$merlin_branch COMPARE_BRANCH=$merlin_branch \
             PYTEST_MARKERS="unit and not (examples or integration or notebook) $extra_pytest_markers" \
             tox -e gpu
 
@@ -76,8 +75,7 @@ jobs:
               extra_pytest_markers="and changed"
           fi
           merlin_branch="${{ steps.get-branch-name.outputs.branch }}"
-          RAPIDS_VERSION=23.04 MERLIN_BRANCH=$merlin_branch \
-            COMPARE_BRANCH=$merlin_branch \
+          RAPIDS_VERSION=23.04 MERLIN_BRANCH=$merlin_branch COMPARE_BRANCH=$merlin_branch \
             PYTEST_MARKERS="unit and not (examples or integration or notebook) $extra_pytest_markers" \
             tox -e gpu-cu11
 
