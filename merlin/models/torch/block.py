@@ -17,7 +17,7 @@
 import inspect
 import textwrap
 from copy import deepcopy
-from typing import Dict, Final, Optional, Tuple, TypeVar, Union
+from typing import Dict, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import nn
@@ -43,7 +43,6 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
     """
 
     registry = registry
-    is_block: Final[bool] = True
 
     def __init__(self, *module: nn.Module, name: Optional[str] = None):
         super().__init__(*module, name=name)
