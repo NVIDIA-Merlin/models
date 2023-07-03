@@ -82,22 +82,36 @@ jobs:
             tox -e gpu-cu11
 
   tests-examples:
-    runs-on: 1GPU
-
+    runs-on: linux-amd64-gpu-p100-latest-1
+    container:
+      image: nvidia/cuda:11.8.0-devel-ubuntu22.04
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Install Ubuntu packages
+        run: |
+          apt-get update -y
+          # libcudnn8 installed for tensorflow GPU support
+          apt-get install -y git lsb-release 'libcudnn8=*cuda11.8'
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+      - name: Install and upgrade python packages
+        run: |
+          python -m pip install --upgrade pip tox
+      - name: Get Branch name
+        id: get-branch-name
+        uses: NVIDIA-Merlin/.github/actions/branch-name@6f0539fba24f60da2aee63c5925bee7cee3206e3
       - name: Run tests
         run: |
-          ref_type=${{ github.ref_type }}
-          branch=main
-          if [[ $ref_type == "tag"* ]]
-          then
-            git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
-            branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
-          fi
           if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
               extra_pytest_markers="and changed"
           fi
-          cd ${{ github.workspace }}; PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e gpu
+          merlin_branch="${{ steps.get-branch-name.outputs.branch }}"
+          RAPIDS_VERSION=23.04 MERLIN_BRANCH=$merlin_branch COMPARE_BRANCH=$merlin_branch \
+            PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" \
+            tox -e gpu-cu11
