@@ -17,7 +17,7 @@
 import inspect
 import textwrap
 from copy import deepcopy
-from typing import Dict, Optional, Tuple, TypeVar, Union
+from typing import Dict, Optional, Tuple, TypeVar, Union, runtime_checkable
 
 import torch
 from torch import nn
@@ -565,6 +565,68 @@ class ShortcutBlock(Block):
             to_return[self.output_name] = output
 
         return to_return
+
+
+def _validate_n(n: int) -> None:
+    if not isinstance(n, int):
+        raise TypeError("n must be an integer")
+
+    if n < 1:
+        raise ValueError("n must be greater than 0")
+
+
+def repeat(module: nn.Module, n: int = 1, name=None) -> Block:
+    """
+    Creates a new block by repeating the current block `n` times.
+    Each repetition is a deep copy of the current block.
+
+    Parameters
+    ----------
+    module: nn.Module
+        The module to be repeated.
+    n : int
+        The number of times to repeat the current block.
+    name : Optional[str], default = None
+        The name for the new block. If None, no name is assigned.
+
+    Returns
+    -------
+    Block
+        The new block created by repeating the current block `n` times.
+    """
+    _validate_n(n)
+
+    repeats = [module.copy() if hasattr(module, "copy") else deepcopy(module) for _ in range(n - 1)]
+
+    return Block(module, *repeats, name=name)
+
+
+def repeat_parallel(module: nn.Module, n: int = 1, name=None) -> ParallelBlock:
+    _validate_n(n)
+
+    branches = {"0": module}
+    branches.update(
+        {n: module.copy() if hasattr(module, "copy") else deepcopy(module) for n in range(n - 1)}
+    )
+
+    return ParallelBlock(branches, name=name)
+
+
+@runtime_checkable
+class HasKeys:
+    def keys(self):
+        ...
+
+
+def repeat_parallel_like(module: nn.Module, like: HasKeys, name=None) -> ParallelBlock:
+    branches = {}
+    for i, key in enumerate(like.keys()):
+        if i == 0:
+            branches[key] = module
+        else:
+            branches[key] = module.copy() if hasattr(module, "copy") else deepcopy(module)
+
+    return ParallelBlock(branches, name=name)
 
 
 def get_pre(module: nn.Module) -> BlockContainer:
