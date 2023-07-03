@@ -117,6 +117,14 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
         selected = self.select(selection)
         return _extract_block(self, selection, selected), selected
 
+    @torch.jit.ignore
+    def input_schema(self):
+        return schema.input(self)
+
+    @torch.jit.ignore
+    def output_schema(self):
+        return schema.output(self)
+
 
 class ParallelBlock(Block):
     """A base-class that calls its modules in parallel.

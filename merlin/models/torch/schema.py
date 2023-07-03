@@ -73,8 +73,8 @@ class _LazyDispatchPyTorch(LazyDispatcher):
 
 class _InputSchemaDispatch(_LazyDispatchPyTorch):
     def __call__(self, module: nn.Module, inputs: Optional[Schema] = None) -> Schema:
-        if hasattr(module, "input_schema"):
-            output = module.input_schema
+        if hasattr(module, "compute_input_schema"):
+            output = module.compute_input_schema
             if isinstance(output, types.MethodType):
                 return output()
 
@@ -132,8 +132,8 @@ class _OutputSchemaDispatch(_LazyDispatchPyTorch):
         except ValueError:
             pass
 
-        if hasattr(module, "output_schema"):
-            output = module.output_schema
+        if hasattr(module, "compute_output_schema"):
+            output = module.compute_output_schema
             if isinstance(output, types.MethodType):
                 return default_tag_propagation(inputs, output())
 
