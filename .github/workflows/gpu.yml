@@ -18,7 +18,12 @@ jobs:
     runs-on: linux-amd64-gpu-p100-latest-1
     strategy:
       matrix:
-        image: ["nvcr.io/nvidia/tensorflow:23.02-tf2-py3", "nvcr.io/nvidia/tensorflow:23.04-tf2-py3", "nvcr.io/nvidia/tensorflow:23.06-tf2-py3"]
+        image:
+          [
+            "nvcr.io/nvidia/tensorflow:23.02-tf2-py3",
+            "nvcr.io/nvidia/tensorflow:23.04-tf2-py3",
+            "nvcr.io/nvidia/tensorflow:23.06-tf2-py3",
+          ]
     container:
       image: ${{ matrix.image }}
       env:
@@ -104,7 +109,7 @@ jobs:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
     strategy:
       matrix:
-        versions: [{ rapids: "23.04", python: "3.8" }]
+        version: [{ rapids: "23.04", python: "3.8" }]
     steps:
       - name: Install Ubuntu packages
         run: |
