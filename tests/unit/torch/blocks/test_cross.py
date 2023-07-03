@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pytest
 import torch
 from torch import nn
@@ -72,3 +74,13 @@ class TestCrossBlock:
         input = torch.randn(5, 10)
         output = module_utils.module_test(crossblock, input)
         assert output.shape == (5, 10)
+
+    def test_exception(self):
+        class ToTuple(nn.Module):
+            def forward(self, input) -> Tuple[torch.Tensor, torch.Tensor]:
+                return input, input
+
+        crossblock = CrossBlock(ToTuple())
+
+        with pytest.raises(RuntimeError):
+            module_utils.module_test(crossblock, torch.randn(5, 10))
