@@ -89,6 +89,9 @@ class RouterBlock(ParallelBlock):
         """
 
         routing_module = schema.select(self.selectable, selection)
+        if not routing_module:
+            return self
+
         if module is not None:
             schema.setup_schema(module, routing_module.schema)
 

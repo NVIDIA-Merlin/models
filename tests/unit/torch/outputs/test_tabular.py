@@ -64,6 +64,8 @@ class TestTabularOutputBlock:
         with pytest.raises(ValueError, match="not found"):
             mm.TabularOutputBlock(self.schema, init="not_found")
 
+    def test_no_route_for_non_existent_tag(self):
         outputs = mm.TabularOutputBlock(self.schema)
-        with pytest.raises(ValueError):
-            outputs.add_route(Tags.CATEGORICAL)
+        outputs.add_route(Tags.CATEGORICAL)
+
+        assert not outputs
