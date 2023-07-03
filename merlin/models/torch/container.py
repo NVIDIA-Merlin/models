@@ -15,9 +15,8 @@
 #
 
 import builtins
-import inspect
 from copy import deepcopy
-from functools import reduce
+from functools import reduce, wraps
 from typing import (
     Callable,
     Dict,
@@ -45,15 +44,17 @@ class HasBool(Protocol):
 
 _TModule = TypeVar("_TModule", bound=nn.Module)
 ModuleFunc = Callable[[nn.Module], nn.Module]
+ModuleIFunc = Callable[[nn.Module, int], nn.Module]
 ModulePredicate = Callable[[nn.Module], Union[bool, HasBool]]
 
 
 class ContainerMixin:
-    def filter(self: _TModule, func: ModulePredicate) -> _TModule:
+    def filter(self: _TModule, func: ModulePredicate, recurse: bool = False) -> _TModule:
+        _to_call = _recurse(func, "filter") if recurse else func
         output = self.__class__()
 
         for module in self:
-            if func(module):
+            if _to_call(module):
                 output.append(module)
 
         return output
@@ -78,54 +79,32 @@ class ContainerMixin:
 
         return output
 
-    def forall(self, func: ModulePredicate) -> bool:
-        return all(func(module) for module in self)
+    def forall(self, func: ModulePredicate, recurse: bool = False) -> bool:
+        _to_call = _recurse(func, "forall") if recurse else func
+        return all(_to_call(module) for module in self)
 
-    def map(self: _TModule, func: ModulePredicate) -> _TModule:
-        output = self.__class__()
+    def map(self: _TModule, func: ModuleFunc, recurse: bool = False) -> _TModule:
+        _to_call = _recurse(func, "map") if recurse else func
 
-        for module in self:
-            output.append(func(module))
+        return self.__class__(*(_to_call(module) for module in self))
 
-        return output
+    def mapi(self: _TModule, func: ModuleIFunc, recurse: bool = False) -> _TModule:
+        _to_call = _recurse(func, "mapi") if recurse else func
+        return self.__class__(*(_to_call(module, i) for i, module in enumerate(self)))
 
-    def mapi(self: _TModule, func) -> _TModule:
-        output = self.__class__()
-
-        for i, module in enumerate(self):
-            output.append(func(i, module))
-
-        return output
-
-    def choose(self: _TModule, func: ModulePredicate) -> _TModule:
-        output = self.__class__()
+    def choose(self: _TModule, func: ModulePredicate, recurse: bool = False) -> _TModule:
+        to_add = []
+        _to_call = _recurse(func, "choose") if recurse else func
 
         for module in self:
-            f_out = func(module)
+            f_out = _to_call(module)
             if f_out:
-                output.append(f_out)
+                to_add.append(f_out)
 
-        return output
+        return self.__class__(*to_add)
 
     def walk(self: _TModule, func: ModulePredicate) -> _TModule:
-        "Like choose but recurses into children"
-
-        def _walk(module):
-            if hasattr(module, "walk"):
-                walk_sig = inspect.signature(module.walk)
-                if len(walk_sig.parameters) == 1 and isinstance(
-                    list(walk_sig.parameters.values())[0].annotation, Callable
-                ):
-                    return module.walk(func)
-                else:
-                    raise TypeError(
-                        "Expected walk method to have a single argument of type Callable",
-                        f", got {walk_sig}",
-                    )
-
-            return func(module)
-
-        return self.choose(_walk)
+        return self.map(func, recurse=True)
 
     def zip(self, other: Iterable[_TModule]) -> Iterable[Tuple[_TModule, _TModule]]:
         return builtins.zip(self, other)
@@ -434,3 +413,16 @@ class BlockContainerDict(nn.ModuleDict):
 
     def __hash__(self) -> int:
         return hash(tuple(sorted(self._modules.items())))
+
+
+def _recurse(func, to_recurse_name: str):
+    @wraps(func)
+    def inner(module, **kwargs):
+        if hasattr(module, to_recurse_name):
+            fn = getattr(module, to_recurse_name)
+
+            return fn(func, **kwargs)
+
+        return func(module, **kwargs)
+
+    return inner
