@@ -35,7 +35,6 @@ from merlin.models.torch.outputs.tabular import TabularOutputBlock
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.transforms.agg import Concat, Stack
 
-
 __all__ = [
     "Batch",
     "BinaryOutput",
