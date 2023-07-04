@@ -136,6 +136,38 @@ def leaf(module) -> nn.Module:
 
 
 def is_initialized(module) -> bool:
+    """
+    Checks whether a PyTorch module is initialized or not. A module is considered
+    initialized if it doesn't have any lazy-initialized parameters or buffers.
+
+    Parameters
+    ----------
+    module : torch.nn.Module
+        The PyTorch module to check for initialization.
+
+    Returns
+    -------
+    bool
+        True if the module is initialized (i.e., it doesn't have any lazy-initialized
+        parameters or buffers), False otherwise.
+
+    Notes
+    -----
+    A "lazy-initialized" parameter or buffer is one that doesn't have its values
+    set (i.e., its values are not computed) at the time of its creation. Instead,
+    their values are computed and set later, usually during the first forward pass.
+
+    This function uses the `apply` method of `torch.nn.Module` to apply the
+    `has_unitialized_params` function to every submodule in `module`. If any
+    submodule has at least one lazy-initialized parameter or buffer, the function
+    will return False, indicating that `module` is not fully initialized.
+
+    This function is useful for checking the initialization status of a model
+    before starting the training process, as certain operations (e.g., moving the
+    model to a GPU, saving the model to disk) can only be performed on fully
+    initialized models.
+    """
+
     has_lazy = []
 
     def has_unitialized_params(m):
