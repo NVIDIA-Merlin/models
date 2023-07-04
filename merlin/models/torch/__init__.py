@@ -32,10 +32,10 @@ from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.transforms.agg import Concat, Stack
 
 
-input_schema = schema.input
-output_schema = schema.output
-target_schema = schema.targets
-feature_schema = schema.features
+input_schema = schema.input_schema
+output_schema = schema.output_schema
+target_schema = schema.target_schema
+feature_schema = schema.feature_schema
 
 __all__ = [
     "Batch",

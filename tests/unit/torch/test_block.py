@@ -57,8 +57,8 @@ class TestBlock:
         outputs = module_utils.module_test(block, inputs, batch=Batch(inputs))
 
         assert torch.equal(inputs, outputs)
-        assert mm.schema.output(block) == mm.schema.output.tensors(inputs)
-        assert block.output_schema() == mm.schema.output.tensors(inputs)
+        assert mm.output_schema(block) == mm.output_schema.tensors(inputs)
+        assert block.output_schema() == mm.output_schema.tensors(inputs)
 
     def test_insertion(self):
         block = Block()
@@ -159,7 +159,7 @@ class TestParallelBlock:
 
         inputs = torch.randn(1, 3)
         outputs = mm.schema.trace(pb, inputs)
-        schema = mm.schema.output(pb)
+        schema = mm.output_schema(pb)
 
         for name in outputs:
             assert name in schema.column_names
@@ -259,9 +259,9 @@ class TestParallelBlock:
     def test_input_schema_pre(self):
         pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
         outputs = mm.schema.trace(pb, torch.randn(1, 3))
-        input_schema = mm.schema.input(pb)
+        input_schema = mm.input_schema(pb)
         assert len(input_schema) == 1
-        assert len(mm.schema.output(pb)) == 2
+        assert len(mm.output_schema(pb)) == 2
         assert len(outputs) == 2
 
         pb2 = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
@@ -271,9 +271,9 @@ class TestParallelBlock:
         assert get_pre(pb2)[0] == pb
         pb2.append(pb)
 
-        assert input_schema == mm.schema.input(pb2)
+        assert input_schema == mm.input_schema(pb2)
         assert input_schema == pb2.input_schema()
-        assert mm.schema.output(pb2) == mm.schema.output(pb)
+        assert mm.output_schema(pb2) == mm.output_schema(pb)
 
     def test_leaf(self):
         block = ParallelBlock({"a": PlusOne()})

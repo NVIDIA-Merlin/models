@@ -119,11 +119,11 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
 
     @torch.jit.ignore
     def input_schema(self):
-        return schema.input(self)
+        return schema.input_schema(self)
 
     @torch.jit.ignore
     def output_schema(self):
-        return schema.output(self)
+        return schema.output_schema(self)
 
 
 class ParallelBlock(Block):
@@ -596,31 +596,31 @@ def set_pre(module: nn.Module, pre: BlockContainer):
         return set_pre(module[0], pre)
 
 
-@schema.input.register(BlockContainer)
+@schema.input_schema.register(BlockContainer)
 def _(module: BlockContainer, input: Schema):
-    return schema.input(module[0], input) if module else input
+    return schema.input_schema(module[0], input) if module else input
 
 
-@schema.input.register(ParallelBlock)
+@schema.input_schema.register(ParallelBlock)
 def _(module: ParallelBlock, input: Schema):
     if module.pre:
-        return schema.input(module.pre)
+        return schema.input_schema(module.pre)
 
     out_schema = Schema()
     for branch in module.branches.values():
-        out_schema += schema.input(branch, input)
+        out_schema += schema.input_schema(branch, input)
 
     return out_schema
 
 
-@schema.output.register(ParallelBlock)
+@schema.output_schema.register(ParallelBlock)
 def _(module: ParallelBlock, input: Schema):
     if module.post:
-        return schema.output(module.post, input)
+        return schema.output_schema(module.post, input)
 
     output = Schema()
     for name, branch in module.branches.items():
-        branch_schema = schema.output(branch, input)
+        branch_schema = schema.output_schema(branch, input)
 
         if len(branch_schema) == 1 and branch_schema.first.name == "output":
             branch_schema = Schema([branch_schema.first.with_name(name)])
@@ -630,9 +630,9 @@ def _(module: ParallelBlock, input: Schema):
     return output
 
 
-@schema.output.register(BlockContainer)
+@schema.output_schema.register(BlockContainer)
 def _(module: BlockContainer, input: Schema):
-    return schema.output(module[-1], input) if module else input
+    return schema.output_schema(module[-1], input) if module else input
 
 
 BlockT = TypeVar("BlockT", bound=BlockContainer)
@@ -728,13 +728,13 @@ def _extract_block(main, selection, route, name=None):
     if isinstance(main, ParallelBlock):
         return _extract_parallel(main, selection, route=route, name=name)
 
-    main_schema = schema.input(main)
-    route_schema = schema.input(route)
+    main_schema = schema.input_schema(main)
+    route_schema = schema.input_schema(route)
 
     if main_schema == route_schema:
         from merlin.models.torch.inputs.select import SelectFeatures
 
-        out_schema = schema.output(main, main_schema)
+        out_schema = schema.output_schema(main, main_schema)
         if len(out_schema) == 1 and out_schema.first.name == "output":
             out_schema = Schema([out_schema.first.with_name(name)])
 

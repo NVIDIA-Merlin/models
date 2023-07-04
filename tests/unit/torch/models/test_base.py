@@ -191,7 +191,7 @@ class TestModel:
             "b": torch.tensor([[5.0, 6.0], [7.0, 8.0]]),
         }
         outputs = mm.schema.trace(model, inputs)
-        schema = mm.schema.output(model)
+        schema = mm.output_schema(model)
         for name in outputs:
             assert name in schema.column_names
             assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
@@ -199,7 +199,7 @@ class TestModel:
     def test_no_output_schema(self):
         model = mm.Model(PlusOne())
         with pytest.raises(ValueError, match="Could not get output schema of PlusOne()"):
-            mm.schema.output(model)
+            mm.output_schema(model)
 
     def test_train_classification_with_lightning_trainer(self, music_streaming_data, batch_size=16):
         schema = music_streaming_data.schema.select_by_name(
