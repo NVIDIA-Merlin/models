@@ -8,8 +8,7 @@ from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.models.base import Model, RetrievalModel, get_task_names_from_outputs
-from merlin.models.utils.schema_utils import select_targets
-from merlin.schema import Schema, Tags
+from merlin.schema import Schema
 
 
 class ModelEncode:
@@ -176,17 +175,10 @@ def encode_output(output: tf.Tensor):
 def data_iterator_func(schema, batch_size: int = 512):
     import merlin.io.dataset
 
-    cat_cols = schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET).column_names
-    cont_cols = schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
-    targets = select_targets(schema).column_names
-
     def data_iterator(dataset):
         return Loader(
-            merlin.io.dataset.Dataset(dataset),
+            merlin.io.dataset.Dataset(dataset, schema=schema),
             batch_size=batch_size,
-            cat_names=cat_cols,
-            cont_names=cont_cols,
-            label_names=targets,
             shuffle=False,
         )
 
