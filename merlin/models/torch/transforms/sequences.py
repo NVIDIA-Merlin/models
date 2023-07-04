@@ -66,9 +66,7 @@ class TabularPadding(nn.Module):
         self.sparse_features = self.schema.select_by_tag(Tags.SEQUENCE).column_names
         self.padding_idx = 0
 
-    def forward(
-        self, inputs: Union[Batch, torch.Tensor, Dict[str, torch.Tensor]], batch: Batch
-    ) -> Batch:
+    def forward(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Batch) -> Batch:
         _max_sequence_length = self.max_sequence_length
         if not _max_sequence_length:
             # Infer the maximum length from the current batch
@@ -82,13 +80,12 @@ class TabularPadding(nn.Module):
 
         # Store the non-padded lengths of list features
         seq_inputs_lengths = self._get_sequence_lengths(batch.features)
-        seq_shapes = list(seq_inputs_lengths.values())
-        if not all(torch.all(x == seq_shapes[0]) for x in seq_shapes):
+        seq_shapes: List[torch.Tensor] = list(seq_inputs_lengths.values())
+        if not torch.all(torch.stack([torch.all(x == seq_shapes[0]) for x in seq_shapes])):
             raise ValueError(
                 "The sequential inputs must have the same length for each row in the batch, "
                 f"but they are different: {seq_shapes}"
             )
-
         # Pad the features of the batch
         batch_padded = {}
         for key, value in batch.features.items():

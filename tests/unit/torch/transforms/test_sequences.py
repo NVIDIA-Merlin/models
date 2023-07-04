@@ -5,6 +5,7 @@ import torch
 
 from merlin.models.torch.batch import Batch
 from merlin.models.torch.transforms.sequences import TabularPadding
+from merlin.models.torch.utils import module_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -50,7 +51,7 @@ class TestPadBatch:
         padding_op = TabularPadding(
             schema=sequence_schema, max_sequence_length=_max_sequence_length
         )
-        padded_batch = padding_op(None, batch=sequence_batch)
+        padded_batch = module_utils.module_test(padding_op, sequence_batch)
 
         assert torch.equal(padded_batch.sequences.length("a"), torch.Tensor([2, 0, 3]))
         assert set(padded_batch.features.keys()) == set(["a", "b", "c_dense"])
