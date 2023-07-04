@@ -50,15 +50,13 @@ class Model(LightningModule, Block):
 
     Example usage
     -------------
-    >>> model = Model(
+    >>> model = mm.Model(
     ...    TabularInputBlock(schema),
     ...    MLPBlock([32, 16]),
     ...    BinaryOutput(schema.select_by_tag(Tags.TARGET).first),
     ... )
-    ... trainer = Trainer(max_epochs=1)
-    ... with Loader(dataset, batch_size=16) as loader:
-    ...     model.initialize(loader)
-    ...     trainer.fit(model, loader)
+    ... trainer = mm.Trainer(max_epochs=1)
+    ... trainer.fit(model, dataset, batch_size=16)
     """
 
     def __init__(
