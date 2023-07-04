@@ -165,8 +165,8 @@ def get_sequential_block(args):
 def get_sequence_transforms(schema, args, transformer=None):
     """Set the sequential task for training and evaluation"""
     pre_fit, pre_eval = None, None
-    target = schema.select_by_tag(Tags.ITEM_ID).first
-    sequence_schema = schema.select_by_tag(Tags.LIST)
+    target = schema.select_by_tag(Tags.ITEM_ID).first.name
+    sequence_schema = schema.select_by_tag(Tags.SEQUENCE)
     if args.training_task == "masked":
         pre_fit = SequenceMaskRandom(
             schema=sequence_schema,
@@ -291,15 +291,19 @@ def main(args):
         logger.setup()
 
     # load schema, if specified
-    schema = TensorflowMetadata.from_proto_text_file(
-        args.schema_path, file_name="schema.pbtxt"
-    ).to_merlin_schema()
+    if args.schema_path:
+        schema = TensorflowMetadata.from_proto_text_file(
+            args.schema_path, file_name="schema.pbtxt"
+        ).to_merlin_schema()
+    else: 
+        schema = train_ds.schema
 
     if args.side_information_features == "":
-        schema_model = schema.select_by_tag(Tags.ITEM_ID)
+        schema_model = schema.select_by_tag([Tags.ITEM_ID])
     else:
         # TODO add filter step
         schema_model = schema
+
     train_ds.schema = schema_model
     eval_ds.schema = schema_model
 
