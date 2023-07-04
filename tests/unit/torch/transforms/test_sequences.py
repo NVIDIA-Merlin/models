@@ -91,7 +91,7 @@ class TestPadBatch:
         padding_op = TabularPadding(
             schema=sequence_schema, max_sequence_length=_max_sequence_length
         )
-        padded_batch = padding_op(inputs=None, batch=sequence_batch)
+        padded_batch = module_utils.module_test(padding_op, sequence_batch)
 
         assert padded_batch.targets["target_2"].shape[1] == _max_sequence_length
         assert torch.equal(padded_batch.targets["target_1"], sequence_batch.targets["target_1"])
