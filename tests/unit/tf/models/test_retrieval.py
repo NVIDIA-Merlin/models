@@ -884,7 +884,7 @@ def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly, t
     assert losses is not None
 
 
-def test_two_tower_v2_export_embeddings(
+def test_two_tower_v2_export_item_tower_embeddings(
     ecommerce_data: Dataset,
 ):
     user_schema = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
@@ -907,7 +907,38 @@ def test_two_tower_v2_export_embeddings(
     _check_embeddings(candidates, 100, 8, "item_id")
 
 
-def test_mf_v2_export_embeddings(
+def test_two_tower_v2_export_item_tower_embeddings_with_seq_item_features(
+    music_streaming_data: Dataset,
+):
+    # Changing the schema of the multi-hot "item_genres" feature to be
+    # dense (not ragged)
+    music_streaming_data.schema["item_genres"] = music_streaming_data.schema[
+        "item_genres"
+    ].with_shape(((0, None), (4, 4)))
+    schema = music_streaming_data.schema
+    user_schema = schema.select_by_tag(Tags.USER)
+    candidate_schema = schema.select_by_tag(Tags.ITEM)
+
+    query = mm.Encoder(user_schema, mm.MLPBlock([8]))
+    candidate = mm.Encoder(candidate_schema, mm.MLPBlock([8]))
+    model = mm.TwoTowerModelV2(
+        query_tower=query, candidate_tower=candidate, negative_samplers=["in-batch"]
+    )
+
+    model, _ = testing_utils.model_test(model, music_streaming_data, reload_model=False)
+
+    queries = model.query_embeddings(
+        music_streaming_data, batch_size=16, index=Tags.USER_ID
+    ).compute()
+    _check_embeddings(queries, 100, 8, "user_id")
+
+    candidates = model.candidate_embeddings(
+        music_streaming_data, batch_size=16, index=Tags.ITEM_ID
+    ).compute()
+    _check_embeddings(candidates, 100, 8, "item_id")
+
+
+def test_mf_v2_export_item_tower_embeddings(
     ecommerce_data: Dataset,
 ):
     model = mm.MatrixFactorizationModelV2(
@@ -939,7 +970,7 @@ def _check_embeddings(embeddings, extected_len, num_dim=8, index_name=None):
     assert embeddings.index.name == index_name
 
 
-def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
+def test_youtube_dnn_v2_export_item_embeddings(sequence_testing_data: Dataset):
     to_remove = ["event_timestamp"] + (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
