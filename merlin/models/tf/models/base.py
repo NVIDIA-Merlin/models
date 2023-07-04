@@ -1579,7 +1579,13 @@ class BaseModel(tf.keras.Model):
         from merlin.models.tf.utils.batch_utils import TFModelEncode
 
         model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
-        predictions = dataset.map_partitions(model_encode)
+
+        # Processing a sample of the dataset with the model encoder
+        # to get the output dataframe dtypes
+        sample_output = model_encode(dataset.head())
+        output_dtypes = sample_output.dtypes.to_dict()
+
+        predictions = dataset.map_partitions(model_encode, meta=output_dtypes)
 
         return merlin.io.Dataset(predictions)
 
@@ -2354,7 +2360,13 @@ class RetrievalModel(Model):
         get_user_emb = QueryEmbeddings(self, batch_size=batch_size)
 
         dataset = unique_rows_by_features(dataset, query_tag, query_id_tag).to_ddf()
-        embeddings = dataset.map_partitions(get_user_emb)
+
+        # Processing a sample of the dataset with the model encoder
+        # to get the output dataframe dtypes
+        sample_output = get_user_emb(dataset.head())
+        output_dtypes = sample_output.dtypes.to_dict()
+
+        embeddings = dataset.map_partitions(get_user_emb, meta=output_dtypes)
 
         return merlin.io.Dataset(embeddings)
 
@@ -2389,7 +2401,13 @@ class RetrievalModel(Model):
         get_item_emb = ItemEmbeddings(self, batch_size=batch_size)
 
         dataset = unique_rows_by_features(dataset, item_tag, item_id_tag).to_ddf()
-        embeddings = dataset.map_partitions(get_item_emb)
+
+        # Processing a sample of the dataset with the model encoder
+        # to get the output dataframe dtypes
+        sample_output = get_item_emb(dataset.head())
+        output_dtypes = sample_output.dtypes.to_dict()
+
+        embeddings = dataset.map_partitions(get_item_emb, meta=output_dtypes)
 
         return merlin.io.Dataset(embeddings)
 
