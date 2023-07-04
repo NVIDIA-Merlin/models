@@ -31,7 +31,7 @@ class TestBinaryOutput:
         binary_output = mm.BinaryOutput()
 
         assert isinstance(binary_output, mm.BinaryOutput)
-        assert isinstance(binary_output.loss, nn.BCEWithLogitsLoss)
+        assert isinstance(binary_output.loss, nn.BCELoss)
         assert binary_output.metrics == [
             Accuracy(task="binary"),
             AUROC(task="binary"),
