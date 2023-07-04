@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-from collections import namedtuple
 from typing import Any, Callable, Optional, Union
 
 from merlin.models.torch.outputs.classification import BinaryOutput
@@ -66,7 +65,6 @@ class TabularOutputBlock(RouterBlock):
                     raise ValueError(f"Initializer {init} not found.")
 
             init(self)
-            self.named_tuple = namedtuple("Outputs", self.output_names)
 
     @classmethod
     def register_init(cls, name: str):

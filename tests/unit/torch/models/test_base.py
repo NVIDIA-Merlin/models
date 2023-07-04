@@ -125,7 +125,7 @@ class TestModel:
         loss = model.training_step((features, targets), 0)
         (weights, bias) = model.parameters()
         expected_outputs = nn.Sigmoid()(torch.matmul(features["feature"], weights.T) + bias)
-        expected_loss = nn.BCEWithLogitsLoss()(expected_outputs, targets["target"])
+        expected_loss = nn.BCELoss()(expected_outputs, targets["target"])
         assert torch.allclose(loss, expected_loss)
 
     def test_training_step_with_dataloader(self):
@@ -228,11 +228,11 @@ class TestModel:
 
 class TestComputeLoss:
     def test_tensor_inputs(self):
-        predictions = torch.randn(2, 1)
+        predictions = torch.sigmoid(torch.randn(2, 1))
         targets = torch.randint(2, (2, 1), dtype=torch.float32)
         model_outputs = [mm.BinaryOutput(ColumnSchema("a"))]
         results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCEWithLogitsLoss()(predictions, targets)
+        expected_loss = nn.BCELoss()(predictions, targets)
         expected_auroc = AUROC(task="binary")(predictions, targets)
         expected_acc = Accuracy(task="binary")(predictions, targets)
         expected_prec = Precision(task="binary")(predictions, targets)
@@ -253,7 +253,7 @@ class TestComputeLoss:
         assert torch.allclose(results["binary_recall"], expected_rec)
 
     def test_no_metrics(self):
-        predictions = torch.randn(2, 1)
+        predictions = torch.sigmoid(torch.randn(2, 1))
         targets = torch.randint(2, (2, 1), dtype=torch.float32)
         model_outputs = [mm.BinaryOutput(ColumnSchema("a"))]
         results = compute_loss(predictions, targets, model_outputs, compute_metrics=False)
@@ -271,31 +271,31 @@ class TestComputeLoss:
     def test_mixed_inputs(self):
         predictions = {"a": torch.randn(2, 1)}
         targets = torch.randint(2, (2, 1), dtype=torch.float32)
-        model_outputs = (mm.BinaryOutput(ColumnSchema("a")),)
+        model_outputs = (mm.RegressionOutput(ColumnSchema("a")),)
         results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCELoss()(predictions["a"], targets)
+        expected_loss = nn.MSELoss()(predictions["a"], targets)
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_single_model_output(self):
         predictions = {"foo": torch.randn(2, 1)}
         targets = {"foo": torch.randint(2, (2, 1), dtype=torch.float32)}
-        model_outputs = [mm.BinaryOutput(ColumnSchema("foo"))]
+        model_outputs = [mm.RegressionOutput(ColumnSchema("foo"))]
         results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCELoss()(predictions["foo"], targets["foo"])
+        expected_loss = nn.MSELoss()(predictions["foo"], targets["foo"])
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_tensor_input_no_targets(self):
         predictions = torch.randn(2, 1)
-        binary_output = mm.BinaryOutput(ColumnSchema("foo"))
+        binary_output = mm.RegressionOutput(ColumnSchema("foo"))
         results = compute_loss(predictions, None, (binary_output,))
-        expected_loss = nn.BCEWithLogitsLoss()(predictions, torch.zeros(2, 1))
+        expected_loss = nn.MSELoss()(predictions, torch.zeros(2, 1))
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_dict_input_no_targets(self):
         predictions = {"foo": torch.randn(2, 1)}
-        binary_output = mm.BinaryOutput(ColumnSchema("foo"))
+        binary_output = mm.RegressionOutput(ColumnSchema("foo"))
         results = compute_loss(predictions, None, (binary_output,))
-        expected_loss = nn.BCEWithLogitsLoss()(predictions["foo"], torch.zeros(2, 1))
+        expected_loss = nn.MSELoss()(predictions["foo"], torch.zeros(2, 1))
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_no_target_raises_error(self):
