@@ -58,7 +58,6 @@ class TestBlock:
 
         assert torch.equal(inputs, outputs)
         assert mm.output_schema(block) == mm.output_schema.tensors(inputs)
-        assert block.output_schema() == mm.output_schema.tensors(inputs)
 
     def test_insertion(self):
         block = Block()
@@ -272,7 +271,6 @@ class TestParallelBlock:
         pb2.append(pb)
 
         assert input_schema == mm.input_schema(pb2)
-        assert input_schema == pb2.input_schema()
         assert mm.output_schema(pb2) == mm.output_schema(pb)
 
     def test_leaf(self):
