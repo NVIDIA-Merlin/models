@@ -260,11 +260,12 @@ class TestComputeLoss:
         assert sorted(results.keys()) == ["loss"]
 
     def test_dict_inputs(self):
-        predictions = {"a": torch.randn(2, 1)}
+        outputs = mm.ParallelBlock({"a": mm.BinaryOutput(ColumnSchema("a"))})
+        predictions = outputs(torch.randn(2, 1))
         targets = {"a": torch.randint(2, (2, 1), dtype=torch.float32)}
-        model_outputs = (mm.BinaryOutput(ColumnSchema("a")),)
-        results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCEWithLogitsLoss()(predictions["a"], targets["a"])
+
+        results = compute_loss(predictions, targets, outputs.find(mm.ModelOutput))
+        expected_loss = nn.BCELoss()(predictions["a"], targets["a"])
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_mixed_inputs(self):
@@ -272,7 +273,7 @@ class TestComputeLoss:
         targets = torch.randint(2, (2, 1), dtype=torch.float32)
         model_outputs = (mm.BinaryOutput(ColumnSchema("a")),)
         results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCEWithLogitsLoss()(predictions["a"], targets)
+        expected_loss = nn.BCELoss()(predictions["a"], targets)
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_single_model_output(self):
@@ -280,7 +281,7 @@ class TestComputeLoss:
         targets = {"foo": torch.randint(2, (2, 1), dtype=torch.float32)}
         model_outputs = [mm.BinaryOutput(ColumnSchema("foo"))]
         results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCEWithLogitsLoss()(predictions["foo"], targets["foo"])
+        expected_loss = nn.BCELoss()(predictions["foo"], targets["foo"])
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_tensor_input_no_targets(self):
