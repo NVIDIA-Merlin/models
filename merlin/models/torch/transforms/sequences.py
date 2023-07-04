@@ -22,8 +22,6 @@ from torch import nn
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.schema import Schema, Tags
 
-MASK_PREFIX = "__mask"
-
 
 class TabularPadding(nn.Module):
     """A PyTorch module for padding tabular sequence data.
