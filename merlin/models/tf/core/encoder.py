@@ -31,6 +31,7 @@ from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
 from merlin.models.tf.transforms.features import PrepareFeatures
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.batch_utils import TFModelEncode
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -171,13 +172,18 @@ class Encoder(tf.keras.Model):
         if hasattr(dataset, "to_ddf"):
             dataset = dataset.to_ddf()
 
-        from merlin.models.tf.utils.batch_utils import TFModelEncode
-
         model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
+
         encode_kwargs = {}
         if output_schema:
             encode_kwargs["filter_input_columns"] = output_schema.column_names
-        predictions = dataset.map_partitions(model_encode, **encode_kwargs)
+
+        # Processing a sample of the dataset with the model encoder
+        # to get the output dataframe dtypes
+        sample_output = model_encode(dataset.head(), **encode_kwargs)
+        output_dtypes = sample_output.dtypes.to_dict()
+
+        predictions = dataset.map_partitions(model_encode, meta=output_dtypes, **encode_kwargs)
         if index:
             predictions = predictions.set_index(index)
 
@@ -613,7 +619,12 @@ class TopKEncoder(Encoder, BaseModel):
         if output_schema:
             encode_kwargs["filter_input_columns"] = output_schema.column_names
 
-        predictions = dataset.map_partitions(model_encode, **encode_kwargs)
+        # Processing a sample of the dataset with the model encoder
+        # to get the output dataframe dtypes
+        sample_output = model_encode(dataset.head(), **encode_kwargs)
+        output_dtypes = sample_output.dtypes.to_dict()
+
+        predictions = dataset.map_partitions(model_encode, meta=output_dtypes, **encode_kwargs)
 
         return merlin.io.Dataset(predictions)
 
