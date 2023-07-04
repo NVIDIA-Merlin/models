@@ -25,6 +25,7 @@ from merlin.schema import Schema, Tags
 
 class TabularPadding(nn.Module):
     """A PyTorch module for padding tabular sequence data.
+    
     Parameters
     ----------
     schema : Schema
@@ -32,7 +33,8 @@ class TabularPadding(nn.Module):
     max_sequence_length : Optional[int], default=None
         The maximum length of the sequences after padding.
         If None, sequences will be padded to the maximum length in the current batch.
-    Examples:
+    
+    Example usage::
         features = {
             'feature1': torch.tensor([[4, 3], [5, 2]),
             'feature2': torch.tensor([[3,8], [7,9]])
