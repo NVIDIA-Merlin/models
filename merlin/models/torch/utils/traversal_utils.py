@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import itertools
 from typing import Callable, List, Tuple, Type, TypeVar, Union
 
 import torch
 from torch import nn
+from torch.nn.modules.lazy import is_lazy
 from typing_extensions import Self
 
 from merlin.models.torch import schema
@@ -133,6 +135,26 @@ def leaf(module) -> nn.Module:
         )
 
 
+def is_initialized(module) -> bool:
+    has_lazy = []
+
+    def has_unitialized_params(m):
+        params = m._parameters.values()
+        buffers = m._buffers.values()
+        for param in itertools.chain(params, buffers):
+            if is_lazy(param):
+                has_lazy.append(True)
+                return
+
+        has_lazy.append(False)
+
+        return
+
+    module.apply(has_unitialized_params)
+
+    return not any(has_lazy)
+
+
 class TraversableMixin:
     def find(self, to_search: Union[PredicateFn, Type[ModuleType]]) -> List[ModuleType]:
         """
@@ -162,6 +184,17 @@ class TraversableMixin:
             The deepest child module.
         """
         return leaf(self)
+
+    def is_initialized(self) -> bool:
+        """
+        Check if all parameters of the module are initialized.
+
+        Returns
+        -------
+        bool
+            Whether all parameters are initialized.
+        """
+        return is_initialized(self)
 
     @torch.jit.ignore
     def select(self, selection: schema.Selection) -> Self:

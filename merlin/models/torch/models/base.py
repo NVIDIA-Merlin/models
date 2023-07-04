@@ -13,10 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Union, overload
 
 import torch
 from pytorch_lightning import LightningModule
+from pytorch_lightning import Trainer as _Trainer
+from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from torch import nn
 
 from merlin.dataloader.torch import Loader
@@ -88,19 +91,35 @@ class Model(LightningModule, Block):
     def training_step(self, batch, batch_idx):
         """Performs a training step with a single batch."""
         del batch_idx
-        if isinstance(batch, Batch):
-            features = batch.features
-            targets = batch.targets
-        else:
-            features, targets = batch
+        if not isinstance(batch, Batch):
+            batch = Batch(features=batch[0], targets=batch[1])
 
-        predictions = self(features, batch=Batch(features, targets))
+        predictions = self(batch.features, batch=batch)
 
-        loss_and_metrics = compute_loss(predictions, targets, self.model_outputs())
+        loss_and_metrics = compute_loss(predictions, batch.targets, self.model_outputs())
         for name, value in loss_and_metrics.items():
             self.log(f"train_{name}", value)
 
         return loss_and_metrics["loss"]
+
+    def validation_step(self, batch, batch_idx):
+        return self._val_step(batch, batch_idx, type="val")
+
+    def test_step(self, batch, batch_idx):
+        return self._val_step(batch, batch_idx, type="test")
+
+    def _val_step(self, batch, batch_idx, type="val"):
+        del batch_idx
+        if not isinstance(batch, Batch):
+            batch = Batch(features=batch[0], targets=batch[1])
+
+        predictions = self(batch.features, batch=batch)
+
+        loss_and_metrics = compute_loss(predictions, batch.targets, self.model_outputs())
+        for name, value in loss_and_metrics.items():
+            self.log(f"{type}_{name}", value)
+
+        return loss_and_metrics
 
     def configure_optimizers(self):
         """Configures the optimizer for the model."""
@@ -117,6 +136,69 @@ class Model(LightningModule, Block):
     def last(self) -> nn.Module:
         """Returns the last block in the model."""
         return self.values[-1]
+
+
+class Trainer(_Trainer):
+    @overload
+    def fit(
+        self,
+        model: LightningModule,
+        train_dataloaders: Dataset,
+        batch_size: int,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        ckpt_path: Optional[str] = None,
+    ) -> None:
+        ...
+
+    @overload
+    def fit(
+        self,
+        model: LightningModule,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        datamodule: Optional[LightningDataModule] = None,
+        batch_size: Optional[int] = None,
+        ckpt_path: Optional[str] = None,
+    ) -> None:
+        ...
+
+    def fit(
+        self,
+        model,
+        train_dataloaders,
+        batch_size: Optional[int] = None,
+        val_dataloaders=None,
+        datamodule=None,
+        ckpt_path: Optional[str] = None,
+    ) -> None:
+        train_dataloaders, val_dataloaders = _check_dataloaders(
+            model, batch_size, train_dataloaders, val_dataloaders
+        )
+        return super().fit(model, train_dataloaders, val_dataloaders, datamodule, ckpt_path)
+
+    def validate(
+        self,
+        model: Optional[LightningModule] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        ckpt_path: Optional[str] = None,
+        verbose: bool = True,
+        batch_size: Optional[int] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ) -> List[Dict[str, float]]:
+        dataloaders = _check_dataloaders(model, batch_size, dataloaders)
+        return super().validate(model, dataloaders, ckpt_path, verbose, datamodule)
+
+    def test(
+        self,
+        model: Optional[LightningModule] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        ckpt_path: Optional[str] = None,
+        verbose: bool = True,
+        batch_size: Optional[int] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ) -> List[Dict[str, float]]:
+        dataloaders = _check_dataloaders(model, batch_size, dataloaders)
+        return super().test(model, dataloaders, ckpt_path, verbose, datamodule)
 
 
 def compute_loss(
@@ -212,3 +294,35 @@ def compute_loss(
             metric_name = camelcase_to_snakecase(metric.__class__.__name__)
             results[metric_name] = metric(_predictions, _targets)
     return results
+
+
+def _check_dataloaders(model, batch_size, *dataloader):
+    outputs = []
+    for loader in dataloader:
+        if loader:
+            outputs.append(_check_dataloader(model, batch_size, loader))
+        else:
+            outputs.append(loader)
+
+    if len(outputs) == 1:
+        return outputs[0]
+
+    return tuple(outputs)
+
+
+def _check_dataloader(model, batch_size, data):
+    if isinstance(data, Dataset):
+        loader = Loader(data, batch_size=batch_size)
+    elif isinstance(data, Loader):
+        loader = data
+    else:
+        return data
+
+    """Initialize the model if it is not initialized."""
+    if hasattr(model, "is_initialized") and not model.is_initialized():
+        if isinstance(loader, Loader):
+            model.initialize(loader)
+        else:
+            raise ValueError("Model is not initialized and no dataloader is provided.")
+
+    return loader

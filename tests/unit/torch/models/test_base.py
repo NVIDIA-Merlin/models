@@ -15,7 +15,6 @@
 #
 import pandas as pd
 import pytest
-import pytorch_lightning as pl
 import torch
 from torch import nn
 from torchmetrics import AUROC, Accuracy, Precision, Recall
@@ -128,7 +127,7 @@ class TestModel:
         expected_loss = nn.BCEWithLogitsLoss()(expected_outputs, targets["target"])
         assert torch.allclose(loss, expected_loss)
 
-    def test_training_step_with_dataloader(self):
+    def test_step_with_dataloader(self):
         model = mm.Model(
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),
@@ -137,15 +136,21 @@ class TestModel:
         feature = [2.0, 3.0]
         target = [0.0, 1.0]
         dataset = Dataset(pd.DataFrame({"feature": feature, "target": target}))
+        assert model.is_initialized() is False
 
         with Loader(dataset, batch_size=2) as loader:
             model.initialize(loader)
             batch = loader.peek()
 
+        assert model.is_initialized() is True
+
         loss = model.training_step(batch, 0)
         assert loss > 0.0
+        assert torch.equal(
+            model.validation_step(batch, 0)["loss"], model.test_step(batch, 0)["loss"]
+        )
 
-    def test_training_step_with_batch(self):
+    def test_step_with_batch(self):
         model = mm.Model(
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),
@@ -156,6 +161,9 @@ class TestModel:
         model.initialize(batch)
         loss = model.training_step(batch, 0)
         assert loss > 0.0
+        assert torch.equal(
+            model.validation_step(batch, 0)["loss"], model.test_step(batch, 0)["loss"]
+        )
 
     def test_training_step_missing_output(self):
         model = mm.Model(mm.Block())
@@ -213,11 +221,8 @@ class TestModel:
             mm.BinaryOutput(schema.select_by_name("click").first),
         )
 
-        trainer = pl.Trainer(max_epochs=1, devices=1)
-
-        with Loader(music_streaming_data, batch_size=batch_size) as loader:
-            model.initialize(loader)
-            trainer.fit(model, loader)
+        trainer = mm.Trainer(max_epochs=1, devices=1)
+        trainer.fit(model, music_streaming_data, batch_size=batch_size)
 
         assert trainer.logged_metrics["train_loss"] > 0.0
         assert trainer.num_training_batches == 7  # 100 rows // 16 per batch + 1 for last batch
