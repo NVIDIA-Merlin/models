@@ -113,7 +113,15 @@ class IndexBlock(Block):
         model_encode = TFModelEncode(model=block, output_concat_func=np.concatenate)
 
         data = data.to_ddf()
-        embedding_ddf = data.map_partitions(model_encode, filter_input_columns=[id_column])
+
+        # Processing a sample of the dataset with the model encoder
+        # to get the output dataframe dtypes
+        sample_output = model_encode(data.head(), filter_input_columns=[id_column])
+        output_dtypes = sample_output.dtypes.to_dict()
+
+        embedding_ddf = data.map_partitions(
+            model_encode, meta=output_dtypes, filter_input_columns=[id_column]
+        )
         embedding_df = embedding_ddf.compute(scheduler="synchronous")
 
         embedding_df.set_index(id_column, inplace=True)
