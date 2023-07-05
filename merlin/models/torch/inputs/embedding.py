@@ -376,7 +376,7 @@ class EmbeddingTable(nn.Module, Selectable):
 
     def feature_weights(self, name: str):
         if name not in self.domains:
-            raise ValueError()
+            raise ValueError(f"{name} not found in table: {self}")
 
         domain = self.domains[name]
 
