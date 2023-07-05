@@ -128,7 +128,7 @@ class TestModel:
         expected_loss = nn.BCELoss()(expected_outputs, targets["target"])
         assert torch.allclose(loss, expected_loss)
 
-    def test_training_step_with_dataloader(self):
+    def test_step_with_dataloader(self):
         model = mm.Model(
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),
@@ -144,8 +144,11 @@ class TestModel:
 
         loss = model.training_step(batch, 0)
         assert loss > 0.0
+        assert torch.equal(
+            model.validation_step(batch, 0)["loss"], model.test_step(batch, 0)["loss"]
+        )
 
-    def test_training_step_with_batch(self):
+    def test_step_with_batch(self):
         model = mm.Model(
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),
@@ -156,6 +159,9 @@ class TestModel:
         model.initialize(batch)
         loss = model.training_step(batch, 0)
         assert loss > 0.0
+        assert torch.equal(
+            model.validation_step(batch, 0)["loss"], model.test_step(batch, 0)["loss"]
+        )
 
     def test_training_step_missing_output(self):
         model = mm.Model(mm.Block())
