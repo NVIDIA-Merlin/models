@@ -49,15 +49,12 @@ class TabularOutputBlock(RouterBlock):
 
     def __init__(
         self,
-        schema: Schema,
+        schema: Optional[Schema] = None,
         init: Optional[Union[str, Initializer]] = None,
         selection: Optional[Selection] = Tags.TARGET,
     ):
-        if selection:
-            schema = select(schema, selection)
-
+        self.selection = selection
         super().__init__(schema, prepend_routing_module=False)
-        self.schema: Schema = self.selectable.schema
         if init:
             if isinstance(init, str):
                 init = self.initializers.get(init)
@@ -65,6 +62,12 @@ class TabularOutputBlock(RouterBlock):
                     raise ValueError(f"Initializer {init} not found.")
 
             init(self)
+
+    def setup_schema(self, schema: Schema):
+        if self.selection:
+            schema = select(schema, self.selection)
+        super().setup_schema(schema)
+        self.schema: Schema = self.selectable.schema
 
     @classmethod
     def register_init(cls, name: str):

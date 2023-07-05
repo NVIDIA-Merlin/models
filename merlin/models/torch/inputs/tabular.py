@@ -51,12 +51,11 @@ class TabularInputBlock(RouterBlock):
 
     def __init__(
         self,
-        schema: Schema,
+        schema: Optional[Schema] = None,
         init: Optional[Union[str, Initializer]] = None,
         agg: Optional[Union[str, nn.Module]] = None,
     ):
         super().__init__(schema)
-        self.schema: Schema = self.selectable.schema
         if init:
             if isinstance(init, str):
                 init = self.initializers.get(init)
@@ -66,6 +65,10 @@ class TabularInputBlock(RouterBlock):
             init(self)
         if agg:
             self.append(Block.parse(agg))
+
+    def setup_schema(self, schema: Schema):
+        super().setup_schema(schema)
+        self.schema: Schema = self.selectable.schema
 
     @classmethod
     def register_init(cls, name: str):
