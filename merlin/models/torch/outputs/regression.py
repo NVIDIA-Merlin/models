@@ -48,10 +48,14 @@ class RegressionOutput(ModelOutput):
         """Initializes a RegressionOutput object."""
         super().__init__(
             nn.LazyLinear(1),
-            schema=schema,
             loss=loss or self.DEFAULT_LOSS_CLS(),
             metrics=metrics or [m() for m in self.DEFAULT_METRICS_CLS],
         )
+        if schema:
+            self.setup_schema(schema)
+
+        if not self.metrics:
+            self.metrics = self.default_metrics()
 
     def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
@@ -62,7 +66,7 @@ class RegressionOutput(ModelOutput):
             The schema defining the column properties.
         """
         if isinstance(target, Schema):
-            if len(target) != 1:
+            if len(target) > 1:
                 raise ValueError("Schema must contain exactly one column.")
 
             target = target.first

@@ -127,6 +127,9 @@ def leaf(module) -> nn.Module:
             return child.leaf()
         return leaf(child)
     else:
+        if isinstance(module, containers) and not hasattr(module, "items"):
+            return module[-1]
+
         # If more than one child, throw an exception.
         raise ValueError(
             f"Module {module} has multiple children, cannot determine the deepest child."
