@@ -36,7 +36,7 @@ class BinaryOutput(ModelOutput):
         The metrics used for evaluation. Default includes Accuracy, AUROC, Precision, and Recall.
     """
 
-    DEFAULT_LOSS_CLS = nn.BCEWithLogitsLoss
+    DEFAULT_LOSS_CLS = nn.BCELoss
     DEFAULT_METRICS_CLS = (Accuracy, AUROC, Precision, Recall)
 
     def __init__(
