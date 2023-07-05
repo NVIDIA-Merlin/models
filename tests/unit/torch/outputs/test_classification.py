@@ -39,7 +39,7 @@ class TestBinaryOutput:
             Recall(task="binary"),
         ]
         with pytest.raises(ValueError):
-            mm.schema.output(binary_output)
+            mm.schema.output_schema(binary_output)
 
     def test_identity(self):
         binary_output = mm.BinaryOutput()
