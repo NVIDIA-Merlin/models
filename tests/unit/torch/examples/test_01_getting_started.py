@@ -46,6 +46,6 @@ def test_example_01_getting_started(tb):
             "val_binary_accuracy",
             "val_binary_auroc",
             "val_binary_precision",
-            "val_binary_recall"
+            "val_binary_recall",
         ]
     )
