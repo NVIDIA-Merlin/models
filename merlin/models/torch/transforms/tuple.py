@@ -1,3 +1,4 @@
+import sys
 from typing import Dict, List, Optional, Tuple
 
 import torch
@@ -6,7 +7,50 @@ from torch import nn
 from merlin.schema import Schema
 
 
-class _ToTuple(nn.Module):
+def ToTuple(schema: Schema) -> "ToTupleModule":
+    """
+    Creates a ToTupleModule for a given schema.
+
+    This function is especially useful for serving models with Triton,
+    as Triton doesn't allow models that output a dictionary. Instead,
+    by using this function, models can be modified to output tuples.
+
+    Parameters
+    ----------
+    schema : Schema
+        Input schema for which a ToTupleModule is to be created.
+
+    Returns
+    -------
+    ToTupleModule
+        A ToTupleModule corresponding to the length of the given schema.
+        The output can vary from ToTuple1 to ToTuple10.
+
+    Raises
+    ------
+    ValueError
+        If the length of the schema is more than 10,
+        a ValueError is raised with an appropriate error message.
+
+    Example usage ::
+    >>> import torch
+    >>> schema = Schema(["a", "b", "c"])
+    >>> ToTupleModule = ToTuple(schema)
+    >>> tensor_dict = {'a': torch.tensor([1]), 'b': torch.tensor([2.]), 'c': torch.tensor([2.])}
+    >>> output = ToTupleModule(tensor_dict)
+    >>> print(output)
+    (tensor([1]), tensor([2.]), tensor([2.]))
+    """
+    schema_length = len(schema)
+
+    if schema_length <= 10:
+        ToTupleClass = getattr(sys.modules[__name__], f"ToTuple{schema_length}")
+        return ToTupleClass(input_schema=schema)
+    else:
+        raise ValueError(f"Cannot convert schema of length {schema_length} to a tuple")
+
+
+class ToTupleModule(nn.Module):
     def __init__(self, input_schema: Optional[Schema] = None):
         super().__init__()
         if input_schema is not None:
@@ -28,7 +72,7 @@ class _ToTuple(nn.Module):
         return outputs
 
 
-class ToTuple1(_ToTuple):
+class ToTuple1(ToTupleModule):
     """Converts a dictionary of tensors of length=1 to a tuple of tensors."""
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor]:
@@ -36,7 +80,7 @@ class ToTuple1(_ToTuple):
         return (_list[0],)
 
 
-class ToTuple2(_ToTuple):
+class ToTuple2(ToTupleModule):
     """Converts a dictionary of tensors of length=2 to a tuple of tensors."""
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -44,7 +88,7 @@ class ToTuple2(_ToTuple):
         return (_list[0], _list[1])
 
 
-class ToTuple3(_ToTuple):
+class ToTuple3(ToTupleModule):
     """Converts a dictionary of tensors of length=3 to a tuple of tensors."""
 
     def forward(
@@ -54,7 +98,7 @@ class ToTuple3(_ToTuple):
         return (_list[0], _list[1], _list[2])
 
 
-class ToTuple4(_ToTuple):
+class ToTuple4(ToTupleModule):
     """Converts a dictionary of tensors of length=4 to a tuple of tensors."""
 
     def forward(
@@ -64,7 +108,7 @@ class ToTuple4(_ToTuple):
         return (_list[0], _list[1], _list[2], _list[3])
 
 
-class ToTuple5(_ToTuple):
+class ToTuple5(ToTupleModule):
     """Converts a dictionary of tensors of length=5 to a tuple of tensors."""
 
     def forward(
@@ -74,7 +118,7 @@ class ToTuple5(_ToTuple):
         return (_list[0], _list[1], _list[2], _list[3], _list[4])
 
 
-class ToTuple6(_ToTuple):
+class ToTuple6(ToTupleModule):
     """Converts a dictionary of tensors of length=6 to a tuple of tensors."""
 
     def forward(
@@ -84,7 +128,7 @@ class ToTuple6(_ToTuple):
         return (_list[0], _list[1], _list[2], _list[3], _list[4], _list[5])
 
 
-class ToTuple7(_ToTuple):
+class ToTuple7(ToTupleModule):
     """Converts a dictionary of tensors of length=7 to a tuple of tensors."""
 
     def forward(
@@ -102,7 +146,7 @@ class ToTuple7(_ToTuple):
         return (_list[0], _list[1], _list[2], _list[3], _list[4], _list[5], _list[6])
 
 
-class ToTuple8(_ToTuple):
+class ToTuple8(ToTupleModule):
     """Converts a dictionary of tensors of length=8 to a tuple of tensors."""
 
     def forward(
@@ -121,7 +165,7 @@ class ToTuple8(_ToTuple):
         return (_list[0], _list[1], _list[2], _list[3], _list[4], _list[5], _list[6], _list[7])
 
 
-class ToTuple9(_ToTuple):
+class ToTuple9(ToTupleModule):
     """Converts a dictionary of tensors of length=9 to a tuple of tensors."""
 
     def forward(
@@ -151,7 +195,7 @@ class ToTuple9(_ToTuple):
         )
 
 
-class ToTuple10(_ToTuple):
+class ToTuple10(ToTupleModule):
     """Converts a dictionary of tensors of length=10 to a tuple of tensors."""
 
     def forward(
