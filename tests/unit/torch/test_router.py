@@ -162,4 +162,4 @@ class TestRouterBlock:
 
         outputs = module_utils.module_test(nested, self.batch.features)
         assert list(outputs.keys()) == ["user_age"]
-        assert "user_age" in mm.schema.output(nested).column_names
+        assert "user_age" in mm.output_schema(nested).column_names

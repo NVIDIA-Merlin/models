@@ -72,8 +72,8 @@ class TestSelectFeatures:
 
         outputs = mm.schema.trace(block, self.batch.features["session_id"], batch=self.batch)
         assert len(outputs) == 5
-        assert mm.schema.input(block).column_names == ["input"]
-        assert mm.schema.features(block).column_names == [
+        assert mm.input_schema(block).column_names == ["input"]
+        assert mm.feature_schema(block).column_names == [
             "user_id",
             "country",
             "user_age",
