@@ -103,7 +103,7 @@
 </div>
 </div>
 </div>
-<img alt="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_01-getting-started/nvidia_logo.png" src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_01-getting-started/nvidia_logo.png" />
+<img alt="https://developer.download.nvidia.com/notebooks/dlsw%20notebooks/merlin_models_pytorch_01-getting-started/nvidia_logo.png" src="https://developer.download.nvidia.com/notebooks/dlsw%20notebooks/merlin_models_pytorch_01-getting-started/nvidia_logo.png" />
 <div class="tex2jax_ignore mathjax_ignore section" id="getting-started-with-merlin-models-develop-a-model-for-movielens-using-the-pytorch-api">
 <h1>Getting Started with Merlin Models: Develop a Model for MovieLens using the PyTorch API<a class="headerlink" href="#getting-started-with-merlin-models-develop-a-model-for-movielens-using-the-pytorch-api" title="Permalink to this headline"></a></h1>
 <p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-pytorch/tags">merlin-pytorch</a> container.</p>
@@ -182,10 +182,10 @@
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">max_epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">train_loader</span> <span class="o">=</span> <span class="n">Loader</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
 
-<span class="k">with</span> <span class="n">Loader</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span> <span class="k">as</span> <span class="n">loader</span><span class="p">:</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span>
-    <span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -210,13 +210,13 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 4.459     Total estimated model params size (MB)
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 0: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 782/782 [00:07&lt;00:00, 100.68it/s, v_num=7]
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 0: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████| 782/782 [00:07&lt;00:00, 101.54it/s, v_num=10]
 </pre></div>
 </div>
 <div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>`Trainer.fit` stopped: `max_epochs=1` reached.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 0: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 782/782 [00:07&lt;00:00, 100.35it/s, v_num=7]
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 0: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████| 782/782 [00:07&lt;00:00, 101.21it/s, v_num=10]
 </pre></div>
 </div>
 </div>
@@ -224,8 +224,8 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 <p>We evaluate the model and check the evaluation metrics.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">Loader</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span> <span class="k">as</span> <span class="n">loader</span><span class="p">:</span>
-    <span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">val_loader</span> <span class="o">=</span> <span class="n">Loader</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
+<span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -233,22 +233,22 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 <div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Validation DataLoader 0:   7%|██████████████████████▍                                                                                                                                                                                                                                                                                                   | 14/196 [00:00&lt;00:01, 157.25it/s]
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Validation DataLoader 0:   7%|██████▌                                                                                            | 13/196 [00:00&lt;00:01, 161.86it/s]
 </pre></div>
 </div>
 <div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/pytorch_lightning/utilities/data.py:76: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 1024. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
   warning_cache.warn(
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Validation DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 196/196 [00:01&lt;00:00, 164.10it/s]
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Validation DataLoader 0: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 196/196 [00:01&lt;00:00, 165.71it/s]
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
      Validate metric           DataLoader 0
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  valid_binary_accuracy     0.7193925380706787
-   valid_binary_auroc       0.7811704874038696
- valid_binary_precision     0.7327381372451782
-   valid_binary_recall      0.8074849843978882
-       valid_loss           0.5524654984474182
+   val_binary_accuracy      0.7193425297737122
+    val_binary_auroc        0.7803523540496826
+  val_binary_precision      0.7274115681648254
+    val_binary_recall       0.8201844692230225
+        val_loss            0.5525734424591064
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 </pre></div>
 </div>
@@ -271,16 +271,12 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 <span class="p">)</span>
 
 <span class="n">trainer</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">max_epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">train_loader</span> <span class="o">=</span> <span class="n">Loader</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
 
-<span class="k">with</span> <span class="n">Loader</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span> <span class="k">as</span> <span class="n">loader</span><span class="p">:</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span>
-    <span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="next-steps">
-<h2>Next steps<a class="headerlink" href="#next-steps" title="Permalink to this headline"></a></h2>
-<p>In the next example notebooks, we will show how the integration with NVTabular and how to explore different recommender models.</p>
 </div>
 </div>
 
