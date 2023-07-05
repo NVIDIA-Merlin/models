@@ -15,6 +15,7 @@
 #
 import pytest
 import torch
+import torchmetrics as tm
 from torch import nn
 from torchmetrics import AUROC, Accuracy, Precision, Recall
 from torchmetrics.classification import BinaryF1Score
@@ -99,12 +100,11 @@ class TestCategoricalOutput:
 
         assert isinstance(categorical_output, mm.CategoricalOutput)
         assert isinstance(categorical_output.loss, nn.CrossEntropyLoss)
-        assert sorted(m.__class__.__name__ for m in categorical_output.metrics) == [
-            "RetrievalHitRate",
-            "RetrievalNormalizedDCG",
-            "RetrievalPrecision",
-            "RetrievalRecall",
-        ]
+        assert isinstance(categorical_output.metrics[0], tm.RetrievalHitRate)
+        assert isinstance(categorical_output.metrics[1], tm.RetrievalNormalizedDCG)
+        assert isinstance(categorical_output.metrics[2], tm.RetrievalPrecision)
+        assert isinstance(categorical_output.metrics[3], tm.RetrievalRecall)
+
         output_schema = categorical_output[0].output_schema.first
         assert output_schema.dtype == md.float32
         assert output_schema.properties["domain"]["min"] == 0

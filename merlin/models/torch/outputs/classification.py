@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import inspect
 from typing import List, Optional, Sequence, Type, Union
 
 import torch
@@ -426,7 +427,7 @@ def create_retrieval_metrics(
         The types of metrics to create. Each type should be a callable that
         accepts a single integer parameter `k` to instantiate a new metric.
     ks : Sequence[int]
-        A list of integers to use as the `k` parameter when creating each metric.
+        A list of integers to use as the `k` or `top_k` parameter when creating each metric.
 
     Returns
     -------
@@ -440,6 +441,18 @@ def create_retrieval_metrics(
 
     for k in ks:
         for metric in metrics:
-            outputs.append(metric(k=k))
+            # check the parameters of the callable metric
+            params = inspect.signature(metric).parameters
+
+            # the argument name could be 'k' or 'top_k'
+            arg_name = "top_k" if "top_k" in params else "k" if "k" in params else None
+
+            if arg_name is not None:
+                outputs.append(metric(**{arg_name: k}))
+            else:
+                raise ValueError(
+                    "Expected a callable that accepts either ",
+                    f"a 'k' or a 'top_k' parameter, but got {metric}",
+                )
 
     return outputs
