@@ -102,6 +102,25 @@ class Model(LightningModule, Block):
 
         return loss_and_metrics["loss"]
 
+    def validation_step(self, batch, batch_idx):
+        return self._val_step(batch, batch_idx, type="val")
+
+    def test_step(self, batch, batch_idx):
+        return self._val_step(batch, batch_idx, type="test")
+
+    def _val_step(self, batch, batch_idx, type="val"):
+        del batch_idx
+        if not isinstance(batch, Batch):
+            batch = Batch(features=batch[0], targets=batch[1])
+
+        predictions = self(batch.features, batch=batch)
+
+        loss_and_metrics = compute_loss(predictions, batch.targets, self.model_outputs())
+        for name, value in loss_and_metrics.items():
+            self.log(f"{type}_{name}", value)
+
+        return loss_and_metrics
+
     def configure_optimizers(self):
         """Configures the optimizer for the model."""
         return self.optimizer(self.parameters())
