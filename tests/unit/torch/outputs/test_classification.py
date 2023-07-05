@@ -39,7 +39,7 @@ class TestBinaryOutput:
             Recall(task="binary"),
         ]
         with pytest.raises(ValueError):
-            mm.schema.output_schema(binary_output)
+            mm.output_schema(binary_output)
 
     def test_identity(self):
         binary_output = mm.BinaryOutput()
@@ -114,7 +114,7 @@ class TestCategoricalOutput:
             == output_schema.properties["value_count"]["max"]
             == int_domain_max + 1
         )
-        assert mm.schema.output(categorical_output) == categorical_output[0].output_schema
+        assert mm.output_schema(categorical_output) == categorical_output[0].output_schema
 
     def test_called_with_schema(self):
         int_domain_max = 3
@@ -216,7 +216,7 @@ class TestCategoricalTarget:
         )
         target = mm.CategoricalTarget(schema)
         categorical_output = mm.ModelOutput(target, loss=nn.CrossEntropyLoss())
-        assert mm.schema.output(categorical_output).column_names == ["foo"]
+        assert mm.output_schema(categorical_output).column_names == ["foo"]
 
         inputs = torch.randn(3, 2)
         outputs = module_utils.module_test(categorical_output, inputs)
