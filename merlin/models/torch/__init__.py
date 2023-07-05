@@ -36,6 +36,11 @@ from merlin.models.torch.outputs.tabular import TabularOutputBlock
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.transforms.agg import Concat, Stack
 
+input_schema = schema.input_schema
+output_schema = schema.output_schema
+target_schema = schema.target_schema
+feature_schema = schema.feature_schema
+
 __all__ = [
     "Batch",
     "BinaryOutput",
@@ -64,6 +69,10 @@ __all__ = [
     "CategoricalOutput",
     "CategoricalTarget",
     "EmbeddingTablePrediction",
+    "input_schema",
+    "output_schema",
+    "feature_schema",
+    "target_schema",
     "DLRMBlock",
     "DLRMModel",
 ]
