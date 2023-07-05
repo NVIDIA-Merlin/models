@@ -169,6 +169,6 @@ class TestRouterBlock:
         with pytest.raises(ValueError):
             router.add_route(Tags.CONTINUOUS)
 
-        router = mm.RouterBlock(self.schema, prepend_routing_module=True)
+        router = mm.RouterBlock(self.schema, prepend_routing_module=False)
         with pytest.raises(ValueError):
             router.add_route(Tags.CONTINUOUS)
