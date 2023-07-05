@@ -40,7 +40,7 @@ class BinaryOutput(ModelOutput):
     """
 
     DEFAULT_LOSS_CLS = nn.BCELoss
-    DEFAULT_METRICS_CLS = (Accuracy, AUROC, Precision, Recall)
+    DEFAULT_METRICS_CLS = (tm.Accuracy, tm.AUROC, tm.Precision, tm.Recall)
 
     def __init__(
         self,
