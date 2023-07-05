@@ -164,7 +164,11 @@ class TestRouterBlock:
         assert list(outputs.keys()) == ["user_age"]
         assert "user_age" in mm.output_schema(nested).column_names
 
-    def test_empty_exception(self):
+    def test_exceptions(self):
         router = mm.RouterBlock(None)
+        with pytest.raises(ValueError):
+            router.add_route(Tags.CONTINUOUS)
+
+        router = mm.RouterBlock(self.schema, prepend_routing_module=True)
         with pytest.raises(ValueError):
             router.add_route(Tags.CONTINUOUS)

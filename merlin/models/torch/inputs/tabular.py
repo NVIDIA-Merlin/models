@@ -55,20 +55,22 @@ class TabularInputBlock(RouterBlock):
         init: Optional[Union[str, Initializer]] = None,
         agg: Optional[Union[str, nn.Module]] = None,
     ):
+        self.init = init
+        self.agg = agg
         super().__init__(schema)
-        if init:
-            if isinstance(init, str):
-                init = self.initializers.get(init)
-                if not init:
-                    raise ValueError(f"Initializer {init} not found.")
-
-            init(self)
-        if agg:
-            self.append(Block.parse(agg))
 
     def setup_schema(self, schema: Schema):
         super().setup_schema(schema)
         self.schema: Schema = self.selectable.schema
+        if self.init:
+            if isinstance(self.init, str):
+                self.init = self.initializers.get(self.init)
+                if not self.init:
+                    raise ValueError(f"Initializer {self.init} not found.")
+
+            self.init(self)
+        if self.agg:
+            self.append(Block.parse(self.agg))
 
     @classmethod
     def register_init(cls, name: str):
