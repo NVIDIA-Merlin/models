@@ -62,5 +62,6 @@ markers = [
     "integration",
     "unit",
     "changed",
-    "unchanged"
+    "unchanged",
+    "multigpu"
 ]
