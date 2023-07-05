@@ -14,9 +14,13 @@
 # limitations under the License.
 #
 
+from typing import Dict
+
 import pytest
+import torch
 from torch import nn
 
+from merlin.models.torch.block import ParallelBlock
 from merlin.models.torch.schema import (
     Selectable,
     feature_schema,
@@ -24,6 +28,7 @@ from merlin.models.torch.schema import (
     select_schema,
     selection_name,
     target_schema,
+    trace,
 )
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -133,3 +138,64 @@ class TestTargets:
         module = MockModule(target_schema=schema)
         assert target_schema(module) == schema
         assert feature_schema(module) == Schema()
+
+
+class TestTraceInitializeFromSchema:
+    """Testing initialize_from_schema works with tracing."""
+
+    def test_simple(self):
+        class Dummy(nn.Module):
+            def initialize_from_schema(self, schema: Schema):
+                self.schema = schema
+
+            def forward(self, x):
+                return x
+
+        module = Dummy()
+        trace(module, {"a": torch.tensor([1])})
+        assert module.schema.column_names == ["a"]
+
+    def test_parallel_tensor(self):
+        class Dummy(nn.Module):
+            def initialize_from_schema(self, schema: Schema):
+                self.schema = schema
+
+            def forward(self, x: torch.Tensor):
+                return x
+
+        dummy = Dummy()
+        identity = nn.Identity()
+        module = ParallelBlock({"foo": dummy, "bar": identity})
+        trace(module, torch.tensor([1]))
+        assert dummy.schema.column_names == ["input"]
+
+    def test_parallel_dict(self):
+        class Dummy(nn.Module):
+            def initialize_from_schema(self, schema: Schema):
+                self.schema = schema
+
+            def forward(self, x: Dict[str, torch.Tensor]):
+                return x
+
+        dummy = Dummy()
+        module = ParallelBlock({"foo": dummy})
+        trace(module, {"a": torch.tensor([1])})
+        assert dummy.schema.column_names == ["a"]
+
+    def test_sequential(self):
+        class Dummy(nn.Module):
+            def initialize_from_schema(self, schema: Schema):
+                self.schema = schema
+
+            def forward(self, x: Dict[str, torch.Tensor]):
+                output = {}
+                for k, v in x.items():
+                    output[f"{k}_output"] = v
+                return output
+
+        first = Dummy()
+        second = Dummy()
+        module = nn.Sequential(first, second)
+        trace(module, {"a": torch.tensor([1])})
+        assert first.schema.column_names == ["a"]
+        assert second.schema.column_names == ["a_output"]
