@@ -241,6 +241,8 @@ def trace(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]
             mod.__output_schemas = ()
 
         _input_schema = input_schema.trace(mod, inputs[0])
+        initialize_from_schema(mod, _input_schema)
+
         if _input_schema not in mod.__input_schemas:
             mod.__input_schemas += (_input_schema,)
             mod.__output_schemas += (output_schema.trace(mod, _input_schema, outputs),)
@@ -326,7 +328,7 @@ def target_schema(module: nn.Module) -> Schema:
     return target_schema
 
 
-def setup_schema(module: nn.Module, schema: Schema):
+def initialize_from_schema(module: nn.Module, schema: Schema):
     """
     Set up a schema for a given module.
 
@@ -340,15 +342,18 @@ def setup_schema(module: nn.Module, schema: Schema):
 
     from merlin.models.torch.block import BlockContainer, ParallelBlock
 
-    if hasattr(module, "setup_schema"):
-        module.setup_schema(schema)
+    if hasattr(module, "initialize_from_schema") and not getattr(
+        module, "_initialized_from_schema", False
+    ):
+        module.initialize_from_schema(schema)
+        module._initialized_from_schema = True
 
     elif isinstance(module, ParallelBlock):
         for branch in module.branches.values():
-            setup_schema(branch, schema)
+            initialize_from_schema(branch, schema)
 
     elif isinstance(module, BlockContainer) and module:
-        setup_schema(module[0], schema)
+        initialize_from_schema(module[0], schema)
 
 
 @select.register(Schema)
@@ -441,7 +446,7 @@ class Selectable:
     A mixin to allow to be selectable by schema.
     """
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         """
         Setup the schema for this selectable.
 

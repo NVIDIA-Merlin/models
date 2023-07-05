@@ -93,7 +93,7 @@ class RouterBlock(ParallelBlock):
             return self
 
         if module is not None:
-            schema.setup_schema(module, routing_module.schema)
+            schema.initialize_from_schema(module, routing_module.schema)
 
             if self.prepend_routing_module:
                 if isinstance(module, ParallelBlock):

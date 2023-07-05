@@ -104,7 +104,7 @@ class TestSelectable:
     def test_exception(self):
         selectable = Selectable()
 
-        selectable.setup_schema(Schema([]))
+        selectable.initialize_from_schema(Schema([]))
         selectable.schema == Schema([])
         with pytest.raises(NotImplementedError):
             selectable.select(1)

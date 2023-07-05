@@ -82,9 +82,12 @@ class EmbeddingTable(nn.Module, Selectable):
         self.has_combiner = self.seq_combiner is not None
         self.has_module_combiner = isinstance(self.seq_combiner, nn.Module)
         self.num_embeddings = 0
-        self.setup_schema(schema or Schema())
+        self.input_schema = None
+        if schema:
+            self.initialize_from_schema(schema or Schema())
+            self._initialized_from_schema = True
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         """
         Sets up the schema for the embedding table.
 
@@ -462,17 +465,17 @@ class EmbeddingTables(ParallelBlock, Selectable):
         self.seq_combiner = seq_combiner
         self.kwargs = kwargs
         if isinstance(schema, Schema):
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
+            _initialized_from_schema = True
 
-    def setup_schema(self, schema: Schema):
-        """
-        Sets up the schema for the embedding tables.
+    def initialize_from_schema(self, schema: Schema):
+        """Initializes the module from a schema.
+        Called during the schema tracing of the model.
 
-        Args:
-            schema (Schema): The schema to setup.
-
-        Returns:
-            EmbeddingTables: The updated EmbeddingTables instance with the setup schema.
+        Parameters
+        ----------
+        schema : Schema
+            The schema to initialize with
         """
         self.schema = schema
 

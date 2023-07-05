@@ -50,7 +50,7 @@ class TestBinaryOutput:
 
         assert outputs.shape == (3, 1)
 
-    def test_setup_schema(self):
+    def test_output_schema(self):
         schema = ColumnSchema("foo")
         binary_output = mm.BinaryOutput(schema=schema)
 
@@ -60,8 +60,9 @@ class TestBinaryOutput:
         assert binary_output.output_schema.first.properties["domain"]["min"] == 0
         assert binary_output.output_schema.first.properties["domain"]["max"] == 1
 
-        with pytest.raises(ValueError):
-            binary_output.setup_schema(Schema(["a", "b"]))
+    def test_error_multiple_columns(self):
+        with pytest.raises(ValueError, match="Schema must contain exactly one column"):
+            mm.BinaryOutput(schema=Schema(["a", "b"]))
 
     def test_custom_loss(self):
         binary_output = mm.BinaryOutput(loss=nn.BCELoss())

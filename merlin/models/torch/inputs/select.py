@@ -54,9 +54,10 @@ class SelectKeys(nn.Module, schema.Selectable):
         super().__init__()
         self.column_names: List[str] = []
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
+            self._initialized_from_schema = True
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         if isinstance(schema, ColumnSchema):
             schema = Schema([schema])
 
@@ -154,9 +155,10 @@ class SelectFeatures(nn.Module):
         super().__init__()
         self.select_keys = SelectKeys(schema=schema)
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
+            self._initialized_from_schema = True
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         """Set up the schema for the SelectFeatures.
 
         Parameters
@@ -164,7 +166,7 @@ class SelectFeatures(nn.Module):
         schema : Schema
             The schema to use for selection.
         """
-        self.select_keys.setup_schema(schema)
+        self.select_keys.initialize_from_schema(schema)
         self.embedding_names = schema.select_by_tag(Tags.EMBEDDING).column_names
         self.input_schema = self.select_keys.input_schema
         self.feature_schema = self.input_schema
