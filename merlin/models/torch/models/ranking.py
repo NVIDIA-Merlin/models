@@ -42,10 +42,10 @@ class DLRMModel(Model):
     ...    schema,
     ...    dim=64,
     ...    bottom_block=mm.MLPBlock([256, 64]),
-    ...    output_block=BinaryOutput(ColumnSchema("target")))
+    ...    output_block=BinaryOutput(ColumnSchema("target"))
+    ... )
     >>> trainer = pl.Trainer()
-    >>> model.initialize(dataloader)
-    >>> trainer.fit(model, dataloader)
+    >>> trainer.fit(model, Loader(dataset, batch_size=32))
 
     References
     ----------

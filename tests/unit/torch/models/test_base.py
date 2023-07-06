@@ -220,16 +220,38 @@ class TestModel:
         )
 
         trainer = pl.Trainer(max_epochs=1, devices=1)
-
-        with Loader(music_streaming_data, batch_size=batch_size) as loader:
-            model.initialize(loader)
-            trainer.fit(model, loader)
+        trainer.fit(model, Loader(music_streaming_data, batch_size=batch_size))
 
         assert trainer.logged_metrics["train_loss"] > 0.0
         assert trainer.num_training_batches == 7  # 100 rows // 16 per batch + 1 for last batch
 
         batch = sample_batch(music_streaming_data, batch_size)
         _ = module_utils.module_test(model, batch)
+
+
+class TestMultiLoader:
+    def test_train_dataset(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(music_streaming_data)
+        assert multi_loader.train_dataloader() is multi_loader.loader_train
+
+    def test_train_loader(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(Loader(music_streaming_data, 2))
+        assert multi_loader.train_dataloader() is multi_loader.loader_train
+
+    def test_valid_dataloader(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(music_streaming_data, music_streaming_data)
+        assert multi_loader.val_dataloader() is multi_loader.loader_valid
+
+    def test_test_dataloader(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(*([music_streaming_data] * 3))
+        assert multi_loader.test_dataloader() is multi_loader.loader_test
+
+    def test_teardown(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(*([music_streaming_data] * 3))
+        multi_loader.teardown(None)
+        assert not hasattr(multi_loader, "loader_train")
+        assert not hasattr(multi_loader, "loader_valid")
+        assert not hasattr(multi_loader, "loader_test")
 
 
 class TestComputeLoss:
