@@ -110,7 +110,7 @@
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>NVIDIA-Merlin team participated in <a class="reference external" href="http://www.recsyschallenge.com/2022/index.html">Recsys2022 challenge</a> and secured 3rd position. This notebook contains the various techniques used in the solution.</p>
-<p>In this notebook we train several different architectures with the last one being a transformer model. We only cover training. If you would be interested also in putting your model in production and serving predictions using the industry standard Triton Inference Server, please consult this notebook &lt;ADD_LINK_TO_NOTEBOOK&gt;</p>
+<p>In this notebook we train several different architectures with the last one being a transformer model. We only cover training. If you would be interested also in putting your model in production and serving predictions using the industry standard Triton Inference Server, please consult <a class="reference external" href="https://github.com/NVIDIA-Merlin/Merlin/blob/main/examples/Next-Item-Prediction-with-Transformers/tf/transformers-next-item-prediction.ipynb">this notebook</a>.</p>
 <div class="section" id="learning-objective">
 <h3>Learning Objective<a class="headerlink" href="#learning-objective" title="Permalink to this headline"></a></h3>
 <p>In this notebook, we will apply important concepts that improve recommender systems. We leveraged them for our RecSys solution:</p>
@@ -684,7 +684,7 @@ Wall time: 135 µs
 <div class="section" id="training-an-mlp-with-sequential-input-with-merlin-models">
 <h2>Training an MLP with sequential input with Merlin Models<a class="headerlink" href="#training-an-mlp-with-sequential-input-with-merlin-models" title="Permalink to this headline"></a></h2>
 <p>We train a Sequential-Multi-Layer Perceptron model, which averages the sequential input features (e.g. <code class="docutils literal notranslate"><span class="pre">item_id_list_seq</span></code>) and concatenate the resulting embeddings with the categorical embeddings (e.g. <code class="docutils literal notranslate"><span class="pre">item_id_last</span></code>). We visualize the architecture in the figure below.</p>
-<a class="reference internal image-reference" href="images/mlp_ecommerce.png"><img alt="images/mlp_ecommerce.png" src="images/mlp_ecommerce.png" style="width: 30%;" /></a>
+<a class="reference internal image-reference" href="../_images/mlp_ecommerce.png"><img alt="../_images/mlp_ecommerce.png" src="../_images/mlp_ecommerce.png" style="width: 30%;" /></a>
 <div class="section" id="dataloader">
 <h3>Dataloader<a class="headerlink" href="#dataloader" title="Permalink to this headline"></a></h3>
 <p>We initialize the dataloaders to train the neural network models. First, we define NVTabular dataset.</p>
@@ -928,7 +928,7 @@ Wall time: 8min 15s
 <div class="section" id="training-a-bi-lstm-with-merlin-models">
 <h2>Training a Bi-LSTM with Merlin Models<a class="headerlink" href="#training-a-bi-lstm-with-merlin-models" title="Permalink to this headline"></a></h2>
 <p>In this section, we train a Bi-LSTM model, an extension of traditional LSTMs, which enables straight (past) and reverse traversal of input (future) sequence to be used. The input block concatenates the embedding vectors for all sequential features (<code class="docutils literal notranslate"><span class="pre">item_id_list_seq</span></code>, <code class="docutils literal notranslate"><span class="pre">f_47_list_seq</span></code>, <code class="docutils literal notranslate"><span class="pre">f_68_list_seq</span></code>) per step (e.g. here 3). The concatenated vectors are processed by a BiLSTM architecture. The hidden state of the BiLSTM is concatenated with the embedding vectors of the categorical features (<code class="docutils literal notranslate"><span class="pre">item_id_last</span></code>). Then we connect it with a Multi-Layer Perceptron Block. We visualize the architecture in the figure below.</p>
-<a class="reference internal image-reference" href="images/bi-lstm_ecommerce.png"><img alt="images/bi-lstm_ecommerce.png" src="images/bi-lstm_ecommerce.png" style="width: 30%;" /></a>
+<a class="reference internal image-reference" href="../_images/bi-lstm_ecommerce.png"><img alt="../_images/bi-lstm_ecommerce.png" src="../_images/bi-lstm_ecommerce.png" style="width: 30%;" /></a>
 <div class="section" id="build-bi-lstm-model">
 <h3>Build Bi-LSTM model<a class="headerlink" href="#build-bi-lstm-model" title="Permalink to this headline"></a></h3>
 <p>Now we will create a Bi-LSTM model by using <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/layers/Bidirectional">tf.keras.layers.Bidirectional</a> api. We connect the sequence input block for sequential features with <code class="docutils literal notranslate"><span class="pre">BiLSTM</span></code> block via <code class="docutils literal notranslate"><span class="pre">connect</span></code> method. First, we  create two input blocks which takes sequential and categorical features, respectively, concatenate them and return the interaction embeddings.</p>
