@@ -201,8 +201,8 @@ class SelectFeatures(nn.Module):
 
 @schema.extract.register(SelectKeys)
 def _(main, selection, route, name=None):
-    main_schema = schema.input(main)
-    route_schema = schema.input(route)
+    main_schema = schema.input_schema(main)
+    route_schema = schema.input_schema(route)
 
     diff = main_schema.excluding_by_name(route_schema.column_names)
 
