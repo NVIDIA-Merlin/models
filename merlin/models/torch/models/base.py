@@ -94,7 +94,7 @@ class Model(LightningModule, Block):
 
         # TODO: Fix compute_metrics=True for multi-gpu
         loss_and_metrics = compute_loss(
-            predictions, targets, self.model_outputs(), compute_metrics=False
+            predictions, targets, self.model_outputs(), compute_metrics=True
         )
         for name, value in loss_and_metrics.items():
             self.log(f"train_{name}", value)
@@ -362,5 +362,8 @@ def compute_loss(
 
         for metric in model_out.metrics:
             metric_name = camelcase_to_snakecase(metric.__class__.__name__)
+            if not metric.device or metric.device != _predictions.device:
+                metric = metric.to(_predictions.device)
+
             results[metric_name] = metric(_predictions, _targets)
     return results
