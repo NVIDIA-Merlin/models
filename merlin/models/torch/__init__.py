@@ -25,7 +25,12 @@ from merlin.models.torch.inputs.tabular import TabularInputBlock
 from merlin.models.torch.models.base import Model
 from merlin.models.torch.models.ranking import DCNModel, DLRMModel
 from merlin.models.torch.outputs.base import ModelOutput
-from merlin.models.torch.outputs.classification import BinaryOutput
+from merlin.models.torch.outputs.classification import (
+    BinaryOutput,
+    CategoricalOutput,
+    CategoricalTarget,
+    EmbeddingTablePrediction,
+)
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.outputs.tabular import TabularOutputBlock
 from merlin.models.torch.router import RouterBlock
@@ -40,6 +45,7 @@ __all__ = [
     "Batch",
     "BinaryOutput",
     "Block",
+    "DLRMBlock",
     "MLPBlock",
     "Model",
     "EmbeddingTable",
@@ -60,6 +66,9 @@ __all__ = [
     "Concat",
     "Stack",
     "schema",
+    "CategoricalOutput",
+    "CategoricalTarget",
+    "EmbeddingTablePrediction",
     "input_schema",
     "output_schema",
     "feature_schema",

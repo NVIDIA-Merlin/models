@@ -1,4 +1,3 @@
-import pytest
 from torch import nn
 
 import merlin.models.torch as mm
@@ -86,10 +85,9 @@ class TestLeaf:
         model = CustomModule()
         assert isinstance(leaf(model), CustomModule)
 
-    def test_exception(self):
-        model = nn.Sequential(nn.Linear(10, 20), nn.Linear(10, 20))
-        with pytest.raises(ValueError):
-            leaf(model)
+    def test_sequential(self):
+        model = nn.Sequential(nn.Linear(10, 20), nn.Linear(10, 30))
+        assert leaf(model).out_features == 30
 
     def test_embedding(self, user_id_col_schema):
         input_block = mm.TabularInputBlock(Schema([user_id_col_schema]), init="defaults")
