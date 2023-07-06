@@ -97,7 +97,7 @@ class _InputSchemaDispatch(_LazyDispatchPyTorch):
             return super().__call__(module, inputs)
         except NotImplementedError:
             raise ValueError(
-                f"Could not get output schema of {module} " "please call mm.trace_schema first."
+                f"Could not get output schema of {module} " "please call `mm.schema.trace` first."
             )
 
     def trace(
@@ -127,7 +127,7 @@ class _OutputSchemaDispatch(_LazyDispatchPyTorch):
 
     def __call__(self, module: nn.Module, inputs: Optional[Schema] = None) -> Schema:
         try:
-            _inputs = input(module)
+            _inputs = input_schema(module)
             inputs = _inputs
         except ValueError:
             pass
@@ -156,7 +156,7 @@ class _OutputSchemaDispatch(_LazyDispatchPyTorch):
             return super().__call__(module, inputs)
         except NotImplementedError:
             raise ValueError(
-                f"Could not get output schema of {module} " "please call mm.trace_schema first."
+                f"Could not get output schema of {module} " "please call `mm.schema.trace` first."
             )
 
     def trace(
@@ -165,7 +165,7 @@ class _OutputSchemaDispatch(_LazyDispatchPyTorch):
         inputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema],
         outputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema],
     ) -> Schema:
-        _input_schema = input.get_schema(inputs)
+        _input_schema = input_schema.get_schema(inputs)
         _output_schema = self.get_schema(outputs)
 
         try:
@@ -207,8 +207,8 @@ class _ExtractDispatch(LazyDispatcher):
         return fn(module, selection, route, name=name)
 
 
-input = _InputSchemaDispatch("input_schema")
-output = _OutputSchemaDispatch("output_schema")
+input_schema = _InputSchemaDispatch("input_schema")
+output_schema = _OutputSchemaDispatch("output_schema")
 select = _SelectDispatch("selection")
 extract = _ExtractDispatch("extract")
 
@@ -240,13 +240,13 @@ def trace(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]
             mod.__input_schemas = ()
             mod.__output_schemas = ()
 
-        _input_schema = input.trace(mod, inputs[0])
+        _input_schema = input_schema.trace(mod, inputs[0])
         if _input_schema not in mod.__input_schemas:
             mod.__input_schemas += (_input_schema,)
-            mod.__output_schemas += (output.trace(mod, _input_schema, outputs),)
+            mod.__output_schemas += (output_schema.trace(mod, _input_schema, outputs),)
 
     def add_hook(m):
-        custom_modules = list(output.dispatcher.registry.keys())
+        custom_modules = list(output_schema.dispatcher.registry.keys())
         if m and isinstance(m, tuple(custom_modules[1:])):
             return
 
@@ -261,7 +261,7 @@ def trace(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]
     return module_out
 
 
-def features(module: nn.Module) -> Schema:
+def feature_schema(module: nn.Module) -> Schema:
     """Extract the feature schema from a PyTorch Module.
 
     This function operates by applying the `get_feature_schema` method
@@ -293,7 +293,7 @@ def features(module: nn.Module) -> Schema:
     return feature_schema
 
 
-def targets(module: nn.Module) -> Schema:
+def target_schema(module: nn.Module) -> Schema:
     """
     Extract the target schema from a PyTorch Module.
 
@@ -484,7 +484,7 @@ class Selectable:
         raise NotImplementedError()
 
 
-@output.register_tensor(torch.Tensor)
+@output_schema.register_tensor(torch.Tensor)
 def _tensor_to_schema(input, name="output"):
     kwargs = dict(dims=input.shape[1:], dtype=input.dtype)
 
@@ -494,13 +494,13 @@ def _tensor_to_schema(input, name="output"):
     return Schema([ColumnSchema(name, **kwargs)])
 
 
-@input.register_tensor(torch.Tensor)
+@input_schema.register_tensor(torch.Tensor)
 def _(input):
     return _tensor_to_schema(input, "input")
 
 
-@input.register_tensor(Dict[str, torch.Tensor])
-@output.register_tensor(Dict[str, torch.Tensor])
+@input_schema.register_tensor(Dict[str, torch.Tensor])
+@output_schema.register_tensor(Dict[str, torch.Tensor])
 def _(input):
     output = Schema()
     for k, v in sorted(input.items()):
@@ -509,23 +509,27 @@ def _(input):
     return output
 
 
-@input.register_tensor(Tuple[torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor])
-@input.register_tensor(Tuple[torch.Tensor, torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor, torch.Tensor])
-@input.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
-@input.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
-@input.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
-@input.register_tensor(
+@input_schema.register_tensor(Tuple[torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
+@input_schema.register_tensor(
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+)
+@output_schema.register_tensor(
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+)
+@input_schema.register_tensor(
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 )
-@output.register_tensor(
+@output_schema.register_tensor(
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 )
-@input.register_tensor(
+@input_schema.register_tensor(
     Tuple[
         torch.Tensor,
         torch.Tensor,
@@ -536,7 +540,7 @@ def _(input):
         torch.Tensor,
     ]
 )
-@output.register_tensor(
+@output_schema.register_tensor(
     Tuple[
         torch.Tensor,
         torch.Tensor,
@@ -547,19 +551,7 @@ def _(input):
         torch.Tensor,
     ]
 )
-@input.register_tensor(
-    Tuple[
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-    ]
-)
-@output.register_tensor(
+@input_schema.register_tensor(
     Tuple[
         torch.Tensor,
         torch.Tensor,
@@ -571,9 +563,8 @@ def _(input):
         torch.Tensor,
     ]
 )
-@input.register_tensor(
+@output_schema.register_tensor(
     Tuple[
-        torch.Tensor,
         torch.Tensor,
         torch.Tensor,
         torch.Tensor,
@@ -584,7 +575,7 @@ def _(input):
         torch.Tensor,
     ]
 )
-@output.register_tensor(
+@input_schema.register_tensor(
     Tuple[
         torch.Tensor,
         torch.Tensor,
@@ -597,7 +588,20 @@ def _(input):
         torch.Tensor,
     ]
 )
-@input.register_tensor(
+@output_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
+@input_schema.register_tensor(
     Tuple[
         torch.Tensor,
         torch.Tensor,
@@ -611,7 +615,7 @@ def _(input):
         torch.Tensor,
     ]
 )
-@output.register_tensor(
+@output_schema.register_tensor(
     Tuple[
         torch.Tensor,
         torch.Tensor,

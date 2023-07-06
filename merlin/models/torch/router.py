@@ -15,6 +15,7 @@
 #
 
 from copy import deepcopy
+from inspect import isclass
 from typing import Optional
 
 from torch import nn
@@ -48,13 +49,16 @@ class RouterBlock(ParallelBlock):
 
     def __init__(self, selectable: schema.Selectable, prepend_routing_module: bool = True):
         super().__init__()
-        if isinstance(selectable, Schema):
-            from merlin.models.torch.inputs.select import SelectKeys
-
-            selectable = SelectKeys(selectable)
-
-        self.selectable: schema.Selectable = selectable
         self.prepend_routing_module = prepend_routing_module
+        if isinstance(selectable, Schema):
+            self.setup_schema(selectable)
+        else:
+            self.selectable: schema.Selectable = selectable
+
+    def setup_schema(self, schema: Schema):
+        from merlin.models.torch.inputs.select import SelectKeys
+
+        self.selectable = SelectKeys(schema)
 
     def add_route(
         self,
@@ -86,6 +90,9 @@ class RouterBlock(ParallelBlock):
         RouterBlock
             The router block with the new route added.
         """
+
+        if self.selectable is None:
+            raise ValueError(f"{self} has nothing to select from, so cannot add route.")
 
         routing_module = schema.select(self.selectable, selection)
         if not routing_module:
@@ -152,7 +159,9 @@ class RouterBlock(ParallelBlock):
             if shared:
                 col_module = module
             else:
-                if hasattr(module, "copy"):
+                if isclass(module):
+                    col_module = module(col)
+                elif hasattr(module, "copy"):
                     col_module = module.copy()
                 else:
                     col_module = deepcopy(module)

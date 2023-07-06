@@ -375,10 +375,10 @@ def sample_features(
     return sample_batch(data, batch_size, shuffle).features
 
 
-@schema.output.register_tensor(Batch)
+@schema.output_schema.register_tensor(Batch)
 def _(input):
     output_schema = Schema()
-    output_schema += schema.output.tensors(input.features)
-    output_schema += schema.output.tensors(input.targets)
+    output_schema += schema.output_schema.tensors(input.features)
+    output_schema += schema.output_schema.tensors(input.targets)
 
     return output_schema
