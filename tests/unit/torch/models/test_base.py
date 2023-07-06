@@ -44,23 +44,17 @@ class TestModel:
         model = mm.Model(mm.Block(), nn.Linear(10, 10))
         assert isinstance(model, mm.Model)
         assert len(model) == 2
-        assert model.optimizer is torch.optim.Adam
-        assert isinstance(model.configure_optimizers(), torch.optim.Adam)
+        assert isinstance(model.configure_optimizers()[0], torch.optim.Adam)
 
-    def test_init_optimizer(self):
-        optimizer = torch.optim.SGD
-        model = mm.Model(mm.Block(), mm.Block(), optimizer=optimizer)
-        assert model.optimizer is torch.optim.SGD
+    def test_init_optimizer_and_scheduler(self):
+        model = mm.Model(mm.MLPBlock([4, 4]))
+        model.initialize(mm.Batch(torch.rand(2, 2)))
 
-    def test_init_optimizer_and_scheduler_instances_via_property(self):
-        model = mm.Model(mm.MLPBlock([32, 16]))
-        model.optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-        model.scheduler = torch.optim.lr_scheduler.StepLR(
-            model.optimizer, step_size=100, gamma=0.99
-        )
-        opt, sched = model.configure_optimizers()
-        assert opt == [model.optimizer]
-        assert sched == [model.scheduler]
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.99)
+        opt, sched = model.configure_optimizers(optimizer, scheduler)
+        assert opt == [optimizer]
+        assert sched == [scheduler]
 
     def test_pre_and_pre(self):
         inputs = torch.tensor([[1, 2], [3, 4]])

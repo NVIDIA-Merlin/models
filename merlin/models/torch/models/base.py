@@ -14,12 +14,13 @@
 # limitations under the License.
 #
 import inspect
+import itertools
 import os
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, Iterator, List, Optional, Sequence, Type, Union
 
 import torch
 from pytorch_lightning import LightningDataModule, LightningModule
-from torch import nn
+from torch import nn, optim
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
@@ -28,6 +29,9 @@ from merlin.models.torch.block import Block
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils import module_utils
 from merlin.models.utils.registry import camelcase_to_snakecase
+
+OptimizerType = Union[optim.Optimizer, Type[optim.Optimizer], str]
+LRSchedulerType = Union[optim.lr_scheduler.LRScheduler, Type[optim.lr_scheduler.LRScheduler]]
 
 
 class Model(LightningModule, Block):
@@ -61,54 +65,47 @@ class Model(LightningModule, Block):
     ... trainer.fit(model, Loader(dataset, batch_size=16))
     """
 
-    def __init__(
-        self, *blocks: nn.Module, optimizer=torch.optim.Adam, scheduler=None, initialization="auto"
-    ):
-        super().__init__()
+    def __init__(self, *blocks: nn.Module, initialization="auto"):
 
         # Copied from BlockContainer.__init__
         self.values = nn.ModuleList()
         for module in blocks:
             self.values.append(self.wrap_module(module))
-
-        self.optimizer = optimizer
         self.initialization = initialization
-        self.scheduler = scheduler
 
     @property
     def optimizer(self):
         return self._optimizer
 
-    @optimizer.setter
-    def optimizer(self, value):
-        self._optimizer = value
-
-    @property
-    def scheduler(self):
-        return self._scheduler
-
-    @scheduler.setter
-    def scheduler(self, value):
-        self._scheduler = value
-
-    def configure_optimizers(self):
+    def configure_optimizers(
+        self,
+        optimizer: Optional[OptimizerType] = None,
+        scheduler: Optional[LRSchedulerType] = None,
+    ):
         """Configures the optimizer for the model."""
-        opt = self._optimizer
-        sched = self._scheduler
-        if inspect.isclass(opt):
-            opt = opt(self.parameters())
-            if sched is not None:
-                raise ValueError(
-                    "A scheduler instance can only be provided if "
-                    "the optimizer is an instance and not a class."
-                )
+        if optimizer is None:
+            optimizer = self._optimizer if hasattr(self, "_optimizer") else "adam"
+        self._optimizer = create_optimizer(self, optimizer)
 
-        if not isinstance(opt, (list, tuple)):
-            opt = [opt]
+        if scheduler is None:
+            if hasattr(self, "_scheduler"):
+                scheduler = self._scheduler
+            else:
+                self._scheduler = None
+        if scheduler is not None:
+            self._scheduler = get_scheduler(self._optimizer, scheduler)
 
-        if sched is not None:
-            if not isinstance(sched, (list, tuple)):
-                sched = [sched]
+        if not isinstance(self._optimizer, (list, tuple)):
+            opt = [self._optimizer]
+        else:
+            opt = self._optimizer
+
+        if self._scheduler is not None:
+            if not isinstance(self._scheduler, (list, tuple)):
+                sched = [self._scheduler]
+            else:
+                sched = self._scheduler
+
             return opt, sched
 
         return opt
@@ -417,3 +414,108 @@ def compute_loss(
 
             results[metric_name] = metric(_predictions, _targets)
     return results
+
+
+def create_optimizer(module: nn.Module, opt: OptimizerType) -> optim.Optimizer:
+    """
+    Creates an optimizer given a PyTorch module and an optimizer type.
+
+    Parameters
+    ----------
+    module : torch.nn.Module
+        The PyTorch model.
+    opt : str, Type[torch.optim.Optimizer], or torch.optim.Optimizer
+        The optimizer type, either as a string, a class, or an existing
+        PyTorch optimizer object.
+
+    Returns
+    -------
+    torch.optim.Optimizer
+        A PyTorch optimizer.
+
+    Raises
+    ------
+    ValueError
+        If the provided string for opt does not correspond to a known optimizer type.
+    TypeError
+        If the type of opt is neither string, class of torch.optim.Optimizer,
+        nor instance of torch.optim.Optimizer.
+    """
+
+    # Extract the model parameters
+    params = module.parameters()
+
+    # If opt is a string, create a new optimizer of the given type
+    if isinstance(opt, str):
+        if opt.lower() == "sgd":
+            return optim.SGD(params, lr=0.01)
+        elif opt.lower() == "adam":
+            return optim.Adam(params, lr=0.001)
+        elif opt.lower() == "adagrad":
+            return optim.Adagrad(params, lr=0.01)
+        else:
+            raise ValueError(f"Unsupported optimizer type: {opt}")
+
+    # If opt is an optimizer class, create a new optimizer of the given type
+    elif isinstance(opt, type) and issubclass(opt, optim.Optimizer):
+        return opt(params, lr=0.01)
+
+    # If opt is an optimizer instance, create a new optimizer of the same type
+    elif isinstance(opt, optim.Optimizer):
+        # Flattens a list of lists (or other iterable)
+        def flatten(lis: Iterator[Iterator]) -> Iterator:
+            return list(itertools.chain.from_iterable(lis))
+
+        # Extract parameters from optimizer's param_groups
+        params_opt = flatten([group["params"] for group in opt.param_groups])
+        params_module = list(module.parameters())
+
+        # Check if the parameters of the module and the optimizer are the same
+        if params_module == params_opt:
+            # If parameters are the same, return the existing optimizer
+            return opt
+        else:
+            # If parameters are not the same, create a new optimizer of the same type
+            opt_type = type(opt)
+            return opt_type(params_module, **opt.defaults)
+
+    raise TypeError(
+        "Expected opt to be a string, a class of torch.optim.Optimizer, ",
+        f"or an instance of torch.optim.Optimizer, but got {type(opt)}",
+    )
+
+
+def get_scheduler(
+    optimizer: optim.Optimizer, scheduler: LRSchedulerType
+) -> optim.lr_scheduler.LRScheduler:
+    """
+    Get an instance of a learning rate scheduler.
+
+    Parameters
+    ----------
+    optimizer : torch.optim.Optimizer
+        The optimizer to which the scheduler should be applied.
+    scheduler : SchedulerType
+        The scheduler or scheduler class to use.
+        If an instance is provided and its optimizer is different from the provided optimizer:
+            a new instance of the same type is returned with the provided optimizer.
+        If the optimizers are the same: the original scheduler is returned.
+        If a class is provided: an instance is created with the optimizer as the only argument.
+
+    Returns
+    -------
+    torch.optim.lr_scheduler._LRScheduler
+        The scheduler instance.
+    """
+    if isinstance(scheduler, optim.lr_scheduler.LRScheduler):
+        if scheduler.optimizer != optimizer:
+            return type(scheduler)(optimizer)
+        else:
+            return scheduler
+    elif inspect.isclass(scheduler) and issubclass(scheduler, optim.lr_scheduler.LRScheduler):
+        return scheduler(optimizer)
+
+    raise TypeError(
+        "scheduler must be a subclass or instance of optim.lr_scheduler.LRScheduler ",
+        f"got: {scheduler}",
+    )
