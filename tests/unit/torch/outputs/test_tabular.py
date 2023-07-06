@@ -1,9 +1,10 @@
 import pytest
 import torch
 
+import merlin.dtypes as md
 import merlin.models.torch as mm
 from merlin.models.torch.utils import module_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 class TestTabularOutputBlock:
@@ -24,6 +25,40 @@ class TestTabularOutputBlock:
         assert "play_percentage" in outputs
         assert "click" in outputs
         assert "like" in outputs
+
+    def test_init_defaults_with_binary_categorical(self):
+        test_schema = Schema(
+            [
+                ColumnSchema("foo")
+                .with_dtype(md.int32)
+                .with_properties({"domain": {"name": "bar", "min": 0, "max": 1}})
+                .with_tags([Tags.CATEGORICAL, Tags.TARGET])
+            ]
+        )
+        output_block = mm.TabularOutputBlock(test_schema, init="defaults")
+
+        assert isinstance(output_block["foo"], mm.BinaryOutput)
+
+        outputs = module_utils.module_test(output_block, torch.rand(10, 10))
+
+        assert "foo" in outputs
+
+    def test_init_defaults_with_multiclass_categorical(self):
+        test_schema = Schema(
+            [
+                ColumnSchema("foo")
+                .with_dtype(md.int32)
+                .with_properties({"domain": {"name": "bar", "min": 0, "max": 3}})
+                .with_tags([Tags.CATEGORICAL, Tags.TARGET])
+            ]
+        )
+        output_block = mm.TabularOutputBlock(test_schema, init="defaults")
+
+        assert isinstance(output_block["foo"], mm.CategoricalOutput)
+
+        outputs = module_utils.module_test(output_block, torch.rand(10, 10))
+
+        assert "foo" in outputs
 
     def test_exceptions(self):
         with pytest.raises(ValueError, match="not found"):

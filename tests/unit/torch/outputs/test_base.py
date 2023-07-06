@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np
+import pytest
 import torch
 from torch import nn
 from torchmetrics import AUROC, Accuracy
 
 import merlin.models.torch as mm
 from merlin.models.torch.utils import module_utils
-from merlin.schema import ColumnSchema, Schema, Tags
 
 
 class TestModelOutput:
@@ -31,8 +30,8 @@ class TestModelOutput:
 
         assert isinstance(model_output, mm.ModelOutput)
         assert model_output.loss is loss
-        assert model_output.metrics == ()
-        assert model_output.output_schema == Schema()
+        assert model_output.metrics is None
+        assert not mm.schema.output_schema(model_output)
 
     def test_identity(self):
         block = mm.Block()
@@ -47,19 +46,10 @@ class TestModelOutput:
     def test_setup_metrics(self):
         block = mm.Block()
         loss = nn.BCEWithLogitsLoss()
-        metrics = (Accuracy(task="binary"), AUROC(task="binary"))
+        metrics = [Accuracy(task="binary"), AUROC(task="binary")]
         model_output = mm.ModelOutput(block, loss=loss, metrics=metrics)
 
         assert model_output.metrics == metrics
-
-    def test_setup_schema(self):
-        block = mm.Block()
-        loss = nn.BCEWithLogitsLoss()
-        schema = ColumnSchema("feature", dtype=np.int32, tags=[Tags.CONTINUOUS])
-        model_output = mm.ModelOutput(block, loss=loss, schema=schema)
-
-        assert isinstance(model_output.output_schema, Schema)
-        assert model_output.output_schema.first == schema
 
     def test_eval_resets_target(self):
         block = mm.Block()
@@ -71,3 +61,26 @@ class TestModelOutput:
         assert torch.equal(model_output.target, torch.ones(1))
         model_output.eval()
         assert torch.equal(model_output.target, torch.zeros(1))
+
+    def test_copy(self):
+        block = mm.Block()
+        loss = nn.BCEWithLogitsLoss()
+        metrics = [Accuracy(task="multiclass", num_classes=11)]
+        model_output = mm.ModelOutput(block, loss=loss, metrics=metrics)
+
+        model_copy = model_output.copy()
+        assert model_copy.loss is not loss
+        assert isinstance(model_copy.loss, nn.BCEWithLogitsLoss)
+        assert model_copy.metrics[0] is not metrics[0]
+        assert model_copy.metrics[0].__class__.__name__ == "MulticlassAccuracy"
+        assert model_copy.metrics[0].num_classes == 11
+
+    @pytest.mark.parametrize("logits_temperature", [0.1, 0.9])
+    def test_logits_temperature_scaler(self, logits_temperature):
+        block = mm.Block()
+        model_output = mm.ModelOutput(block, logits_temperature=logits_temperature)
+        inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+
+        outputs = module_utils.module_test(model_output, inputs)
+
+        assert torch.allclose(inputs / logits_temperature, outputs)
