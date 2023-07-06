@@ -52,6 +52,16 @@ class TestModel:
         model = mm.Model(mm.Block(), mm.Block(), optimizer=optimizer)
         assert model.optimizer is torch.optim.SGD
 
+    def test_init_optimizer_and_scheduler_instances_via_property(self):
+        model = mm.Model(mm.MLPBlock([32, 16]))
+        model.optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+        model.scheduler = torch.optim.lr_scheduler.StepLR(
+            model.optimizer, step_size=100, gamma=0.99
+        )
+        opt, sched = model.configure_optimizers()
+        assert opt == [model.optimizer]
+        assert sched == [model.scheduler]
+
     def test_pre_and_pre(self):
         inputs = torch.tensor([[1, 2], [3, 4]])
         model = mm.Model(mm.Block(), mm.Block())

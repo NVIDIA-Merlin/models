@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import inspect
 import os
 from typing import Dict, List, Optional, Sequence, Union
 
@@ -43,8 +44,11 @@ class Model(LightningModule, Block):
     schema: Schema, optional
         A Merlin schema. Default is None.
     optimizer: torch.optim.Optimizer, optional
-        A PyTorch optimizer from the PyTorch library (or any custom optimizer
+        A PyTorch optimizer instance or class from the PyTorch library (or any custom optimizer
         that follows the same API). Default is Adam optimizer.
+    scheduler: torch.optim.lr_scheduler.LRScheduler, optional
+        A PyTorch learning rate scheduler instance from the PyTorch library (or any custom scheduler
+        that follows the same API). Default is None, which means no LR decay.
 
     Example usage
     -------------
@@ -57,7 +61,9 @@ class Model(LightningModule, Block):
     ... trainer.fit(model, Loader(dataset, batch_size=16))
     """
 
-    def __init__(self, *blocks: nn.Module, optimizer=torch.optim.Adam, initialization="auto"):
+    def __init__(
+        self, *blocks: nn.Module, optimizer=torch.optim.Adam, scheduler=None, initialization="auto"
+    ):
         super().__init__()
 
         # Copied from BlockContainer.__init__
@@ -67,6 +73,45 @@ class Model(LightningModule, Block):
 
         self.optimizer = optimizer
         self.initialization = initialization
+        self.scheduler = scheduler
+
+    @property
+    def optimizer(self):
+        return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self, value):
+        self._optimizer = value
+
+    @property
+    def scheduler(self):
+        return self._scheduler
+
+    @scheduler.setter
+    def scheduler(self, value):
+        self._scheduler = value
+
+    def configure_optimizers(self):
+        """Configures the optimizer for the model."""
+        opt = self._optimizer
+        sched = self._scheduler
+        if inspect.isclass(opt):
+            opt = opt(self.parameters())
+            if sched is not None:
+                raise ValueError(
+                    "A scheduler instance can only be provided if "
+                    "the optimizer is an instance and not a class."
+                )
+
+        if not isinstance(opt, (list, tuple)):
+            opt = [opt]
+
+        if sched is not None:
+            if not isinstance(sched, (list, tuple)):
+                sched = [sched]
+            return opt, sched
+
+        return opt
 
     def initialize(self, data: Union[Dataset, Loader, Batch]):
         """Initializes the model based on a given data set."""
@@ -118,10 +163,6 @@ class Model(LightningModule, Block):
             self.log(f"{type}_{name}", value)
 
         return loss_and_metrics
-
-    def configure_optimizers(self):
-        """Configures the optimizer for the model."""
-        return self.optimizer(self.parameters())
 
     def model_outputs(self) -> List[ModelOutput]:
         """Finds all instances of `ModelOutput` in the model."""
