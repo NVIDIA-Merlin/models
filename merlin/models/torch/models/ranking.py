@@ -3,16 +3,18 @@ from typing import Optional
 from torch import nn
 
 from merlin.models.torch.block import Block, ParallelBlock
-from merlin.models.torch.blocks.cross import CrossBlock
-from merlin.models.torch.blocks.dlrm import DLRMBlock
+from merlin.models.torch.blocks.cross import _DCNV2_REF, CrossBlock
+from merlin.models.torch.blocks.dlrm import _DLRM_REF, DLRMBlock
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.inputs.tabular import TabularInputBlock
 from merlin.models.torch.models.base import Model
 from merlin.models.torch.outputs.tabular import TabularOutputBlock
 from merlin.models.torch.transforms.agg import Concat, MaybeAgg
+from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema
 
 
+@docstring_parameter(dlrm_reference=_DLRM_REF)
 class DLRMModel(Model):
     """
     The Deep Learning Recommendation Model (DLRM) as proposed in Naumov, et al. [1]
@@ -46,15 +48,13 @@ class DLRMModel(Model):
     ...    schema,
     ...    dim=64,
     ...    bottom_block=mm.MLPBlock([256, 64]),
-    ...    output_block=BinaryOutput(ColumnSchema("target")))
+    ...    output_block=mm.BinaryOutput(ColumnSchema("target")),
+    ... )
     >>> trainer = pl.Trainer()
     >>> model.initialize(dataloader)
     >>> trainer.fit(model, dataloader)
 
-    References
-    ----------
-    [1] Naumov, Maxim, et al. "Deep learning recommendation model for
-        personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
+    {dlrm_reference}
     """
 
     def __init__(
@@ -80,6 +80,7 @@ class DLRMModel(Model):
         super().__init__(dlrm_body, output_block)
 
 
+@docstring_parameter(dcn_reference=_DCNV2_REF)
 class DCNModel(Model):
     """
     The Deep & Cross Network (DCN) architecture as proposed in Wang, et al. [1]
@@ -112,16 +113,13 @@ class DCNModel(Model):
     ...    schema,
     ...    depth=2,
     ...    deep_block=mm.MLPBlock([256, 64]),
-    ...    output_block=BinaryOutput(ColumnSchema("target")))
+    ...    output_block=mm.BinaryOutput(ColumnSchema("target")),
+    ... )
     >>> trainer = pl.Trainer()
     >>> model.initialize(dataloader)
     >>> trainer.fit(model, dataloader)
 
-    References
-    ----------
-    [1]. Wang, Ruoxi, et al. "DCN V2: Improved deep & cross network and
-       practical lessons for web-scale learning to rank systems." Proceedings
-       of the Web Conference 2021. 2021. https://arxiv.org/pdf/2008.13535.pdf
+    {dcn_reference}
     """
 
     def __init__(
@@ -133,14 +131,14 @@ class DCNModel(Model):
         input_block: Optional[Block] = None,
         output_block: Optional[Block] = None,
     ) -> None:
-        if deep_block is None:
-            deep_block = MLPBlock([512, 256])
-
         if input_block is None:
             input_block = TabularInputBlock(schema, init="defaults")
 
         if output_block is None:
             output_block = TabularOutputBlock(schema, init="defaults")
+
+        if deep_block is None:
+            deep_block = MLPBlock([512, 256])
 
         if stacked:
             cross_network = Block(CrossBlock.with_depth(depth), deep_block)

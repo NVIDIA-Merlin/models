@@ -41,11 +41,13 @@ class TestDLRMModel:
 class TestDCNModel:
     @pytest.mark.parametrize("depth", [1, 2])
     @pytest.mark.parametrize("stacked", [True, False])
+    @pytest.mark.parametrize("deep_block", [None, mm.MLPBlock([4, 2])])
     def test_train_dcn_with_lightning_trainer(
         self,
         music_streaming_data,
         depth,
         stacked,
+        deep_block,
         batch_size=16,
     ):
         schema = music_streaming_data.schema.select_by_name(
@@ -53,7 +55,7 @@ class TestDCNModel:
         )
         music_streaming_data.schema = schema
 
-        model = mm.DCNModel(schema, depth=depth, deep_block=mm.MLPBlock([4, 2]), stacked=stacked)
+        model = mm.DCNModel(schema, depth=depth, deep_block=deep_block, stacked=stacked)
 
         trainer = pl.Trainer(max_epochs=1, devices=1)
 
