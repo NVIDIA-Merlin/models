@@ -69,3 +69,13 @@ class TestTabularOutputBlock:
         outputs.add_route(Tags.CATEGORICAL)
 
         assert not outputs
+
+    def test_nesting(self):
+        output_block = mm.TabularOutputBlock(self.schema)
+        output_block.add_route(Tags.TARGET, mm.TabularOutputBlock(init="defaults"))
+
+        outputs = module_utils.module_test(output_block, torch.rand(10, 10))
+
+        assert "play_percentage" in outputs
+        assert "click" in outputs
+        assert "like" in outputs
