@@ -15,7 +15,7 @@ class TestMultiGPU:
             mm.BinaryOutput(schema["click"]),
         )
 
-        trainer = pl.Trainer(max_epochs=3, devices=[0, 1])
+        trainer = pl.Trainer(max_epochs=3, devices=2)
         trainer.fit(model, mm.MultiLoader(data, batch_size=2, repartition=2))
 
         # 100 rows total / 2 devices -> 50 rows per device
