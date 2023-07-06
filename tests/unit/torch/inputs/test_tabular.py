@@ -68,12 +68,13 @@ class TestTabularInputBlock:
             "item_recency",
             "item_genres",
         }
+
+        outputs = module_utils.module_test(towers, self.batch)
+
         assert set(mm.input_schema(towers).column_names) == input_cols
         assert mm.output_schema(towers).column_names == ["user", "item"]
 
         categorical = towers.select(Tags.CATEGORICAL)
-        outputs = module_utils.module_test(towers, self.batch)
-
         assert mm.schema.extract(towers, Tags.CATEGORICAL)[1] == categorical
         assert set(mm.input_schema(towers).column_names) == input_cols
         assert mm.output_schema(towers).column_names == ["user", "item"]

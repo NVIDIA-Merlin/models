@@ -54,8 +54,8 @@ class TestSelectKeys:
 
     def test_initialize_from_schema(self):
         select_user = mm.SelectKeys()
-        select_user.initialize_from_schema(self.user_schema["user_id"])
-        assert select_user.schema == Schema([self.user_schema["user_id"]])
+        select_user.initialize_from_schema(self.user_schema[["user_id"]])
+        assert select_user.schema == self.user_schema[["user_id"]]
 
 
 class TestSelectFeatures:

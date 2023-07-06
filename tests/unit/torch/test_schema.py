@@ -20,6 +20,7 @@ import pytest
 import torch
 from torch import nn
 
+from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import ParallelBlock
 from merlin.models.torch.schema import (
     Selectable,
@@ -116,18 +117,22 @@ class TestSelectable:
 
 
 class MockModule(nn.Module):
-    def __init__(self, feature_schema=None, target_schema=None):
+    def __init__(self, target_schema=None):
         super().__init__()
-        self.feature_schema = feature_schema
         self.target_schema = target_schema
+
+    def forward(self, inputs, batch: Batch):
+        return batch.features
 
 
 class TestFeatures:
     def test_features(self):
-        schema = Schema([ColumnSchema("a"), ColumnSchema("b")])
-
-        module = MockModule(feature_schema=schema)
-        assert feature_schema(module) == schema
+        module = MockModule()
+        features = {"a": torch.tensor([1]), "b": torch.tensor([2.3])}
+        trace(module, {}, batch=Batch(features))
+        assert feature_schema(module) == Schema(
+            [ColumnSchema("a", dtype="int64"), ColumnSchema("b", dtype="float32")]
+        )
         assert target_schema(module) == Schema()
 
 
