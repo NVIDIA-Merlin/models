@@ -19,11 +19,11 @@ from torch import nn
 
 from merlin.models.torch.schema import (
     Selectable,
-    features,
+    feature_schema,
     select,
     select_schema,
     selection_name,
-    targets,
+    target_schema,
 )
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -122,8 +122,8 @@ class TestFeatures:
         schema = Schema([ColumnSchema("a"), ColumnSchema("b")])
 
         module = MockModule(feature_schema=schema)
-        assert features(module) == schema
-        assert targets(module) == Schema()
+        assert feature_schema(module) == schema
+        assert target_schema(module) == Schema()
 
 
 class TestTargets:
@@ -131,5 +131,5 @@ class TestTargets:
         schema = Schema([ColumnSchema("a"), ColumnSchema("b")])
 
         module = MockModule(target_schema=schema)
-        assert targets(module) == schema
-        assert features(module) == Schema()
+        assert target_schema(module) == schema
+        assert feature_schema(module) == Schema()

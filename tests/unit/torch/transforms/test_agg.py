@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from merlin.models.torch.block import Block
-from merlin.models.torch.transforms.agg import Concat, MaybeAgg, Stack
+from merlin.models.torch.transforms.agg import Concat, ElementWiseSum, MaybeAgg, Stack
 from merlin.models.torch.utils import module_utils
 from merlin.schema import Schema
 
@@ -93,6 +93,30 @@ class TestStack:
         }
         output = block(input_tensors)
         assert output.shape == (2, 2, 3)
+
+
+class TestElementWiseSum:
+    def setup_class(self):
+        self.ewsum = ElementWiseSum()
+        self.feature1 = torch.tensor([[1, 2], [3, 4]])  # Shape: [batch_size, feature_dim]
+        self.feature2 = torch.tensor([[5, 6], [7, 8]])  # Shape: [batch_size, feature_dim]
+        self.input_dict = {"feature1": self.feature1, "feature2": self.feature2}
+
+    def test_forward(self):
+        output = self.ewsum(self.input_dict)
+        expected_output = torch.tensor([[6, 8], [10, 12]])  # Shape: [batch_size, feature_dim]
+        assert torch.equal(output, expected_output)
+
+    def test_input_tensor_shape_mismatch(self):
+        feature_mismatch = torch.tensor([1, 2, 3])  # Different shape
+        input_dict_mismatch = {"feature1": self.feature1, "feature_mismatch": feature_mismatch}
+        with pytest.raises(RuntimeError):
+            self.ewsum(input_dict_mismatch)
+
+    def test_empty_input_dict(self):
+        empty_dict = {}
+        with pytest.raises(RuntimeError):
+            self.ewsum(empty_dict)
 
 
 class TestMaybeAgg:
