@@ -184,6 +184,8 @@
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">max_epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="n">train_loader</span> <span class="o">=</span> <span class="n">Loader</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
 
+<span class="c1"># The initialize step ensures the model and data are on the correct device</span>
+<span class="c1"># and prepares the model for training</span>
 <span class="n">model</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
 <span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">)</span>
 </pre></div>
