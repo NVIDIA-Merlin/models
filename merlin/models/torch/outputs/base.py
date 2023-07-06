@@ -118,16 +118,3 @@ class ModelOutput(Block):
         output.metrics = copied_metrics
 
         return output
-
-    def to(self, *args, **kwargs):
-        """Moves and/or casts the parameters and buffers.
-
-        Returns
-        -------
-        nn.Module
-            The module with the parameters and buffers moved and/or casted.
-        """
-        for metric in self.metrics:
-            metric.to(*args, **kwargs)
-
-        return super().to(*args, **kwargs)
