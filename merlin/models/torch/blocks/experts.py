@@ -1,3 +1,5 @@
+import textwrap
+from functools import partial
 from typing import Dict, Optional, Union
 
 import torch
@@ -11,7 +13,7 @@ from merlin.models.torch.block import (
     repeat_parallel,
     repeat_parallel_like,
 )
-from merlin.models.torch.transforms.agg import Stack
+from merlin.models.torch.transforms.agg import Concat, Stack
 from merlin.models.utils.doc_utils import docstring_parameter
 
 _PLE_REFERENCE = """
@@ -50,9 +52,9 @@ class MMOEBlock(Block):
         experts = repeat_parallel(expert, num_experts, agg=Stack(dim=1))
         super().__init__(ShortcutBlock(experts, output_name="experts"))
         if isinstance(outputs, ParallelBlock):
-            self.append(repeat_parallel_like(ExpertGateBlock(len(outputs)), outputs))
+            self.append(repeat_parallel_like(ExpertGateBlock(num_experts), outputs))
         else:
-            self.append(ExpertGateBlock(1))
+            self.append(ExpertGateBlock(num_experts))
 
 
 @docstring_parameter(ple_reference=_PLE_REFERENCE)
@@ -79,6 +81,7 @@ class PLEBlock(Block):
     def __init__(
         self,
         expert: nn.Module,
+        *,
         num_shared_experts: int,
         num_task_experts: int,
         depth: int,
@@ -117,23 +120,27 @@ class CGCBlock(Block):
     def __init__(
         self,
         expert: nn.Module,
+        *,
         num_shared_experts: int,
         num_task_experts: int,
         outputs: ParallelBlock,
         shared_gate: bool = False,
     ):
-        shared_experts = repeat_parallel(expert, num_shared_experts, agg="stack")
-        super().__init__(ShortcutBlock(shared_experts, output_name="experts"))
+        shared_experts = repeat_parallel(expert, num_shared_experts, agg=Stack(dim=1))
+        expert_shortcut = partial(ShortcutBlock, output_name="experts")
+        super().__init__(expert_shortcut(shared_experts))
 
         gates = ParallelBlock()
         for name in outputs.branches:
-            gates[name] = PLEExpertGateBlock(
-                len(outputs),
-                experts=repeat_parallel(expert, num_task_experts, agg="stack"),
+            gates.branches[name] = PLEExpertGateBlock(
+                num_shared_experts + num_task_experts,
+                experts=repeat_parallel(expert, num_task_experts, agg=Stack(dim=1)),
                 name=name,
             )
         if shared_gate:
-            gates["experts"] = ExpertGateBlock(len(outputs))
+            gates.branches["experts"] = expert_shortcut(
+                ExpertGateBlock(num_shared_experts), propagate_shortcut=True
+            )
 
         self.append(gates)
 
@@ -141,14 +148,16 @@ class CGCBlock(Block):
 class ExpertGateBlock(Block):
     """Expert Gate Block.
 
+    # TODO: Add initialize_from_schema to remove the need to pass in num_experts
+
     Parameters
     ----------
-    num_outputs : int
-        The number of output channels.
+    num_experts : int
+        The number of experts used.
     """
 
-    def __init__(self, num_outputs: int):
-        super().__init__(GateBlock(num_outputs))
+    def __init__(self, num_experts: int):
+        super().__init__(GateBlock(num_experts))
 
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
@@ -161,6 +170,7 @@ class ExpertGateBlock(Block):
         for module in self.values:
             outputs = module(outputs, batch=batch)
 
+        # return torch.sum(experts * outputs, dim=1, keepdim=False)
         gated = outputs.expand_as(experts)
 
         # Multiply and sum along the experts dimension
@@ -173,41 +183,62 @@ class PLEExpertGateBlock(Block):
 
     Parameters
     ----------
-    num_outputs : int
-        The number of output channels.
+    num_experts : int
+        The number of experts used.
     experts : nn.Module
         The expert module.
     name : str
         The name of the task.
     """
 
-    def __init__(self, num_outputs: int, experts: nn.Module, name: str):
-        super().__init__(GateBlock(num_outputs), name=f"PLEExpertGateBlock[{name}]")
+    def __init__(self, num_experts: int, experts: nn.Module, name: str):
+        super().__init__(ExpertGateBlock(num_experts), name=f"PLEExpertGateBlock[{name}]")
         self.stack = Stack(dim=1)
+        self.concat = Concat(dim=1)
         self.experts = experts
         self.task_name = name
 
     def forward(
-        self, inputs: Dict[str, torch.Tensor], batch: Optional[Batch] = None
+        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ) -> torch.Tensor:
-        task_experts = self.experts(inputs["shortcut"], batch=batch)
-        experts = self.stack({"experts": inputs["experts"], "task_experts": task_experts})
-        task = inputs[self.name] if self.name in inputs else inputs["shortcut"]
+        if torch.jit.isinstance(inputs, torch.Tensor):
+            raise RuntimeError("ExpertGateBlock requires a dictionary input")
 
-        return self.output({"experts": experts, "shortcut": task})
+        task_experts = self.experts(inputs["shortcut"], batch=batch)
+        if torch.jit.isinstance(task_experts, torch.Tensor):
+            _task = task_experts
+        elif torch.jit.isinstance(task_experts, Dict[str, torch.Tensor]):
+            _task = self.stack(task_experts)
+        else:
+            raise RuntimeError("PLEExpertGateBlock requires a dictionary input")
+        experts = self.concat({"experts": inputs["experts"], "task_experts": _task})
+        task = inputs[self.task_name] if self.task_name in inputs else inputs["shortcut"]
+
+        outputs = {"experts": experts, "shortcut": task}
+        for block in self.values:
+            outputs = block(outputs, batch=batch)
+
+        return outputs
+
+    def __repr__(self) -> str:
+        indent_str = "    "
+        output = textwrap.indent("\n(experts): " + repr(self.experts), indent_str)
+        output += textwrap.indent("\n(gate): " + repr(self.values[0]), indent_str)
+
+        return f"{self._get_name()}({output}\n)"
 
 
 class SoftmaxGate(nn.Module):
     """Softmax Gate for gating mechanism."""
 
     def forward(self, gate_logits):
-        return torch.softmax(gate_logits, dim=1).unsqueeze(2)
+        return torch.softmax(gate_logits, dim=-1).unsqueeze(-1)
 
 
 class GateBlock(Block):
     """Gate Block for gating mechanism."""
 
-    def __init__(self, num_outputs: int):
+    def __init__(self, num_experts: int):
         super().__init__()
-        self.append(nn.LazyLinear(num_outputs))
+        self.append(nn.LazyLinear(num_experts))
         self.append(SoftmaxGate())
