@@ -131,3 +131,21 @@ class TestTabularInputBlock:
         no_user_id, user_id_route = mm.schema.extract(input_block, Tags.USER_ID)
 
         assert no_user_id
+
+    def test_nesting(self):
+        input_block = mm.TabularInputBlock(self.schema)
+        input_block.add_route(
+            lambda schema: schema,
+            mm.TabularInputBlock(init="defaults"),
+        )
+        outputs = module_utils.module_test(input_block, self.batch)
+
+        for name in mm.schema.select(self.schema, Tags.CONTINUOUS).column_names:
+            assert name in outputs
+
+        for name in mm.schema.select(self.schema, Tags.CATEGORICAL).column_names:
+            assert name in outputs
+            assert outputs[name].shape == (
+                10,
+                infer_embedding_dim(self.schema.select_by_name(name)),
+            )
