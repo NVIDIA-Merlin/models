@@ -90,7 +90,7 @@ class TestPopularityBasedSampler:
             num_classes = 1000
 
         sampler = PopularityBasedSampler()
-        sampler.to_call = MockToCall()
+        sampler.set_to_call(MockToCall())
 
         negative, negative_id = sampler(torch.tensor([1.0]), torch.tensor([1]))
 
@@ -102,7 +102,7 @@ class TestPopularityBasedSampler:
             num_classes = 1000
 
         sampler = PopularityBasedSampler()
-        sampler.to_call = MockToCall()
+        sampler.set_to_call(MockToCall())
 
         log_uniform_sampler = sampler.sampler
 

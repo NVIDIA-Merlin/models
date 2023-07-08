@@ -143,8 +143,6 @@ class ContrastiveOutput(ModelOutput):
             self.set_to_call(CategoricalTarget(target))
 
         self.prepend(self.to_call)
-        if not self.metrics:
-            self.metrics = self.default_metrics()
 
     def initialize(self, module, inputs):
         if torch.jit.isinstance(inputs[0], Dict[str, torch.Tensor]):
@@ -215,10 +213,9 @@ class ContrastiveOutput(ModelOutput):
     ) -> torch.Tensor:
         query = inputs[query_name]
         positive = inputs[target_name]
+        positive_id = None
         if target_name in batch.features:
             positive_id = batch.features[target_name]
-        else:
-            positive_id = torch.tensor(1)
 
         negative, negative_id = self.sample_negatives(positive, positive_id=positive_id)
 
@@ -298,8 +295,8 @@ class ContrastiveOutput(ModelOutput):
         query: torch.Tensor,
         positive: torch.Tensor,
         negative: torch.Tensor,
-        positive_id: torch.Tensor,
-        negative_id: torch.Tensor,
+        positive_id: Optional[torch.Tensor] = None,
+        negative_id: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Computes the contrastive outputs given
             the query tensor, positive tensor, and negative tensor.
@@ -326,8 +323,10 @@ class ContrastiveOutput(ModelOutput):
 
         if self.downscore_false_negatives:
             if (
-                positive.shape[0] != positive_id.shape[0]
-                or negative.shape[0] != negative_id.shape[0]
+                positive_id is None
+                or negative_id is None
+                or positive.shape[0] != positive_id.shape[-1]
+                or negative.shape[0] != negative_id.shape[-1]
             ):
                 raise RuntimeError(
                     "Both positive_id and negative_id must be provided "

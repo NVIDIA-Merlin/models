@@ -2,12 +2,32 @@ import pytest
 import torch
 
 import merlin.models.torch as mm
-from merlin.models.torch.outputs.contrastive import ContrastiveOutput, rescore_false_negatives
+from merlin.models.torch.outputs.classification import CategoricalTarget
+from merlin.models.torch.outputs.contrastive import (
+    ContrastiveOutput,
+    DotProduct,
+    rescore_false_negatives,
+)
 from merlin.models.torch.utils.module_utils import module_test
 from merlin.schema import Schema
 
 
 class TestContrastiveOutput:
+    def test_setup_schema(self, item_id_col_schema, user_id_col_schema):
+        contrastive = ContrastiveOutput()
+
+        dot = ContrastiveOutput(schema=Schema([item_id_col_schema, user_id_col_schema]))
+        assert isinstance(dot.to_call, DotProduct)
+
+        target = ContrastiveOutput(schema=Schema([item_id_col_schema]))
+        assert isinstance(target.to_call, CategoricalTarget)
+
+        with pytest.raises(ValueError):
+            contrastive.setup_schema(1)
+
+        with pytest.raises(ValueError):
+            contrastive.setup_schema(Schema(["a", "b", "c"]))
+
     def test_outputs_without_downscore(self, item_id_col_schema):
         contrastive = ContrastiveOutput(item_id_col_schema, downscore_false_negatives=False)
 
@@ -15,7 +35,8 @@ class TestContrastiveOutput:
         positive = torch.tensor([[0.5, 0.6], [0.7, 0.8]])
         negative = torch.tensor([[0.9, 1.0], [1.1, 1.2], [1.3, 1.4]])
 
-        out = contrastive.contrastive_outputs(query, positive, negative)
+        id_tensor = torch.tensor(1)
+        out = contrastive.contrastive_outputs(query, positive, negative, id_tensor, id_tensor)
 
         expected_out = torch.tensor(
             [[0.1700, 0.2900, 0.3500, 0.4100], [0.5300, 0.6700, 0.8100, 0.9500]]
@@ -80,6 +101,9 @@ class TestContrastiveOutput:
         outputs = module_test(model, features, batch=batch)
         contrastive_outputs = model(features, batch=batch.replace(targets=item_id + 1))
 
+        assert contrastive_outputs.shape == (3, 4)
+        assert outputs.shape == (3, 11)
+
         self.assert_contrastive_outputs(contrastive_outputs, model[-1].target, outputs)
 
     def test_call_dot_product(self, user_id_col_schema, item_id_col_schema):
@@ -100,13 +124,16 @@ class TestContrastiveOutput:
 
         self.assert_contrastive_outputs(contrastive_outputs, model[-1].target, outputs)
 
-    def test_call_dot_product_table(self, user_id_col_schema, item_id_col_schema):
+    @pytest.mark.parametrize("negative_sampling", ["popularity", "in-batch"])
+    def test_call_weight_tying(self, user_id_col_schema, item_id_col_schema, negative_sampling):
         schema = Schema([user_id_col_schema, item_id_col_schema])
         embeddings = mm.EmbeddingTables(10, schema)
         model = mm.Block(
             embeddings,
             mm.MLPBlock([10]),
-            ContrastiveOutput.with_weight_tying(embeddings, item_id_col_schema),
+            ContrastiveOutput.with_weight_tying(
+                embeddings, item_id_col_schema, negative_sampling=negative_sampling
+            ),
         )
 
         user_id = torch.tensor([1, 2, 3])
@@ -118,7 +145,14 @@ class TestContrastiveOutput:
         model.eval()
         outputs = module_test(model, data, batch=mm.Batch(data))
 
-        self.assert_contrastive_outputs(contrastive_outputs, model[-1].target, outputs)
+        assert outputs.shape == (3, 11)
+
+        if negative_sampling == "popularity":
+            assert contrastive_outputs.shape[0] == 3
+            assert contrastive_outputs.shape[1] >= 4
+        else:
+            assert contrastive_outputs.shape == (3, 4)
+            self.assert_contrastive_outputs(contrastive_outputs, model[-1].target, outputs)
 
     def assert_contrastive_outputs(self, contrastive_outputs, targets, outputs):
         assert contrastive_outputs.shape == (3, 4)
@@ -183,3 +217,45 @@ class Test_rescore_false_negatives:
 
         assert torch.equal(rescored_neg_scores, expected_rescored_neg_scores)
         assert torch.equal(valid_negatives_mask, expected_valid_negatives_mask)
+
+
+class TestDotProduct:
+    def test_less_than_two_inputs(self):
+        dp = DotProduct()
+        with pytest.raises(RuntimeError, match=r"DotProduct requires at least two inputs"):
+            dp({"candidate": torch.tensor([1, 2, 3])})
+
+    def test_no_query_name_more_than_two_inputs(self):
+        dp = DotProduct()
+        with pytest.raises(
+            RuntimeError, match=r"DotProduct requires query_name to be set when more than"
+        ):
+            dp(
+                {
+                    "candidate": torch.tensor([1, 2, 3]),
+                    "extra": torch.tensor([4, 5, 6]),
+                    "another_extra": torch.tensor([7, 8, 9]),
+                }
+            )
+
+    def test_valid_dot_product_operation(self):
+        dp = DotProduct(query_name="query")
+        result = dp.forward(
+            {"query": torch.tensor([1.0, 2.0, 3.0]), "candidate": torch.tensor([4.0, 5.0, 6.0])}
+        )
+        assert torch.allclose(result, torch.tensor([32.0]), atol=1e-4)
+
+    def test_no_query_name_3_inputs(self):
+        dp = DotProduct(query_name=None)
+        with pytest.raises(RuntimeError):
+            dp(
+                {
+                    "query": torch.tensor([1.0, 2.0, 3.0]),
+                    "candidate": torch.tensor([1.0, 2.0, 3.0]),
+                    "extra": torch.tensor([4.0, 5.0, 6.0]),
+                }
+            )
+
+    def test_should_apply_contrastive(self):
+        dp = DotProduct()
+        assert dp.should_apply_contrastive(None) == dp.training
