@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from torch.nn.modules.lazy import LazyModuleMixin
 
+from merlin.models.torch.batch import Batch
 from merlin.models.torch.block import Block
 from merlin.models.torch.transforms.agg import Concat
 from merlin.models.utils.doc_utils import docstring_parameter
@@ -127,7 +128,9 @@ class CrossBlock(Block):
 
         return cls(*(Block(deepcopy(low_rank), *block) for block in cls.with_depth(depth)))
 
-    def forward(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]]) -> torch.Tensor:
+    def forward(
+        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
+    ) -> torch.Tensor:
         """Forward-pass of the cross-block.
 
         Parameters
