@@ -66,6 +66,7 @@ class Model(LightningModule, Block):
     """
 
     def __init__(self, *blocks: nn.Module, initialization="auto"):
+        super().__init__()
 
         # Copied from BlockContainer.__init__
         self.values = nn.ModuleList()
