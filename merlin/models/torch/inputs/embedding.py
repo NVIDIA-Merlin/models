@@ -466,7 +466,7 @@ class EmbeddingTables(ParallelBlock, Selectable):
         self.kwargs = kwargs
         if isinstance(schema, Schema):
             self.initialize_from_schema(schema)
-            _initialized_from_schema = True
+            self._initialized_from_schema = True
 
     def initialize_from_schema(self, schema: Schema):
         """Initializes the module from a schema.
