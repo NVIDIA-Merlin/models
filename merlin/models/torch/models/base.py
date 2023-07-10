@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 from typing import Dict, List, Optional, Sequence, Union
 
 import torch
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningDataModule, LightningModule
 from torch import nn
 
 from merlin.dataloader.torch import Loader
@@ -53,16 +54,10 @@ class Model(LightningModule, Block):
     ...    BinaryOutput(schema.select_by_tag(Tags.TARGET).first),
     ... )
     ... trainer = Trainer(max_epochs=1)
-    ... with Loader(dataset, batch_size=16) as loader:
-    ...     model.initialize(loader)
-    ...     trainer.fit(model, loader)
+    ... trainer.fit(model, Loader(dataset, batch_size=16))
     """
 
-    def __init__(
-        self,
-        *blocks: nn.Module,
-        optimizer=torch.optim.Adam,
-    ):
+    def __init__(self, *blocks: nn.Module, optimizer=torch.optim.Adam, initialization="auto"):
         super().__init__()
 
         # Copied from BlockContainer.__init__
@@ -71,6 +66,7 @@ class Model(LightningModule, Block):
             self.values.append(self.wrap_module(module))
 
         self.optimizer = optimizer
+        self.initialization = initialization
 
     def initialize(self, data: Union[Dataset, Loader, Batch]):
         """Initializes the model based on a given data set."""
@@ -96,7 +92,9 @@ class Model(LightningModule, Block):
 
         predictions = self(features, batch=Batch(features, targets))
 
-        loss_and_metrics = compute_loss(predictions, targets, self.model_outputs())
+        loss_and_metrics = compute_loss(
+            predictions, targets, self.model_outputs(), compute_metrics=True
+        )
         for name, value in loss_and_metrics.items():
             self.log(f"train_{name}", value)
 
@@ -136,6 +134,150 @@ class Model(LightningModule, Block):
     def last(self) -> nn.Module:
         """Returns the last block in the model."""
         return self.values[-1]
+
+    def setup(self, stage):
+        """Initialize the model if `initialization="auto"`."""
+        if self.initialization == "auto":
+            loop = getattr(self.trainer, f"{stage}_loop")
+
+            data_instance = loop._data_source.instance
+            if isinstance(data_instance, MultiLoader):
+                self.initialize(data_instance.batch.to(None, device=self.device))
+            else:
+                dataloader = loop._data_source.dataloader()
+                if isinstance(dataloader, Loader):
+                    self.initialize(dataloader)
+                else:
+                    raise ValueError(
+                        f"Can't auto-initialize from a non-merlin dataloader, got: {dataloader}",
+                        "Please initialize the model manually with `model.initialize(batch)`",
+                    )
+
+    def teardown(self, stage: str) -> None:
+        """Teardown the data-loader after training."""
+        loop = getattr(self.trainer, f"{stage}_loop")
+        dataloader = loop._data_source.dataloader()
+        if isinstance(dataloader, Loader):
+            dataloader.stop()
+
+
+class MultiLoader(LightningDataModule):
+    """
+    Data Module for handling multiple types of data loaders. It facilitates the usage
+    of multiple datasets, as well as distributed training on multiple GPUs.
+
+    This class is particularly useful in scenarios where you have separate train,
+    validation and test datasets, and you want to use PyTorch Lightning's Trainer
+    which requires a single DataModule.
+
+    Parameters
+    ----------
+    train : Union[Dataset, Loader]
+        Training dataset or data loader.
+    valid : Optional[Union[Dataset, Loader]], optional
+        Validation dataset or data loader, by default None
+    test : Optional[Union[Dataset, Loader]], optional
+        Test dataset or data loader, by default None
+    repartition : int, optional
+        Number of partitions to divide the dataset into, by default None
+    batch_size : int, optional
+        Number of data points per batch, by default 1024
+
+
+    Example usage for multi-GPU::
+        model = mm.Model(...)
+        train, valid = generate_data(...)
+        model.initialize(train)
+
+        trainer = pl.Trainer(max_epochs=5, devices=[0, 1])
+        trainer.fit(model, mm.MultiLoader(train, valid, batch_size=1024, repartition=4))
+    """
+
+    def __init__(
+        self,
+        train: Union[Dataset, Loader],
+        valid: Optional[Union[Dataset, Loader]] = None,
+        test: Optional[Union[Dataset, Loader]] = None,
+        batch_size: int = 1024,
+        repartition: Optional[int] = None,
+    ):
+        super().__init__()
+        self.repartition = repartition
+        self.train = train
+        self.batch_size = batch_size
+        self.batch = Batch.sample_from(train, batch_size=1, shuffle=False)
+        if valid:
+            self.val_dataloader = lambda: self._create_loader(valid, "valid")
+        if test:
+            self.test_dataloader = lambda: self._create_loader(test, "test")
+
+    def train_dataloader(self) -> Loader:
+        return self._create_loader(self.train, "train")
+
+    def _create_loader(self, data: Union[Dataset, Loader], name: str) -> Loader:
+        """
+        Create a data loader with the right arguments.
+
+        Parameters
+        ----------
+        data : Union[Dataset, Loader]
+            The input data, can be a dataset or data loader.
+        name : str
+            Name of the data loader.
+
+        Returns
+        -------
+        Loader
+            The created data loader.
+        """
+
+        _dataset = data.dataset if isinstance(data, Loader) else data
+
+        has_world_size = "WORLD_SIZE" in os.environ
+
+        if self.repartition:
+            npartitions = self.repartition
+        elif has_world_size:
+            npartitions = int(os.environ["WORLD_SIZE"])
+        elif isinstance(data, Loader):
+            npartitions = data.global_size
+        else:
+            npartitions = None
+
+        if npartitions:
+            _dataset = _dataset.repartition(npartitions=npartitions)
+
+        if isinstance(data, Loader):
+            output = Loader(
+                _dataset,
+                batch_size=data.batch_size,
+                shuffle=data.shuffle,
+                drop_last=int(os.environ["WORLD_SIZE"]) > 1 if has_world_size else data.drop_last,
+                global_size=int(os.environ["WORLD_SIZE"]) if has_world_size else data.global_size,
+                global_rank=int(os.environ["LOCAL_RANK"]) if has_world_size else data.global_rank,
+                transforms=data.transforms,
+            )
+        else:
+            output = Loader(
+                _dataset,
+                batch_size=self.batch_size,
+                drop_last=int(os.environ["WORLD_SIZE"]) > 1 if has_world_size else False,
+                global_size=int(os.environ["WORLD_SIZE"]) if has_world_size else None,
+                global_rank=int(os.environ["LOCAL_RANK"]) if has_world_size else None,
+            )
+
+        setattr(self, f"loader_{name}", output)
+        return output
+
+    def teardown(self, stage):
+        """
+        Stop all data loaders.
+        """
+        for attr in dir(self):
+            if attr.startswith("loader"):
+                if hasattr(getattr(self, attr), "stop"):
+                    getattr(self, attr).stop()
+                delattr(self, attr)
 
 
 def compute_loss(
@@ -229,5 +371,8 @@ def compute_loss(
 
         for metric in model_out.metrics:
             metric_name = camelcase_to_snakecase(metric.__class__.__name__)
+            if not metric.device or metric.device != _predictions.device:
+                metric = metric.to(_predictions.device)
+
             results[metric_name] = metric(_predictions, _targets)
     return results
