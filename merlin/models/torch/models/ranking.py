@@ -51,8 +51,7 @@ class DLRMModel(Model):
     ...    output_block=mm.BinaryOutput(ColumnSchema("target")),
     ... )
     >>> trainer = pl.Trainer()
-    >>> model.initialize(dataloader)
-    >>> trainer.fit(model, dataloader)
+    >>> trainer.fit(model, Loader(dataset, batch_size=32))
 
     {dlrm_reference}
     """
