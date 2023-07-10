@@ -73,7 +73,13 @@ class Model(LightningModule, Block):
     ... trainer.fit(model, Loader(dataset, batch_size=16))
     """
 
-    def __init__(self, *blocks: nn.Module, optimizer=torch.optim.Adam, initialization="auto", pre=None):
+    def __init__(
+        self, 
+        *blocks: nn.Module, 
+        optimizer=torch.optim.Adam, 
+        initialization="auto", 
+        pre: Optional[BatchBlock] = None
+    ):
         super().__init__()
 
         # Copied from BlockContainer.__init__
