@@ -74,11 +74,11 @@ class Model(LightningModule, Block):
     """
 
     def __init__(
-        self, 
-        *blocks: nn.Module, 
-        optimizer=torch.optim.Adam, 
-        initialization="auto", 
-        pre: Optional[BatchBlock] = None
+        self,
+        *blocks: nn.Module,
+        optimizer=torch.optim.Adam,
+        initialization="auto",
+        pre: Optional[BatchBlock] = None,
     ):
         super().__init__()
 
