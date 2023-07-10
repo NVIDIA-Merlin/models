@@ -22,7 +22,7 @@ from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
 from merlin.models.torch.inputs.select import SelectFeatures, SelectKeys
 from merlin.models.torch.inputs.tabular import TabularInputBlock
-from merlin.models.torch.models.base import Model
+from merlin.models.torch.models.base import Model, MultiLoader
 from merlin.models.torch.models.ranking import DCNModel, DLRMModel
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.outputs.classification import (
@@ -48,6 +48,7 @@ __all__ = [
     "DLRMBlock",
     "MLPBlock",
     "Model",
+    "MultiLoader",
     "EmbeddingTable",
     "EmbeddingTables",
     "ParallelBlock",
