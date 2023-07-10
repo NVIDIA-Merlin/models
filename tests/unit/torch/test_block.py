@@ -401,7 +401,9 @@ class TestBatchBlock:
         assert torch.equal(outputs.target(), target)
 
     def test_forward_exception(self):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(
+            RuntimeError, match="Features must be a tensor or a dictionary of tensors"
+        ):
             module_utils.module_test(mm.BatchBlock(), (torch.tensor([1, 2]), torch.tensor([1, 2])))
 
     def test_nested(self):
@@ -430,5 +432,5 @@ class TestBatchBlock:
                 return inputs["default"], inputs["default"]
 
         feat, target = torch.tensor([1, 2]), torch.tensor([3, 4])
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="Module must return a Batch"):
             module_utils.module_test(mm.BatchBlock(BatchToTuple()), feat, targets=target)
