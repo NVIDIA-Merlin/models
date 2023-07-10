@@ -42,7 +42,7 @@ gitdir = os.path.join(repodir, r".git")
 # -- Project information -----------------------------------------------------
 
 project = "Merlin Models"
-copyright = "2022, NVIDIA"
+copyright = "2023, NVIDIA"
 author = "NVIDIA"
 
 
@@ -54,7 +54,6 @@ author = "NVIDIA"
 extensions = [
     "myst_nb",
     "sphinx_multiversion",
-    "sphinx_rtd_theme",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -96,17 +95,34 @@ suppress_warnings = ["etoc.toctree", "myst.header", "misc.highlighting_failure"]
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_book_theme"
+html_title = "NVIDIA Merlin Models"
+html_favicon = "_static/favicon.png"
 html_theme_options = {
-    "navigation_depth": 2,
-    "analytics_id": "G-NVJ1Y1YJHK",
+    "repository_url": "https://github.com/NVIDIA-Merlin/models",
+    "use_repository_button": True,
+    "footer_content_items": ["copyright.html", "last-updated.html"],
+    "extra_footer": "",
+    "logo": {"text": "NVIDIA Merlin Models", "alt_text": "NVIDIA Merlin Models"},
 }
+html_sidebars = {
+    "**": [
+        "navbar-logo.html",
+        "search-field.html",
+        "icon-links.html",
+        "sbt-sidebar-nav.html",
+        "merlin-ecosystem.html",
+        "versions.html",
+    ]
+}
+html_context = {"analytics_id": "G-NVJ1Y1YJHK"}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_css_files = ["css/custom.css"]
+html_css_files = ["css/custom.css", "css/versions.css"]
+html_js_files = ["js/rtd-version-switcher.js"]
 
 source_suffix = [".rst", ".md"]
 
@@ -126,7 +142,6 @@ smv_branch_whitelist = r"^(main|stable)$"
 
 smv_refs_override_suffix = r"-docs"
 
-html_sidebars = {"**": ["versions.html"]}
 html_baseurl = "https://nvidia-merlin.github.io/models/stable/"
 
 intersphinx_mapping = {
