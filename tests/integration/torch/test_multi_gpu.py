@@ -4,8 +4,8 @@ import pytorch_lightning as pl
 import merlin.models.torch as mm
 
 
-# TODO: This test is not complete because Lightning launches separte processes
-# under the hood with the correct environment variables like `LOCAL_RANK`, but 
+# TODO: This test is not complete because Lightning launches separate processes
+# under the hood with the correct environment variables like `LOCAL_RANK`, but
 # the pytest stays in the main process and tests only the LOCAL_RANK=0 case.
 # Follow-up with proper test that ensures dataloader is working properly with
 # e.g. global_rank > 0.
