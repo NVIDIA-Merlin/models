@@ -20,6 +20,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from merlin.models.torch.batch import Batch, Sequence
+from merlin.models.torch.schema import Selection
 from merlin.schema import Schema, Tags
 
 
@@ -173,3 +174,14 @@ class TabularPadding(nn.Module):
             pad_diff = length - tensor.shape[1]
             return F.pad(input=tensor, pad=(0, pad_diff, 0, 0))
         return tensor
+
+
+class BroadcastToSequence(nn.Module):
+    def __init__(self, to_broadcast: Selection, sequence: Selection):
+        self.to_broadcast = to_broadcast
+        self.sequence = sequence
+
+    def setup_schema(self, schema: Schema):
+        self.schema = schema
+        self.to_broadcast_features: List[str] = self.schema.select(self.to_broadcast).column_names
+        self.sequence_features: List[str] = self.schema.select(self.sequence).column_names
