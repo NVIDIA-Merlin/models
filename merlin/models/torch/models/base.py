@@ -233,10 +233,20 @@ class MultiLoader(LightningDataModule):
 
         _dataset = data.dataset if isinstance(data, Loader) else data
 
-        if self.repartition:
-            _dataset = _dataset.repartition(self.repartition)
-
         has_world_size = "WORLD_SIZE" in os.environ
+
+        if self.repartition:
+            npartitions = self.repartition
+        elif has_world_size:
+            npartitions = int(os.environ["WORLD_SIZE"])
+        elif isinstance(data, Loader):
+            npartitions = data.global_size
+        else:
+            npartitions = None
+
+        if npartitions:
+            _dataset = _dataset.repartition(npartitions=npartitions)
+
         if isinstance(data, Loader):
             output = Loader(
                 _dataset,

@@ -63,5 +63,6 @@ markers = [
     "unit",
     "changed",
     "unchanged",
+    "singlegpu",
     "multigpu"
 ]
