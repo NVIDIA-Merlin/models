@@ -51,11 +51,11 @@ class RouterBlock(ParallelBlock):
         super().__init__()
         self.prepend_routing_module = prepend_routing_module
         if isinstance(selectable, Schema):
-            self.setup_schema(selectable)
+            self.initialize_from_schema(selectable)
         else:
             self.selectable: schema.Selectable = selectable
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema):
         from merlin.models.torch.inputs.select import SelectKeys
 
         self.selectable = SelectKeys(schema)
