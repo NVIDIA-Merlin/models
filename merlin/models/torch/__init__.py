@@ -42,6 +42,7 @@ from merlin.models.torch.outputs.classification import (
 )
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.outputs.tabular import TabularOutputBlock
+from merlin.models.torch.predict import DaskEncoder, DaskPredictor, EncoderBlock
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.transforms.agg import Concat, Stack
 from merlin.models.torch.transforms.sequences import BroadcastToSequence, TabularPadding
@@ -96,4 +97,7 @@ __all__ = [
     "CGCBlock",
     "TabularPadding",
     "BroadcastToSequence",
+    "EncoderBlock",
+    "DaskEncoder",
+    "DaskPredictor",
 ]

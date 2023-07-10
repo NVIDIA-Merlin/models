@@ -7,6 +7,8 @@ from torch import nn
 from merlin.core.dispatch import DataFrameLike, concat, concat_columns
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
+from merlin.models.torch.batch import Batch
+from merlin.models.torch.block import BatchBlock, Block
 from merlin.models.torch.schema import Selection, select
 from merlin.schema import ColumnSchema, Schema
 from merlin.table import TensorTable
@@ -15,7 +17,125 @@ OUT_KEY = "output"
 DFType = TypeVar("DFType", bound=DataFrameLike)
 
 
-class Encoder:
+class EncoderBlock(Block):
+    """
+    A block that runs a `BatchBlock` as a pre-processing step before running the rest.
+
+    This ensures that the batch is created at inference time as well.
+
+    Parameters
+    ----------
+    *module : nn.Module
+        Variable length argument list of PyTorch modules.
+    pre : BatchBlock, optional
+        An instance of BatchBlock class for pre-processing.
+        If None, an instance of BatchBlock is created.
+    name : str, optional
+        A name for the encoder block.
+
+    Raises
+    ------
+    ValueError
+        If the 'pre' argument is not an instance of BatchBlock.
+    """
+
+    def __init__(
+        self, *module: nn.Module, pre: Optional[BatchBlock] = None, name: Optional[str] = None
+    ):
+        super().__init__(*module, name=name)
+        if isinstance(pre, BatchBlock):
+            self.pre = pre
+        elif pre is None:
+            self.pre = BatchBlock()
+        else:
+            raise ValueError(f"Invalid pre: {pre}, must be a BatchBlock")
+
+    def forward(
+        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
+    ):
+        _batch = self.pre(inputs, batch=batch)
+
+        outputs = inputs
+        for block in self.values:
+            outputs = block(outputs, batch=_batch)
+        return outputs
+
+    @torch.jit.unused
+    def encode(
+        self,
+        data: Union[Dataset, Loader, Batch],
+        selection: Optional[Selection] = None,
+        batch_size=None,
+        index: Optional[Selection] = None,
+        unique: bool = True,
+    ):
+        """
+        Encodes a given data set.
+
+        Parameters
+        ----------
+        data : Union[Dataset, Loader, Batch]
+            Input data to encode.
+        selection : Selection, optional
+            Features to encode. If not provided, all features will be encoded.
+        batch_size : int, optional
+            Size of the batch to encode.
+        index : Selection, optional
+            Index selection.
+        unique : bool, optional
+            If True, only unique entries are returned.
+
+        Returns
+        -------
+        encoded_data : Dataset
+            Encoded data set.
+        """
+        _dask_encoder = DaskEncoder(self, selection=selection)
+
+        return _dask_encoder(data, batch_size=batch_size, index=index, unique=unique)
+
+    @torch.jit.unused
+    def predict(
+        self,
+        data: Union[Dataset, Loader, Batch],
+        selection: Optional[Selection] = None,
+        batch_size=None,
+        index: Optional[Selection] = None,
+        prediction_suffix: str = "_prediction",
+        unique: bool = True,
+    ):
+        """
+        Encodes a given data set and predicts the output.
+        All input-features will be present in the output.
+
+        Parameters
+        ----------
+        data : Union[Dataset, Loader, Batch]
+            Input data to encode.
+        selection : Selection, optional
+            Features to encode. If not provided, all features will be encoded.
+        batch_size : int, optional
+            Size of the batch to encode.
+        index : Selection, optional
+            Index selection.
+        prediction_suffix : str, optional
+            The suffix to add to the prediction columns in the output DataFrame.
+        unique : bool, optional
+            If True, only unique entries are returned.
+
+        Returns
+        -------
+        predictions : dask_cudf.DataFrame
+            Predictions of the data set.
+        """
+        _dask_predictor = DaskPredictor(
+            self, prediction_suffix=prediction_suffix, selection=selection
+        )
+
+        return _dask_predictor(data, batch_size=batch_size, index=index, unique=unique)
+
+
+class DaskEncoder:
     """Encode various forms of data using a specified PyTorch module.
 
     Supporting multiple data formats like Datasets, Loaders, DataFrames,
@@ -28,7 +148,7 @@ class Encoder:
         # `selection=Tags.USER` ensures that only the sub-module(s) of the model
         # that processes features tagged as user is used during encoding.
         # Additionally, it filters out all other features that aren't tagged as user.
-        >>> user_encoder = Encoder(model[0], selection=Tags.USER)
+        >>> user_encoder = DaskEncoder(model[0], selection=Tags.USER)
 
         # The index is used in the resulting DataFrame after encoding
         # Setting unique=True (default value) ensures that any duplicate rows
@@ -316,7 +436,7 @@ class Encoder:
         return concat([left, right])
 
 
-class Predictor(Encoder):
+class DaskPredictor(DaskEncoder):
     """Prediction on various forms of data using a specified PyTorch module.
 
     This is especially useful when you want to keep track of both the original data and
@@ -326,7 +446,7 @@ class Predictor(Encoder):
     Example usage::
         >>> dataset = Dataset(...)
         >>> model = mm.TwoTowerModel(dataset.schema)
-        >>> predictor = Predictor(model)
+        >>> predictor = DaskPredictor(model)
         >>> predictions = predictor(dataset, batch_size=128)
         >>> print(predictions.compute())
         user_id  user_age  item_id  item_category  click  click_prediction
