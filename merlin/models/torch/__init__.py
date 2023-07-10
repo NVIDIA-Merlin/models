@@ -55,6 +55,7 @@ __all__ = [
     "Batch",
     "BinaryOutput",
     "Block",
+    "BatchBlock",
     "DLRMBlock",
     "MLPBlock",
     "Model",

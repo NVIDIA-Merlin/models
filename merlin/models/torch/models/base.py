@@ -26,7 +26,7 @@ from torch import nn, optim
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
 from merlin.models.torch.batch import Batch
-from merlin.models.torch.block import Block
+from merlin.models.torch.block import BatchBlock, Block
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.models.torch.utils import module_utils
 from merlin.models.utils.registry import camelcase_to_snakecase
@@ -73,7 +73,7 @@ class Model(LightningModule, Block):
     ... trainer.fit(model, Loader(dataset, batch_size=16))
     """
 
-    def __init__(self, *blocks: nn.Module, initialization="auto"):
+    def __init__(self, *blocks: nn.Module, optimizer=torch.optim.Adam, initialization="auto", pre=None):
         super().__init__()
 
         # Copied from BlockContainer.__init__
@@ -81,6 +81,12 @@ class Model(LightningModule, Block):
         for module in blocks:
             self.values.append(self.wrap_module(module))
         self.initialization = initialization
+        if isinstance(pre, BatchBlock):
+            self.pre = pre
+        elif pre is None:
+            self.pre = BatchBlock()
+        else:
+            raise ValueError(f"Invalid pre: {pre}, must be a BatchBlock")
 
     @property
     @torch.jit.ignore
@@ -128,9 +134,11 @@ class Model(LightningModule, Block):
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ):
         """Performs a forward pass through the model."""
+        _batch = self.pre(inputs, batch=batch)
+
         outputs = inputs
         for block in self.values:
-            outputs = block(outputs, batch=batch)
+            outputs = block(outputs, batch=_batch)
         return outputs
 
     def training_step(self, batch, batch_idx):

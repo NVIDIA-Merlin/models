@@ -23,7 +23,7 @@ import torch
 from torch import nn
 
 from merlin.models.torch import schema
-from merlin.models.torch.batch import Batch
+from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.registry import registry
 from merlin.models.torch.utils.traversal_utils import TraversableMixin
@@ -209,7 +209,8 @@ class ParallelBlock(Block):
 
                 outputs.update(branch_out)
             elif torch.jit.isinstance(branch_out, Batch):
-                outputs.update(branch_out.flatten_as_dict(batch))
+                _flattened_batch: Dict[str, torch.Tensor] = branch_out.flatten_as_dict(batch)
+                outputs.update(_flattened_batch)
             else:
                 raise TypeError(
                     f"Branch output must be a tensor or a dictionary of tensors. Got {_inputs}"
@@ -572,29 +573,35 @@ class ShortcutBlock(Block):
             to_return[self.output_name] = output
 
         return to_return
+
+
 class BatchBlock(Block):
     def forward(
-        self, inputs: Union[Batch, TensorOrDict], batch: Optional[Union[Batch, TensorOrDict]] = None
+        self,
+        inputs: Union[Batch, TensorOrDict],
+        targets: Optional[TensorOrDict] = None,
+        sequences: Optional[Sequence] = None,
+        batch: Optional[Batch] = None,
     ) -> Batch:
+        if torch.jit.isinstance(batch, Batch):
+            return self.forward_batch(batch)
         if torch.jit.isinstance(inputs, Batch):
-            batch = inputs
-        # This allows the data-loader to pass in features, targets
-        elif torch.jit.isinstance(batch, torch.Tensor) or torch.jit.isinstance(
-            batch, Dict[str, torch.Tensor]
-        ):
-            batch = Batch(inputs, batch)
-        elif batch is None:
-            # Do we need logic to remove inputs that are not part of input-schema?
-            batch = Batch(inputs)
+            return self.forward_batch(inputs)
 
+        return self.forward_batch(Batch(inputs, targets, sequences))
+
+    def forward_batch(self, batch: Batch) -> Batch:
+        output = batch
         for module in self.values:
-            module_out = module(batch.features, batch=batch)
+            module_out = module(output.features, batch=output)
             if torch.jit.isinstance(module_out, Batch):
-                batch = module_out
+                output = module_out
             elif torch.jit.isinstance(module_out, Dict[str, torch.Tensor]):
-                batch = Batch.from_partial_dict(module_out, batch)
+                output = Batch.from_partial_dict(module_out, batch)
+            else:
+                raise RuntimeError("Module must return a Batch or a dict of tensors")
 
-        return batch
+        return output
 
 
 def _validate_n(n: int) -> None:
