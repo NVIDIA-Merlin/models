@@ -10,7 +10,7 @@ class TestCrossAttentionBlock:
     def setup_method(self):
         # Set up a simple CrossAttentionBlock instance for testing.
         self.cross = CrossAttentionBlock(
-            nn.TransformerEncoderLayer(10, 2, dim_feedforward=10, batch_first=True),
+            nn.TransformerEncoderLayer(10, 2, dim_feedforward=10, batch_first=True, dropout=0.0),
             attention=nn.MultiheadAttention(10, 2, batch_first=True),
             key="context",
             seq_key="sequence",
