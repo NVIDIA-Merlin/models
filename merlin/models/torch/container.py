@@ -49,7 +49,33 @@ ModulePredicate = Callable[[nn.Module], Union[bool, HasBool]]
 
 
 class ContainerMixin:
+    """Mixin that can be used to give a class container-like behavior.
+
+    This mixin provides a set of methods that come from functional programming.
+
+    """
+
     def filter(self: _TModule, func: ModulePredicate, recurse: bool = False) -> _TModule:
+        """
+        Returns a new container with modules that satisfy the filtering function.
+
+        Example usage::
+            >>> block = Block(nn.LazyLinear(10))
+            >>> block.filter(lambda module: isinstance(module, nn.Linear))
+            Block(nn.Linear(10, 10))
+
+        Parameters
+        ----------
+        func (Callable[[Module], bool]): A function that takes a module and returns
+            a boolean or a boolean-like object.
+        recurse (bool, optional): Whether to recursively filter modules
+            within sub-containers. Default is False.
+
+        Returns
+        -------
+            Self: A new container with the filtered modules.
+        """
+
         _to_call = _recurse(func, "filter") if recurse else func
         output = self.__class__()
 
@@ -60,6 +86,32 @@ class ContainerMixin:
         return output
 
     def flatmap(self: _TModule, func: ModuleFunc) -> _TModule:
+        """
+        Applies a function to each module and flattens the results into a new container.
+
+        Example usage::
+            >>> block = Block(nn.LazyLinear(10))
+            >>> container.flatmap(lambda module: [module, module])
+            Block(nn.LazyLinear(10), nn.LazyLinear(10))
+
+        Parameters
+        ----------
+        func : Callable[[Module], Iterable[Module]]
+            A function that takes a module and returns an iterable of modules.
+
+        Returns
+        -------
+        Self
+            A new container with the flattened modules.
+
+        Raises
+        ------
+        TypeError
+            If the input function is not callable.
+        RuntimeError
+            If an exception occurs during mapping the function over the module.
+        """
+
         if not callable(func):
             raise TypeError(f"Expected callable function, received: {type(func).__name__}")
 
@@ -80,19 +132,108 @@ class ContainerMixin:
         return output
 
     def forall(self, func: ModulePredicate, recurse: bool = False) -> bool:
+        """
+        Checks if the given predicate holds for all modules in the container.
+
+        Example usage::
+            >>> block = Block(nn.LazyLinear(10))
+            >>> container.forall(lambda module: isinstance(module, nn.Module))
+            True
+
+        Parameters
+        ----------
+        func : Callable[[Module], bool]
+            A predicate function that takes a module and returns True or False.
+        recurse : bool, optional
+            Whether to recursively check modules within sub-containers. Default is False.
+
+        Returns
+        -------
+        bool
+            True if the predicate holds for all modules, False otherwise.
+
+
+        """
         _to_call = _recurse(func, "forall") if recurse else func
         return all(_to_call(module) for module in self)
 
     def map(self: _TModule, func: ModuleFunc, recurse: bool = False) -> _TModule:
+        """
+        Applies a function to each module and returns a new container with the results.
+
+        Example usage::
+            >>> block = Block(nn.LazyLinear(10))
+            >>> container.map(lambda module: nn.ReLU())
+            Block(nn.ReLU())
+
+        Parameters
+        ----------
+        func : Callable[[Module], Module]
+            A function that takes a module and returns a modified module.
+        recurse : bool, optional
+            Whether to recursively map the function to modules within sub-containers.
+            Default is False.
+
+        Returns
+        -------
+        _TModule
+            A new container with the mapped modules.
+        """
+
         _to_call = _recurse(func, "map") if recurse else func
 
         return self.__class__(*(_to_call(module) for module in self))
 
     def mapi(self: _TModule, func: ModuleIFunc, recurse: bool = False) -> _TModule:
+        """
+        Applies a function to each module along with its index and
+        returns a new container with the results.
+
+        Example usage::
+            >>> block = Block(nn.LazyLinear(10), nn.LazyLinear(10))
+            >>> container.mapi(lambda module, i: module if i % 2 == 0 else nn.ReLU())
+            Block(nn.LazyLinear(10), nn.ReLU())
+
+        Parameters
+        ----------
+        func : Callable[[Module, int], Module]
+            A function that takes a module and its index,
+            and returns a modified module.
+        recurse : bool, optional
+            Whether to recursively map the function to modules within
+            sub-containers. Default is False.
+
+        Returns
+        -------
+        Self
+            A new container with the mapped modules.
+        """
+
         _to_call = _recurse(func, "mapi") if recurse else func
         return self.__class__(*(_to_call(module, i) for i, module in enumerate(self)))
 
     def choose(self: _TModule, func: ModulePredicate, recurse: bool = False) -> _TModule:
+        """
+        Returns a new container with modules that are selected by the given function.
+
+        Example usage::
+            >>> block = Block(nn.LazyLinear(10), nn.Relu())
+            >>> container.choose(lambda m: m if isinstance(m, nn.Linear) else None)
+            Block(nn.LazyLinear(10))
+
+        Parameters
+        ----------
+        func : Callable[[Module], Module]
+            A function that takes a module and returns a module or None.
+        recurse : bool, optional
+            Whether to recursively choose modules within sub-containers. Default is False.
+
+        Returns
+        -------
+        Self
+            A new container with the chosen modules.
+        """
+
         to_add = []
         _to_call = _recurse(func, "choose") if recurse else func
 
@@ -104,15 +245,60 @@ class ContainerMixin:
         return self.__class__(*to_add)
 
     def walk(self: _TModule, func: ModulePredicate) -> _TModule:
+        """
+        Applies a function to each module recursively and returns
+        a new container with the results.
+
+        Example usage::
+            >>> block = Block(Block(nn.LazyLinear(10), nn.ReLU()))
+            >>> block.walk(lambda m: m if isinstance(m, nn.ReLU) else None)
+            Block(Block(nn.ReLU()))
+
+        Parameters
+        ----------
+        func : Callable[[Module], Module]
+            A function that takes a module and returns a modified module.
+
+        Returns
+        -------
+        Self
+            A new container with the walked modules.
+        """
+
         return self.map(func, recurse=True)
 
     def zip(self, other: Iterable[_TModule]) -> Iterable[Tuple[_TModule, _TModule]]:
+        """
+        Zips the modules of the container with the modules from another iterable into pairs.
+
+        Example usage::
+            >>> list(Block(nn.Linear(10)).zip(Block(nn.Linear(10))))
+            [(nn.Linear(10), nn.Linear(10))]
+
+        Parameters
+        ----------
+        other : Iterable[Self]
+            Another iterable containing modules to be zipped with.
+
+        Returns
+        -------
+        Iterable[Tuple[Self, Self]]
+            An iterable of pairs containing modules from the container
+            and the other iterable.
+        """
+
         return builtins.zip(self, other)
 
     def __add__(self, module) -> _TModule:
+        if hasattr(module, "__iter__"):
+            return self.__class__(*self, *module)
+
         return self.__class__(*self, module)
 
     def __radd__(self, module) -> _TModule:
+        if hasattr(module, "__iter__"):
+            return self.__class__(*module, *self)
+
         return self.__class__(module, *self)
 
 
@@ -248,12 +434,6 @@ class BlockContainer(nn.Module, Iterable[_TModule], ContainerMixin):
 
     def __delitem__(self, idx: Union[slice, int]) -> None:
         self.values.__delitem__(idx)
-
-    def __add__(self, other) -> "BlockContainer":
-        for module in other:
-            self.append(module)
-
-        return self
 
     def __bool__(self) -> bool:
         return bool(self.values)
@@ -417,12 +597,12 @@ class BlockContainerDict(nn.ModuleDict):
 
 def _recurse(func, to_recurse_name: str):
     @wraps(func)
-    def inner(module, **kwargs):
+    def inner(module, *args, **kwargs):
         if hasattr(module, to_recurse_name):
             fn = getattr(module, to_recurse_name)
 
-            return fn(func, **kwargs)
+            return fn(func, *args, **kwargs)
 
-        return func(module, **kwargs)
+        return func(module, *args, **kwargs)
 
     return inner

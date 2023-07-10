@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+from typing import Iterable, Tuple
+
 import pytest
 import torch.nn as nn
 
@@ -21,6 +23,172 @@ import merlin.models.torch as mm
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.utils import torchscript_utils
 from merlin.schema import Tags
+
+
+class TestContainerMixin:
+    @pytest.fixture
+    def container(self) -> BlockContainer:
+        return BlockContainer(nn.Linear(10, 10), nn.ReLU(), nn.Linear(10, 5))
+
+    def test_filter(self, container):
+        filtered = container.filter(lambda m: isinstance(m, nn.ReLU))
+        assert isinstance(filtered, BlockContainer)
+        assert len(filtered) == 1
+        assert isinstance(filtered[0], nn.ReLU)
+
+    # def test_filter_recurse(self, container):
+    #     def func(module):
+    #         return isinstance(module, nn.Linear)
+
+    #     filtered = BlockContainer(container).filter(func, recurse=True)
+    #     assert isinstance(filtered, BlockContainer)
+    #     assert len(filtered) == 1
+    #     assert len(filtered[0]) == 2
+    #     assert isinstance(filtered[0][0], nn.Linear)
+    #     assert isinstance(filtered[0][1], nn.Linear)
+
+    def test_flatmap(self, container):
+        def func(module):
+            return BlockContainer(*([module] * 2))
+
+        flat_mapped = container.flatmap(func)
+        assert isinstance(flat_mapped, BlockContainer)
+        assert len(flat_mapped) == 6
+
+    def test_flatmap_non_callable(self, container):
+        with pytest.raises(TypeError):
+            container.flatmap(123)
+
+    def test_forall(self, container):
+        def func(module):
+            return isinstance(module, nn.Module)
+
+        assert container.forall(func)
+
+    def test_forall_recurse(self, container):
+        def func(module):
+            return isinstance(module, nn.ReLU)
+
+        assert not BlockContainer(container).forall(func, recurse=True)
+        assert BlockContainer(container).forall(lambda x: True, recurse=True)
+
+    def test_map(self, container):
+        def func(module):
+            if isinstance(module, nn.Linear):
+                return nn.Conv2d(3, 3, 3)
+            return module
+
+        mapped = container.map(func)
+        assert isinstance(mapped, BlockContainer)
+        assert len(mapped) == 3
+        assert isinstance(mapped[0], nn.Conv2d)
+        assert isinstance(mapped[1], nn.ReLU)
+        assert isinstance(mapped[2], nn.Conv2d)
+
+    def test_map_recurse(self, container):
+        def func(module):
+            if isinstance(module, nn.Linear):
+                return nn.Conv2d(3, 3, 3)
+            return module
+
+        mapped = BlockContainer(container).map(func, recurse=True)
+        assert isinstance(mapped, BlockContainer)
+        assert len(mapped) == 1
+        assert len(mapped[0]) == 3
+        assert isinstance(mapped[0][0], nn.Conv2d)
+        assert isinstance(mapped[0][1], nn.ReLU)
+        assert isinstance(mapped[0][2], nn.Conv2d)
+
+    def test_mapi(self, container):
+        def func(module, idx):
+            assert idx in [0, 1, 2]
+
+            if isinstance(module, nn.Linear):
+                return nn.Conv2d(3, 3, 3)
+            return module
+
+        mapped = container.mapi(func)
+        assert isinstance(mapped, BlockContainer)
+        assert len(mapped) == 3
+        assert isinstance(mapped[0], nn.Conv2d)
+        assert isinstance(mapped[1], nn.ReLU)
+        assert isinstance(mapped[2], nn.Conv2d)
+
+    def test_mapi_recurse(self, container):
+        def func(module, idx):
+            assert idx in [0, 1, 2]
+            if isinstance(module, nn.Linear):
+                return nn.Conv2d(3, 3, 3)
+            return module
+
+        mapped = BlockContainer(container).mapi(func, recurse=True)
+        assert isinstance(mapped, BlockContainer)
+        assert len(mapped) == 1
+        assert len(mapped[0]) == 3
+        assert isinstance(mapped[0][0], nn.Conv2d)
+        assert isinstance(mapped[0][1], nn.ReLU)
+        assert isinstance(mapped[0][2], nn.Conv2d)
+
+    def test_choose(self, container):
+        def func(module):
+            if isinstance(module, nn.Linear):
+                return nn.Conv2d(3, 3, 3)
+
+        chosen = container.choose(func)
+        assert isinstance(chosen, BlockContainer)
+        assert len(chosen) == 2
+        assert isinstance(chosen[0], nn.Conv2d)
+
+    # def test_choose_recurse(self, container):
+    #     def func(module):
+    #         if isinstance(module, nn.Linear):
+    #             return nn.Conv2d(3, 3, 3)
+
+    #     chosen = BlockContainer(container).choose(func, recurse=True)
+    #     assert isinstance(chosen, BlockContainer)
+    #     assert len(chosen) == 1
+    #     assert len(chosen[0]) == 2
+    #     assert isinstance(chosen[0][0], nn.Conv2d)
+
+    def test_walk(self, container: BlockContainer):
+        def func(module):
+            if isinstance(module, nn.Linear):
+                return nn.Conv2d(3, 3, 3)
+            return module
+
+        walked = BlockContainer(container).walk(func)
+        assert isinstance(walked, BlockContainer)
+        assert len(walked) == 1
+        assert len(walked[0]) == 3
+        assert isinstance(walked[0][0], nn.Conv2d)
+        assert isinstance(walked[0][1], nn.ReLU)
+        assert isinstance(walked[0][2], nn.Conv2d)
+
+    def test_zip(self, container: BlockContainer):
+        other = BlockContainer(nn.Conv2d(3, 3, 3), nn.ReLU(), nn.Linear(5, 2))
+        zipped = lambda: container.zip(other)  # noqa: E731
+        assert isinstance(zipped(), Iterable)
+        assert len(list(zipped())) == 3
+        assert isinstance(list(zipped())[0], Tuple)
+        assert isinstance(list(zipped())[0][0], nn.Linear)
+        assert isinstance(list(zipped())[0][1], nn.Conv2d)
+
+    def test_add(self, container):
+        new_module = nn.Linear(5, 2)
+        new_container = container + new_module
+        assert isinstance(new_container, BlockContainer)
+        assert len(new_container) == 4
+        assert isinstance(new_container[3], nn.Linear)
+
+        _container = container + container
+        assert len(_container) == 6
+
+    def test_radd(self, container):
+        new_module = nn.Linear(5, 2)
+        new_container = new_module + container
+        assert isinstance(new_container, BlockContainer)
+        assert len(new_container) == 4
+        assert isinstance(new_container[0], nn.Linear)
 
 
 class TestBlockContainer:
