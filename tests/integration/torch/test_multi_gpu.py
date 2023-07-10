@@ -20,7 +20,7 @@ class TestMultiGPU:
             mm.BinaryOutput(schema["click"]),
         )
 
-        trainer = pl.Trainer(max_epochs=3, devices=[0, 1])
+        trainer = pl.Trainer(max_epochs=3, devices=2)
         multi_loader = mm.MultiLoader(data, batch_size=2)
         trainer.fit(model, multi_loader)
 
