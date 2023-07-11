@@ -17,6 +17,7 @@
 from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import (
+    BatchBlock,
     Block,
     ParallelBlock,
     ResidualBlock,
