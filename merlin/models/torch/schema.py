@@ -21,11 +21,22 @@ import torch
 from torch import nn
 
 from merlin.dispatch.lazy import LazyDispatcher
+from merlin.models.torch.batch import Batch
+from merlin.models.torch.utils.module_utils import check_batch_arg
 from merlin.schema import ColumnSchema, Schema, Tags, TagSet
 
 Selection = Union[Schema, ColumnSchema, Callable[[Schema], Schema], Tags, TagSet, List[Tags]]
 ToSelectT = TypeVar("ToSelectT")
 NAMESPACE_TAGS = [Tags.CONTEXT, Tags.USER, Tags.ITEM, Tags.SESSION]
+
+
+class LazySchemaModuleMixin:
+    _initialized_from_schema = False
+
+    def initialize_from_schema(self, schema):
+        if self._initialized_from_schema:
+            raise RuntimeError("Already initialized this module from a schema")
+        self._initialized_from_schema = True
 
 
 def default_tag_propagation(inputs: Schema, outputs: Schema):
@@ -234,16 +245,37 @@ def trace(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]
     """
 
     hooks = []
+    batch = kwargs.get("batch")
 
     def _hook(mod: nn.Module, inputs: Tuple[torch.Tensor], outputs: torch.Tensor):
         if not hasattr(mod, "__input_schemas"):
             mod.__input_schemas = ()
             mod.__output_schemas = ()
+            mod.__feature_schema = None
 
         _input_schema = input_schema.trace(mod, inputs[0])
+        initialize_from_schema(mod, _input_schema)
+
         if _input_schema not in mod.__input_schemas:
             mod.__input_schemas += (_input_schema,)
             mod.__output_schemas += (output_schema.trace(mod, _input_schema, outputs),)
+
+        if not isinstance(mod, torch.jit.TracedModule):
+            accepts_batch, requires_batch = check_batch_arg(mod)
+
+            if requires_batch and batch is None:
+                raise ValueError(
+                    f"Found module f{mod} that requires a batch. "
+                    "`trace` was called without providing a batch. "
+                    "Please provide a batch argument to `trace`. "
+                )
+            if accepts_batch and hasattr(mod, "compute_feature_schema"):
+                feature_schema = input_schema.tensors(batch.features)
+                required_feature_schema = mod.compute_feature_schema(feature_schema)
+                mod.__feature_schema = required_feature_schema
+            elif requires_batch:
+                required_feature_schema = input_schema.tensors(batch.features)
+                mod.__feature_schema = required_feature_schema
 
     def add_hook(m):
         custom_modules = list(output_schema.dispatcher.registry.keys())
@@ -285,8 +317,8 @@ def feature_schema(module: nn.Module) -> Schema:
 
     def get_feature_schema(module):
         nonlocal feature_schema
-        if hasattr(module, "feature_schema"):
-            feature_schema += module.feature_schema
+        if hasattr(module, "__feature_schema"):
+            feature_schema += module.__feature_schema
 
     module.apply(get_feature_schema)
 
@@ -326,7 +358,7 @@ def target_schema(module: nn.Module) -> Schema:
     return target_schema
 
 
-def setup_schema(module: nn.Module, schema: Schema):
+def initialize_from_schema(module: nn.Module, schema: Schema):
     """
     Set up a schema for a given module.
 
@@ -340,15 +372,18 @@ def setup_schema(module: nn.Module, schema: Schema):
 
     from merlin.models.torch.block import BlockContainer, ParallelBlock
 
-    if hasattr(module, "setup_schema"):
-        module.setup_schema(schema)
+    if hasattr(module, "initialize_from_schema") and not getattr(
+        module, "_initialized_from_schema", False
+    ):
+        module.initialize_from_schema(schema)
+        module._initialized_from_schema = True
 
     elif isinstance(module, ParallelBlock):
         for branch in module.branches.values():
-            setup_schema(branch, schema)
+            initialize_from_schema(branch, schema)
 
     elif isinstance(module, BlockContainer) and module:
-        setup_schema(module[0], schema)
+        initialize_from_schema(module[0], schema)
 
 
 @select.register(Schema)
@@ -441,7 +476,7 @@ class Selectable:
     A mixin to allow to be selectable by schema.
     """
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         """
         Setup the schema for this selectable.
 
@@ -504,7 +539,14 @@ def _(input):
 def _(input):
     output = Schema()
     for k, v in sorted(input.items()):
-        output += _tensor_to_schema(v, k)
+        if k.endswith("__offsets"):
+            name = k[: -len("__offsets")]
+            kwargs = dict(dtype=input[f"{name}__values"].dtype)
+            output += Schema([ColumnSchema(name, **kwargs)])
+        elif k.endswith("__values"):
+            continue
+        else:
+            output += _tensor_to_schema(v, k)
 
     return output
 
@@ -636,3 +678,12 @@ def _(input):
         output += _tensor_to_schema(v, str(i))
 
     return output
+
+
+@output_schema.register_tensor(Batch)
+def _(input):
+    schema = Schema()
+    schema += output_schema.tensors(input.features)
+    schema += output_schema.tensors(input.targets)
+
+    return schema

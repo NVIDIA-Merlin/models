@@ -59,8 +59,8 @@ class TabularInputBlock(RouterBlock):
         self.agg = agg
         super().__init__(schema)
 
-    def setup_schema(self, schema: Schema):
-        super().setup_schema(schema)
+    def initialize_from_schema(self, schema: Schema):
+        super().initialize_from_schema(schema)
         self.schema: Schema = self.selectable.schema
         if self.init:
             if isinstance(self.init, str):

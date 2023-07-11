@@ -22,6 +22,7 @@ from torch import nn
 
 import merlin.dtypes as md
 from merlin.models.torch import schema
+from merlin.models.torch.batch import Batch
 from merlin.models.torch.inputs.embedding import EmbeddingTable
 from merlin.models.torch.outputs.base import ModelOutput
 from merlin.schema import ColumnSchema, Schema, Tags
@@ -57,12 +58,13 @@ class BinaryOutput(ModelOutput):
             metrics=metrics or [m(task="binary") for m in self.DEFAULT_METRICS_CLS],
         )
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
+            self._initialized_from_schema = True
 
         if not self.metrics:
             self.metrics = self.default_metrics()
 
-    def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
+    def initialize_from_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
 
         Parameters
@@ -137,7 +139,8 @@ class CategoricalOutput(ModelOutput):
         )
 
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
+            self._initialized_from_schema = True
 
     @classmethod
     def with_weight_tying(
@@ -167,7 +170,7 @@ class CategoricalOutput(ModelOutput):
 
         return self
 
-    def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
+    def initialize_from_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
 
         Parameters
@@ -288,6 +291,12 @@ class CategoricalTarget(nn.Module):
         """
         return self.linear.weight.t()
 
+    def should_apply_contrastive(self, batch: Optional[Batch]) -> bool:
+        if batch is not None and batch.targets and self.training:
+            return True
+
+        return False
+
 
 class EmbeddingTablePrediction(nn.Module):
     """Prediction of a categorical feature using weight-sharing [1] with an embedding table.
@@ -318,6 +327,7 @@ class EmbeddingTablePrediction(nn.Module):
             self.num_classes = table.num_embeddings
             self.col_schema = table.input_schema.first
             self.col_name = self.col_schema.name
+            self.target_name = self.col_name
         self.bias = nn.Parameter(
             torch.zeros(self.num_classes, dtype=torch.float32, device=self.embeddings().device)
         )
@@ -368,6 +378,7 @@ class EmbeddingTablePrediction(nn.Module):
         self.col_name = self.col_schema.name
         self.num_classes = self.col_schema.int_domain.max + 1
         self.output_schema = categorical_output_schema(self.col_schema, self.num_classes)
+        self.target_name = self.col_name
 
         return self
 
@@ -398,6 +409,12 @@ class EmbeddingTablePrediction(nn.Module):
             The corresponding embeddings.
         """
         return self.table({self.col_name: inputs})[self.col_name]
+
+    def should_apply_contrastive(self, batch: Optional[Batch]) -> bool:
+        if batch is not None and batch.targets and self.training:
+            return True
+
+        return False
 
 
 def categorical_output_schema(target: ColumnSchema, num_classes: int) -> Schema:
