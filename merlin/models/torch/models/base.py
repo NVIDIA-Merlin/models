@@ -19,6 +19,7 @@ import os
 from typing import Dict, Iterator, List, Optional, Sequence, Type, Union
 
 import torch
+from packaging import version
 from pytorch_lightning import LightningDataModule, LightningModule
 from torch import nn, optim
 
@@ -31,7 +32,11 @@ from merlin.models.torch.utils import module_utils
 from merlin.models.utils.registry import camelcase_to_snakecase
 
 OptimizerType = Union[optim.Optimizer, Type[optim.Optimizer], str]
-LRSchedulerType = Union[optim.lr_scheduler.LRScheduler, Type[optim.lr_scheduler.LRScheduler]]
+
+if version.parse(torch.__version__).major < 2:
+    LRSchedulerType = Union[optim.lr_scheduler._LRScheduler, Type[optim.lr_scheduler._LRScheduler]]
+else:
+    LRSchedulerType = Union[optim.lr_scheduler.LRScheduler, Type[optim.lr_scheduler.LRScheduler]]
 
 
 class Model(LightningModule, Block):
