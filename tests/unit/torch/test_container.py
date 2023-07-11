@@ -190,6 +190,16 @@ class TestContainerMixin:
         assert len(new_container) == 4
         assert isinstance(new_container[0], nn.Linear)
 
+    def test_freeze(self, container):
+        container.freeze()
+        for param in container.parameters():
+            assert not param.requires_grad
+
+    def test_unfreeze(self, container):
+        container.unfreeze()
+        for param in container.parameters():
+            assert param.requires_grad
+
 
 class TestBlockContainer:
     def setup_method(self):

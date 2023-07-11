@@ -290,6 +290,22 @@ class ContainerMixin:
 
         return builtins.zip(self, other)
 
+    def freeze(self) -> None:
+        """
+        Freezes the parameters of all modules in the container
+        by setting `requires_grad` to False.
+        """
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def unfreeze(self) -> None:
+        """
+        Unfreezes the parameters of all modules in the container
+        by setting `requires_grad` to True.
+        """
+        for param in self.parameters():
+            param.requires_grad = True
+
     def __add__(self, module) -> _TModule:
         if hasattr(module, "__iter__"):
             return self.__class__(*self, *module)
