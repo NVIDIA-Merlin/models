@@ -53,9 +53,9 @@ class EncoderBlock(Block):
     def forward(
         self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
     ):
-        _batch = self.pre(inputs, batch=batch)
+        _batch: Batch = self.pre(inputs, batch=batch)
 
-        outputs = inputs
+        outputs = _batch.inputs()
         for block in self.values:
             outputs = block(outputs, batch=_batch)
         return outputs

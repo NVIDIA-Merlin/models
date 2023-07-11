@@ -295,6 +295,12 @@ class Batch:
 
         raise ValueError("Batch has multiple target, please specify a target name")
 
+    def inputs(self) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
+        if len(self.features) == 1 and "default" in self.features:
+            return self.features["default"]
+
+        return self.features
+
     def flatten_as_dict(self, inputs: Optional["Batch"]) -> Dict[str, torch.Tensor]:
         """
         Flatten features, targets, and sequences into a dictionary of tensors.
