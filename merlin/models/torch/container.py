@@ -47,6 +47,7 @@ _TModule = TypeVar("_TModule", bound=nn.Module)
 ModuleFunc = Callable[[nn.Module], nn.Module]
 ModuleIFunc = Callable[[nn.Module, int], nn.Module]
 ModulePredicate = Callable[[nn.Module], Union[bool, HasBool]]
+ModuleMapFunc = Callable[[nn.Module], Union[nn.Module, None]]
 
 
 class ContainerMixin:
@@ -81,8 +82,12 @@ class ContainerMixin:
         output = self.__class__()
 
         for module in self:
-            if _to_call(module):
-                output.append(module)
+            filtered = _to_call(module)
+            if filtered:
+                if isinstance(filtered, bool):
+                    output.append(module)
+                else:
+                    output.append(filtered)
 
         return output
 
@@ -213,7 +218,7 @@ class ContainerMixin:
         _to_call = _recurse(func, "mapi") if recurse else func
         return self.__class__(*(_to_call(module, i) for i, module in enumerate(self)))
 
-    def choose(self: _TModule, func: ModulePredicate, recurse: bool = False) -> _TModule:
+    def choose(self: _TModule, func: ModuleMapFunc, recurse: bool = False) -> _TModule:
         """
         Returns a new container with modules that are selected by the given function.
 
@@ -224,7 +229,7 @@ class ContainerMixin:
 
         Parameters
         ----------
-        func : Callable[[Module], Module]
+        func : Callable[[Module], Union[Module, None]]
             A function that takes a module and returns a module or None.
         recurse : bool, optional
             Whether to recursively choose modules within sub-containers. Default is False.

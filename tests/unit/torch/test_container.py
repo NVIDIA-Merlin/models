@@ -36,16 +36,16 @@ class TestContainerMixin:
         assert len(filtered) == 1
         assert isinstance(filtered[0], nn.ReLU)
 
-    # def test_filter_recurse(self, container):
-    #     def func(module):
-    #         return isinstance(module, nn.Linear)
+    def test_filter_recurse(self, container):
+        def func(module):
+            return isinstance(module, nn.Linear)
 
-    #     filtered = BlockContainer(container).filter(func, recurse=True)
-    #     assert isinstance(filtered, BlockContainer)
-    #     assert len(filtered) == 1
-    #     assert len(filtered[0]) == 2
-    #     assert isinstance(filtered[0][0], nn.Linear)
-    #     assert isinstance(filtered[0][1], nn.Linear)
+        filtered = BlockContainer(container).filter(func, recurse=True)
+        assert isinstance(filtered, BlockContainer)
+        assert len(filtered) == 1
+        assert len(filtered[0]) == 2
+        assert isinstance(filtered[0][0], nn.Linear)
+        assert isinstance(filtered[0][1], nn.Linear)
 
     def test_flatmap(self, container):
         def func(module):
@@ -139,16 +139,17 @@ class TestContainerMixin:
         assert len(chosen) == 2
         assert isinstance(chosen[0], nn.Conv2d)
 
-    # def test_choose_recurse(self, container):
-    #     def func(module):
-    #         if isinstance(module, nn.Linear):
-    #             return nn.Conv2d(3, 3, 3)
+    def test_choose_recurse(self, container):
+        def func(module):
+            if isinstance(module, nn.Linear):
+                return nn.Conv2d(3, 3, 3)
 
-    #     chosen = BlockContainer(container).choose(func, recurse=True)
-    #     assert isinstance(chosen, BlockContainer)
-    #     assert len(chosen) == 1
-    #     assert len(chosen[0]) == 2
-    #     assert isinstance(chosen[0][0], nn.Conv2d)
+        chosen = BlockContainer(container).choose(func, recurse=True)
+        assert isinstance(chosen, BlockContainer)
+        assert len(chosen) == 1
+        assert len(chosen[0]) == 2
+        assert isinstance(chosen[0][0], nn.Conv2d)
+        assert isinstance(chosen[0][1], nn.Conv2d)
 
     def test_walk(self, container: BlockContainer):
         def func(module):
