@@ -24,6 +24,7 @@ from typing import (
     Iterator,
     Optional,
     Protocol,
+    Sequence,
     Tuple,
     TypeVar,
     Union,
