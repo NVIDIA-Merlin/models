@@ -29,6 +29,22 @@ class MMOEBlock(Block):
     """
     Multi-gate Mixture-of-Experts (MMoE) Block introduced in [1].
 
+    The MMoE model builds upon the concept of an expert model by using a mixture
+    of experts for decision making. Each expert contributes independently to the
+    final decision, allowing for increased model complexity and performance
+    in multi-task learning scenarios.
+
+    Example usage for multi-task learning::
+        >>> outputs = mm.TabularOutputBlock(schema, init="defaults")
+        >>> mmoe = mm.MMOEBlock(
+                expert=mm.MLPBlock([5]),
+                num_experts=2,
+                outputs=outputs,
+            )
+        >>> outputs.prepend_for_each(mm.MLPBlock([64]))     # Add task-towers
+        >>> outputs.prepend(mmoe)
+
+
     References
     ----------
     [1] Ma, Jiaqi, et al. "Modeling task relationships in multi-task learning with
@@ -38,12 +54,14 @@ class MMOEBlock(Block):
     Parameters
     ----------
     expert : nn.Module
-        The base expert model to be used.
+        The base expert model that serves as the foundation for the MMoE structure.
     num_experts : int
-        The number of experts to be used.
+        The total number of experts in the MMoE model. Each expert operates independently
+        in the decision-making process.
     outputs : Optional[ParallelBlock]
-        The output block. If it is an instance of ParallelBlock,
-        repeat it for each expert, otherwise use a single ExpertGateBlock.
+        The output block of the model.
+        If it is an instance of ParallelBlock, the block is repeated for each expert.
+        Otherwise, a single ExpertGateBlock is used.
     """
 
     def __init__(
@@ -62,20 +80,40 @@ class PLEBlock(Block):
     """
     Progressive Layered Extraction (PLE) Block  proposed in [1].
 
+    The PLE model enhances the architecture of a typical expert model by organizing
+    shared and task-specific experts in a layered format. This layered structure
+    allows the extraction of increasingly complex features at each level and can
+    improve performance in multi-task settings.
+
+    Example usage for multi-task learning::
+        >>> outputs = mm.TabularOutputBlock(schema, init="defaults")
+        >>> ple = mm.PLEBlock(
+                expert=mm.MLPBlock([5]),
+                num_shared_experts=2,
+                num_task_experts=2,
+                depth=2,
+                outputs=outputs,
+            )
+        >>> outputs.prepend_for_each(mm.MLPBlock([64]))     # Add task-towers
+        >>> outputs.prepend(ple)
+
     {ple_reference}
 
     Parameters
     ----------
     expert : nn.Module
-        The base expert model to be used.
+        The base expert model that forms the basis of the PLE structure.
     num_shared_experts : int
-        The number of shared experts.
+        The total count of shared experts. These experts contribute to the
+        decision process in all tasks.
     num_task_experts : int
-        The number of task-specific experts.
+        The total count of task-specific experts. These experts contribute
+        only to their specific tasks.
     depth : int
-        The depth of the network.
+        The depth of the layered structure. Each layer comprises a set of experts
+        and the depth determines the number of such layers.
     outputs : ParallelBlock
-        The output block.
+        The output block, which encapsulates the final output from the model.
     """
 
     def __init__(
@@ -101,20 +139,27 @@ class CGCBlock(Block):
     """
     Implements the Customized Gate Control (CGC) proposed in [1].
 
+    The CGC model extends the capability of a typical expert model by introducing
+    shared and task-specific experts, thereby customizing the gating control per task,
+    which may lead to improved performance in multi-task settings.
+
     {ple_reference}
 
     Parameters
     ----------
     expert : nn.Module
-        The base expert model to be used.
+        The base expert model that is used as the foundation for the gating mechanism.
     num_shared_experts : int
-        The number of shared experts.
+        The total count of shared experts. These experts contribute to the decision
+        process in all tasks.
     num_task_experts : int
-        The number of task-specific experts.
+        The total count of task-specific experts. These experts contribute only
+        to their specific tasks.
     outputs : ParallelBlock
-        The output block.
+        The output block, which encapsulates the final output from the model.
     shared_gate : bool, optional
-        If true, use a shared gate for all tasks. Defaults to False.
+        Defines whether a shared gate is used across all tasks or not.
+        If set to True, a shared gate is used. Defaults to False.
     """
 
     def __init__(
@@ -185,17 +230,17 @@ class PLEExpertGateBlock(Block):
     ----------
     num_experts : int
         The number of experts used.
-    experts : nn.Module
+    task_experts : nn.Module
         The expert module.
     name : str
         The name of the task.
     """
 
-    def __init__(self, num_experts: int, experts: nn.Module, name: str):
+    def __init__(self, num_experts: int, task_experts: nn.Module, name: str):
         super().__init__(ExpertGateBlock(num_experts), name=f"PLEExpertGateBlock[{name}]")
         self.stack = Stack(dim=1)
         self.concat = Concat(dim=1)
-        self.experts = experts
+        self.task_experts = task_experts
         self.task_name = name
 
     def forward(
@@ -204,7 +249,7 @@ class PLEExpertGateBlock(Block):
         if torch.jit.isinstance(inputs, torch.Tensor):
             raise RuntimeError("ExpertGateBlock requires a dictionary input")
 
-        task_experts = self.experts(inputs["shortcut"], batch=batch)
+        task_experts = self.task_experts(inputs["shortcut"], batch=batch)
         if torch.jit.isinstance(task_experts, torch.Tensor):
             _task = task_experts
         elif torch.jit.isinstance(task_experts, Dict[str, torch.Tensor]):
