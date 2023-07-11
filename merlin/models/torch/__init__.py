@@ -44,6 +44,7 @@ from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.outputs.tabular import TabularOutputBlock
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.transforms.agg import Concat, Stack
+from merlin.models.torch.transforms.sequences import BroadcastToSequence, TabularPadding
 
 input_schema = schema.input_schema
 output_schema = schema.output_schema
@@ -92,4 +93,6 @@ __all__ = [
     "MMOEBlock",
     "PLEBlock",
     "CGCBlock",
+    "TabularPadding",
+    "BroadcastToSequence",
 ]
