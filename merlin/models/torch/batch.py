@@ -20,8 +20,6 @@ import torch
 
 from merlin.dataloader.torch import Loader
 from merlin.io import Dataset
-from merlin.models.torch import schema
-from merlin.schema import Schema
 
 
 @torch.jit.script
@@ -373,12 +371,3 @@ def sample_features(
     """
 
     return sample_batch(data, batch_size, shuffle).features
-
-
-@schema.output_schema.register_tensor(Batch)
-def _(input):
-    output_schema = Schema()
-    output_schema += schema.output_schema.tensors(input.features)
-    output_schema += schema.output_schema.tensors(input.targets)
-
-    return output_schema

@@ -58,12 +58,13 @@ class BinaryOutput(ModelOutput):
             metrics=metrics or [m(task="binary") for m in self.DEFAULT_METRICS_CLS],
         )
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
+            self._initialized_from_schema = True
 
         if not self.metrics:
             self.metrics = self.default_metrics()
 
-    def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
+    def initialize_from_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
 
         Parameters
@@ -138,7 +139,8 @@ class CategoricalOutput(ModelOutput):
         )
 
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
+            self._initialized_from_schema = True
 
     @classmethod
     def with_weight_tying(
@@ -168,7 +170,7 @@ class CategoricalOutput(ModelOutput):
 
         return self
 
-    def setup_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
+    def initialize_from_schema(self, target: Optional[Union[ColumnSchema, Schema]]):
         """Set up the schema for the output.
 
         Parameters

@@ -69,7 +69,7 @@ class TestRouterBlock:
 
     def test_module_with_setup(self):
         class Dummy(nn.Module):
-            def setup_schema(self, schema: Schema):
+            def initialize_from_schema(self, schema: Schema):
                 self.schema = schema
 
             def forward(self, x):

@@ -57,10 +57,10 @@ class TabularOutputBlock(RouterBlock):
         self.init = init
         super().__init__(schema, prepend_routing_module=False)
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         if self.selection:
             schema = select(schema, self.selection)
-        super().setup_schema(schema)
+        super().initialize_from_schema(schema)
         self.schema: Schema = self.selectable.schema
         if self.init:
             if isinstance(self.init, str):
