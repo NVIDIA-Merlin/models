@@ -186,6 +186,69 @@ class TestBatch:
         with pytest.raises(ValueError, match="Batch is empty"):
             empty_batch.device()
 
+    def test_flatten_as_dict(self):
+        features = {"feature1": torch.tensor([1, 2]), "feature2": torch.tensor([3, 4])}
+        targets = {"target1": torch.tensor([5, 6])}
+        lengths = {"length1": torch.tensor([7, 8])}
+        masks = {"mask1": torch.tensor([9, 10])}
+        sequences = Sequence(lengths, masks)
+        batch = Batch(features, targets, sequences)
+
+        # without inputs
+        result = batch.flatten_as_dict(batch)
+        assert len(result) == 5  # 2 features, 1 target, 1 length, 1 mask
+        assert set(result.keys()) == set(
+            [
+                "features.feature1",
+                "features.feature2",
+                "targets.target1",
+                "lengths.length1",
+                "masks.mask1",
+            ]
+        )
+
+        # with inputs
+        input_batch = Batch(
+            {"feature2": torch.tensor([11, 12])}, {"target1": torch.tensor([13, 14])}, sequences
+        )
+        result = batch.flatten_as_dict(input_batch)
+        assert len(result) == 9  # input keys are considered
+        assert (
+            len([k for k in result if k.startswith("inputs.")]) == 4
+        )  # 1 feature, 1 target, 1 length, 1 mask
+
+    def test_from_partial_dict(self):
+        features = {"feature1": torch.tensor([1, 2]), "feature2": torch.tensor([3, 4])}
+        targets = {"target1": torch.tensor([5, 6])}
+        lengths = {"length1": torch.tensor([7, 8])}
+        masks = {"mask1": torch.tensor([9, 10])}
+        sequences = Sequence(lengths, masks)
+
+        batch = Batch(features, targets, sequences)
+
+        partial_dict = {
+            "features.feature1": torch.tensor([11, 12]),
+            "targets.target1": torch.tensor([13, 14]),
+            "lengths.length1": torch.tensor([15, 16]),
+            "inputs.features.feature1": torch.tensor([1]),
+            "inputs.targets.target1": torch.tensor([1]),
+            "inputs.lengths.length1": torch.tensor([1]),
+            "inputs.masks.mask1": torch.tensor([1]),
+        }
+
+        # create a batch from partial_dict
+        result = Batch.from_partial_dict(partial_dict, batch)
+
+        assert result.features["feature1"].equal(
+            torch.tensor([11, 12])
+        )  # updated from partial_dict
+        assert result.features["feature2"].equal(torch.tensor([3, 4]))  # kept from batch
+        assert result.targets["target1"].equal(torch.tensor([13, 14]))  # updated from partial_dict
+        assert result.sequences.lengths["length1"].equal(
+            torch.tensor([15, 16])
+        )  # updated from partial_dict
+        assert "mask1" not in result.sequences.masks  # removed from batch
+
 
 class Test_sample_batch:
     def test_loader(self, music_streaming_data):
