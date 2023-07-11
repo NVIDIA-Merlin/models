@@ -20,8 +20,8 @@ import torch.nn.functional as F
 from torch import nn
 
 from merlin.models.torch.batch import Batch, Sequence
-from merlin.models.torch.schema import Selection, select
 from merlin.models.torch.block import BatchBlock
+from merlin.models.torch.schema import Selection, select
 from merlin.schema import Schema, Tags
 
 
