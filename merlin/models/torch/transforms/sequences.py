@@ -20,6 +20,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from merlin.models.torch.batch import Batch, Sequence
+from merlin.models.torch.schema import Selection, select
 from merlin.schema import Schema, Tags
 
 
@@ -173,3 +174,110 @@ class TabularPadding(nn.Module):
             pad_diff = length - tensor.shape[1]
             return F.pad(input=tensor, pad=(0, pad_diff, 0, 0))
         return tensor
+
+
+class BroadcastToSequence(nn.Module):
+    """
+    A PyTorch module to broadcast features to match the sequence length.
+
+    BroadcastToSequence is a PyTorch module designed to facilitate broadcasting
+    of specific features within a given data schema to match a given sequence length.
+    This can be particularly useful in sequence-based neural networks, where different
+    types of inputs need to be processed in sync within the network, and all inputs need
+    to be of the same length.
+
+    For example, in a sequence-to-sequence learning problem, one might have a feature
+    representing a constant property for each sequence (like an ID or a group), and you
+    want this feature to be available at each time step. In this case, you can use
+    BroadcastToSequence to 'broadcast' this feature along the time dimension,
+    creating a copy for each time step.
+
+    Parameters
+    ----------
+    to_broadcast : Selection
+        The features that need to be broadcasted.
+    sequence : Selection
+        The sequence features.
+
+    """
+
+    def __init__(self, to_broadcast: Selection, sequence: Selection):
+        super().__init__()
+        self.to_broadcast = to_broadcast
+        self.sequence = sequence
+
+    def initialize_from_schema(self, schema: Schema):
+        """
+        Initialize the module from a schema.
+
+        Parameters
+        ----------
+        schema : Schema
+            The input-schema of this module
+        """
+        self.schema = schema
+        self.to_broadcast_features: List[str] = select(schema, self.to_broadcast).column_names
+        self.sequence_features: List[str] = select(schema, self.sequence).column_names
+
+    def forward(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        """
+        Forward propagation method.
+
+        Parameters
+        ----------
+        inputs : Dict[str, torch.Tensor]
+            The inputs dictionary containing the tensors to be broadcasted.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            The dictionary containing the broadcasted tensors.
+
+        Raises
+        ------
+        RuntimeError
+            If a tensor has an unsupported number of dimensions.
+        """
+
+        outputs = {}
+        seq_length = self.get_seq_length(inputs)
+
+        # Iterate over the to_broadcast_features and broadcast each tensor to the sequence length
+        for key, val in inputs.items():
+            if key in self.to_broadcast_features:
+                # Check the dimension of the original tensor
+                if len(val.shape) == 1:  # for 1D tensor (batch dimension only)
+                    broadcasted_tensor = val.unsqueeze(1).repeat(1, seq_length)
+                elif len(val.shape) == 2:  # for 2D tensor (batch dimension + feature dimension)
+                    broadcasted_tensor = val.unsqueeze(1).repeat(1, seq_length, 1)
+                else:
+                    raise RuntimeError(f"Unsupported number of dimensions: {len(val.shape)}")
+
+                # Update the inputs dictionary with the broadcasted tensor
+                outputs[key] = broadcasted_tensor
+            else:
+                outputs[key] = val
+
+        return outputs
+
+    def get_seq_length(self, inputs: Dict[str, torch.Tensor]) -> int:
+        """
+        Get the sequence length from inputs.
+
+        Parameters
+        ----------
+        inputs : Dict[str, torch.Tensor]
+            The inputs dictionary.
+
+        Returns
+        -------
+        int
+            The sequence length.
+        """
+
+        first_feat = self.sequence_features[0]
+
+        if first_feat + "__offsets" in inputs:
+            return inputs[first_feat + "__offsets"][-1].item()
+
+        return inputs[first_feat].shape[1]
