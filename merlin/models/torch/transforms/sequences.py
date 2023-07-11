@@ -79,12 +79,12 @@ class TabularPaddingModule(nn.Module):
         if schema:
             self.setup_schema(schema)
         self.max_sequence_length = max_sequence_length
-        self.sparse_features = self.schema.select_by_tag(Tags.SEQUENCE).column_names
         self.padding_idx = 0
 
     def setup_schema(self, schema: Schema):
         self.schema = schema
         self.features: List[str] = self.schema.column_names
+        self.sparse_features = self.schema.select_by_tag(Tags.SEQUENCE).column_names
 
     def forward(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Batch) -> Batch:
         _max_sequence_length = self.max_sequence_length
