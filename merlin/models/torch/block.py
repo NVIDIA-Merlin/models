@@ -17,7 +17,7 @@
 import inspect
 import textwrap
 from copy import deepcopy
-from typing import Dict, Optional, Tuple, TypeVar, Union
+from typing import Dict, Optional, Protocol, Tuple, TypeVar, Union, runtime_checkable
 
 import torch
 from torch import nn
@@ -29,6 +29,12 @@ from merlin.models.torch.registry import registry
 from merlin.models.torch.utils.traversal_utils import TraversableMixin
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
+
+
+@runtime_checkable
+class HasKeys(Protocol):
+    def keys(self):
+        ...
 
 
 class Block(BlockContainer, RegistryMixin, TraversableMixin):
@@ -87,15 +93,13 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
         Block
             The new block created by repeating the current block `n` times.
         """
-        if not isinstance(n, int):
-            raise TypeError("n must be an integer")
+        return repeat(self, n, name=name)
 
-        if n < 1:
-            raise ValueError("n must be greater than 0")
+    def repeat_parallel(self, n: int = 1, name=None) -> "ParallelBlock":
+        return repeat_parallel(self, n, name=name)
 
-        repeats = [self.copy() for _ in range(n - 1)]
-
-        return Block(self, *repeats, name=name)
+    def repeat_parallel_like(self, like: HasKeys, name=None) -> "ParallelBlock":
+        return repeat_parallel_like(self, like, name=name)
 
     def copy(self) -> "Block":
         """
@@ -342,6 +346,9 @@ class ParallelBlock(Block):
 
         return output
 
+    def keys(self):
+        return self.branches.keys()
+
     def leaf(self) -> nn.Module:
         if self.pre:
             raise ValueError("Cannot call leaf() on a ParallelBlock with a pre-processing stage")
@@ -565,6 +572,70 @@ class ShortcutBlock(Block):
             to_return[self.output_name] = output
 
         return to_return
+
+
+def _validate_n(n: int) -> None:
+    if not isinstance(n, int):
+        raise TypeError("n must be an integer")
+
+    if n < 1:
+        raise ValueError("n must be greater than 0")
+
+
+def repeat(module: nn.Module, n: int = 1, name=None) -> Block:
+    """
+    Creates a new block by repeating the current block `n` times.
+    Each repetition is a deep copy of the current block.
+
+    Parameters
+    ----------
+    module: nn.Module
+        The module to be repeated.
+    n : int
+        The number of times to repeat the current block.
+    name : Optional[str], default = None
+        The name for the new block. If None, no name is assigned.
+
+    Returns
+    -------
+    Block
+        The new block created by repeating the current block `n` times.
+    """
+    _validate_n(n)
+
+    repeats = [module.copy() if hasattr(module, "copy") else deepcopy(module) for _ in range(n - 1)]
+
+    return Block(module, *repeats, name=name)
+
+
+def repeat_parallel(module: nn.Module, n: int = 1, agg=None) -> ParallelBlock:
+    _validate_n(n)
+
+    branches = {"0": module}
+    branches.update(
+        {str(n): module.copy() if hasattr(module, "copy") else deepcopy(module) for n in range(n)}
+    )
+
+    output = ParallelBlock(branches)
+    if agg:
+        output.append(Block.parse(agg))
+
+    return output
+
+
+def repeat_parallel_like(module: nn.Module, like: HasKeys, agg=None) -> ParallelBlock:
+    branches = {}
+    for i, key in enumerate(like.keys()):
+        if i == 0:
+            branches[str(key)] = module
+        else:
+            branches[str(key)] = module.copy() if hasattr(module, "copy") else deepcopy(module)
+
+    output = ParallelBlock(branches)
+    if agg:
+        output.append(Block.parse(agg))
+
+    return output
 
 
 def get_pre(module: nn.Module) -> BlockContainer:

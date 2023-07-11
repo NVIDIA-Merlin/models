@@ -16,7 +16,7 @@
 
 from copy import deepcopy
 from functools import reduce
-from typing import Dict, Iterator, Optional, Union
+from typing import Dict, Iterator, Optional, Sequence, Union
 
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
@@ -59,6 +59,23 @@ class BlockContainer(nn.Module):
         self
         """
         self.values.append(self.wrap_module(module))
+
+        return self
+
+    def extend(self, sequence: Sequence[nn.Module]):
+        """Extends the list by appending elements from the iterable.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The PyTorch module to be appended.
+
+        Returns
+        -------
+        self
+        """
+        for m in sequence:
+            self.append(m)
 
         return self
 
