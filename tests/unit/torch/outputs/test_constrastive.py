@@ -13,7 +13,7 @@ from merlin.schema import Schema
 
 
 class TestContrastiveOutput:
-    def test_setup_schema(self, item_id_col_schema, user_id_col_schema):
+    def test_initialize_from_schema(self, item_id_col_schema, user_id_col_schema):
         contrastive = ContrastiveOutput()
 
         dot = ContrastiveOutput(schema=Schema([item_id_col_schema, user_id_col_schema]))
@@ -23,10 +23,10 @@ class TestContrastiveOutput:
         assert isinstance(target.to_call, CategoricalTarget)
 
         with pytest.raises(ValueError):
-            contrastive.setup_schema(1)
+            contrastive.initialize_from_schema(1)
 
         with pytest.raises(ValueError):
-            contrastive.setup_schema(Schema(["a", "b", "c"]))
+            contrastive.initialize_from_schema(Schema(["a", "b", "c"]))
 
     def test_outputs_without_downscore(self, item_id_col_schema):
         contrastive = ContrastiveOutput(item_id_col_schema, downscore_false_negatives=False)
