@@ -54,9 +54,10 @@ class ToTupleModule(nn.Module):
     def __init__(self, input_schema: Optional[Schema] = None):
         super().__init__()
         if input_schema is not None:
-            self.setup_schema(input_schema)
+            self.initialize_from_schema(input_schema)
+            self._initialized_from_schema = True
 
-    def setup_schema(self, input_schema: Schema):
+    def initialize_from_schema(self, input_schema: Schema):
         self._input_schema = input_schema
         self._column_names = input_schema.column_names
 
@@ -64,7 +65,7 @@ class ToTupleModule(nn.Module):
         outputs: List[torch.Tensor] = []
 
         if not hasattr(self, "_column_names"):
-            raise RuntimeError("setup_schema() must be called before value_list()")
+            raise RuntimeError("initialize_from_schema() must be called before value_list()")
 
         for col in self._column_names:
             outputs.append(inputs[col])

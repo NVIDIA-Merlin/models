@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import torch
 from torch import nn
@@ -24,7 +24,7 @@ from merlin.models.torch.batch import Batch
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
-class SelectKeys(nn.Module, schema.Selectable):
+class SelectKeys(nn.Module, schema.Selectable, schema.LazySchemaModuleMixin):
     """Filter tabular data based on a defined schema.
 
     Example usage::
@@ -50,20 +50,24 @@ class SelectKeys(nn.Module, schema.Selectable):
         List of column names in the schema.
     """
 
-    def __init__(self, schema: Optional[Schema] = None):
+    def __init__(self, schema: Optional[Union[Schema, ColumnSchema]] = None):
         super().__init__()
-        self.column_names: List[str] = []
-        if schema:
-            self.setup_schema(schema)
-
-    def setup_schema(self, schema: Schema):
         if isinstance(schema, ColumnSchema):
             schema = Schema([schema])
+        if schema:
+            self.initialize_from_schema(schema)
+            self._initialized_from_schema = True
+        else:
+            schema = Schema()
+            self.schema = schema
+            self.column_names: List[str] = schema.column_names
 
+    def initialize_from_schema(self, schema: Schema):
+        super().initialize_from_schema(schema)
         self.schema = schema
+        self.column_names = schema.column_names
         self.input_schema = schema
         self.output_schema = schema
-        self.column_names = schema.column_names
 
     def select(self, selection: schema.Selection) -> "SelectKeys":
         """Select a subset of the schema based on the provided selection.
@@ -125,7 +129,7 @@ class SelectKeys(nn.Module, schema.Selectable):
         return set(self.column_names) == set(other.column_names)
 
 
-class SelectFeatures(nn.Module):
+class SelectFeatures(nn.Module, schema.LazySchemaModuleMixin):
     """Filter tabular data based on a defined schema.
 
     It operates similarly to SelectKeys, but it uses the features from Batch.
@@ -154,9 +158,9 @@ class SelectFeatures(nn.Module):
         super().__init__()
         self.select_keys = SelectKeys(schema=schema)
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         """Set up the schema for the SelectFeatures.
 
         Parameters
@@ -164,11 +168,11 @@ class SelectFeatures(nn.Module):
         schema : Schema
             The schema to use for selection.
         """
-        self.select_keys.setup_schema(schema)
+        super().initialize_from_schema(schema)
+        self.select_keys.initialize_from_schema(schema)
         self.embedding_names = schema.select_by_tag(Tags.EMBEDDING).column_names
-        self.input_schema = self.select_keys.input_schema
-        self.feature_schema = self.input_schema
-        self.output_schema = self.select_keys.output_schema
+        self.input_schema = Schema()
+        self.output_schema = schema
 
     def select(self, selection: schema.Selection) -> "SelectFeatures":
         """Select a subset of the schema based on the provided selection.
@@ -186,6 +190,9 @@ class SelectFeatures(nn.Module):
         schema = self.select_keys.select(selection).schema
 
         return SelectFeatures(schema)
+
+    def compute_feature_schema(self, feature_schema: Schema) -> Schema:
+        return feature_schema[self.select_keys.column_names]
 
     def forward(self, inputs, batch: Batch) -> Dict[str, torch.Tensor]:
         outputs = {}

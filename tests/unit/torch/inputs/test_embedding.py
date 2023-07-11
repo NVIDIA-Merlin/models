@@ -28,7 +28,7 @@ class TestEmbeddingTable:
 
     def test_init_defaults(self, item_id_col_schema):
         table = EmbeddingTable()
-        table.setup_schema(item_id_col_schema)
+        table.initialize_from_schema(item_id_col_schema)
 
         assert table.dim == 8
 
@@ -211,7 +211,7 @@ class TestEmbeddingTable:
         with pytest.raises(RuntimeError):
             table(torch.tensor([0, 1, 2]))
 
-        table.setup_schema(item_id_col_schema)
+        table.initialize_from_schema(item_id_col_schema)
 
         with pytest.raises(ValueError):
             table("a")
