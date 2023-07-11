@@ -33,10 +33,13 @@ from merlin.models.utils.registry import camelcase_to_snakecase
 
 OptimizerType = Union[optim.Optimizer, Type[optim.Optimizer], str]
 
-if version.parse(torch.__version__).major < 2:
-    LRSchedulerType = Union[optim.lr_scheduler._LRScheduler, Type[optim.lr_scheduler._LRScheduler]]
-else:
-    LRSchedulerType = Union[optim.lr_scheduler.LRScheduler, Type[optim.lr_scheduler.LRScheduler]]
+LRScheduler = (
+    optim.lr_scheduler._LRScheduler
+    if version.parse(torch.__version__).major < 2
+    else optim.lr_scheduler.LRScheduler
+)
+
+LRSchedulerType = Union[LRScheduler, Type[LRScheduler]]
 
 
 class Model(LightningModule, Block):
@@ -492,9 +495,7 @@ def create_optimizer(module: nn.Module, opt: OptimizerType) -> optim.Optimizer:
     )
 
 
-def get_scheduler(
-    optimizer: optim.Optimizer, scheduler: LRSchedulerType
-) -> optim.lr_scheduler.LRScheduler:
+def get_scheduler(optimizer: optim.Optimizer, scheduler: LRSchedulerType) -> LRScheduler:
     """
     Get an instance of a learning rate scheduler.
 
@@ -514,12 +515,12 @@ def get_scheduler(
     torch.optim.lr_scheduler._LRScheduler
         The scheduler instance.
     """
-    if isinstance(scheduler, optim.lr_scheduler.LRScheduler):
+    if isinstance(scheduler, LRScheduler):
         if scheduler.optimizer != optimizer:
             return type(scheduler)(optimizer)
         else:
             return scheduler
-    elif inspect.isclass(scheduler) and issubclass(scheduler, optim.lr_scheduler.LRScheduler):
+    elif inspect.isclass(scheduler) and issubclass(scheduler, LRScheduler):
         return scheduler(optimizer)
 
     raise TypeError(
