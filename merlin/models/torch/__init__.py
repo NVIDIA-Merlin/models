@@ -17,6 +17,7 @@
 from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import (
+    BatchBlock,
     Block,
     ParallelBlock,
     ResidualBlock,
@@ -42,6 +43,7 @@ from merlin.models.torch.outputs.classification import (
 )
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.outputs.tabular import TabularOutputBlock
+from merlin.models.torch.predict import DaskEncoder, DaskPredictor, EncoderBlock
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.transforms.agg import Concat, Stack
 from merlin.models.torch.transforms.sequences import BroadcastToSequence, TabularPadding
@@ -55,6 +57,7 @@ __all__ = [
     "Batch",
     "BinaryOutput",
     "Block",
+    "BatchBlock",
     "DLRMBlock",
     "MLPBlock",
     "Model",
@@ -95,4 +98,7 @@ __all__ = [
     "CGCBlock",
     "TabularPadding",
     "BroadcastToSequence",
+    "EncoderBlock",
+    "DaskEncoder",
+    "DaskPredictor",
 ]

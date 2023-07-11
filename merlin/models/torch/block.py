@@ -23,12 +23,14 @@ import torch
 from torch import nn
 
 from merlin.models.torch import schema
-from merlin.models.torch.batch import Batch
+from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.registry import registry
 from merlin.models.torch.utils.traversal_utils import TraversableMixin
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
+
+TensorOrDict = Union[torch.Tensor, Dict[str, torch.Tensor]]
 
 
 @runtime_checkable
@@ -53,9 +55,7 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
     def __init__(self, *module: nn.Module, name: Optional[str] = None):
         super().__init__(*module, name=name)
 
-    def forward(
-        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
-    ):
+    def forward(self, inputs: TensorOrDict, batch: Optional[Batch] = None):
         """
         Forward pass through the block. Applies each contained module sequentially on the input.
 
@@ -167,9 +167,7 @@ class ParallelBlock(Block):
         self.branches = branches
         self.post = post
 
-    def forward(
-        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
-    ):
+    def forward(self, inputs: TensorOrDict, batch: Optional[Batch] = None):
         """Forward pass through the block.
 
         The steps are as follows:
@@ -210,6 +208,9 @@ class ParallelBlock(Block):
                         raise RuntimeError(f"Duplicate output name: {key}")
 
                 outputs.update(branch_out)
+            elif torch.jit.isinstance(branch_out, Batch):
+                _flattened_batch: Dict[str, torch.Tensor] = branch_out.flatten_as_dict(batch)
+                outputs.update(_flattened_batch)
             else:
                 raise TypeError(
                     f"Branch output must be a tensor or a dictionary of tensors. Got {_inputs}"
@@ -572,6 +573,98 @@ class ShortcutBlock(Block):
             to_return[self.output_name] = output
 
         return to_return
+
+
+class BatchBlock(Block):
+    """
+    Class to use for `Batch` creation. We can use this class to create a `Batch` from
+        - a tensor or a dictionary of tensors
+        - a `Batch` object
+        - a tuple of features and targets
+
+    Example usage::
+        >>> batch = mm.BatchBlock()(torch.ones(1, 1))
+        >>> batch
+        Batch(features={"default": tensor([[1.]])})
+
+    """
+
+    def forward(
+        self,
+        inputs: Union[Batch, TensorOrDict],
+        targets: Optional[TensorOrDict] = None,
+        sequences: Optional[Sequence] = None,
+        batch: Optional[Batch] = None,
+    ) -> Batch:
+        """
+        Perform forward propagation on either a Batch object, or on inputs, targets and sequences
+        which are then packed into a Batch.
+
+        Parameters
+        ----------
+        inputs : Union[Batch, TensorOrDict]
+            Either a Batch object or a dictionary of tensors.
+
+        targets : Optional[TensorOrDict], optional
+            A dictionary of tensors, by default None
+
+        sequences : Optional[Sequence], optional
+            A sequence of tensors, by default None
+
+        batch : Optional[Batch], optional
+            A Batch object, by default None
+
+        Returns
+        -------
+        Batch
+            The resulting Batch after forward propagation.
+        """
+        if torch.jit.isinstance(batch, Batch):
+            return self.forward_batch(batch)
+        if torch.jit.isinstance(inputs, Batch):
+            return self.forward_batch(inputs)
+
+        return self.forward_batch(Batch(inputs, targets, sequences))
+
+    def forward_batch(self, batch: Batch) -> Batch:
+        """
+        Perform forward propagation on a Batch object.
+
+        For each module in the block, this method performs a forward pass with the
+        current output features and the original batch object.
+        - If a module returns a Batch object, this becomes the new output.
+        - If a module returns a dictionary of tensors, a new Batch object is created
+          from this dictionary and the original batch object. The new Batch replaces
+          the current output. This is useful when a module only modifies a subset of
+          the batch.
+
+
+        Parameters
+        ----------
+        batch : Batch
+            A Batch object.
+
+        Returns
+        -------
+        Batch
+            The resulting Batch after forward propagation.
+
+        Raises
+        ------
+        RuntimeError
+            When the output of a module is neither a Batch object nor a dictionary of tensors.
+        """
+        output = batch
+        for module in self.values:
+            module_out = module(output.features, batch=output)
+            if torch.jit.isinstance(module_out, Batch):
+                output = module_out
+            elif torch.jit.isinstance(module_out, Dict[str, torch.Tensor]):
+                output = Batch.from_partial_dict(module_out, batch)
+            else:
+                raise RuntimeError("Module must return a Batch or a dict of tensors")
+
+        return output
 
 
 def _validate_n(n: int) -> None:
