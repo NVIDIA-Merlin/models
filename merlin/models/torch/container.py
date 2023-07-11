@@ -77,7 +77,7 @@ class ContainerMixin:
             Self: A new container with the filtered modules.
         """
 
-        _to_call = _recurse(func, "filter", apply_twice=True) if recurse else func
+        _to_call = _recurse(func, "filter") if recurse else func
         output = self.__class__()
 
         for module in self:
@@ -236,7 +236,7 @@ class ContainerMixin:
         """
 
         to_add = []
-        _to_call = _recurse(func, "choose", apply_twice=True) if recurse else func
+        _to_call = _recurse(func, "choose") if recurse else func
 
         for module in self:
             f_out = _to_call(module)
@@ -612,14 +612,11 @@ class BlockContainerDict(nn.ModuleDict):
         return hash(tuple(sorted(self._modules.items())))
 
 
-def _recurse(func, to_recurse_name: str, apply_twice=False):
+def _recurse(func, to_recurse_name: str):
     @wraps(func)
     def inner(module, *args, **kwargs):
         if hasattr(module, to_recurse_name):
             fn = getattr(module, to_recurse_name)
-
-            if apply_twice:
-                return func(fn(func, *args, **kwargs), *args, **kwargs)
 
             return fn(func, *args, **kwargs)
 
