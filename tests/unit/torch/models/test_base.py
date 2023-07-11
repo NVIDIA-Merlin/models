@@ -98,6 +98,9 @@ class TestModel:
         with pytest.raises(RuntimeError, match="Unexpected input type"):
             model.initialize(inputs)
 
+        with pytest.raises(ValueError):
+            mm.Model(mm.Block(), pre=mm.Block())
+
     def test_script(self):
         model = mm.Model(mm.Block(), mm.Block())
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])

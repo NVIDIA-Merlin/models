@@ -424,6 +424,9 @@ def select_schema(schema: Schema, selection: Selection) -> Schema:
     elif isinstance(selection, (Tags, TagSet)):
         selected = schema.select_by_tag(selection)
     elif isinstance(selection, str):
+        if selection == "*":
+            return schema
+
         selected = Schema([schema[selection]])
     elif isinstance(selection, (list, tuple)):
         if all(isinstance(s, str) for s in selection):

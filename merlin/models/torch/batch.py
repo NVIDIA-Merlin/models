@@ -65,6 +65,9 @@ class Sequence:
     def __contains__(self, name: str) -> bool:
         return name in self.lengths
 
+    def __bool__(self) -> bool:
+        return bool(self.lengths)
+
     def length(self, name: str = "default") -> torch.Tensor:
         """Retrieves a length tensor from a sequence by name.
 
@@ -117,6 +120,16 @@ class Sequence:
 
         raise ValueError("Sequence is empty")
 
+    def flatten_to_dict(self) -> Dict[str, torch.Tensor]:
+        outputs: Dict[str, torch.Tensor] = {}
+        for key, value in self.lengths.items():
+            outputs["lengths." + key] = value
+
+        for key, value in self.masks.items():
+            outputs["masks." + key] = value
+
+        return outputs
+
 
 @torch.jit.script
 class Batch:
@@ -164,7 +177,12 @@ class Batch:
         else:
             raise ValueError("Targets must be a tensor or a dictionary of tensors")
         self.targets: Dict[str, torch.Tensor] = _targets
-        self.sequences: Optional[Sequence] = sequences
+        if torch.jit.isinstance(sequences, Sequence):
+            _sequences = Sequence(sequences.lengths, sequences.masks)
+        else:
+            _masks: Dict[str, torch.Tensor] = {}
+            _sequences = Sequence(_masks)
+        self.sequences: Sequence = _sequences
 
     @staticmethod
     @torch.jit.ignore
@@ -276,6 +294,112 @@ class Batch:
             return self.targets[name]
 
         raise ValueError("Batch has multiple target, please specify a target name")
+
+    def inputs(self) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
+        if len(self.features) == 1 and "default" in self.features:
+            return self.features["default"]
+
+        return self.features
+
+    def flatten_as_dict(self, inputs: Optional["Batch"]) -> Dict[str, torch.Tensor]:
+        """
+        Flatten features, targets, and sequences into a dictionary of tensors.
+
+        Each key should be prefixed with "features.", "targets.", "masks." or "lengths."
+
+        If inputs is provided, it includes all keys that are present in both self and inputs,
+        with the value from self being used when a key is present in both.
+
+        Parameters
+        ----------
+        inputs : Batch, optional
+            Another Batch object to include in the flattening process. The keys from the input
+            batch are also added with a prefix of "inputs.", by default None
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            A dictionary containing all the flattened features, targets, and sequences.
+        """
+        flat_dict: Dict[str, torch.Tensor] = self._flatten()
+        dummy_tensor = torch.tensor(0)
+
+        if torch.jit.isinstance(inputs, Batch) and inputs is not self:
+            _input_dict: Dict[str, torch.Tensor] = inputs._flatten()
+            for key in _input_dict:
+                flat_dict["inputs." + key] = dummy_tensor
+
+        return flat_dict
+
+    def _flatten(self) -> Dict[str, torch.Tensor]:
+        """
+        Helper function to flatten features, targets, and sequences of the current batch.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            A dictionary containing all the flattened features, targets, and sequences.
+        """
+        flat_dict = {}
+
+        for key, value in self.features.items():
+            flat_dict["features." + key] = value
+
+        for key, value in self.targets.items():
+            flat_dict["targets." + key] = value
+
+        _sequence_dict = self.sequences.flatten_to_dict()
+        if _sequence_dict:
+            flat_dict.update(_sequence_dict)
+
+        return flat_dict
+
+    @staticmethod
+    def from_partial_dict(input: Dict[str, torch.Tensor], batch: "Batch") -> "Batch":
+        """
+        The input param comes from flatten_as_dict.
+
+        It could be that certain keys are missing from the input dict, in which case
+        we should use the values from the batch object.
+        """
+        features = {}
+        targets = {}
+        lengths = {}
+        masks = {}
+
+        for key, value in input.items():
+            key_split = key.split(".")
+            if key_split[0] == "features":
+                features[key_split[1]] = value
+            elif key_split[0] == "targets":
+                targets[key_split[1]] = value
+            elif key_split[0] == "lengths":
+                lengths[key_split[1]] = value
+            elif key_split[0] == "masks":
+                masks[key_split[1]] = value
+
+        # If a key is missing in the input dict and was in the inputs of flatten_as_dict,
+        #   use the value from the batch object
+        for key in batch.features:
+            if f"inputs.features.{key}" not in input:
+                features[key] = batch.features[key]
+        for key in batch.targets:
+            if f"inputs.targets.{key}" not in input:
+                targets[key] = batch.targets[key]
+        if batch.sequences is not None:
+            for key in batch.sequences.lengths:
+                if f"inputs.lengths.{key}" not in input:
+                    lengths[key] = batch.sequences.lengths[key]
+            for key in batch.sequences.masks:
+                if f"inputs.masks.{key}" not in input:
+                    masks[key] = batch.sequences.masks[key]
+
+        if lengths or masks:
+            sequences = Sequence(lengths, masks)
+        else:
+            sequences = None
+
+        return Batch(features, targets, sequences)
 
     def __bool__(self) -> bool:
         return bool(self.features)

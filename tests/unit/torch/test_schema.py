@@ -66,6 +66,10 @@ class TestSelectSchema:
         output_2 = select(self.schema, ColumnSchema("user_id"))
         assert output == output_2 == Schema([column])
 
+    def test_select_star(self):
+        output = select(self.schema, "*")
+        assert output == self.schema
+
     def test_exceptions(self):
         with pytest.raises(ValueError, match="is not valid"):
             select(self.schema, 1)

@@ -20,11 +20,12 @@ import torch.nn.functional as F
 from torch import nn
 
 from merlin.models.torch.batch import Batch, Sequence
+from merlin.models.torch.block import BatchBlock
 from merlin.models.torch.schema import Selection, select
 from merlin.schema import Schema, Tags
 
 
-class TabularPadding(nn.Module):
+class TabularPadding(BatchBlock):
     """A PyTorch module for padding tabular sequence data.
 
     Parameters
@@ -45,7 +46,7 @@ class TabularPadding(nn.Module):
         padding_op = TabularBatchPadding(
             schema=schema, max_sequence_length=_max_sequence_length
         )
-        padded_batch = padding_op(Batch(feaures))
+        padded_batch = padding_op(Batch(features))
 
     Notes:
         - If the schema contains continuous list features,
@@ -57,15 +58,33 @@ class TabularPadding(nn.Module):
 
     def __init__(
         self,
-        schema: Schema,
+        schema: Optional[Schema] = None,
+        max_sequence_length: Optional[int] = None,
+        name: Optional[str] = None,
+    ):
+        super().__init__(
+            TabularPaddingModule(schema=schema, max_sequence_length=max_sequence_length), name=name
+        )
+
+
+class TabularPaddingModule(nn.Module):
+    """A PyTorch module for padding tabular sequence data."""
+
+    def __init__(
+        self,
+        schema: Optional[Schema] = None,
         max_sequence_length: Optional[int] = None,
     ):
         super().__init__()
-        self.schema = schema
+        if schema:
+            self.setup_schema(schema)
         self.max_sequence_length = max_sequence_length
+        self.padding_idx = 0
+
+    def setup_schema(self, schema: Schema):
+        self.schema = schema
         self.features: List[str] = self.schema.column_names
         self.sparse_features = self.schema.select_by_tag(Tags.SEQUENCE).column_names
-        self.padding_idx = 0
 
     def forward(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Batch) -> Batch:
         _max_sequence_length = self.max_sequence_length
