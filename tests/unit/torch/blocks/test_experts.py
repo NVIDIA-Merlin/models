@@ -70,11 +70,11 @@ class TestPLEExpertGateBlock:
     @pytest.fixture
     def ple_expert_gate(self):
         return PLEExpertGateBlock(
-            num_experts=6, experts=mm.repeat_parallel(mm.MLPBlock([5, 5]), 2), name="a"
+            num_experts=6, task_experts=mm.repeat_parallel(mm.MLPBlock([5, 5]), 2), name="a"
         )
 
     def test_repr(self, ple_expert_gate):
-        assert "(experts)" in str(ple_expert_gate)
+        assert "(task_experts)" in str(ple_expert_gate)
         assert "(gate)" in str(ple_expert_gate)
 
     def test_requires_dict_input(self, ple_expert_gate):

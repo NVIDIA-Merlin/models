@@ -179,7 +179,7 @@ class CGCBlock(Block):
         for name in outputs.branches:
             gates.branches[name] = PLEExpertGateBlock(
                 num_shared_experts + num_task_experts,
-                experts=repeat_parallel(expert, num_task_experts, agg=Stack(dim=1)),
+                task_experts=repeat_parallel(expert, num_task_experts, agg=Stack(dim=1)),
                 name=name,
             )
         if shared_gate:
@@ -267,7 +267,7 @@ class PLEExpertGateBlock(Block):
 
     def __repr__(self) -> str:
         indent_str = "    "
-        output = textwrap.indent("\n(experts): " + repr(self.experts), indent_str)
+        output = textwrap.indent("\n(task_experts): " + repr(self.task_experts), indent_str)
         output += textwrap.indent("\n(gate): " + repr(self.values[0]), indent_str)
 
         return f"{self._get_name()}({output}\n)"
