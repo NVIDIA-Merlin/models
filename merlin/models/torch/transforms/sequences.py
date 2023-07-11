@@ -77,11 +77,12 @@ class TabularPaddingModule(nn.Module):
     ):
         super().__init__()
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
+            self._initialized_from_schema = True
         self.max_sequence_length = max_sequence_length
         self.padding_idx = 0
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         self.schema = schema
         self.features: List[str] = self.schema.column_names
         self.sparse_features = self.schema.select_by_tag(Tags.SEQUENCE).column_names
