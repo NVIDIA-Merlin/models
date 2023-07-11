@@ -74,7 +74,7 @@ class ContrastiveOutput(ModelOutput):
         )
 
         if schema:
-            self.setup_schema(schema)
+            self.initialize_from_schema(schema)
 
         self.init_hook_handle = self.register_forward_pre_hook(self.initialize)
         if not torch.jit.is_scripting():
@@ -121,7 +121,7 @@ class ContrastiveOutput(ModelOutput):
 
         return self
 
-    def setup_schema(self, target: Union[ColumnSchema, Schema]):
+    def initialize_from_schema(self, target: Union[ColumnSchema, Schema]):
         """Set up the schema for the output.
 
         Parameters
