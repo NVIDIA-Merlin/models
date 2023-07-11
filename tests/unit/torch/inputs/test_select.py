@@ -52,10 +52,10 @@ class TestSelectKeys:
         assert select_user.select(ColumnSchema("user_id")).schema == user_id
         assert select_user.select(Tags.USER).schema == self.user_schema
 
-    def test_setup_schema(self):
+    def test_initialize_from_schema(self):
         select_user = mm.SelectKeys()
-        select_user.setup_schema(self.user_schema["user_id"])
-        assert select_user.schema == Schema([self.user_schema["user_id"]])
+        select_user.initialize_from_schema(self.user_schema[["user_id"]])
+        assert select_user.schema == self.user_schema[["user_id"]]
 
 
 class TestSelectFeatures:
