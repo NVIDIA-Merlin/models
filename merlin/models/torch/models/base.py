@@ -75,8 +75,9 @@ class Model(LightningModule, Block):
         self.initialization = initialization
 
     @property
+    @torch.jit.ignore
     def optimizer(self):
-        return self._optimizer
+        return self._optimizer if hasattr(self, "_optimizer") else None
 
     def configure_optimizers(
         self,
