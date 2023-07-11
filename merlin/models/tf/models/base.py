@@ -2510,20 +2510,20 @@ class RetrievalModelV2(Model):
 
     def candidate_embeddings(
         self,
-        dataset: Optional[merlin.io.Dataset] = None,
+        data: Optional[Union[merlin.io.Dataset, Loader]] = None,
         index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
         if self.has_candidate_encoder:
             candidate = self.candidate_encoder
 
-            if dataset is not None and hasattr(candidate, "encode"):
-                return candidate.encode(dataset, index=index, **kwargs)
+            if data is not None and hasattr(candidate, "encode"):
+                return candidate.encode(data, index=index, **kwargs)
 
             if hasattr(candidate, "to_dataset"):
                 return candidate.to_dataset(**kwargs)
 
-            return candidate.encode(dataset, index=index, **kwargs)
+            return candidate.encode(data, index=index, **kwargs)
 
         if isinstance(self.last, (ContrastiveOutput, CategoricalOutput)):
             return self.last.to_dataset()

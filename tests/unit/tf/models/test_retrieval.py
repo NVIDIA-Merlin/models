@@ -1,11 +1,13 @@
 from pathlib import Path
 
+import numpy as np
 import nvtabular as nvt
 import pytest
 import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.core.dispatch import make_df
+from merlin.dataloader.ops.embeddings import EmbeddingOperator
 from merlin.io import Dataset
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
@@ -430,6 +432,66 @@ def test_two_tower_model_topk_evaluation(ecommerce_data: Dataset, run_eagerly):
     topk_model.compile(run_eagerly=run_eagerly)
 
     loader = mm.Loader(ecommerce_data, batch_size=32).map(mm.ToTarget(schema, "item_id"))
+
+    metrics = topk_model.evaluate(loader, return_dict=True)
+    assert all([metric >= 0 for metric in metrics.values()])
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_two_tower_model_topk_evaluation_with_pretrained_emb(music_streaming_data, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_tag([Tags.USER, Tags.ITEM])
+
+    cardinality = music_streaming_data.schema["item_category"].int_domain.max + 1
+    pretrained_embedding = np.random.rand(cardinality, 12)
+
+    loader_transforms = [
+        EmbeddingOperator(
+            pretrained_embedding,
+            lookup_key="item_category",
+            embedding_name="pretrained_category_embeddings",
+        ),
+    ]
+    loader = mm.Loader(
+        music_streaming_data,
+        schema=music_streaming_data.schema.select_by_tag([Tags.USER, Tags.ITEM]),
+        batch_size=10,
+        transforms=loader_transforms,
+    )
+    schema = loader.output_schema
+
+    pretrained_embeddings = mm.PretrainedEmbeddings(
+        schema.select_by_tag(Tags.EMBEDDING),
+        output_dims=16,
+    )
+
+    schema = loader.output_schema
+
+    query_input = mm.InputBlockV2(schema.select_by_tag(Tags.USER))
+    query = mm.Encoder(query_input, mm.MLPBlock([4], no_activation_last_layer=True))
+    candidate_input = mm.InputBlockV2(
+        schema.select_by_tag(Tags.ITEM), pretrained_embeddings=pretrained_embeddings
+    )
+    candidate = mm.Encoder(candidate_input, mm.MLPBlock([4], no_activation_last_layer=True))
+    model = mm.TwoTowerModelV2(
+        query,
+        candidate,
+        negative_samplers=["in-batch"],
+    )
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    _ = testing_utils.model_test(model, loader)
+
+    # Top-K evaluation
+    candidate_features_data = unique_rows_by_features(music_streaming_data, Tags.ITEM, Tags.ITEM_ID)
+    loader_candidates = mm.Loader(
+        candidate_features_data,
+        batch_size=16,
+        transforms=loader_transforms,
+    )
+
+    topk_model = model.to_top_k_encoder(loader_candidates, k=20, batch_size=16)
+    topk_model.compile(run_eagerly=run_eagerly)
+
+    loader = mm.Loader(music_streaming_data, batch_size=32).map(mm.ToTarget(schema, "item_id"))
 
     metrics = topk_model.evaluate(loader, return_dict=True)
     assert all([metric >= 0 for metric in metrics.values()])

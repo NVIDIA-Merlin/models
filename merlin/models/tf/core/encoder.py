@@ -27,6 +27,7 @@ from merlin.models.tf.core.base import NoOp
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
 from merlin.models.tf.transforms.features import PrepareFeatures
@@ -84,7 +85,7 @@ class Encoder(tf.keras.Model):
 
     def encode(
         self,
-        dataset: merlin.io.Dataset,
+        dataset: Union[merlin.io.Dataset, Loader],
         index: Union[str, ColumnSchema, Schema, Tags],
         batch_size: int,
         **kwargs,
@@ -93,7 +94,7 @@ class Encoder(tf.keras.Model):
 
         Parameters
         ----------
-        dataset: merlin.io.Dataset
+        dataset: Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]
             The dataset to encode.
         index: Union[str, ColumnSchema, Schema, Tags]
             The index to use for encoding.
@@ -127,7 +128,7 @@ class Encoder(tf.keras.Model):
 
     def batch_predict(
         self,
-        dataset: merlin.io.Dataset,
+        dataset: Union[merlin.io.Dataset, Loader],
         batch_size: int,
         output_schema: Optional[Schema] = None,
         index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
@@ -137,7 +138,7 @@ class Encoder(tf.keras.Model):
 
         Parameters
         ----------
-        dataset: merlin.io.Dataset
+        dataset: Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]
             Dataset to predict on.
         batch_size: int
             Batch size to use for prediction.
@@ -162,17 +163,28 @@ class Encoder(tf.keras.Model):
             index = index.first.name
 
         if hasattr(dataset, "schema"):
-            if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
+            data_schema = dataset.schema
+            if isinstance(dataset, Loader):
+                data_schema = dataset.output_schema
+            if not set(self.schema.column_names).issubset(set(data_schema.column_names)):
                 raise ValueError(
                     f"Model schema {self.schema.column_names} does not match dataset schema"
-                    + f" {dataset.schema.column_names}"
+                    + f" {data_schema.column_names}"
                 )
+
+        loader_transforms = None
+        if isinstance(dataset, Loader):
+            loader_transforms = dataset.transforms
+            batch_size = dataset.batch_size
+            dataset = dataset.dataset
 
         # Check if merlin-dataset is passed
         if hasattr(dataset, "to_ddf"):
             dataset = dataset.to_ddf()
 
-        model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
+        model_encode = TFModelEncode(
+            self, batch_size=batch_size, loader_transforms=loader_transforms, **kwargs
+        )
 
         encode_kwargs = {}
         if output_schema:
