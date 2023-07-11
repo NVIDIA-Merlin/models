@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from merlin.models.torch.batch import Batch
-from merlin.models.torch.transforms.sequences import TabularPadding
+from merlin.models.torch.transforms.sequences import BroadcastToSequence, TabularPadding
 from merlin.models.torch.utils import module_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -95,3 +95,52 @@ class TestPadBatch:
 
         assert padded_batch.targets["target_2"].shape[1] == _max_sequence_length
         assert torch.equal(padded_batch.targets["target_1"], sequence_batch.targets["target_1"])
+
+
+class TestBroadcastToSequence:
+    def setup_method(self):
+        self.input_tensors = {
+            "feature_1": torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]),
+            "feature_2": torch.tensor(
+                [[[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]], [[4.0, 4.0], [5.0, 5.0], [6.0, 6.0]]]
+            ),
+            "feature_3": torch.tensor([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]]),
+        }
+        self.schema = Schema(list(self.input_tensors.keys()))
+        self.to_broadcast = Schema(["feature_1", "feature_3"])
+        self.sequence = Schema(["feature_2"])
+        self.broadcast = BroadcastToSequence(self.to_broadcast, self.sequence)
+
+    def test_initialize_from_schema(self):
+        self.broadcast.initialize_from_schema(self.schema)
+        assert self.broadcast.to_broadcast_features == ["feature_1", "feature_3"]
+        assert self.broadcast.sequence_features == ["feature_2"]
+
+    def test_get_seq_length(self):
+        self.broadcast.initialize_from_schema(self.schema)
+        assert self.broadcast.get_seq_length(self.input_tensors) == 3
+
+    def test_get_seq_length_offsets(self):
+        self.broadcast.initialize_from_schema(self.schema)
+
+        inputs = {
+            "feature_1": torch.tensor([1, 2]),
+            "feature_2__offsets": torch.tensor([2, 3]),
+            "feature_3": torch.tensor([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]]),
+        }
+
+        assert self.broadcast.get_seq_length(inputs) == 3
+
+    def test_forward(self):
+        self.broadcast.initialize_from_schema(self.schema)
+        output = module_utils.module_test(self.broadcast, self.input_tensors)
+        assert output["feature_1"].shape == (2, 3, 3)
+        assert output["feature_3"].shape == (2, 3, 3)
+        assert output["feature_2"].shape == (2, 3, 2)
+
+    def test_unsupported_dimensions(self):
+        self.broadcast.initialize_from_schema(self.schema)
+        self.input_tensors["feature_3"] = torch.rand(10, 3, 3, 3)
+
+        with pytest.raises(RuntimeError, match="Unsupported number of dimensions: 4"):
+            self.broadcast(self.input_tensors)
