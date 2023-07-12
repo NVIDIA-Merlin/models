@@ -130,7 +130,11 @@ class RouterBlock(ParallelBlock):
         return self
 
     def add_route_for_each(
-        self, selection: schema.Selection, module: nn.Module, shared=False
+        self,
+        selection: schema.Selection,
+        module: nn.Module,
+        shared=False,
+        required: bool = True,
     ) -> "RouterBlock":
         """Add a new route for each column in a selection.
 
@@ -172,7 +176,7 @@ class RouterBlock(ParallelBlock):
                 else:
                     col_module = deepcopy(module)
 
-            self.add_route(col, col_module, name=col.name)
+            self.add_route(col, col_module, name=col.name, required=required)
 
         return self
 
