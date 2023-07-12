@@ -13,6 +13,25 @@ class CrossAttentionBlock(Block):
     Cross Attention Block module which performs a multihead attention operation
     on a provided context and sequence.
 
+    Note this block assumes that the input and output tensors are provided as
+    (batch, seq, feature). When using modules provided in PyTorch, e.g.,
+    ``torch.nn.MultiheadAttention``, the ``batch_first`` parameter should be
+    set to True to match the shape.
+
+    Example usage
+    -------------
+
+    >>> cross = CrossAttentionBlock(
+    ...    attention=nn.MultiheadAttention(10, 2, batch_first=True),
+    ...    key="context",
+    ...    seq_key="sequence",
+    ... )
+    >>> input_dict = {
+    ...     "context": torch.randn(1, 2, 10),
+    ...     "sequence": torch.randn(1, 6, 10)}
+    ... }
+    >>> cross(input_dict)
+
     Parameters
     ----------
     module : nn.Module
@@ -40,10 +59,10 @@ class CrossAttentionBlock(Block):
         self.key = key
         self.seq_key = seq_key
         if attention is None:
-            if (
-                not hasattr(module[0], "d_model")
-                and not hasattr(module[0], "nhead")
-                and not hasattr(module[0], "dropout")
+            if not (
+                hasattr(module[0], "d_model")
+                and hasattr(module[0], "nhead")
+                and hasattr(module[0], "dropout")
             ):
                 raise ValueError("Attention module not provided and cannot be inferred from module")
 
@@ -56,9 +75,9 @@ class CrossAttentionBlock(Block):
 
         self.cross_attention = nn.ModuleList([cross_attention])
         if len(module) > 1:
-            for _ in range(len(module)):
+            for m in module:
                 self.cross_attention.append(
-                    module.copy() if hasattr(module, "copy") else deepcopy(cross_attention)
+                    m.copy() if hasattr(m, "copy") else deepcopy(cross_attention)
                 )
 
     def forward(
