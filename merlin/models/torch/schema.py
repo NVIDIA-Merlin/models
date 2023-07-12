@@ -79,6 +79,7 @@ class _LazyDispatchPyTorch(LazyDispatcher):
     def get_schema(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema]) -> Schema:
         if isinstance(inputs, Schema):
             return inputs
+
         return self.tensors(inputs)
 
 
@@ -553,6 +554,9 @@ class Selectable:
 
 @output_schema.register_tensor(torch.Tensor)
 def _tensor_to_schema(input, name="output"):
+    if input is None:
+        return Schema([ColumnSchema(name)])
+
     kwargs = dict(dims=input.shape[1:], dtype=input.dtype)
 
     if len(input.shape) > 1 and input.dtype != torch.int32:
@@ -587,6 +591,7 @@ def _(input):
 @output_schema.register_tensor(Tuple[torch.Tensor])
 @input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor])
 @output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, Optional[torch.Tensor]])
 @input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
 @output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
 @input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
