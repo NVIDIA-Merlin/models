@@ -42,13 +42,10 @@ class DLRMInputBlock(TabularInputBlock):
 
     """
 
-    def __init__(self, schema: Schema, dim: int, bottom_block: Block):
+    def __init__(self, schema: Optional[Schema], dim: int, bottom_block: Block):
         super().__init__(schema)
         self.add_route(Tags.CATEGORICAL, EmbeddingTables(dim, seq_combiner="mean"))
-        self.add_route(Tags.CONTINUOUS, bottom_block)
-
-        if "categorical" not in self:
-            raise ValueError("DLRMInputBlock must have a categorical input")
+        self.add_route(Tags.CONTINUOUS, bottom_block, required=False)
 
 
 @docstring_parameter(dlrm_reference=_DLRM_REF)
@@ -117,7 +114,7 @@ class DLRMBlock(Block):
     Parameters
     ----------
     schema : Schema, optional
-        The schema to use for selection. Default is None.
+        The schema to use for selection.
     dim : int
         The dimensionality of the output vectors.
     bottom_block : Block
@@ -139,7 +136,7 @@ class DLRMBlock(Block):
 
     def __init__(
         self,
-        schema: Schema,
+        schema: Optional[Schema],
         dim: int,
         bottom_block: Block,
         top_block: Optional[Block] = None,

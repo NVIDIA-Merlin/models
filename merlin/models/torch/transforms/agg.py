@@ -110,7 +110,7 @@ class Concat(AggModule):
             _sorted_tensors = []
             for tensor in sorted_tensors:
                 if tensor.dim() < max_dims:
-                    _sorted_tensors.append(tensor.unsqueeze(1))
+                    _sorted_tensors.append(tensor.unsqueeze(-1))
                 else:
                     _sorted_tensors.append(tensor)
             sorted_tensors = _sorted_tensors

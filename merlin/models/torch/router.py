@@ -65,6 +65,7 @@ class RouterBlock(ParallelBlock):
         selection: schema.Selection,
         module: Optional[nn.Module] = None,
         name: Optional[str] = None,
+        required: bool = True,
     ) -> "RouterBlock":
         """Add a new routing path for a given selection.
 
@@ -84,6 +85,8 @@ class RouterBlock(ParallelBlock):
             The module to append to the branch after selection.
         name : str, optional
             The name of the branch. Default is the name of the selection.
+        required : bool, optional
+            Whether the route is required. Default is True.
 
         Returns
         -------
@@ -96,6 +99,9 @@ class RouterBlock(ParallelBlock):
 
         routing_module = schema.select(self.selectable, selection)
         if not routing_module:
+            if required:
+                raise ValueError(f"Selection {selection} not found in {self.selectable}")
+
             return self
 
         if module is not None:
@@ -124,7 +130,11 @@ class RouterBlock(ParallelBlock):
         return self
 
     def add_route_for_each(
-        self, selection: schema.Selection, module: nn.Module, shared=False
+        self,
+        selection: schema.Selection,
+        module: nn.Module,
+        shared=False,
+        required: bool = True,
     ) -> "RouterBlock":
         """Add a new route for each column in a selection.
 
@@ -166,7 +176,7 @@ class RouterBlock(ParallelBlock):
                 else:
                     col_module = deepcopy(module)
 
-            self.add_route(col, col_module, name=col.name)
+            self.add_route(col, col_module, name=col.name, required=required)
 
         return self
 

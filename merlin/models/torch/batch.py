@@ -326,8 +326,14 @@ class Batch:
 
         if torch.jit.isinstance(inputs, Batch) and inputs is not self:
             _input_dict: Dict[str, torch.Tensor] = inputs._flatten()
-            for key in _input_dict:
+            for key, val in _input_dict.items():
                 flat_dict["inputs." + key] = dummy_tensor
+                if (
+                    not key.endswith("__values")
+                    and not key.endswith("__offsets")
+                    and key not in flat_dict
+                ):
+                    flat_dict[key] = val
 
         return flat_dict
 

@@ -66,7 +66,7 @@ class TestTabularOutputBlock:
 
     def test_no_route_for_non_existent_tag(self):
         outputs = mm.TabularOutputBlock(self.schema)
-        outputs.add_route(Tags.CATEGORICAL)
+        outputs.add_route(Tags.CATEGORICAL, required=False)
 
         assert not outputs
 
