@@ -21,7 +21,8 @@ from torch import nn
 
 from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.block import BatchBlock
-from merlin.models.torch.schema import Selection, select
+from merlin.models.torch.router import RouterBlock
+from merlin.models.torch.schema import LazySchemaModuleMixin, Selection, select
 from merlin.schema import Schema, Tags
 
 
@@ -32,6 +33,9 @@ class TabularPadding(BatchBlock):
     ----------
     schema : Schema
         The schema of the tabular data, which defines the column names of input features.
+    selection : Selection
+        The selection of the tabular data, which defines the column names of the
+        sequence input features.
     max_sequence_length : Optional[int], default=None
         The maximum length of the sequences after padding.
         If None, sequences will be padded to the maximum length in the current batch.
@@ -59,12 +63,21 @@ class TabularPadding(BatchBlock):
     def __init__(
         self,
         schema: Optional[Schema] = None,
+        selection: Optional[Selection] = Tags.SEQUENCE,
         max_sequence_length: Optional[int] = None,
         name: Optional[str] = None,
     ):
-        super().__init__(
-            TabularPaddingModule(schema=schema, max_sequence_length=max_sequence_length), name=name
+        _padding = TabularPaddingModule(
+            schema=schema, selection=selection, max_sequence_length=max_sequence_length
         )
+
+        if selection is None:
+            _to_add = _padding
+        else:
+            _to_add = RouterBlock(schema)
+            _to_add.add_route(selection, _padding)
+
+        super().__init__(_to_add, name=name)
 
 
 class TabularPaddingModule(nn.Module):
@@ -73,9 +86,11 @@ class TabularPaddingModule(nn.Module):
     def __init__(
         self,
         schema: Optional[Schema] = None,
+        selection: Selection = Tags.SEQUENCE,
         max_sequence_length: Optional[int] = None,
     ):
         super().__init__()
+        self.selection = selection
         if schema:
             self.initialize_from_schema(schema)
             self._initialized_from_schema = True
@@ -85,14 +100,14 @@ class TabularPaddingModule(nn.Module):
     def initialize_from_schema(self, schema: Schema):
         self.schema = schema
         self.features: List[str] = self.schema.column_names
-        self.sparse_features = self.schema.select_by_tag(Tags.SEQUENCE).column_names
+        self.seq_features = select(self.schema, self.selection).column_names
 
     def forward(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Batch) -> Batch:
         _max_sequence_length = self.max_sequence_length
         if not _max_sequence_length:
             # Infer the maximum length from the current batch
             batch_max_sequence_length = 0
-            for key, val in batch.features.items():
+            for key, val in inputs.items():
                 if key.endswith("__offsets"):
                     offsets = val
                     max_row_length = int(torch.max(offsets[1:] - offsets[:-1]))
@@ -100,7 +115,7 @@ class TabularPaddingModule(nn.Module):
             _max_sequence_length = batch_max_sequence_length
 
         # Store the non-padded lengths of list features
-        seq_inputs_lengths = self._get_sequence_lengths(batch.features)
+        seq_inputs_lengths = self._get_sequence_lengths(inputs)
         seq_shapes: List[torch.Tensor] = list(seq_inputs_lengths.values())
         if not torch.all(torch.stack([torch.all(x == seq_shapes[0]) for x in seq_shapes])):
             raise ValueError(
@@ -151,7 +166,7 @@ class TabularPaddingModule(nn.Module):
         for key, val in sequences.items():
             if key.endswith("__offsets"):
                 seq_inputs_lengths[key[: -len("__offsets")]] = val[1:] - val[:-1]
-            elif key in self.sparse_features:
+            elif key in self.seq_features:
                 seq_inputs_lengths[key] = (val != self.padding_idx).sum(-1)
         return seq_inputs_lengths
 
@@ -196,7 +211,7 @@ class TabularPaddingModule(nn.Module):
         return tensor
 
 
-class BroadcastToSequence(nn.Module):
+class BroadcastToSequence(nn.Module, LazySchemaModuleMixin):
     """
     A PyTorch module to broadcast features to match the sequence length.
 
@@ -221,10 +236,19 @@ class BroadcastToSequence(nn.Module):
 
     """
 
-    def __init__(self, to_broadcast: Selection, sequence: Selection):
+    def __init__(
+        self,
+        to_broadcast: Selection,
+        sequence: Selection,
+        schema: Optional[Schema] = None,
+    ):
         super().__init__()
         self.to_broadcast = to_broadcast
         self.sequence = sequence
+        self.to_broadcast_features: List[str] = []
+        self.sequence_features: List[str] = []
+        if schema:
+            self.initialize_from_schema(schema)
 
     def initialize_from_schema(self, schema: Schema):
         """
@@ -235,9 +259,10 @@ class BroadcastToSequence(nn.Module):
         schema : Schema
             The input-schema of this module
         """
+        super().initialize_from_schema(schema)
         self.schema = schema
-        self.to_broadcast_features: List[str] = select(schema, self.to_broadcast).column_names
-        self.sequence_features: List[str] = select(schema, self.sequence).column_names
+        self.to_broadcast_features = select(schema, self.to_broadcast).column_names
+        self.sequence_features = select(schema, self.sequence).column_names
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """
@@ -295,7 +320,10 @@ class BroadcastToSequence(nn.Module):
             The sequence length.
         """
 
-        first_feat = self.sequence_features[0]
+        if len(self.sequence_features) == 0:
+            raise RuntimeError("No sequence features found in the inputs.")
+
+        first_feat: str = self.sequence_features[0]
 
         if first_feat + "__offsets" in inputs:
             return inputs[first_feat + "__offsets"][-1].item()

@@ -41,6 +41,23 @@ class TestTabularInputBlock:
                 infer_embedding_dim(self.schema.select_by_name(name)),
             )
 
+    def test_init_defaults_broadcast(self, sequence_testing_data):
+        schema = sequence_testing_data.schema
+        input_block = mm.TabularInputBlock(schema, init="broadcast-context")
+
+        batch = mm.Batch.sample_from(sequence_testing_data, batch_size=10)
+        padded = mm.TabularPadding(schema)(batch)
+        outputs = module_utils.module_test(input_block, padded)
+
+        con_cols = input_block["context"].pre[0].column_names
+        assert len(con_cols) == 3
+        assert all(c in outputs for c in con_cols)
+        assert all(outputs[c].shape[1] == 4 for c in con_cols)
+
+        seq_cols = input_block["sequence"].pre[0].column_names
+        assert len(seq_cols) == 7
+        assert all(c in outputs for c in seq_cols)
+
     def test_init_agg(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
         outputs = module_utils.module_test(input_block, self.batch)

@@ -442,6 +442,35 @@ def select_schema(schema: Schema, selection: Selection) -> Schema:
     return selected
 
 
+def select_union(*selections: Selection) -> Selection:
+    """
+    Combine selections into a single selection.
+
+    This function returns a new function `combined_select` that, when called,
+    will perform the union operation on all the input selections.
+
+    Parameters
+    ----------
+    *selections : Selection
+        Variable length argument list of Selection instances.
+
+    Returns
+    -------
+    Selection
+        A function that takes a Schema as input and returns a Schema which
+        is the union of all selections.
+    """
+
+    def combined_select(schema: Schema) -> Schema:
+        output = Schema()
+        for s in selections:
+            output += select(schema, s)
+
+        return output
+
+    return combined_select
+
+
 def selection_name(selection: Selection) -> str:
     """
     Get the name of the selection.
