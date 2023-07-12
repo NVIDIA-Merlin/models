@@ -99,10 +99,19 @@ class TabularPaddingModule(nn.Module):
 
     def initialize_from_schema(self, schema: Schema):
         self.schema = schema
-        self.features: List[str] = self.schema.column_names
-        self.seq_features = select(self.schema, self.selection).column_names
+        if self.selection:
+            self.features: List[str] = self.schema.column_names
+            self.seq_features = select(self.schema, self.selection).column_names
+        else:
+            self.features = self.schema.column_names
+            self.seq_features = self.schema.column_names
 
     def forward(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Batch) -> Batch:
+        if not torch.jit.isinstance(inputs, Dict[str, torch.Tensor]):
+            raise RuntimeError(
+                "TabularPaddingModule expects a dictionary of tensors as input, ", f"got: {inputs}"
+            )
+
         _max_sequence_length = self.max_sequence_length
         if not _max_sequence_length:
             # Infer the maximum length from the current batch

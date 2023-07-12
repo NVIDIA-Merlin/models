@@ -47,9 +47,6 @@ class DLRMInputBlock(TabularInputBlock):
         self.add_route(Tags.CATEGORICAL, EmbeddingTables(dim, seq_combiner="mean"))
         self.add_route(Tags.CONTINUOUS, bottom_block, required=False)
 
-        if "categorical" not in self:
-            raise ValueError("DLRMInputBlock must have a categorical input")
-
 
 @docstring_parameter(dlrm_reference=_DLRM_REF)
 class DLRMInteraction(nn.Module):

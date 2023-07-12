@@ -98,8 +98,8 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
     def repeat_parallel(self, n: int = 1, name=None) -> "ParallelBlock":
         return repeat_parallel(self, n, name=name)
 
-    def repeat_parallel_like(self, like: HasKeys, name=None) -> "ParallelBlock":
-        return repeat_parallel_like(self, like, name=name)
+    def repeat_parallel_like(self, like: HasKeys, agg=None) -> "ParallelBlock":
+        return repeat_parallel_like(self, like, agg=agg)
 
     def copy(self) -> "Block":
         """
@@ -718,7 +718,13 @@ def repeat_parallel(module: nn.Module, n: int = 1, agg=None) -> ParallelBlock:
 
 def repeat_parallel_like(module: nn.Module, like: HasKeys, agg=None) -> ParallelBlock:
     branches = {}
-    for i, key in enumerate(like.keys()):
+
+    if isinstance(like, Schema):
+        keys = like.column_names
+    else:
+        keys = list(like.keys())
+
+    for i, key in enumerate(keys):
         if i == 0:
             branches[str(key)] = module
         else:

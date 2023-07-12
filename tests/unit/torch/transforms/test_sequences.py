@@ -19,7 +19,7 @@ def _get_values_offsets(data):
     return torch.tensor(values), torch.tensor(offsets)
 
 
-class TestPadBatch:
+class TestTabularPadding:
     @pytest.fixture
     def sequence_batch(self):
         a_values, a_offsets = _get_values_offsets(data=[[1, 2], [], [3, 4, 5]])
@@ -54,7 +54,7 @@ class TestPadBatch:
         padded_batch = module_utils.module_test(padding_op, sequence_batch)
 
         assert torch.equal(padded_batch.sequences.length("a"), torch.Tensor([2, 0, 3]))
-        assert set(padded_batch.features.keys()) == set(["a", "b", "c_dense"])
+        assert set(padded_batch.features.keys()) == set(["a", "b", "c_dense", "d_context"])
         for feature in ["a", "b", "c_dense"]:
             assert padded_batch.features[feature].shape[1] == _max_sequence_length
 
@@ -67,7 +67,7 @@ class TestPadBatch:
             ValueError,
             match="The sequential inputs must have the same length for each row in the batch",
         ):
-            padding_op = TabularPadding(schema=Schema(["a", "b"]))
+            padding_op = TabularPadding(schema=Schema(["a", "b"]), selection=None)
             padding_op(
                 inputs=None,
                 batch=Batch(

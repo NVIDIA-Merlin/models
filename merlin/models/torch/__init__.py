@@ -31,7 +31,7 @@ from merlin.models.torch.blocks.experts import CGCBlock, MMOEBlock, PLEBlock
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
 from merlin.models.torch.inputs.select import SelectFeatures, SelectKeys
-from merlin.models.torch.inputs.tabular import TabularInputBlock
+from merlin.models.torch.inputs.tabular import TabularInputBlock, stack_context
 from merlin.models.torch.models.base import Model, MultiLoader
 from merlin.models.torch.models.ranking import DCNModel, DLRMModel
 from merlin.models.torch.outputs.base import ModelOutput
@@ -101,4 +101,5 @@ __all__ = [
     "EncoderBlock",
     "DaskEncoder",
     "DaskPredictor",
+    "stack_context",
 ]

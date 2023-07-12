@@ -58,6 +58,18 @@ class TestTabularInputBlock:
         assert len(seq_cols) == 7
         assert all(c in outputs for c in seq_cols)
 
+    def test_stack_context(self, sequence_testing_data):
+        schema = sequence_testing_data.schema
+        input_block = mm.TabularInputBlock(schema, init=mm.stack_context(model_dim=4))
+
+        batch = mm.Batch.sample_from(sequence_testing_data, batch_size=10)
+        padded = mm.TabularPadding(schema)(batch)
+        outputs = module_utils.module_test(input_block, padded)
+
+        assert list(outputs.keys()) == ["context", "sequence"]
+        assert outputs["context"].shape == (10, 3, 4)
+        assert outputs["sequence"].shape == (10, 4, 29)
+
     def test_init_agg(self):
         input_block = mm.TabularInputBlock(self.schema, init="defaults", agg="concat")
         outputs = module_utils.module_test(input_block, self.batch)
