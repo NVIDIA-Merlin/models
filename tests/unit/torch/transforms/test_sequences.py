@@ -242,13 +242,29 @@ class TestTabularPredictNext:
         assert torch.equal(batch_output.sequences.length("a"), torch.Tensor([2, 1, 3]))
 
     def test_transform_predict_next_multi_sequence(
-        self, sequence_batch, padded_batch, sequence_schema_1, sequnce_schema_2
+        self, sequence_batch, padded_batch, sequence_schema_1, sequence_schema_2
     ):
-        transform = TabularPredictNext(schema=sequence_schema_1, target="a")
+        import merlin.models.torch as mm
 
-        batch_output = transform(sequence_batch)
+        transform_1 = TabularPredictNext(schema=sequence_schema_1, target="a")
+        transform_2 = TabularPredictNext(schema=sequence_schema_2, target="c")
+        transform_block = mm.BatchBlock(
+            mm.ParallelBlock({"transform_1": transform_1, "transform_2": transform_2})
+        )
+        batch_output = transform_block(sequence_batch)
 
-        assert list(batch_output.features.keys()) == ["a", "b", "e_dense"]
-        for k in ["a", "b", "e_dense"]:
-            assert torch.equal(batch_output.features[k], padded_batch.features[k][:, :-1])
+        assert list(batch_output.features.keys()) == ["a", "b", "e_dense", "f_context", "c", "d"]
+        assert list(batch_output.targets.keys()) == ["a", "c"]
+
         assert torch.equal(batch_output.sequences.length("a"), torch.Tensor([2, 1, 3]))
+        assert torch.equal(batch_output.sequences.length("c"), torch.Tensor([3, 1, 5]))
+        assert torch.all(
+            batch_output.sequences.mask("a")  # target mask
+            == torch.Tensor(
+                [
+                    [True, True, False],
+                    [True, False, False],
+                    [True, True, True],
+                ]
+            )
+        )
