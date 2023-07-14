@@ -1,20 +1,9 @@
 import builtins
 import inspect
-from copy import copy, deepcopy
-from functools import reduce, wraps
-from typing import (
-    Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    Optional,
-    Protocol,
-    Sequence,
-    Tuple,
-    TypeVar,
-    Union,
-    runtime_checkable,
-)
+from collections.abc import Iterable
+from copy import deepcopy
+from functools import wraps
+from typing import Callable, Protocol, Tuple, TypeVar, Union, runtime_checkable
 
 from torch import nn
 
@@ -306,9 +295,105 @@ class ContainerMixin:
         return self.__class__(module, *self)
 
 
+def map(
+    module: _TModule,
+    func: ModuleFunc,
+    recurse: bool = False,
+    parameterless_modules_only=False,
+    **kwargs,
+) -> _TModule:
+    """
+    Applies a transformation function to a module or a collection of modules.
+
+    Parameters
+    ----------
+    module : nn.Module
+        The module or collection of modules to which the function will be applied.
+    func : ModuleFunc
+        The function that will be applied to the modules.
+    recurse : bool, optional
+        Whether to apply the function recursively to child modules.
+    parameterless_modules_only : bool, optional
+        Whether to apply the function only to modules without parameters.
+    **kwargs : dict
+        Additional keyword arguments that will be passed to the transformation function.
+
+    Returns
+    -------
+    type(module)
+        The transformed module or collection of modules.
+    """
+    if hasattr(module, "map"):
+        to_call = module.map
+    elif isinstance(module, Iterable):
+        # Check if the module has .items() method (for dict-like modules)
+        if hasattr(module, "items"):
+            to_call = map_module_dict
+        else:
+            to_call = map_module_list
+    else:
+        to_call = map_module
+
+    return to_call(
+        module,
+        func,
+        parameterless_modules_only=parameterless_modules_only,
+        recurse=recurse,
+        **kwargs,
+    )
+
+
+def walk(
+    module: _TModule, func: ModuleFunc, parameterless_modules_only=False, **kwargs
+) -> _TModule:
+    """
+    Applies a transformation function recursively to a module or a collection of modules.
+
+    Parameters
+    ----------
+    module : nn.Module
+        The module or collection of modules to which the function will be applied.
+    func : ModuleFunc
+        The function that will be applied to the modules.
+    parameterless_modules_only : bool, optional
+        Whether to apply the function only to modules without parameters.
+    **kwargs : dict
+        Additional keyword arguments that will be passed to the transformation function.
+
+    Returns
+    -------
+    type(module)
+        The transformed module or collection of modules.
+    """
+    return map(
+        module, func, recurse=True, parameterless_modules_only=parameterless_modules_only, **kwargs
+    )
+
+
 def map_module(
-    module: nn.Module, func: ModuleFunc, recurse=True, parameterless_modules_only=False, **kwargs
-):
+    module: _TModule, func: ModuleFunc, recurse=False, parameterless_modules_only=False, **kwargs
+) -> _TModule:
+    """
+    Applies a transformation function to a module and optionally to its child modules.
+
+    Parameters
+    ----------
+    module : nn.Module
+        The module to which the function will be applied.
+    func : ModuleFunc
+        The function that will be applied to the module.
+    recurse : bool, optional
+        Whether to apply the function recursively to child modules.
+    parameterless_modules_only : bool, optional
+        Whether to apply the function only to modules without parameters.
+    **kwargs : dict
+        Additional keyword arguments that will be passed to the transformation function.
+
+    Returns
+    -------
+    nn.Module
+        The transformed module.
+    """
     if list(module.parameters(recurse=False)):
         new_module = module
     else:
@@ -322,34 +407,83 @@ def map_module(
             setattr(
                 new_module,
                 name,
-                map_module(child, func, recurse, parameterless_modules_only, i=i, name=name),
+                map(child, func, recurse, parameterless_modules_only, i=i, name=name),
             )
 
     return new_module
 
 
-def map_module_list(module_list, func, parameterless_modules_only=False, **kwargs):
+def map_module_list(
+    module_list: _TModule, func, recurse=False, parameterless_modules_only=False, **kwargs
+) -> _TModule:
     mapped_modules = []
     for i, module in enumerate(module_list):
-        if list(module.parameters()):
-            new_module = module
-        else:
-            new_module = deepcopy(module)
-
-        f_kwargs = _get_func_kwargs(func, **kwargs)
-        new_module = func(new_module, i=i, **f_kwargs)
-
-        if new_module is not module:
-            for j, child in enumerate(module.children()):
-                new_module[j] = map_module_list([child], func, parameterless_modules_only)
+        new_module = map(
+            module,
+            func,
+            recurse=recurse,
+            parameterless_modules_only=parameterless_modules_only,
+            i=i,
+            name=str(i),
+            **kwargs,
+        )
         mapped_modules.append(new_module)
 
+    return _create_list_wrapper(module_list, mapped_modules)
+
+
+def map_module_dict(
+    module_dict: _TModule,
+    func: ModuleFunc,
+    recurse: bool = False,
+    parameterless_modules_only: bool = False,
+    **kwargs,
+) -> _TModule:
+    """
+    Applies a transformation function to a ModuleDict of modules.
+
+    Parameters
+    ----------
+    module_dict : nn.ModuleDict
+        The ModuleDict of modules to which the function will be applied.
+    func : ModuleFunc
+        The function that will be applied to the modules.
+    recurse : bool, optional
+        Whether to apply the function recursively to child modules.
+    parameterless_modules_only : bool, optional
+        Whether to apply the function only to modules without parameters.
+    **kwargs : dict
+        Additional keyword arguments that will be passed to the transformation function.
+
+    Returns
+    -------
+    nn.ModuleDict
+        The ModuleDict of transformed modules.
+    """
+
+    # Map the function to each module in the dictionary
+    mapped_modules = {}
+    for i, (name, module) in enumerate(module_dict.items()):
+        mapped_modules[name] = map(
+            module,
+            func,
+            recurse=recurse,
+            parameterless_modules_only=parameterless_modules_only,
+            name=name,
+            i=i,
+            **kwargs,
+        )
+
+    return type(module_dict)(mapped_modules)
+
+
+def _create_list_wrapper(module_list, to_add):
     # Check the signature of the type constructor
     sig = inspect.signature(type(module_list).__init__)
     if "args" in sig.parameters:
-        return type(module_list)(*mapped_modules)  # Unpack new_modules
-    else:
-        return type(module_list)(mapped_modules)  # Don't unpack new_modules
+        return type(module_list)(*to_add)  # Unpack new_modules
+
+    return type(module_list)(to_add)  # Don't unpack new_modules
 
 
 def _get_func_kwargs(func, **kwargs):

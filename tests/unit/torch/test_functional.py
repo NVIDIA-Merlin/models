@@ -20,7 +20,7 @@ import pytest
 import torch.nn as nn
 
 from merlin.models.torch.container import BlockContainer
-from merlin.models.torch.functional import map_module, map_module_list
+from merlin.models.torch.functional import _create_list_wrapper, map
 
 
 class CustomMLP(nn.Module):
@@ -39,13 +39,13 @@ def add_relu(x):
     return x
 
 
-def add_relu_named(x, name, to_replace="linear1"):
+def add_relu_named(x, name=None, to_replace="linear1"):
     if name == to_replace and isinstance(x, nn.Linear):
         return nn.Sequential(x, nn.ReLU())
     return x
 
 
-def add_relu_first(x, i):
+def add_relu_first(x, i=None):
     if i == 0 and isinstance(x, nn.Linear):
         return nn.Sequential(x, nn.ReLU())
     return x
@@ -55,24 +55,24 @@ class TestMapModule:
     def test_map_identity(self):
         # Test mapping an identity function
         module = nn.Linear(10, 10)
-        identity = lambda x: x
-        assert map_module(identity, module) is module
+        identity = lambda x: x  # noqa: E731
+        assert map(module, identity) is module
 
     def test_map_transform(self):
         # Test mapping a transform function
         module = nn.Linear(10, 10)
-        transformed_module = map_module(module, add_relu)
+        transformed_module = map(module, add_relu)
         assert isinstance(transformed_module[0], nn.Linear)
         assert isinstance(transformed_module[1], nn.ReLU)
 
     def test_map_custom_module(self):
         mlp = CustomMLP()
-        with_relu = map_module(mlp, add_relu)
+        with_relu = map(mlp, add_relu)
         assert isinstance(with_relu.linear1, nn.Sequential)
         assert isinstance(with_relu.linear2, nn.Sequential)
 
-        for fn in [add_relu_first, add_relu_named]:
-            with_relu_first = map_module(mlp, fn)
+        for fn in [add_relu_named, add_relu_first]:
+            with_relu_first = map(mlp, fn)
             assert isinstance(with_relu_first.linear1, nn.Sequential)
             assert isinstance(with_relu_first.linear2, nn.Linear)
 
@@ -81,22 +81,45 @@ class TestMapModuleList:
     def test_map_identity(self):
         # Test mapping an identity function
         modules = nn.ModuleList([nn.Linear(10, 10) for _ in range(5)])
-        identity = lambda x: x
-        mapped = map_module_list(modules, identity)
+        identity = lambda x: x  # noqa: E731
+        mapped = map(modules, identity)
         assert all(m1 == m2 for m1, m2 in zip(modules, mapped))
 
-    def test_map_with_index(self):
+    @pytest.mark.parametrize("wrapper", [nn.Sequential, nn.ModuleList])
+    def test_map_with_index(self, wrapper):
         # Test mapping a function that uses the index
-        modules = nn.ModuleList([nn.Linear(10, 10) for _ in range(5)])
+        modules = _create_list_wrapper(wrapper(), [nn.Linear(10, 10) for _ in range(5)])
 
         def add_index(x, i):
             return nn.Linear(10 + i, 10 + i)
 
-        new_modules = map_module_list(modules, add_index)
+        new_modules = map(modules, add_index)
+        assert isinstance(new_modules, wrapper)
         for i, module in enumerate(new_modules):
             assert isinstance(module, nn.Linear)
             assert module.in_features == 10 + i
             assert module.out_features == 10 + i
+
+
+class TestMapModuleDict:
+    def test_map_module_dict(self):
+        # Define a simple transformation function
+        def transformation(module: nn.Module, name: str = "", **kwargs) -> nn.Module:
+            if isinstance(module, nn.Linear):
+                return nn.Linear(20, 10)
+            return module
+
+        # Define a ModuleDict of modules
+        module_dict = nn.ModuleDict({"linear1": nn.Linear(10, 10), "linear2": nn.Linear(10, 10)})
+
+        # Apply map_module_dict
+        new_module_dict = map(module_dict, transformation)
+
+        # Assert that the transformation has been applied correctly
+        for module in new_module_dict.values():
+            assert isinstance(module, nn.Linear)
+            assert module.in_features == 20
+            assert module.out_features == 10
 
 
 class TestContainerMixin:
