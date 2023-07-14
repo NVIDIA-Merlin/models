@@ -1,9 +1,8 @@
 import builtins
 import inspect
-from collections.abc import Iterable
 from copy import deepcopy
 from functools import wraps
-from typing import Callable, Protocol, Tuple, TypeVar, Union, runtime_checkable
+from typing import Callable, Iterable, Protocol, Tuple, TypeVar, Union, runtime_checkable
 
 from torch import nn
 
