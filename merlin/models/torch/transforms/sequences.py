@@ -398,8 +398,8 @@ class TabularSequenceTransform(nn.Module):
     ----------
     target : Optional[Selection], default=Tags.ID
         The sequential input column that will be used to extract the target.
-        For multiple targets usecase, one should provide a Schema containing
-        all target columns.
+        In case of multiple targets, either a list of target feature names
+        or a shared Tag indicating the targets should be provided.
     schema : Optional[Schema]
         The schema with the sequential columns to be truncated
     apply_padding : Optional[bool], default=True
