@@ -201,6 +201,15 @@ class TestTabularPredictNext:
         return padding_op(sequence_batch)
 
     def test_tabular_sequence_transform_wrong_inputs(self, padded_batch, sequence_schema_1):
+        with pytest.raises(
+            ValueError,
+            match="The target 'Tags.ID' was not found in the provided sequential schema:",
+        ):
+            transform = TabularPredictNext(
+                schema=sequence_schema_1,
+                target=Tags.ID,
+            )
+
         transform = TabularPredictNext(
             schema=sequence_schema_1,
             target="a",

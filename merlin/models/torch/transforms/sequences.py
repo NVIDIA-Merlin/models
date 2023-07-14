@@ -417,11 +417,10 @@ class TabularSequenceTransform(nn.Module):
         max_sequence_length: int = None,
     ):
         super().__init__()
+        self.target = target
         if schema:
             self.initialize_from_schema(schema)
             self._initialized_from_schema = True
-        self.target = select(self.schema, target)
-        self.target_name = self._get_target(self.target)
         self.padding_idx = 0
         self.apply_padding = apply_padding
         if self.apply_padding:
@@ -432,6 +431,12 @@ class TabularSequenceTransform(nn.Module):
     def initialize_from_schema(self, schema: Schema):
         self.schema = schema
         self.features: List[str] = self.schema.column_names
+        target = select(self.schema, self.target)
+        if not target:
+            raise ValueError(
+                f"The target '{self.target}' was not found in the provided sequential schema: {self.schema}"
+            )
+        self.target_name = self._get_target(target)
 
     def _get_target(self, target):
         return target.column_names
@@ -498,10 +503,12 @@ class TabularPredictNextModule(TabularSequenceTransform):
 
         # Generates information about the new lengths and causal masks
         new_lengths, causal_masks = {}, {}
-        _max_length = new_target.shape[-1]  # all new targets have same output sequence length
         for name in self.features:
             new_lengths[name] = batch.sequences.lengths[name] - 1
-            causal_masks[name] = self._generate_causal_mask(new_lengths[name], _max_length)
+        _max_length = new_target.shape[-1]  # all new targets have same output sequence length
+        causal_mask = self._generate_causal_mask(list(new_lengths.values())[0], _max_length)
+        for name in self.features:
+            causal_masks[name] = causal_mask
 
         return Batch(
             features=new_inputs,
