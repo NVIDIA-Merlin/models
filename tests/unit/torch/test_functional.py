@@ -19,8 +19,9 @@ from typing import Iterable, Tuple
 import pytest
 import torch.nn as nn
 
+import merlin.models.torch as mm
 from merlin.models.torch.container import BlockContainer
-from merlin.models.torch.functional import _create_list_wrapper, map
+from merlin.models.torch.functional import _create_list_wrapper
 
 
 class CustomMLP(nn.Module):
@@ -56,23 +57,23 @@ class TestMapModule:
         # Test mapping an identity function
         module = nn.Linear(10, 10)
         identity = lambda x: x  # noqa: E731
-        assert map(module, identity) is module
+        assert mm.map(module, identity) is module
 
     def test_map_transform(self):
         # Test mapping a transform function
         module = nn.Linear(10, 10)
-        transformed_module = map(module, add_relu)
+        transformed_module = mm.map(module, add_relu)
         assert isinstance(transformed_module[0], nn.Linear)
         assert isinstance(transformed_module[1], nn.ReLU)
 
-    def test_map_custom_module(self):
+    def test_walk_custom_module(self):
         mlp = CustomMLP()
-        with_relu = map(mlp, add_relu)
+        with_relu = mm.walk(mlp, add_relu)
         assert isinstance(with_relu.linear1, nn.Sequential)
         assert isinstance(with_relu.linear2, nn.Sequential)
 
         for fn in [add_relu_named, add_relu_first]:
-            with_relu_first = map(mlp, fn)
+            with_relu_first = mm.walk(mlp, fn)
             assert isinstance(with_relu_first.linear1, nn.Sequential)
             assert isinstance(with_relu_first.linear2, nn.Linear)
 
@@ -82,7 +83,7 @@ class TestMapModuleList:
         # Test mapping an identity function
         modules = nn.ModuleList([nn.Linear(10, 10) for _ in range(5)])
         identity = lambda x: x  # noqa: E731
-        mapped = map(modules, identity)
+        mapped = mm.map(modules, identity)
         assert all(m1 == m2 for m1, m2 in zip(modules, mapped))
 
     @pytest.mark.parametrize("wrapper", [nn.Sequential, nn.ModuleList])
@@ -93,7 +94,7 @@ class TestMapModuleList:
         def add_index(x, i):
             return nn.Linear(10 + i, 10 + i)
 
-        new_modules = map(modules, add_index)
+        new_modules = mm.map(modules, add_index)
         assert isinstance(new_modules, wrapper)
         for i, module in enumerate(new_modules):
             assert isinstance(module, nn.Linear)
@@ -113,7 +114,7 @@ class TestMapModuleDict:
         module_dict = nn.ModuleDict({"linear1": nn.Linear(10, 10), "linear2": nn.Linear(10, 10)})
 
         # Apply map_module_dict
-        new_module_dict = map(module_dict, transformation)
+        new_module_dict = mm.map(module_dict, transformation)
 
         # Assert that the transformation has been applied correctly
         for module in new_module_dict.values():
