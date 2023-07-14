@@ -190,7 +190,7 @@ class TestTabularPredictNext:
     def sequence_schema_2(self):
         return Schema(
             [
-                ColumnSchema("c", tags=[Tags.SEQUENCE]),
+                ColumnSchema("c", tags=[Tags.SEQUENCE, Tags.ID]),
                 ColumnSchema("d", tags=[Tags.SEQUENCE]),
             ]
         )
@@ -247,7 +247,7 @@ class TestTabularPredictNext:
         import merlin.models.torch as mm
 
         transform_1 = TabularPredictNext(schema=sequence_schema_1, target="a")
-        transform_2 = TabularPredictNext(schema=sequence_schema_2, target="c")
+        transform_2 = TabularPredictNext(schema=sequence_schema_2)
         transform_block = mm.BatchBlock(
             mm.ParallelBlock({"transform_1": transform_1, "transform_2": transform_2})
         )

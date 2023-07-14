@@ -348,7 +348,7 @@ class TabularPredictNext(BatchBlock):
 
     Parameters
     ----------
-    target : Union[str, List[str], Tags]
+    target : Optional[Selection], default=Tags.ID
         The sequential input column(s) that will be used to extract the target.
         Targets can be one or multiple input features with the same sequence length.
     schema : Optional[Schema]
@@ -375,7 +375,7 @@ class TabularPredictNext(BatchBlock):
 
     def __init__(
         self,
-        target: Union[str, List[str], Tags],
+        target: Selection = Tags.ID,
         schema: Optional[Schema] = None,
         apply_padding: bool = True,
         max_sequence_length: int = None,
@@ -396,7 +396,7 @@ class TabularSequenceTransform(nn.Module):
     """Base PyTorch module for preparing targets from a batch of sequential inputs.
     Parameters
     ----------
-    target : Selection
+    target : Optional[Selection], default=Tags.ID
         The sequential input column that will be used to extract the target.
         For multiple targets usecase, one should provide a Schema containing
         all target columns.
@@ -411,7 +411,7 @@ class TabularSequenceTransform(nn.Module):
 
     def __init__(
         self,
-        target: Selection,
+        target: Optional[Selection] = Tags.ID,
         schema: Optional[Schema] = None,
         apply_padding: bool = True,
         max_sequence_length: int = None,
