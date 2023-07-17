@@ -139,7 +139,7 @@ class Encoder(tf.keras.Model):
         Parameters
         ----------
         dataset: Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]
-            Dataset to predict on.
+            Dataset or Loader to predict on.
         batch_size: int
             Batch size to use for prediction.
 
@@ -162,14 +162,16 @@ class Encoder(tf.keras.Model):
                 raise ValueError("Only one column can be used as index")
             index = index.first.name
 
+        dataset_schema = None
         if hasattr(dataset, "schema"):
-            data_schema = dataset.schema
+            dataset_schema = dataset.schema
+            data_output_schema = dataset_schema
             if isinstance(dataset, Loader):
-                data_schema = dataset.output_schema
-            if not set(self.schema.column_names).issubset(set(data_schema.column_names)):
+                data_output_schema = dataset.output_schema
+            if not set(self.schema.column_names).issubset(set(data_output_schema.column_names)):
                 raise ValueError(
                     f"Model schema {self.schema.column_names} does not match dataset schema"
-                    + f" {data_schema.column_names}"
+                    + f" {data_output_schema.column_names}"
                 )
 
         loader_transforms = None
@@ -183,7 +185,11 @@ class Encoder(tf.keras.Model):
             dataset = dataset.to_ddf()
 
         model_encode = TFModelEncode(
-            self, batch_size=batch_size, loader_transforms=loader_transforms, **kwargs
+            self,
+            batch_size=batch_size,
+            loader_transforms=loader_transforms,
+            schema=dataset_schema,
+            **kwargs,
         )
 
         encode_kwargs = {}
@@ -595,7 +601,7 @@ class TopKEncoder(Encoder, BaseModel):
 
     def batch_predict(
         self,
-        dataset: merlin.io.Dataset,
+        dataset: Union[merlin.io.Dataset, Loader],
         batch_size: int,
         output_schema: Optional[Schema] = None,
         **kwargs,
@@ -604,8 +610,8 @@ class TopKEncoder(Encoder, BaseModel):
 
         Parameters
         ----------
-        dataset : merlin.io.Dataset
-            Raw queries features dataset
+        dataset : Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]
+            Raw queries features dataset or Loader
         batch_size : int
             The number of queries to process at each prediction step
         output_schema: Schema, optional
@@ -618,14 +624,23 @@ class TopKEncoder(Encoder, BaseModel):
         """
         from merlin.models.tf.utils.batch_utils import TFModelEncode
 
+        loader_transforms = None
+        if isinstance(dataset, Loader):
+            loader_transforms = dataset.transforms
+            batch_size = dataset.batch_size
+            dataset = dataset.dataset
+
+        dataset_schema = dataset.schema
+        dataset = dataset.to_ddf()
+
         model_encode = TFModelEncode(
             model=self,
             batch_size=batch_size,
+            loader_transforms=loader_transforms,
+            schema=dataset_schema,
             output_names=TopKPrediction.output_names(self.k),
             **kwargs,
         )
-
-        dataset = dataset.to_ddf()
 
         encode_kwargs = {}
         if output_schema:
