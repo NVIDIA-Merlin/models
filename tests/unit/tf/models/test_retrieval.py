@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-import nvtabular as nvt
 import pytest
 import tensorflow as tf
 
@@ -26,6 +25,8 @@ from tests.common.tf.retrieval import retrieval_tests_common
 
 
 def test_two_tower_shared_embeddings():
+    nvt = pytest.importorskip("nvtabular")
+
     train = make_df(
         {
             "user_id": [1, 3, 3, 4, 3, 1, 2, 4, 6, 7, 8, 9] * 100,
