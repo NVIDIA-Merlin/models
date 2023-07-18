@@ -113,7 +113,7 @@ class TabularPaddingModule(nn.Module):
             )
 
         _max_sequence_length = self.max_sequence_length
-        if not _max_sequence_length:
+        if not torch.jit.isinstance(_max_sequence_length, int):
             # Infer the maximum length from the current batch
             batch_max_sequence_length = 0
             for key, val in inputs.items():
@@ -434,7 +434,8 @@ class TabularSequenceTransform(nn.Module):
         target = select(self.schema, self.target)
         if not target:
             raise ValueError(
-                f"The target '{self.target}' was not found in the provided sequential schema: {self.schema}"
+                f"The target '{self.target}' was not found in the "
+                f"provided sequential schema: {self.schema}"
             )
         self.target_name = self._get_target(target)
 
@@ -450,7 +451,7 @@ class TabularSequenceTransform(nn.Module):
         self._check_input_sequence_lengths(batch)
         self._check_target_shape(batch)
 
-    def _check_target_shape(self, batch):
+    def _check_target_shape(self, batch: Batch):
         for name in self.target_name:
             if name not in batch.features:
                 raise ValueError(f"Inputs features do not contain target column ({name})")
@@ -468,7 +469,7 @@ class TabularSequenceTransform(nn.Module):
                     "must be greater than 1 for sequential input to be shifted as target"
                 )
 
-    def _check_input_sequence_lengths(self, batch):
+    def _check_input_sequence_lengths(self, batch: Batch):
         if not batch.sequences.lengths:
             raise ValueError(
                 "The input `batch` should include information about input sequences lengths"
@@ -489,7 +490,7 @@ class TabularPredictNextModule(TabularSequenceTransform):
         self._check_seq_inputs_targets(batch)
 
         # Shifts the target column to be the next item of corresponding input column
-        new_targets = {}
+        new_targets: Dict[str, torch.Tensor] = dict()
         for name in self.target_name:
             new_target = batch.features[name]
             new_target = new_target[:, 1:]
@@ -505,7 +506,9 @@ class TabularPredictNextModule(TabularSequenceTransform):
         new_lengths, causal_masks = {}, {}
         for name in self.features:
             new_lengths[name] = batch.sequences.lengths[name] - 1
-        _max_length = new_target.shape[-1]  # all new targets have same output sequence length
+        _max_length = list(new_targets.values())[0].shape[
+            -1
+        ]  # all new targets have same output sequence length
         causal_mask = self._generate_causal_mask(list(new_lengths.values())[0], _max_length)
         for name in self.features:
             causal_masks[name] = causal_mask
@@ -516,7 +519,7 @@ class TabularPredictNextModule(TabularSequenceTransform):
             sequences=Sequence(new_lengths, masks=causal_masks),
         )
 
-    def _generate_causal_mask(self, seq_lengths, max_len):
+    def _generate_causal_mask(self, seq_lengths: torch.Tensor, max_len: int):
         """
         Generate a 2D mask from a tensor of sequence lengths.
         """

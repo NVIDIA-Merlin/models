@@ -243,7 +243,7 @@ class TestTabularPredictNext:
     def test_transform_predict_next(self, sequence_batch, padded_batch, sequence_schema_1):
         transform = TabularPredictNext(schema=sequence_schema_1, target="a")
 
-        batch_output = transform(sequence_batch)
+        batch_output = module_utils.module_test(transform, sequence_batch)
 
         assert list(batch_output.features.keys()) == ["a", "b", "e_dense"]
         for k in ["a", "b", "e_dense"]:
