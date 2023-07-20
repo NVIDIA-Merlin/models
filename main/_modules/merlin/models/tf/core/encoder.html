@@ -490,6 +490,7 @@ document.write(`
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.prediction</span> <span class="kn">import</span> <span class="n">TopKPrediction</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.base</span> <span class="kn">import</span> <span class="n">InputBlockV2</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">CombinerType</span><span class="p">,</span> <span class="n">EmbeddingTable</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.loader</span> <span class="kn">import</span> <span class="n">Loader</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">get_output_schema</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.topk</span> <span class="kn">import</span> <span class="n">TopKOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.features</span> <span class="kn">import</span> <span class="n">PrepareFeatures</span>
@@ -547,7 +548,7 @@ document.write(`
 
 <div class="viewcode-block" id="Encoder.encode"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">dataset</span><span class="p">:</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">],</span>
         <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ColumnSchema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -556,7 +557,7 @@ document.write(`
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        dataset: merlin.io.Dataset</span>
+<span class="sd">        dataset: Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]</span>
 <span class="sd">            The dataset to encode.</span>
 <span class="sd">        index: Union[str, ColumnSchema, Schema, Tags]</span>
 <span class="sd">            The index to use for encoding.</span>
@@ -590,7 +591,7 @@ document.write(`
 
 <div class="viewcode-block" id="Encoder.batch_predict"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Encoder.html#merlin.models.tf.Encoder.batch_predict">[docs]</a>    <span class="k">def</span> <span class="nf">batch_predict</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">dataset</span><span class="p">:</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">],</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">output_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ColumnSchema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -600,8 +601,8 @@ document.write(`
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        dataset: merlin.io.Dataset</span>
-<span class="sd">            Dataset to predict on.</span>
+<span class="sd">        dataset: Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]</span>
+<span class="sd">            Dataset or Loader to predict on.</span>
 <span class="sd">        batch_size: int</span>
 <span class="sd">            Batch size to use for prediction.</span>
 
@@ -624,18 +625,35 @@ document.write(`
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Only one column can be used as index&quot;</span><span class="p">)</span>
             <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">name</span>
 
+        <span class="n">dataset_schema</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;schema&quot;</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)):</span>
+            <span class="n">dataset_schema</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">schema</span>
+            <span class="n">data_output_schema</span> <span class="o">=</span> <span class="n">dataset_schema</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">):</span>
+                <span class="n">data_output_schema</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">output_schema</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">data_output_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Model schema </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="si">}</span><span class="s2"> does not match dataset schema&quot;</span>
-                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">data_output_schema</span><span class="o">.</span><span class="n">column_names</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
+
+        <span class="n">loader_transforms</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">):</span>
+            <span class="n">loader_transforms</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">transforms</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch_size</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset</span>
 
         <span class="c1"># Check if merlin-dataset is passed</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;to_ddf&quot;</span><span class="p">):</span>
             <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span>
 
-        <span class="n">model_encode</span> <span class="o">=</span> <span class="n">TFModelEncode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">model_encode</span> <span class="o">=</span> <span class="n">TFModelEncode</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">loader_transforms</span><span class="o">=</span><span class="n">loader_transforms</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">dataset_schema</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">encode_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">output_schema</span><span class="p">:</span>
@@ -1046,7 +1064,7 @@ document.write(`
 
 <div class="viewcode-block" id="TopKEncoder.batch_predict"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.TopKEncoder.html#merlin.models.tf.TopKEncoder.batch_predict">[docs]</a>    <span class="k">def</span> <span class="nf">batch_predict</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">dataset</span><span class="p">:</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">],</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">output_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -1055,8 +1073,8 @@ document.write(`
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        dataset : merlin.io.Dataset</span>
-<span class="sd">            Raw queries features dataset</span>
+<span class="sd">        dataset : Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]</span>
+<span class="sd">            Raw queries features dataset or Loader</span>
 <span class="sd">        batch_size : int</span>
 <span class="sd">            The number of queries to process at each prediction step</span>
 <span class="sd">        output_schema: Schema, optional</span>
@@ -1069,14 +1087,23 @@ document.write(`
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.batch_utils</span> <span class="kn">import</span> <span class="n">TFModelEncode</span>
 
+        <span class="n">loader_transforms</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">):</span>
+            <span class="n">loader_transforms</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">transforms</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch_size</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset</span>
+
+        <span class="n">dataset_schema</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">schema</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span>
+
         <span class="n">model_encode</span> <span class="o">=</span> <span class="n">TFModelEncode</span><span class="p">(</span>
             <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">loader_transforms</span><span class="o">=</span><span class="n">loader_transforms</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">dataset_schema</span><span class="p">,</span>
             <span class="n">output_names</span><span class="o">=</span><span class="n">TopKPrediction</span><span class="o">.</span><span class="n">output_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">),</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
-
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span>
 
         <span class="n">encode_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">output_schema</span><span class="p">:</span>

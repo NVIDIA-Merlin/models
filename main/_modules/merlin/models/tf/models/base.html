@@ -2016,7 +2016,7 @@ document.write(`
         <span class="k">return</span> <span class="n">out</span>
 
     <span class="k">def</span> <span class="nf">batch_predict</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Batched prediction using the Dask.</span>
 <span class="sd">        Parameters</span>
@@ -2028,12 +2028,24 @@ document.write(`
 <span class="sd">        Returns merlin.io.Dataset</span>
 <span class="sd">        -------</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dataset_schema</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;schema&quot;</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)):</span>
+            <span class="n">dataset_schema</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">schema</span>
+            <span class="n">data_output_schema</span> <span class="o">=</span> <span class="n">dataset_schema</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">):</span>
+                <span class="n">data_output_schema</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">output_schema</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">data_output_schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Model schema </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="si">}</span><span class="s2"> does not match dataset schema&quot;</span>
-                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">data_output_schema</span><span class="o">.</span><span class="n">column_names</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
+
+        <span class="n">loader_transforms</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">):</span>
+            <span class="n">loader_transforms</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">transforms</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch_size</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset</span>
 
         <span class="c1"># Check if merlin-dataset is passed</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;to_ddf&quot;</span><span class="p">):</span>
@@ -2041,7 +2053,13 @@ document.write(`
 
         <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.batch_utils</span> <span class="kn">import</span> <span class="n">TFModelEncode</span>
 
-        <span class="n">model_encode</span> <span class="o">=</span> <span class="n">TFModelEncode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">model_encode</span> <span class="o">=</span> <span class="n">TFModelEncode</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">loader_transforms</span><span class="o">=</span><span class="n">loader_transforms</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">dataset_schema</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="c1"># Processing a sample of the dataset with the model encoder</span>
         <span class="c1"># to get the output dataframe dtypes</span>
@@ -2973,20 +2991,20 @@ document.write(`
 
 <div class="viewcode-block" id="RetrievalModelV2.candidate_embeddings"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.RetrievalModelV2.html#merlin.models.tf.RetrievalModelV2.candidate_embeddings">[docs]</a>    <span class="k">def</span> <span class="nf">candidate_embeddings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">dataset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">Loader</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ColumnSchema</span><span class="p">,</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_candidate_encoder</span><span class="p">:</span>
             <span class="n">candidate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">candidate_encoder</span>
 
-            <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">candidate</span><span class="p">,</span> <span class="s2">&quot;encode&quot;</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">candidate</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">candidate</span><span class="p">,</span> <span class="s2">&quot;encode&quot;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">candidate</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">candidate</span><span class="p">,</span> <span class="s2">&quot;to_dataset&quot;</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">candidate</span><span class="o">.</span><span class="n">to_dataset</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">candidate</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">candidate</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last</span><span class="p">,</span> <span class="p">(</span><span class="n">ContrastiveOutput</span><span class="p">,</span> <span class="n">CategoricalOutput</span><span class="p">)):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">to_dataset</span><span class="p">()</span>
