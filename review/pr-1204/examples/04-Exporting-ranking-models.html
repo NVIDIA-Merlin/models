@@ -1,0 +1,963 @@
+
+
+<!DOCTYPE html>
+
+
+<html >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Exporting Ranking Models &#8212; NVIDIA Merlin Models</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/versions.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script src="../_static/js/rtd-version-switcher.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/04-Exporting-ranking-models';</script>
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/examples/04-Exporting-ranking-models.html" />
+    <link rel="shortcut icon" href="../_static/favicon.png"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Building a Retrieval Model with Merlin Models" href="05-Retrieval-Model.html" />
+    <link rel="prev" title="Iterating over Deep Learning Models using Merlin Models" href="03-Exploring-different-models.html" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NVJ1Y1YJHK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-NVJ1Y1YJHK', {
+        'anonymize_ip': false,
+    });
+  </script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,300&display=swap" rel="stylesheet">
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">NVIDIA Merlin Models</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Example Notebooks</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Exporting Ranking Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="05-Retrieval-Model.html">Building a Retrieval Model with Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="06-Define-your-own-architecture-with-Merlin-Models.html">Taking the Next Step with Merlin Models: Define Your Own Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api.html">API Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DCNModel.html">merlin.models.tf.DCNModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DeepFMModel.html">merlin.models.tf.DeepFMModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DLRMModel.html">merlin.models.tf.DLRMModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.WideAndDeepModel.html">merlin.models.tf.WideAndDeepModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Encoder.html">merlin.models.tf.Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.EmbeddingEncoder.html">merlin.models.tf.EmbeddingEncoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ItemRetrievalScorer.html">merlin.models.tf.ItemRetrievalScorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.RetrievalModelV2.html">merlin.models.tf.RetrievalModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MatrixFactorizationModelV2.html">merlin.models.tf.MatrixFactorizationModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MatrixFactorizationModel.html">merlin.models.tf.MatrixFactorizationModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TwoTowerModelV2.html">merlin.models.tf.TwoTowerModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TwoTowerModel.html">merlin.models.tf.TwoTowerModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.YoutubeDNNRetrievalModelV2.html">merlin.models.tf.YoutubeDNNRetrievalModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.YoutubeDNNRetrievalModel.html">merlin.models.tf.YoutubeDNNRetrievalModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Embeddings.html">merlin.models.tf.Embeddings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.EmbeddingTable.html">merlin.models.tf.EmbeddingTable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.AverageEmbeddingsByWeightFeature.html">merlin.models.tf.AverageEmbeddingsByWeightFeature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html">merlin.models.tf.ReplaceMaskedEmbeddings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.L2Norm.html">merlin.models.tf.L2Norm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.InputBlockV2.html">merlin.models.tf.InputBlockV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.InputBlock.html">merlin.models.tf.InputBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Continuous.html">merlin.models.tf.Continuous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ContinuousFeatures.html">merlin.models.tf.ContinuousFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ContinuousEmbedding.html">merlin.models.tf.ContinuousEmbedding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ContinuousProjection.html">merlin.models.tf.ContinuousProjection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequenceEmbeddingFeatures.html">merlin.models.tf.SequenceEmbeddingFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DLRMBlock.html">merlin.models.tf.DLRMBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MLPBlock.html">merlin.models.tf.MLPBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CrossBlock.html">merlin.models.tf.CrossBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TwoTowerBlock.html">merlin.models.tf.TwoTowerBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MatrixFactorizationBlock.html">merlin.models.tf.MatrixFactorizationBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DotProductInteraction.html">merlin.models.tf.DotProductInteraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.FMBlock.html">merlin.models.tf.FMBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.FMPairwiseInteraction.html">merlin.models.tf.FMPairwiseInteraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PredictionTasks.html">merlin.models.tf.PredictionTasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PredictionTask.html">merlin.models.tf.PredictionTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.BinaryClassificationTask.html">merlin.models.tf.BinaryClassificationTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MultiClassClassificationTask.html">merlin.models.tf.MultiClassClassificationTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.RegressionTask.html">merlin.models.tf.RegressionTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ItemRetrievalTask.html">merlin.models.tf.ItemRetrievalTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.OutputBlock.html">merlin.models.tf.OutputBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ModelOutput.html">merlin.models.tf.ModelOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.BinaryOutput.html">merlin.models.tf.BinaryOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CategoricalOutput.html">merlin.models.tf.CategoricalOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ContrastiveOutput.html">merlin.models.tf.ContrastiveOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.RegressionOutput.html">merlin.models.tf.RegressionOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ColumnBasedSampleWeight.html">merlin.models.tf.ColumnBasedSampleWeight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequentialBlock.html">merlin.models.tf.SequentialBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ParallelBlock.html">merlin.models.tf.ParallelBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ParallelPredictionBlock.html">merlin.models.tf.ParallelPredictionBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DenseResidualBlock.html">merlin.models.tf.DenseResidualBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DualEncoderBlock.html">merlin.models.tf.DualEncoderBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ResidualBlock.html">merlin.models.tf.ResidualBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TabularBlock.html">merlin.models.tf.TabularBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Filter.html">merlin.models.tf.Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Cond.html">merlin.models.tf.Cond</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TopKEncoder.html">merlin.models.tf.TopKEncoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MultiOptimizer.html">merlin.models.tf.MultiOptimizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.LazyAdam.html">merlin.models.tf.LazyAdam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.OptimizerBlocks.html">merlin.models.tf.OptimizerBlocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToTarget.html">merlin.models.tf.ToTarget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToOneHot.html">merlin.models.tf.ToOneHot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.HashedCross.html">merlin.models.tf.HashedCross</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.HashedCrossAll.html">merlin.models.tf.HashedCrossAll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.BroadcastToSequence.html">merlin.models.tf.BroadcastToSequence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequencePredictNext.html">merlin.models.tf.SequencePredictNext</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequencePredictLast.html">merlin.models.tf.SequencePredictLast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequencePredictRandom.html">merlin.models.tf.SequencePredictRandom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequenceTargetAsInput.html">merlin.models.tf.SequenceTargetAsInput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequenceMaskLast.html">merlin.models.tf.SequenceMaskLast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequenceMaskRandom.html">merlin.models.tf.SequenceMaskRandom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ExpandDims.html">merlin.models.tf.ExpandDims</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.StochasticSwapNoise.html">merlin.models.tf.StochasticSwapNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.AsTabular.html">merlin.models.tf.AsTabular</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MMOEBlock.html">merlin.models.tf.MMOEBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CGCBlock.html">merlin.models.tf.CGCBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PLEBlock.html">merlin.models.tf.PLEBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Loader.html">merlin.models.tf.Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.AvgPrecisionAt.html">merlin.models.tf.AvgPrecisionAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MRRAt.html">merlin.models.tf.MRRAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.NDCGAt.html">merlin.models.tf.NDCGAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrecisionAt.html">merlin.models.tf.PrecisionAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.RecallAt.html">merlin.models.tf.RecallAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TopKMetricsAggregator.html">merlin.models.tf.TopKMetricsAggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ItemSampler.html">merlin.models.tf.ItemSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.InBatchSampler.html">merlin.models.tf.InBatchSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PopularityBasedSampler.html">merlin.models.tf.PopularityBasedSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.CategoricalCrossEntropy.html">merlin.models.tf.losses.CategoricalCrossEntropy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.SparseCategoricalCrossEntropy.html">merlin.models.tf.losses.SparseCategoricalCrossEntropy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.BPRLoss.html">merlin.models.tf.losses.BPRLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.BPRmaxLoss.html">merlin.models.tf.losses.BPRmaxLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.HingeLoss.html">merlin.models.tf.losses.HingeLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.LogisticLoss.html">merlin.models.tf.losses.LogisticLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.TOP1Loss.html">merlin.models.tf.losses.TOP1Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.TOP1maxLoss.html">merlin.models.tf.losses.TOP1maxLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.TOP1v2Loss.html">merlin.models.tf.losses.TOP1v2Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.select_targets.html">merlin.models.utils.schema_utils.select_targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.create_categorical_column.html">merlin.models.utils.schema_utils.create_categorical_column</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.create_continuous_column.html">merlin.models.utils.schema_utils.create_continuous_column</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html">merlin.models.utils.schema_utils.filter_dict_by_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.categorical_cardinalities.html">merlin.models.utils.schema_utils.categorical_cardinalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.categorical_domains.html">merlin.models.utils.schema_utils.categorical_domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TensorInitializer.html">merlin.models.tf.TensorInitializer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.filter_kwargs.html">merlin.models.utils.misc_utils.filter_kwargs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.safe_json.html">merlin.models.utils.misc_utils.safe_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_filenames.html">merlin.models.utils.misc_utils.get_filenames</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_label_feature_name.html">merlin.models.utils.misc_utils.get_label_feature_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_timestamp_feature_name.html">merlin.models.utils.misc_utils.get_timestamp_feature_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_parquet_files_names.html">merlin.models.utils.misc_utils.get_parquet_files_names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.Timing.html">merlin.models.utils.misc_utils.Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_object_size.html">merlin.models.utils.misc_utils.get_object_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.validate_dataset.html">merlin.models.utils.misc_utils.validate_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.camelcase_to_snakecase.html">merlin.models.utils.registry.camelcase_to_snakecase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.snakecase_to_camelcase.html">merlin.models.utils.registry.snakecase_to_camelcase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.default_name.html">merlin.models.utils.registry.default_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.default_object_name.html">merlin.models.utils.registry.default_object_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.Registry.html">merlin.models.utils.registry.Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.RegistryMixin.html">merlin.models.utils.registry.RegistryMixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.display_list_by_prefix.html">merlin.models.utils.registry.display_list_by_prefix</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../additional_resources.html">Additional Resources</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../CONTRIBUTING.html">Contributing to Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/NVIDIA-Merlin/models">Github Repo</a></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+</nav></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-merlin-ecosystem-nav" aria-label="Merlin Ecosystem Nav">
+  <div class="bd-toc-item navbar-nav">
+    <p aria-level="2" class="caption" role="heading"><span class="caption-text">Ecosystem</span></p>
+    <ul class="nav bd-sidenav">
+      <li class="toctree-l1"><a class="reference external" href="/Merlin/">Merlin</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/core/">Core</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/systems/">Systems</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/NVTabular/">NVTabular</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/Transformers4Rec/">Transformers4Rec</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/dataloader/">Dataloader</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/HugetCTR/">HugeCTR</a></li>
+    </ul>
+  </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="https://github.com/NVIDIA-Merlin/models" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script>
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Exporting Ranking Models</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#importing-libraries">Importing Libraries</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#feature-engineering-with-nvtabular">Feature Engineering with NVTabular</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build-and-train-a-dlrm-model">Build and Train a DLRM model</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#save-model">Save model</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#deploying-the-model-with-merlin-systems">Deploying the model with Merlin Systems</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2021 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ================================</span>
+
+<span class="c1"># Each user is responsible for checking the content of datasets and the</span>
+<span class="c1"># applicable licenses and determining if suitable for the intended use.</span>
+</pre></div>
+</div>
+</div>
+</div>
+<img alt="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_04-exporting-ranking-models/nvidia_logo.png" src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_04-exporting-ranking-models/nvidia_logo.png" />
+<section id="exporting-ranking-models">
+<h1>Exporting Ranking Models<a class="headerlink" href="#exporting-ranking-models" title="Permalink to this headline">#</a></h1>
+<p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
+<p>In this example notebook we demonstrate how to export (save) NVTabular <code class="docutils literal notranslate"><span class="pre">workflow</span></code> and a <code class="docutils literal notranslate"><span class="pre">ranking</span> <span class="pre">model</span></code> for model deployment with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library.</p>
+<p>Learning Objectives:</p>
+<ul class="simple">
+<li><p>Export NVTabular workflow for model deployment</p></li>
+<li><p>Export TensorFlow DLRM model for model deployment</p></li>
+</ul>
+<p>We will follow the steps below:</p>
+<ul class="simple">
+<li><p>Prepare the data with NVTabular and export NVTabular workflow</p></li>
+<li><p>Train a DLRM model with Merlin Models and export the trained model</p></li>
+</ul>
+<section id="importing-libraries">
+<h2>Importing Libraries<a class="headerlink" href="#importing-libraries" title="Permalink to this headline">#</a></h2>
+<p>Let’s start with importing the libraries that we’ll use in this notebook.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">nvtabular</span> <span class="k">as</span> <span class="nn">nvt</span>
+<span class="kn">from</span> <span class="nn">nvtabular.ops</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="kn">from</span> <span class="nn">merlin.models.utils.example_utils</span> <span class="kn">import</span> <span class="n">workflow_fit_transform</span>
+<span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
+
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
+<span class="kn">from</span> <span class="nn">merlin.io.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-10-19 17:20:17.650375: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2022-10-19 17:20:19.081535: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcudnn.so.8&#39;; dlerror: libcudnn.so.8: cannot open shared object file: No such file or directory
+2022-10-19 17:20:19.081560: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1850] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2022-10-19 17:20:19.121312: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="feature-engineering-with-nvtabular">
+<h2>Feature Engineering with NVTabular<a class="headerlink" href="#feature-engineering-with-nvtabular" title="Permalink to this headline">#</a></h2>
+<p>We use the synthetic train and test datasets generated by mimicking the real <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">Ali-CCP: Alibaba Click and Conversion Prediction</a> dataset to build our recommender system ranking models.</p>
+<p>If you would like to use real Ali-CCP dataset instead, you can download the training and test datasets on <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. You can then use <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp()</a> function to curate the raw csv files and save them as parquet files.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
+
+<span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;workspace/data/&quot;</span><span class="p">)</span>
+<span class="n">NUM_ROWS</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NUM_ROWS&quot;</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
+<span class="n">SYNTHETIC_DATA</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SYNTHETIC_DATA&quot;</span><span class="p">,</span> <span class="s2">&quot;True&quot;</span><span class="p">))</span>
+<span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BATCH_SIZE&quot;</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="n">SYNTHETIC_DATA</span><span class="p">:</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;aliccp-raw&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">NUM_ROWS</span><span class="p">),</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
+    <span class="c1"># save the datasets as parquet files</span>
+    <span class="n">train</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">))</span>
+    <span class="n">valid</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s define our input and output paths.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">)</span>
+<span class="n">valid_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">)</span>
+<span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;processed&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>After we execute <code class="docutils literal notranslate"><span class="pre">fit()</span></code> and <code class="docutils literal notranslate"><span class="pre">transform()</span></code> functions on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, the processed parquet files are saved to <code class="docutils literal notranslate"><span class="pre">output_path</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">category_temp_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">)</span>
+<span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
+<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
+<span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;click&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">AddMetadata</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">])</span>
+
+<span class="n">item_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_category&quot;</span><span class="p">,</span> <span class="s2">&quot;item_shop&quot;</span><span class="p">,</span> <span class="s2">&quot;item_brand&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemFeatures</span><span class="p">()</span>
+
+<span class="n">user_features</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">[</span>
+        <span class="s2">&quot;user_shops&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_profile&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_group&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_gender&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_age&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_consumption_2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_is_occupied&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_geography&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_intentions&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_brands&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_categories&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span>
+    <span class="o">&gt;&gt;</span> <span class="n">TagAsUserFeatures</span><span class="p">()</span>
+<span class="p">)</span>
+
+<span class="n">outputs</span> <span class="o">=</span> <span class="n">user_id</span> <span class="o">+</span> <span class="n">item_id</span> <span class="o">+</span> <span class="n">item_features</span> <span class="o">+</span> <span class="n">user_features</span> <span class="o">+</span> <span class="n">targets</span>
+
+<span class="n">workflow</span> <span class="o">=</span> <span class="n">nvt</span><span class="o">.</span><span class="n">Workflow</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+
+<span class="n">train_dataset</span> <span class="o">=</span> <span class="n">nvt</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">train_path</span><span class="p">)</span>
+<span class="n">valid_dataset</span> <span class="o">=</span> <span class="n">nvt</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">valid_path</span><span class="p">)</span>
+
+<span class="n">workflow</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)</span>
+<span class="n">workflow</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">output_path</span><span class="o">=</span><span class="n">output_path</span> <span class="o">+</span> <span class="s2">&quot;/train/&quot;</span><span class="p">)</span>
+<span class="n">workflow</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">valid_dataset</span><span class="p">)</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">output_path</span><span class="o">=</span><span class="n">output_path</span> <span class="o">+</span> <span class="s2">&quot;/valid/&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 7.6 s, sys: 1.49 s, total: 9.09 s
+Wall time: 8.23 s
+</pre></div>
+</div>
+</div>
+</div>
+<p>We save NVTabular <code class="docutils literal notranslate"><span class="pre">workflow</span></code> model in the current working directory.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">workflow</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;workflow&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s check out our saved workflow model folder.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span>seedir
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Collecting seedir
+  Using cached seedir-0.3.1-py3-none-any.whl (114 kB)
+Collecting emoji
+  Using cached emoji-2.1.0-py3-none-any.whl
+Requirement already satisfied: natsort in /home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages (from seedir) (8.1.0)
+Installing collected packages: emoji, seedir
+Successfully installed emoji-2.1.0 seedir-0.3.1
+
+<span class=" -Color -Color-Bold">[</span><span class=" -Color -Color-Blue">notice</span><span class=" -Color -Color-Bold">]</span> A new release of pip available: <span class=" -Color -Color-Red">22.2.2</span> -&gt; <span class=" -Color -Color-Green">22.3</span>
+<span class=" -Color -Color-Bold">[</span><span class=" -Color -Color-Blue">notice</span><span class=" -Color -Color-Bold">]</span> To update, run: <span class=" -Color -Color-Green">python -m pip install --upgrade pip</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">seedir</span> <span class="k">as</span> <span class="nn">sd</span>
+
+<span class="n">sd</span><span class="o">.</span><span class="n">seedir</span><span class="p">(</span>
+    <span class="n">DATA_FOLDER</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
+    <span class="n">itemlimit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">depthlimit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">exclude_folders</span><span class="o">=</span><span class="s2">&quot;.ipynb_checkpoints&quot;</span><span class="p">,</span>
+    <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>data/
+├─categories/
+│ └─categories/
+│   ├─unique.item_brand.parquet
+│   ├─unique.item_category.parquet
+│   ├─unique.item_id.parquet
+│   ├─unique.item_shop.parquet
+│   ├─unique.user_age.parquet
+│   ├─unique.user_brands.parquet
+│   ├─unique.user_categories.parquet
+│   ├─unique.user_consumption_2.parquet
+│   ├─unique.user_gender.parquet
+│   └─unique.user_geography.parquet
+├─processed/
+│ ├─train/
+│ │ ├─_file_list.txt
+│ │ ├─_metadata
+│ │ ├─_metadata.json
+│ │ ├─part_0.parquet
+│ │ └─schema.pbtxt
+│ └─valid/
+│   ├─_file_list.txt
+│   ├─_metadata
+│   ├─_metadata.json
+│   ├─part_0.parquet
+│   └─schema.pbtxt
+├─train/
+│ └─part.0.parquet
+├─valid/
+│ └─part.0.parquet
+└─workflow/
+  ├─categories/
+  │ ├─unique.item_brand.parquet
+  │ ├─unique.item_category.parquet
+  │ ├─unique.item_id.parquet
+  │ ├─unique.item_shop.parquet
+  │ ├─unique.user_age.parquet
+  │ ├─unique.user_brands.parquet
+  │ ├─unique.user_categories.parquet
+  │ ├─unique.user_consumption_2.parquet
+  │ ├─unique.user_gender.parquet
+  │ └─unique.user_geography.parquet
+  ├─metadata.json
+  └─workflow.pkl
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="build-and-train-a-dlrm-model">
+<h2>Build and Train a DLRM model<a class="headerlink" href="#build-and-train-a-dlrm-model" title="Permalink to this headline">#</a></h2>
+<p>In this example, we build, train, and export a Deep Learning Recommendation Model <a class="reference external" href="https://arxiv.org/abs/1906.00091">(DLRM)</a> architecture. To learn more about how to train different deep learning models, how easily transition from one model to another and the seamless integration between data preparation and model training visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/examples/03-Exploring-different-models.ipynb">03-Exploring-different-models.ipynb</a> notebook.</p>
+<p>NVTabular workflow above exports a schema file, schema.pbtxt, of our processed dataset. To learn more about the schema object, schema file  and <code class="docutils literal notranslate"><span class="pre">tags</span></code>, you can explore <a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc std std-doc">02-Merlin-Models-and-NVTabular-integration.ipynb</span></a>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># define train and valid dataset objects</span>
+<span class="n">train</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">))</span>
+<span class="n">valid</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">))</span>
+
+<span class="c1"># define schema object</span>
+<span class="n">schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">target_column</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">target_column</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;click&#39;
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+    <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryOutput</span><span class="p">(</span><span class="n">target_column</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - 30s 18ms/step - loss: 0.6932 - auc: 0.4999 - regularization_loss: 0.0000e+00 - val_loss: 0.6932 - val_auc: 0.4998 - val_regularization_loss: 0.0000e+00
+CPU times: user 1min 21s, sys: 12.1 s, total: 1min 33s
+Wall time: 30.9 s
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f5127386700&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<section id="save-model">
+<h3>Save model<a class="headerlink" href="#save-model" title="Permalink to this headline">#</a></h3>
+<p>The last step of machine learning (ML)/deep learning (DL) pipeline is to deploy the ETL workflow and saved model into production. In the production setting, we want to transform the input data as done during training (ETL). We need to apply the same mean/std for continuous features and use the same categorical mapping to convert the categories to continuous integer before we use the DL model for a prediction. Therefore, we deploy the NVTabular workflow with the Tensorflow model as an ensemble model to Triton Inference using <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library very easily. The ensemble model guarantees that the same transformation is applied to the raw inputs.</p>
+<p>Let’s save our DLRM model.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;dlrm&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Unsupported signature for serialization: ((PredictionOutput(predictions=TensorSpec(shape=(None, 1), dtype=tf.float32, name=&#39;outputs/predictions&#39;), targets=TensorSpec(shape=(None, 1), dtype=tf.float32, name=&#39;outputs/targets&#39;), positive_item_ids=None, label_relevant_counts=None, valid_negatives_mask=None, negative_item_ids=None, sample_weight=None), &lt;tensorflow.python.framework.func_graph.UnknownArgument object at 0x7f4ebc177f40&gt;), {}).
+INFO:tensorflow:Unsupported signature for serialization: ((PredictionOutput(predictions=TensorSpec(shape=(None, 1), dtype=tf.float32, name=&#39;outputs/predictions&#39;), targets=TensorSpec(shape=(None, 1), dtype=tf.float32, name=&#39;outputs/targets&#39;), positive_item_ids=None, label_relevant_counts=None, valid_negatives_mask=None, negative_item_ids=None, sample_weight=None), &lt;tensorflow.python.framework.func_graph.UnknownArgument object at 0x7f4ebc177f40&gt;), {}).
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:absl:Found untraced functions such as train_compute_metrics, model_context_layer_call_fn, model_context_layer_call_and_return_conditional_losses, output_layer_layer_call_fn, output_layer_layer_call_and_return_conditional_losses while saving (showing 5 of 97). These functions will not be directly callable after loading.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Assets written to: workspace/data/dlrm/assets
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Assets written to: workspace/data/dlrm/assets
+</pre></div>
+</div>
+</div>
+</div>
+<p>We have NVTabular wokflow  and DLRM model exported, now it is time to move on to the next step: model deployment with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a>.</p>
+</section>
+<section id="deploying-the-model-with-merlin-systems">
+<h3>Deploying the model with Merlin Systems<a class="headerlink" href="#deploying-the-model-with-merlin-systems" title="Permalink to this headline">#</a></h3>
+<p>We trained and exported our ranking model and NVTabular workflow. In the next step, we will learn how to deploy our trained DLRM model into <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a> with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library. NVIDIA Triton Inference Server (TIS) simplifies the deployment of AI models at scale in production. TIS provides a cloud and edge inferencing solution optimized for both CPUs and GPUs. It supports a number of different machine learning frameworks such as TensorFlow and PyTorch.</p>
+<p>For the next step, visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library and execute <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems/blob/stable/examples/Serving-Ranking-Models-With-Merlin-Systems.ipynb">Serving-Ranking-Models-With-Merlin-Systems</a> notebook to deploy our saved DLRM and NVTabular workflow models as an ensemble to TIS and obtain prediction results for a qiven request. In doing so, you need to mount the saved DLRM and NVTabular workflow to the inference container following the instructions in the <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems/blob/stable/examples/README.md">README.md</a>.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="03-Exploring-different-models.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Iterating over Deep Learning Models using Merlin Models</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="05-Retrieval-Model.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Building a Retrieval Model with Merlin Models</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#importing-libraries">Importing Libraries</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#feature-engineering-with-nvtabular">Feature Engineering with NVTabular</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build-and-train-a-dlrm-model">Build and Train a DLRM model</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#save-model">Save model</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#deploying-the-model-with-merlin-systems">Deploying the model with Merlin Systems</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+  <p class="copyright">
+    
+      © Copyright 2023, NVIDIA.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
