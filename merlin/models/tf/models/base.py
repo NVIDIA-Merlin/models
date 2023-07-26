@@ -1553,7 +1553,7 @@ class BaseModel(tf.keras.Model):
         return out
 
     def batch_predict(
-        self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
+        self, dataset: Union[merlin.io.Dataset, Loader], batch_size: int, **kwargs
     ) -> merlin.io.Dataset:
         """Batched prediction using the Dask.
         Parameters
@@ -1565,12 +1565,24 @@ class BaseModel(tf.keras.Model):
         Returns merlin.io.Dataset
         -------
         """
+        dataset_schema = None
         if hasattr(dataset, "schema"):
-            if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
+            dataset_schema = dataset.schema
+            data_output_schema = dataset_schema
+            if isinstance(dataset, Loader):
+                data_output_schema = dataset.output_schema
+
+            if not set(self.schema.column_names).issubset(set(data_output_schema.column_names)):
                 raise ValueError(
                     f"Model schema {self.schema.column_names} does not match dataset schema"
-                    + f" {dataset.schema.column_names}"
+                    + f" {data_output_schema.column_names}"
                 )
+
+        loader_transforms = None
+        if isinstance(dataset, Loader):
+            loader_transforms = dataset.transforms
+            batch_size = dataset.batch_size
+            dataset = dataset.dataset
 
         # Check if merlin-dataset is passed
         if hasattr(dataset, "to_ddf"):
@@ -1578,7 +1590,13 @@ class BaseModel(tf.keras.Model):
 
         from merlin.models.tf.utils.batch_utils import TFModelEncode
 
-        model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
+        model_encode = TFModelEncode(
+            self,
+            batch_size=batch_size,
+            loader_transforms=loader_transforms,
+            schema=dataset_schema,
+            **kwargs,
+        )
 
         # Processing a sample of the dataset with the model encoder
         # to get the output dataframe dtypes
@@ -2510,20 +2528,20 @@ class RetrievalModelV2(Model):
 
     def candidate_embeddings(
         self,
-        dataset: Optional[merlin.io.Dataset] = None,
+        data: Optional[Union[merlin.io.Dataset, Loader]] = None,
         index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
         if self.has_candidate_encoder:
             candidate = self.candidate_encoder
 
-            if dataset is not None and hasattr(candidate, "encode"):
-                return candidate.encode(dataset, index=index, **kwargs)
+            if data is not None and hasattr(candidate, "encode"):
+                return candidate.encode(data, index=index, **kwargs)
 
             if hasattr(candidate, "to_dataset"):
                 return candidate.to_dataset(**kwargs)
 
-            return candidate.encode(dataset, index=index, **kwargs)
+            return candidate.encode(data, index=index, **kwargs)
 
         if isinstance(self.last, (ContrastiveOutput, CategoricalOutput)):
             return self.last.to_dataset()

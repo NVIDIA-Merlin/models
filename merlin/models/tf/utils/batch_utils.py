@@ -74,6 +74,7 @@ class TFModelEncode(ModelEncode):
         block_load_func: tp.Optional[tp.Callable[[str], Block]] = None,
         schema: tp.Optional[Schema] = None,
         output_concat_func=None,
+        loader_transforms=None,
     ):
         save_path = save_path or tempfile.mkdtemp()
         model.save(save_path)
@@ -95,7 +96,9 @@ class TFModelEncode(ModelEncode):
         super().__init__(
             save_path,
             output_names,
-            data_iterator_func=data_iterator_func(self.schema, batch_size=batch_size),
+            data_iterator_func=data_iterator_func(
+                self.schema, batch_size=batch_size, loader_transforms=loader_transforms
+            ),
             model_load_func=model_load_func,
             model_encode_func=model_encode,
             output_concat_func=output_concat_func,
@@ -172,7 +175,7 @@ def encode_output(output: tf.Tensor):
     return output.numpy()
 
 
-def data_iterator_func(schema, batch_size: int = 512):
+def data_iterator_func(schema, batch_size: int = 512, loader_transforms=None):
     import merlin.io.dataset
 
     def data_iterator(dataset):
@@ -180,6 +183,7 @@ def data_iterator_func(schema, batch_size: int = 512):
             merlin.io.dataset.Dataset(dataset, schema=schema),
             batch_size=batch_size,
             shuffle=False,
+            transforms=loader_transforms,
         )
 
     return data_iterator
