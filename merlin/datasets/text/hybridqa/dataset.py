@@ -43,6 +43,33 @@ def get_hybridqa(
     """
     Downloads, preprocesses, and tokenizes the HybridQA dataset [1].
 
+    Example usage
+    -------------
+    >>> train, test, ds_map = get_hybridqa(tokenizer_path="/path/to/llama/tokenizer.model")
+    >>> pprint(train[0])
+    {'answer': [13491, 332, 4841],
+     'question': [11644,
+                  892,
+                  278,
+                  2048,
+                  414,
+                  310,
+                  278,
+                  19767,
+                  802,
+                  297,
+                  2439,
+                  271,
+                  411,
+                  3974,
+                  1350,
+                  2701,
+                  1577],
+     'table_id': 'List_of_mosques_in_Afghanistan_0'}
+    >>> ds_map[train[0]["table_id"]]
+    <merlin.io.dataset.Dataset object at 0x7f7b536d8f40>
+    >>> ds_map[train[0]["table_id"]].compute()
+
     Parameters
     ----------
     tokenizer : Tokenizer
