@@ -11,7 +11,7 @@ class SentencePieceTokenizer(Tokenizer):
     [1] https://github.com/google/sentencepiece
     """
 
-    def __init__(self, *, processor: "SentencePieceTrainer") -> None:
+    def __init__(self, *, processor: "SentencePieceTrainer") -> None:  # noqa: F821
         require_sentencepiece()
 
         self.processor = processor
