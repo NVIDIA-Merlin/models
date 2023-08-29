@@ -233,6 +233,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -334,12 +335,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../../../../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../../../../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../../../../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../../../../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../../../../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -686,6 +687,37 @@ document.write(`
         <span class="n">dense</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A Dense layer that aggregates features before projection</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        units : _type_</span>
+<span class="sd">            _description_</span>
+<span class="sd">        activation : Optional[Union[str,tf.keras.layers.Layer]], optional</span>
+<span class="sd">            The activation function to use. By default None</span>
+<span class="sd">        use_bias : bool, optional</span>
+<span class="sd">            Whether to use a bias in the MLP, by default True</span>
+<span class="sd">        kernel_initializer: InitializerType</span>
+<span class="sd">            Initializer for the kernel weights matrix. Defaults to &quot;glorot_uniform&quot;.</span>
+<span class="sd">        bias_initializer: InitializerType</span>
+<span class="sd">            Initializer for the bias vector. Default to &quot;zeros&quot;.</span>
+<span class="sd">        kernel_regularizer: Optional[RegularizerType]</span>
+<span class="sd">            Regularizer function applied to the kernel weights matrix. Default to None.</span>
+<span class="sd">        bias_regularizer: Optional[RegularizerType]</span>
+<span class="sd">            Regularizer function applied to the bias vector.  Default to None.</span>
+<span class="sd">        activity_regularizer : optional</span>
+<span class="sd">            Regularizer function applied to the output of the layer (its &quot;activation&quot;),</span>
+<span class="sd">            by default None</span>
+<span class="sd">        kernel_constraint : optional</span>
+<span class="sd">            Constraint function applied to the kernel weights matrix, by default None</span>
+<span class="sd">        bias_constraint : optional</span>
+<span class="sd">            Constraint function applied to the bias vector, by default None</span>
+<span class="sd">        pre_aggregation : str, optional</span>
+<span class="sd">            If provided, aggregates inputs before the dense projection, by default &quot;concat&quot;</span>
+<span class="sd">        dense : _type_, optional</span>
+<span class="sd">            A tf.keras.layers.Layer that can be used to project the inputs.</span>
+<span class="sd">            Typically used when deserializing the layer. By default None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="nb">super</span><span class="p">(</span><span class="n">_Dense</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dense</span> <span class="o">=</span> <span class="n">dense</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
             <span class="n">units</span><span class="p">,</span>

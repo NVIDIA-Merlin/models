@@ -236,6 +236,7 @@
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -337,12 +338,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -522,7 +523,7 @@ document.write(`
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>to_call</strong> (<em>Layer</em>) – The layer to call in the forward-pass of the model</p></li>
 <li><p><strong>default_loss</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>tf.keras.losses.Loss</em><em>]</em>) – Default loss to set if the user does not specify one</p></li>
-<li><p><strong>get_default_metrics</strong> (<em>Callable</em>) – A function returning the list of default metrics to set
+<li><p><strong>default_metrics_fn</strong> (<em>Callable</em>) – A function returning the list of default metrics to set
 if the user does not specify any</p></li>
 <li><p><strong>name</strong> (<em>Optional</em><em>[</em><em>Text</em><em>]</em><em>, </em><em>optional</em>) – Task name, by default None</p></li>
 <li><p><strong>target</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>]</em><em>, </em><em>optional</em>) – Label name, by default None</p></li>
@@ -620,7 +621,7 @@ by default 1.</p></li>
 <td><p>Retrieves the output shape(s) of a layer at a given node.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ModelOutput.get_task_name" title="merlin.models.tf.ModelOutput.get_task_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_task_name</span></code></a>(target_name)</p></td>
-<td><p></p></td>
+<td><p>Returns the name of the task :param target_name: Name of the target :type target_name: str</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
 <td><p>Returns the current weights of the layer, as NumPy arrays.</p></td>
@@ -773,8 +774,19 @@ by default 1.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.ModelOutput.get_task_name">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_task_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/outputs/base.html#ModelOutput.get_task_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ModelOutput.get_task_name" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_task_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/merlin/models/tf/outputs/base.html#ModelOutput.get_task_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ModelOutput.get_task_name" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the name of the task
+:param target_name: Name of the target
+:type target_name: str</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the task name, which includes the target name</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.ModelOutput.from_config">

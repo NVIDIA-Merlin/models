@@ -236,6 +236,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -337,12 +338,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -1180,7 +1181,7 @@ Epoch 2/2
 </section>
 <section id="evaluate-the-model-accuracy">
 <h3>Evaluate the model accuracy<a class="headerlink" href="#evaluate-the-model-accuracy" title="Permalink to this headline">#</a></h3>
-<p>Note that above when we  set <code class="docutils literal notranslate"><span class="pre">validation_data=valid</span></code> in the <code class="docutils literal notranslate"><span class="pre">model.fit()</span></code>, we compute evaluation metrics on validation set using the negative sampling strategy used for training. To determine the exact accuracy of our trained retrieval model, we need to compute the similarity score between a given query and all possible candidates. The higher the score of the positive candidate (the one that is already interacted with, i.e. target item_id returned by dataloader), the more accurate the model is. We can do this using the <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> model that we create below via <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder</span></code> method, and the following section shows how to instantiate it. The <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder()</span></code> is a method of the <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/models/base.py">RetrievalModelV2</a> class.</p>
+<p>Note that above when we  set <code class="docutils literal notranslate"><span class="pre">validation_data=valid</span></code> in the <code class="docutils literal notranslate"><span class="pre">model.fit()</span></code>, we compute evaluation metrics on validation set using the negative sampling strategy used for training. To determine the exact accuracy of our trained retrieval model, we need to compute the similarity score between a given query and all possible candidates. The higher the score of the positive candidate (the one that is already interacted with, i.e. target item_id returned by dataloader), the more accurate the model is. We can do this using the <code class="docutils literal notranslate"><span class="pre">topk_model</span></code> model that we create below via <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder</span></code> method, and the following section shows how to instantiate it. The <code class="docutils literal notranslate"><span class="pre">to_top_k_encoder()</span></code> is a method of the <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/merlin/models/tf/models/base.py">RetrievalModelV2</a> class.</p>
 <p><code class="docutils literal notranslate"><span class="pre">unique_rows_by_features</span></code> : A utility function allows extracting both unique user and item features tables as Merlin Dataset object that can easily be converted to a cuDF data frame. The function extracts unique rows from a specified dataset (transformed train set) based on a specified id-column tags (<code class="docutils literal notranslate"><span class="pre">ITEM</span></code> and <code class="docutils literal notranslate"><span class="pre">ITEM_ID</span></code>).</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -1564,7 +1565,8 @@ array([[ 27, 119, 145,  17, 130, 112,  28, 192, 222, 122, 307,  25, 125,
 <h3>Generate Query embeddings for entire user catalog<a class="headerlink" href="#generate-query-embeddings-for-entire-user-catalog" title="Permalink to this headline">#</a></h3>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">queries</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">query_embeddings</span><span class="p">(</span><span class="n">Dataset</span><span class="p">(</span><span class="n">user_features</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">queries</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">query_embeddings</span><span class="p">(</span><span class="n">Dataset</span><span class="p">(</span><span class="n">user_features</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">)),</span> 
+                                 <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">)</span>
 <span class="n">query_embs_df</span> <span class="o">=</span> <span class="n">queries</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">scheduler</span><span class="o">=</span><span class="s2">&quot;synchronous&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -1846,7 +1848,8 @@ array([[ 27, 119, 145,  17, 130, 112,  28, 192, 222, 122, 307,  25, 125,
 <h3>Extract and save Item embeddings<a class="headerlink" href="#extract-and-save-item-embeddings" title="Permalink to this headline">#</a></h3>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_embs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">candidate_embeddings</span><span class="p">(</span><span class="n">Dataset</span><span class="p">(</span><span class="n">item_features</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_embs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">candidate_embeddings</span><span class="p">(</span><span class="n">Dataset</span><span class="p">(</span><span class="n">item_features</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">)),</span> 
+                                       <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

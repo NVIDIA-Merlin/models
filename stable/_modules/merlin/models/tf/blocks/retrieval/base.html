@@ -233,6 +233,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../../../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -334,12 +335,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../../../../../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../../../../../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../../../../../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../../../../../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../../../../../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -597,14 +598,15 @@ document.write(`
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Block for ItemRetrieval, which expects query/user and item embeddings as input and</span>
 <span class="sd">    uses dot product to score the positive item (inputs[&quot;item&quot;]) and also sampled negative</span>
 <span class="sd">    items (during training).</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    samplers : List[ItemSampler], optional</span>
+<span class="sd">    samplers: List[ItemSampler], optional</span>
 <span class="sd">        List of item samplers that provide negative samples when `training=True`</span>
-<span class="sd">    sampling_downscore_false_negatives : bool, optional</span>
+<span class="sd">    sampling_downscore_false_negatives: bool, optional</span>
 <span class="sd">        Identify false negatives (sampled item ids equal to the positive item and downscore them</span>
 <span class="sd">        to the `sampling_downscore_false_negatives_value`), by default True</span>
-<span class="sd">    sampling_downscore_false_negatives_value : int, optional</span>
+<span class="sd">    sampling_downscore_false_negatives_value: int, optional</span>
 <span class="sd">        Value to be used to downscore false negatives when</span>
 <span class="sd">        `sampling_downscore_false_negatives=True`, by default `np.finfo(np.float32).min / 100.0`</span>
 <span class="sd">    item_id_feature_name: str</span>
@@ -636,6 +638,7 @@ document.write(`
         <span class="n">store_negative_ids</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the `ItemRetrievalScorer` class.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span> <span class="o">=</span> <span class="n">sampling_downscore_false_negatives</span>
@@ -655,6 +658,13 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">set_required_features</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="ItemRetrievalScorer.build"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Builds the block.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shapes: tuple or dict</span>
+<span class="sd">            Shape of the input tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="n">query_shape</span> <span class="o">=</span> <span class="n">input_shapes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
@@ -668,6 +678,13 @@ document.write(`
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_check_input_from_two_tower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks if the inputs from the two towers (query and item) are correctly provided.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputs: dict</span>
+<span class="sd">            Dictionary of inputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Wrong input-names, expected: </span><span class="si">{</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span>
@@ -685,6 +702,7 @@ document.write(`
 <span class="sd">            the positive item (inputs[&quot;item&quot;]).</span>
 <span class="sd">            For the sampled-softmax mode, logits are computed by multiplying the query vector</span>
 <span class="sd">            and the item embeddings matrix (self.context.get_embedding(self.item_domain))</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        inputs : Union[tf.Tensor, TabularData]</span>
@@ -692,6 +710,7 @@ document.write(`
 <span class="sd">            where embeddings are 2D tensors (batch size, embedding size)</span>
 <span class="sd">        training : bool, optional</span>
 <span class="sd">            Flag that indicates whether in training mode, by default True</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        tf.Tensor</span>
@@ -735,6 +754,7 @@ document.write(`
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PredictionOutput&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
 <span class="sd">            the positive item and also sampled negative items (during training).</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        inputs : TabularData</span>
@@ -742,6 +762,7 @@ document.write(`
 <span class="sd">            where embeddings are 2D tensors (batch size, embedding size)</span>
 <span class="sd">        training : bool, optional</span>
 <span class="sd">            Flag that indicates whether in training mode, by default True</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        [tf.Tensor,tf.Tensor]</span>
@@ -893,6 +914,7 @@ document.write(`
         <span class="k">return</span> <span class="n">predictions</span>
 
 <div class="viewcode-block" id="ItemRetrievalScorer.set_required_features"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.set_required_features">[docs]</a>    <span class="k">def</span> <span class="nf">set_required_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets the required features for the samplers.&quot;&quot;&quot;</span>
         <span class="n">required_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span><span class="p">:</span>
             <span class="n">required_features</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">)</span>
@@ -904,6 +926,13 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">_required_features</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">required_features</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ItemRetrievalScorer.get_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the configuration of the model as a dictionary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            The configuration of the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_serialize_keras_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">])</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sampling_downscore_false_negatives&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span>
@@ -920,6 +949,17 @@ document.write(`
 
 <div class="viewcode-block" id="ItemRetrievalScorer.from_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.from_config">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new instance of the class from its config.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config: dict</span>
+<span class="sd">            A dictionary, typically the output of get_config.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A new instance of the `ItemRetrievalScorer` class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_deserialize_keras_objects</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div></div>

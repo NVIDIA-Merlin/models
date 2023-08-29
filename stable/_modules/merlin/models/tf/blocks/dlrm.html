@@ -233,6 +233,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -334,12 +335,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../../../../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../../../../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../../../../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../../../../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../../../../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -496,52 +497,55 @@ document.write(`
     <span class="o">*</span><span class="p">,</span>
     <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">embedding_options</span><span class="p">:</span> <span class="n">EmbeddingOptions</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">embeddings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">bottom_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">top_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">embeddings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SequentialBlock</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds the DLRM architecture, as proposed in the following</span>
-<span class="sd">    `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.</span>
+<span class="sd">     `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.</span>
 
-<span class="sd">    References</span>
-<span class="sd">    ----------</span>
-<span class="sd">    .. [1] Naumov, Maxim, et al. &quot;Deep learning recommendation model for</span>
-<span class="sd">       personalization and recommendation systems.&quot; arXiv preprint arXiv:1906.00091 (2019).</span>
+<span class="sd">     References</span>
+<span class="sd">     ----------</span>
+<span class="sd">     .. [1] Naumov, Maxim, et al. &quot;Deep learning recommendation model for</span>
+<span class="sd">        personalization and recommendation systems.&quot; arXiv preprint arXiv:1906.00091 (2019).</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    schema : Schema</span>
-<span class="sd">        The `Schema` with the input features</span>
-<span class="sd">    bottom_block : Block</span>
-<span class="sd">        The `Block` that combines the continuous features (typically a `MLPBlock`)</span>
-<span class="sd">    top_block : Optional[Block], optional</span>
-<span class="sd">        The optional `Block` that combines the outputs of bottom layer and of</span>
-<span class="sd">        the factorization machine layer, by default None</span>
-<span class="sd">    embedding_dim : Optional[int], optional</span>
-<span class="sd">        Dimension of the embeddings, by default None</span>
-<span class="sd">    embedding_options : EmbeddingOptions</span>
-<span class="sd">        Options for the input embeddings.</span>
-<span class="sd">        - embedding_dim_default: int - Default dimension of the embedding</span>
-<span class="sd">        table, when the feature is not found in ``embedding_dims``, by default 64</span>
-<span class="sd">        - infer_embedding_sizes : bool, Automatically defines the embedding</span>
-<span class="sd">        dimension from the feature cardinality in the schema, by default False,</span>
-<span class="sd">        which needs to be kept False for the DLRM architecture.</span>
+<span class="sd">     Parameters</span>
+<span class="sd">     ----------</span>
+<span class="sd">     schema : Schema</span>
+<span class="sd">         The `Schema` with the input features</span>
+<span class="sd">     embedding_dim : Optional[int], optional</span>
+<span class="sd">         Dimension of the embeddings, by default None</span>
+<span class="sd">     embedding_options : EmbeddingOptions</span>
+<span class="sd">         Options for the input embeddings.</span>
+<span class="sd">         - embedding_dim_default: int - Default dimension of the embedding</span>
+<span class="sd">         table, when the feature is not found in ``embedding_dims``, by default 64</span>
+<span class="sd">         - infer_embedding_sizes : bool, Automatically defines the embedding</span>
+<span class="sd">         dimension from the feature cardinality in the schema, by default False,</span>
+<span class="sd">         which needs to be kept False for the DLRM architecture.</span>
+<span class="sd">    embeddings: Optional[Block]</span>
+<span class="sd">         If provided creates a ParallelBlock with an EmbeddingTable for each</span>
+<span class="sd">         categorical feature in the schema.</span>
+<span class="sd">     bottom_block : Block</span>
+<span class="sd">         The `Block` that combines the continuous features (typically a `MLPBlock`)</span>
+<span class="sd">     top_block : Optional[Block], optional</span>
+<span class="sd">         The optional `Block` that combines the outputs of bottom layer and of</span>
+<span class="sd">         the factorization machine layer, by default None</span>
 
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    SequentialBlock</span>
-<span class="sd">        The DLRM block</span>
+<span class="sd">     Returns</span>
+<span class="sd">     -------</span>
+<span class="sd">     SequentialBlock</span>
+<span class="sd">         The DLRM block</span>
 
-<span class="sd">    Raises</span>
-<span class="sd">    ------</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        The schema is required by DLRM</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        The bottom_block is required by DLRM</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        The embedding_dim (X) needs to match the last layer of bottom MLP (Y).</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        Only one-of `embeddings` or `embedding_options` can be used.</span>
+<span class="sd">     Raises</span>
+<span class="sd">     ------</span>
+<span class="sd">     ValueError</span>
+<span class="sd">         The schema is required by DLRM</span>
+<span class="sd">     ValueError</span>
+<span class="sd">         The bottom_block is required by DLRM</span>
+<span class="sd">     ValueError</span>
+<span class="sd">         The embedding_dim (X) needs to match the last layer of bottom MLP (Y).</span>
+<span class="sd">     ValueError</span>
+<span class="sd">         Only one-of `embeddings` or `embedding_options` can be used.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The schema is required by DLRM&quot;</span><span class="p">)</span>

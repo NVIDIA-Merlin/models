@@ -233,6 +233,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -334,12 +335,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../../../../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../../../../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../../../../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../../../../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../../../../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -501,10 +502,6 @@ document.write(`
 <span class="sd">            The schema object including features to use and their properties.</span>
 <span class="sd">        samplers: List[ItemSampler]</span>
 <span class="sd">            List of samplers for negative sampling, by default `[InBatchSampler()]`</span>
-<span class="sd">        post_logits: Optional[PredictionBlock]</span>
-<span class="sd">            Optional extra pre-call block for post-processing the logits, by default None.</span>
-<span class="sd">            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`</span>
-<span class="sd">            for populariy sampling correction.</span>
 <span class="sd">        target_name: Optional[str]</span>
 <span class="sd">            If specified, name of the target tensor to retrieve from dataloader.</span>
 <span class="sd">            Defaults to None.</span>
@@ -514,9 +511,18 @@ document.write(`
 <span class="sd">        task_block: Block</span>
 <span class="sd">            The `Block` that applies additional layers op to inputs.</span>
 <span class="sd">            Defaults to None.</span>
+<span class="sd">        post_logits: Optional[PredictionBlock]</span>
+<span class="sd">            Optional extra pre-call block for post-processing the logits, by default None.</span>
+<span class="sd">            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`</span>
+<span class="sd">            for populariy sampling correction.</span>
 <span class="sd">        logits_temperature: float</span>
 <span class="sd">            Parameter used to reduce the model overconfidence, so that logits / T.</span>
 <span class="sd">            Defaults to 1.</span>
+<span class="sd">        cache_query: bool</span>
+<span class="sd">            Add query embeddings to the context block, by default False</span>
+<span class="sd">        store_negative_ids: bool</span>
+<span class="sd">            Returns negative items ids as part of the output, by default False</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">        PredictionTask</span>
@@ -574,6 +580,7 @@ document.write(`
         <span class="n">store_negative_ids</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a SequentialBlock of ItemRetrievalScorer() and LogitsTemperatureScaler()&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">samplers</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">samplers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">samplers</span> <span class="o">=</span> <span class="p">(</span><span class="n">InBatchSampler</span><span class="p">(),)</span>
 
@@ -596,6 +603,7 @@ document.write(`
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">retrieval_scorer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">def</span> <span class="nf">find_retrieval_scorer_block</span><span class="p">(</span><span class="n">block</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Returns the ItemRetrievalScorer layer&quot;&quot;&quot;</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">ItemRetrievalScorer</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">block</span>
 
@@ -618,6 +626,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_scorer</span><span class="o">.</span><span class="n">cache_query</span> <span class="o">=</span> <span class="n">value</span></div>
 
 <div class="viewcode-block" id="ItemRetrievalTask.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ItemRetrievalTask.html#merlin.models.tf.ItemRetrievalTask.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a Python dict containing the configuration of the model.&quot;&quot;&quot;</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ItemRetrievalTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="k">del</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;pre&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">:</span>

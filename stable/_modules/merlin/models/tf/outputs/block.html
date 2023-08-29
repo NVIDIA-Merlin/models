@@ -233,6 +233,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -334,12 +335,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../../../../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../../../../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../../../../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../../../../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../../../../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -510,7 +511,7 @@ document.write(`
 <span class="sd">    ----------</span>
 <span class="sd">    schema : Schema</span>
 <span class="sd">        Schema of the input data. This Schema object will be automatically generated using</span>
-<span class="sd">        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).</span>
+<span class="sd">        [NVTabular](https://nvidia-merlin.github.io/NVTabular/stable/Introduction.html).</span>
 <span class="sd">        Next to this, it&#39;s also possible to construct it manually.</span>
 <span class="sd">    model_outputs: Optional[Union[Sequence[ModelOutput], Dict[str, ModelOutput]]]</span>
 <span class="sd">        Optional dict or list of ModelOutput. If a dict, the keys must be the</span>
@@ -593,6 +594,20 @@ document.write(`
 
 
 <span class="k">def</span> <span class="nf">_get_col_set_by_tags</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a set with the schema column names</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    schema : Schema</span>
+<span class="sd">        Schema</span>
+<span class="sd">    tags :</span>
+<span class="sd">        Tags to filter</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Set[str]</span>
+<span class="sd">        A set with the schema column names</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
 
 
@@ -601,6 +616,22 @@ document.write(`
     <span class="n">col_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">task_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Layer</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Layer</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a tower (task_block) for each task (output).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    output_block : OutputBlock</span>
+<span class="sd">        The output block with the tasks</span>
+<span class="sd">    col_name : str</span>
+<span class="sd">        Specify the task name</span>
+<span class="sd">    task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional</span>
+<span class="sd">        Task blocks to be used as task towers. If a single Layer, it is copied to all</span>
+<span class="sd">        tasks. If a dict, the keys must match the task names</span>
+<span class="sd">        (e.g. &quot;click/binary_output&quot;, rating/regression_output&quot;, &quot;item_id/categorical_output&quot;).</span>
+<span class="sd">        You might want to use the task_blocks to create a task-specific tower</span>
+<span class="sd">        (e.g. MLPBLock([32])) or to customize inputs, targets or sample_weights for a</span>
+<span class="sd">        given task. By default None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">task_block</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">task_blocks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task_blocks</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>

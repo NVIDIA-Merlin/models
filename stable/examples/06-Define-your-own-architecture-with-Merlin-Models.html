@@ -236,6 +236,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -337,12 +338,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -564,7 +565,7 @@ document.write(`
 <section id="taking-the-next-step-with-merlin-models-define-your-own-architecture">
 <h1>Taking the Next Step with Merlin Models: Define Your Own Architecture<a class="headerlink" href="#taking-the-next-step-with-merlin-models-define-your-own-architecture" title="Permalink to this headline">#</a></h1>
 <p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
-<p>In <a class="reference external" href="https://nvidia-merlin.github.io/models/main/examples/03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a>, we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.</p>
+<p>In <a class="reference external" href="https://nvidia-merlin.github.io/models/stable/examples/03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a>, we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.</p>
 <p>In this example, we combine pre-existing blocks and demonstrate how to create the <a class="reference external" href="https://arxiv.org/abs/1906.00091">DLRM</a> architecture.</p>
 <section id="learning-objectives">
 <h2>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline">#</a></h2>
@@ -1224,7 +1225,7 @@ We note that the <code class="docutils literal notranslate"><span class="pre">Mo
 </section>
 <section id="conclusion">
 <h2>Conclusion<a class="headerlink" href="#conclusion" title="Permalink to this headline">#</a></h2>
-<p>Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, output blocks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our <a class="reference external" href="https://nvidia-merlin.github.io/models/main/">documentation</a> to discover more. You can also <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md">contribute</a> to the library by submitting new RecSys architectures and custom building Blocks.</p>
+<p>Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, output blocks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our <a class="reference external" href="https://nvidia-merlin.github.io/models/stable/">documentation</a> to discover more. You can also <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/CONTRIBUTING.md">contribute</a> to the library by submitting new RecSys architectures and custom building Blocks.</p>
 </section>
 <section id="next-steps">
 <h2>Next steps<a class="headerlink" href="#next-steps" title="Permalink to this headline">#</a></h2>

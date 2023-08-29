@@ -236,6 +236,7 @@
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
@@ -337,12 +338,12 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
       <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
       <dd><a href="../../v23.02.00/index.html">v23.02.00</a></dd>
       <dd><a href="../../v23.04.00/index.html">v23.04.00</a></dd>
       <dd><a href="../../v23.05.00/index.html">v23.05.00</a></dd>
       <dd><a href="../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../v23.08.00/index.html">v23.08.00</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
@@ -518,16 +519,13 @@ document.write(`
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">merlin.models.tf.core.base.Block</span></code></p>
 <p>Block for ItemRetrieval, which expects query/user and item embeddings as input and
 uses dot product to score the positive item (inputs[“item”]) and also sampled negative
-items (during training).
-:param samplers: List of item samplers that provide negative samples when <cite>training=True</cite>
-:type samplers: List[ItemSampler], optional
-:param sampling_downscore_false_negatives: Identify false negatives (sampled item ids equal to the positive item and downscore them</p>
-<blockquote>
-<div><p>to the <cite>sampling_downscore_false_negatives_value</cite>), by default True</p>
-</div></blockquote>
+items (during training).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>samplers</strong> (<em>List</em><em>[</em><a class="reference internal" href="merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler" title="merlin.models.tf.ItemSampler"><em>ItemSampler</em></a><em>]</em><em>, </em><em>optional</em>) – List of item samplers that provide negative samples when <cite>training=True</cite></p></li>
+<li><p><strong>sampling_downscore_false_negatives</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – Identify false negatives (sampled item ids equal to the positive item and downscore them
+to the <cite>sampling_downscore_false_negatives_value</cite>), by default True</p></li>
 <li><p><strong>sampling_downscore_false_negatives_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – Value to be used to downscore false negatives when
 <cite>sampling_downscore_false_negatives=True</cite>, by default <cite>np.finfo(np.float32).min / 100.0</cite></p></li>
 <li><p><strong>item_id_feature_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Name of the column containing the item ids
@@ -543,7 +541,8 @@ Defaults to <cite>item_id</cite></p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.ItemRetrievalScorer.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samplers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.11)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler" title="merlin.models.tf.blocks.sampling.base.ItemSampler"><span class="pre">merlin.models.tf.blocks.sampling.base.ItemSampler</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_downscore_false_negatives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_downscore_false_negatives_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-</span> <span class="pre">655.04</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_id_feature_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'item_id'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_domain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'item_id'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'query'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'item'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampled_softmax_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store_negative_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/base.html#ItemRetrievalScorer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ItemRetrievalScorer.__init__" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Initializes the <cite>ItemRetrievalScorer</cite> class.</p>
+</dd></dl>
 
 <p class="rubric">Methods</p>
 <table class="autosummary longtable table autosummary">
@@ -553,7 +552,7 @@ Defaults to <cite>item_id</cite></p></li>
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ItemRetrievalScorer.__init__" title="merlin.models.tf.ItemRetrievalScorer.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>([samplers, ...])</p></td>
-<td><p></p></td>
+<td><p>Initializes the <cite>ItemRetrievalScorer</cite> class.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_loss</span></code>(losses, **kwargs)</p></td>
 <td><p>Add loss tensor(s), potentially dependent on layer inputs.</p></td>
@@ -574,7 +573,7 @@ Defaults to <cite>item_id</cite></p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ItemRetrievalScorer.build" title="merlin.models.tf.ItemRetrievalScorer.build"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code></a>(input_shapes)</p></td>
-<td><p></p></td>
+<td><p>Builds the block.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_from_config</span></code>(config)</p></td>
 <td><p></p></td>
@@ -622,7 +621,7 @@ Defaults to <cite>item_id</cite></p></li>
 <td><p>Finalizes the layers state after updating layer weights.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ItemRetrievalScorer.from_config" title="merlin.models.tf.ItemRetrievalScorer.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config)</p></td>
-<td><p></p></td>
+<td><p>Creates a new instance of the class from its config.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
 <td><p></p></td>
@@ -631,7 +630,7 @@ Defaults to <cite>item_id</cite></p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ItemRetrievalScorer.get_config" title="merlin.models.tf.ItemRetrievalScorer.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
-<td><p></p></td>
+<td><p>Returns the configuration of the model as a dictionary.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input tensor(s) of a layer at a given node.</p></td>
@@ -685,7 +684,7 @@ Defaults to <cite>item_id</cite></p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ItemRetrievalScorer.set_required_features" title="merlin.models.tf.ItemRetrievalScorer.set_required_features"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_required_features</span></code></a>()</p></td>
-<td><p></p></td>
+<td><p>Sets the required features for the samplers.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
 <td><p></p></td>
@@ -815,7 +814,13 @@ Defaults to <cite>item_id</cite></p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.ItemRetrievalScorer.build">
 <span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shapes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/base.html#ItemRetrievalScorer.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ItemRetrievalScorer.build" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Builds the block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shapes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.11)"><em>tuple</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><em>dict</em></a>) – Shape of the input tensor.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.ItemRetrievalScorer.call">
@@ -873,17 +878,36 @@ Return tensor is 2D (batch size, 1 + #negatives)</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.ItemRetrievalScorer.set_required_features">
 <span class="sig-name descname"><span class="pre">set_required_features</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/base.html#ItemRetrievalScorer.set_required_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ItemRetrievalScorer.set_required_features" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the required features for the samplers.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.ItemRetrievalScorer.get_config">
 <span class="sig-name descname"><span class="pre">get_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/base.html#ItemRetrievalScorer.get_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ItemRetrievalScorer.get_config" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the configuration of the model as a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The configuration of the model.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.ItemRetrievalScorer.from_config">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/base.html#ItemRetrievalScorer.from_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ItemRetrievalScorer.from_config" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Creates a new instance of the class from its config.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><em>dict</em></a>) – A dictionary, typically the output of get_config.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>A new instance of the <cite>ItemRetrievalScorer</cite> class.</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
