@@ -184,7 +184,10 @@ class SequenceTransform(TabularBlock):
     def get_config(self):
         """Returns the config of the layer as a Python dictionary."""
         config = super().get_config()
-        config["target"] = self.target
+        target = self.target
+        if isinstance(target, ColumnSchema):
+            target = schema_utils.schema_to_tensorflow_metadata_json(Schema([target]))
+        config["target"] = target
 
         return config
 
@@ -193,6 +196,10 @@ class SequenceTransform(TabularBlock):
         """Creates layer from its config. Returning the instance."""
         config = tf_utils.maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
         config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
+        if config["target"].startswith("{"):  # we have a schema
+            config["target"] = [
+                col for col in schema_utils.tensorflow_metadata_json_to_schema(config["target"])
+            ][0]
         schema = config.pop("schema")
         target = config.pop("target")
         return cls(schema, target, **config)
