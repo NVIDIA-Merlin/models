@@ -17,13 +17,13 @@ jobs:
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
       options: --shm-size=1G
-        --gpus=all
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Run tests
         run: |
+          nvidia-smi
           pip install tox
           ref_type=${{ github.ref_type }}
           branch=main
@@ -44,13 +44,13 @@ jobs:
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
       options: --shm-size=1G
-        --gpus=all
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Run tests
         run: |
+          nvidia-smi
           pip install tox
           ref_type=${{ github.ref_type }}
           branch=main
