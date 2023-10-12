@@ -3,7 +3,7 @@ name: GPU CI
 on:
   workflow_dispatch:
   push:
-    branches: 
+    branches:
       - main
       - "pull-request/[0-9]+"
     tags:
@@ -13,69 +13,63 @@ jobs:
   gpu-ci-tensorflow:
     runs-on: linux-amd64-gpu-p100-latest-1
     container:
-          image: nvcr.io/nvidia/merlin/merlin-tensorflow:nightly
-          env:
-            NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-          options: --shm-size=1G
+      image: nvcr.io/nvidia/merlin/merlin-tensorflow:nightly
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+      options: --shm-size=1G
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Run tests
-      run: |
-        pip install tox
-        PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" tox -e gpu
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Run tests
+        run: |
+          pip install tox
+          PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" tox -e gpu
 
-jobs:
   gpu-ci-pytorch:
     runs-on: linux-amd64-gpu-p100-latest-1
     container:
-          image: nvcr.io/nvidia/merlin/merlin-pytorch:nightly
-          env:
-            NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-          options: --shm-size=1G
+      image: nvcr.io/nvidia/merlin/merlin-pytorch:nightly
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+      options: --shm-size=1G
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Run tests
-      run: |
-        pip install tox
-        PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" tox -e gpu
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Run tests
+        run: |
+          pip install tox
+          PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" tox -e gpu
 
-
-jobs:
   gpu-ci-tensorflow-examples:
     runs-on: linux-amd64-gpu-p100-latest-1
     container:
-          image: nvcr.io/nvidia/merlin/merlin-tensorflow:nightly
-          env:
-            NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-          options: --shm-size=1G
+      image: nvcr.io/nvidia/merlin/merlin-tensorflow:nightly
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+      options: --shm-size=1G
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Run tests
-      run: |
-        pip install tox
-        PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" tox -e gpu
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Run tests
+        run: |
+          pip install tox
+          PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" tox -e gpu
 
-
-jobs:
   gpu-ci-pytorch-examples:
     runs-on: linux-amd64-gpu-p100-latest-1
     container:
-          image: nvcr.io/nvidia/merlin/merlin-pytorch:nightly
-          env:
-            NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-          options: --shm-size=1G
+      image: nvcr.io/nvidia/merlin/merlin-pytorch:nightly
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+      options: --shm-size=1G
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Run tests
-      run: |
-        pip install tox
-        PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" tox -e gpu
-
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Run tests
+        run: |
+          pip install tox
+          PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" tox -e gpu
