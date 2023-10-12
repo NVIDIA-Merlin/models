@@ -24,7 +24,7 @@ jobs:
     - name: Run tests
       run: |
         pip install tox
-        PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e gpu
+        PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" tox -e gpu
 
 jobs:
   gpu-ci-pytorch:
@@ -41,7 +41,7 @@ jobs:
     - name: Run tests
       run: |
         pip install tox
-        PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e gpu
+        PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" tox -e gpu
 
 
 jobs:
@@ -79,4 +79,3 @@ jobs:
         pip install tox
         PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" tox -e gpu
 
-        
