@@ -24,7 +24,17 @@ jobs:
       - name: Run tests
         run: |
           pip install tox
-          PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" tox -e gpu
+          ref_type=${{ github.ref_type }}
+          branch=main
+          if [[ $ref_type == "tag"* ]]
+          then
+            git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
+            branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
+          fi
+          if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+              extra_pytest_markers="and changed"
+          fi
+          PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e gpu
 
   gpu-ci-pytorch:
     runs-on: linux-amd64-gpu-p100-latest-1
@@ -40,7 +50,17 @@ jobs:
       - name: Run tests
         run: |
           pip install tox
-          PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" tox -e gpu
+          ref_type=${{ github.ref_type }}
+          branch=main
+          if [[ $ref_type == "tag"* ]]
+          then
+            git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
+            branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
+          fi
+          if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+              extra_pytest_markers="and changed"
+          fi
+          PYTEST_MARKERS="unit and not (examples or integration or notebook) and (singlegpu or not multigpu) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e gpu
 
   gpu-ci-tensorflow-examples:
     runs-on: linux-amd64-gpu-p100-latest-1
@@ -56,7 +76,17 @@ jobs:
       - name: Run tests
         run: |
           pip install tox
-          PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" tox -e gpu
+          ref_type=${{ github.ref_type }}
+          branch=main
+          if [[ $ref_type == "tag"* ]]
+          then
+            git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
+            branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
+          fi
+          if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+              extra_pytest_markers="and changed"
+          fi
+          PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e gpu
 
   gpu-ci-pytorch-examples:
     runs-on: linux-amd64-gpu-p100-latest-1
@@ -72,4 +102,14 @@ jobs:
       - name: Run tests
         run: |
           pip install tox
-          PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" tox -e gpu
+          ref_type=${{ github.ref_type }}
+          branch=main
+          if [[ $ref_type == "tag"* ]]
+          then
+            git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +refs/heads/release*:refs/remotes/origin/release*
+            branch=$(git branch -r --contains ${{ github.ref_name }} --list '*release*' --format "%(refname:short)" | sed -e 's/^origin\///')
+          fi
+          if [[ "${{ github.ref }}" != 'refs/heads/main' ]]; then
+              extra_pytest_markers="and changed"
+          fi
+          PYTEST_MARKERS="(examples or notebook) $extra_pytest_markers" MERLIN_BRANCH=$branch COMPARE_BRANCH=${{ github.base_ref }} tox -e gpu
