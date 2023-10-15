@@ -566,13 +566,13 @@ will be passed to <cite>Continuous</cite> to infer the features from the column-
 <li><p><strong>pre</strong> (<em>Optional</em><em>[</em><em>BlockType</em><em>]</em><em>, </em><em>optional</em>) – Transformation block to apply before the embeddings lookup, by default None</p></li>
 <li><p><strong>post</strong> (<em>Optional</em><em>[</em><em>BlockType</em><em>]</em><em>, </em><em>optional</em>) – Transformation block to apply after the embeddings lookup, by default None</p></li>
 <li><p><strong>aggregation</strong> (<em>Optional</em><em>[</em><em>TabularAggregationType</em><em>]</em><em>, </em><em>optional</em>) – Transformation block to apply for aggregating the inputs, by default “concat”</p></li>
-<li><p><strong>tag_to_block</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>Callable</em><em>[</em><em>[</em><em>Schema</em><em>]</em><em>, </em><em>Layer</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – <dl class="simple">
+<li><p><strong>tag_to_block</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Callable</em><em>[</em><em>[</em><em>Schema</em><em>]</em><em>, </em><em>Layer</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – <dl class="simple">
 <dt>Mapping from tag to block-type, by default:</dt><dd><p>Tags.CONTINUOUS -&gt; Continuous
 Tags.CATEGORICAL -&gt; Embeddings</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>**branches</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><em>dict</em></a>) – Extra branches to add to the input block.</p></li>
+<li><p><strong>**branches</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Extra branches to add to the input block.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

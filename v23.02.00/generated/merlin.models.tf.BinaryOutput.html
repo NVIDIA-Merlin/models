@@ -522,16 +522,16 @@ document.write(`
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>target</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>Schema</em><em>]</em><em>, </em><em>optional</em>) – The name of the target. If a Schema is provided, the target is inferred from the schema.</p></li>
+<li><p><strong>target</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Schema</em><em>]</em><em>, </em><em>optional</em>) – The name of the target. If a Schema is provided, the target is inferred from the schema.</p></li>
 <li><p><strong>pre</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em><em>, </em><em>optional</em>) – Optional block to transform predictions before computing the binary logits,
 by default None</p></li>
 <li><p><strong>post</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em><em>, </em><em>optional</em>) – Optional block to transform the binary logits,
 by default None</p></li>
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the task.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the task.</p></li>
 <li><p><strong>task_block</strong> (<em>Block</em><em>, </em><em>optional</em>) – The block to use for the task.</p></li>
-<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>, </em><em>optional</em>) – Parameter used to reduce model overconfidence, so that logits / T.
+<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – Parameter used to reduce model overconfidence, so that logits / T.
 by default 1.</p></li>
-<li><p><strong>default_loss</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>tf.keras.losses.Loss</em><em>]</em><em>, </em><em>optional</em>) – Default loss to use for binary-classification
+<li><p><strong>default_loss</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>tf.keras.losses.Loss</em><em>]</em><em>, </em><em>optional</em>) – Default loss to use for binary-classification
 by ‘binary_crossentropy’</p></li>
 <li><p><strong>default_metrics_fn</strong> (<em>Callable</em>) – A function returning the list of default metrics
 to use for binary-classification</p></li>

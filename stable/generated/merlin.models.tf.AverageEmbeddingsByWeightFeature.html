@@ -519,7 +519,7 @@ document.write(`
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">keras.engine.base_layer.Layer</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.AverageEmbeddingsByWeightFeature.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weight_feature_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#AverageEmbeddingsByWeightFeature.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.__init__" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weight_feature_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#AverageEmbeddingsByWeightFeature.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.__init__" title="Permalink to this definition">#</a></dt>
 <dd><p>Computes the weighted average of a Tensor based
 on one of the input features.
 Typically used as a combiner for EmbeddingTable
@@ -527,8 +527,8 @@ for aggregating sequential embedding features</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>weight_feature_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Name of the feature to be used as weight for average</p></li>
-<li><p><strong>axis</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – Axis for reduction, by default 1 (assuming the 2nd dim is
+<li><p><strong>weight_feature_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Name of the feature to be used as weight for average</p></li>
+<li><p><strong>axis</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Axis for reduction, by default 1 (assuming the 2nd dim is
 the sequence length)</p></li>
 </ul>
 </dd>
@@ -732,7 +732,7 @@ the sequence length)</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>inputs</strong> (<em>tf.Tensor</em>) – Input tensor.</p></li>
-<li><p><strong>features</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><em>dict</em></a>) – Dictionary of features, must include the weight feature.</p></li>
+<li><p><strong>features</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of features, must include the weight feature.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -742,7 +742,7 @@ the sequence length)</p></li>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 <dt class="field-even">Raises</dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.11)"><strong>ValueError</strong></a> – If the inputs is a tf.RaggedTensor, the weight feature should also be a tf.RaggedTensor.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If the inputs is a tf.RaggedTensor, the weight feature should also be a tf.RaggedTensor.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -766,7 +766,7 @@ the sequence length)</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="merlin.models.tf.AverageEmbeddingsByWeightFeature.from_schema_convention">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_schema_convention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/generated/merlin.schema.Schema.html#merlin.schema.Schema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.Schema</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_features_name_suffix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'_weight'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#AverageEmbeddingsByWeightFeature.from_schema_convention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.from_schema_convention" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_schema_convention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/generated/merlin.schema.Schema.html#merlin.schema.Schema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.Schema</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_features_name_suffix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'_weight'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/embedding.html#AverageEmbeddingsByWeightFeature.from_schema_convention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.AverageEmbeddingsByWeightFeature.from_schema_convention" title="Permalink to this definition">#</a></dt>
 <dd><p>Infers the weight features corresponding to sequential embedding
 features based on the feature name suffix. For example, if a
 sequential categorical feature is called <cite>item_id_seq</cite>, if there is another
@@ -777,7 +777,7 @@ seq cat. feature then standard mean is used as combiner</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>schema</strong> (<em>Schema</em>) – The feature schema</p></li>
-<li><p><strong>weight_features_name_suffix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Suffix to look for a corresponding weight feature</p></li>
+<li><p><strong>weight_features_name_suffix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Suffix to look for a corresponding weight feature</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -785,7 +785,7 @@ seq cat. feature then standard mean is used as combiner</p>
 is an instance of WeightedAverageByFeature with the corresponding weight feature name</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a>, WeightedAverageByFeature]</p>
+<dd class="field-odd"><p>Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>, WeightedAverageByFeature]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -799,7 +799,7 @@ is an instance of WeightedAverageByFeature with the corresponding weight feature
 <dd class="field-odd"><p>A dictionary containing the configuration of the layer.</p>
 </dd>
 <dt class="field-even">Return type</dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)">dict</a></p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>
