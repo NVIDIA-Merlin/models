@@ -535,12 +535,12 @@ If not specified, the input layer is inferred from the schema
 By default None</p></li>
 <li><p><strong>post</strong> (<em>Optional</em><em>[</em><em>tf.keras.layers.Layer</em><em>]</em><em>, </em><em>optional</em>) – The optional layer to apply on top of the query encoder.</p></li>
 <li><p><strong>outputs</strong> (<em>Union</em><em>[</em><a class="reference internal" href="merlin.models.tf.ModelOutput.html#merlin.models.tf.ModelOutput" title="merlin.models.tf.ModelOutput"><em>ModelOutput</em></a><em>, </em><em>List</em><em>[</em><a class="reference internal" href="merlin.models.tf.ModelOutput.html#merlin.models.tf.ModelOutput" title="merlin.models.tf.ModelOutput"><em>ModelOutput</em></a><em>]</em><em>]</em><em>, </em><em>optional</em>) – Specifies the model’s outputs. If not specified, the outputs will be inferred.</p></li>
-<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>, </em><em>optional</em>) – Parameter used to reduce model overconfidence, so that logits / T.
+<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – Parameter used to reduce model overconfidence, so that logits / T.
 Defaults to 1.</p></li>
-<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – When sampled_softmax is enabled, specify the number of
+<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – When sampled_softmax is enabled, specify the number of
 negative candidates to generate for each batch.
 By default 100</p></li>
-<li><p><strong>min_sampled_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – The minimum id value to be sampled with sampled softmax.
+<li><p><strong>min_sampled_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The minimum id value to be sampled with sampled softmax.
 Useful to ignore the first categorical
 encoded ids, which are usually reserved for &lt;nulls&gt;,
 out-of-vocabulary or padding.
