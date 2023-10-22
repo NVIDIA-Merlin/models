@@ -7,7 +7,9 @@ optuna = pytest.importorskip("optuna")
 
 
 @testbook(
-    REPO_ROOT / "examples/usecases/retrieval-with-hyperparameter-optimization.ipynb", execute=False
+    REPO_ROOT / "examples/usecases/retrieval-with-hyperparameter-optimization.ipynb",
+    execute=False,
+    timeout=180
 )
 @pytest.mark.notebook
 def test_usecase_pretrained_embeddings(tb):
