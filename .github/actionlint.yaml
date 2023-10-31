@@ -3,3 +3,4 @@ self-hosted-runner:
   labels:
     - 1GPU
     - 2GPU
+    - linux-amd64-gpu-p100-latest-1
