@@ -2261,7 +2261,7 @@ document.write(`
 
         <span class="bp">self</span><span class="o">.</span><span class="n">built</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_context</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Method for forward pass of the model.</span>
 
@@ -2283,6 +2283,9 @@ document.write(`
 <span class="sd">        Tensor or tuple of Tensor and ModelContext</span>
 <span class="sd">            Output of the model, and optionally the context</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">training</span> <span class="o">=</span> <span class="n">training</span> <span class="ow">or</span> <span class="kc">False</span>
+        <span class="n">testing</span> <span class="o">=</span> <span class="n">testing</span> <span class="ow">or</span> <span class="kc">False</span>
+        <span class="n">output_context</span> <span class="o">=</span> <span class="n">output_context</span> <span class="ow">or</span> <span class="kc">False</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
         <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_features</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
