@@ -1798,7 +1798,7 @@ class Model(BaseModel):
 
         self.built = True
 
-    def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
+    def call(self, inputs, targets=None, training=None, testing=None, output_context=None):
         """
         Method for forward pass of the model.
 
@@ -1820,6 +1820,9 @@ class Model(BaseModel):
         Tensor or tuple of Tensor and ModelContext
             Output of the model, and optionally the context
         """
+        training = training or False
+        testing = testing or False
+        output_context = output_context or False
         outputs = inputs
         features = self._prepare_features(inputs, targets=targets)
         if isinstance(features, tuple):
