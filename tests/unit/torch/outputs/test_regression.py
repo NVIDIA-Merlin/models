@@ -31,7 +31,6 @@ class TestRegressionOutput:
         assert isinstance(reg_output, mm.RegressionOutput)
         assert isinstance(reg_output.loss, nn.MSELoss)
         assert reg_output.metrics == [MeanSquaredError()]
-        assert reg_output.output_schema == Schema()
 
     def test_identity(self):
         reg_output = mm.RegressionOutput()
@@ -41,7 +40,7 @@ class TestRegressionOutput:
 
         assert outputs.shape == (3, 1)
 
-    def test_setup_schema(self):
+    def test_output_schema(self):
         schema = ColumnSchema("foo", dtype=md.int16)
         reg_output = mm.RegressionOutput(schema=schema)
 
@@ -50,8 +49,9 @@ class TestRegressionOutput:
         assert reg_output.output_schema.first.dtype == md.float32
         assert Tags.CONTINUOUS in reg_output.output_schema.first.tags
 
-        with pytest.raises(ValueError):
-            reg_output.setup_schema(Schema(["a", "b"]))
+    def test_error_multiple_columns(self):
+        with pytest.raises(ValueError, match="Schema must contain exactly one column"):
+            mm.RegressionOutput(schema=Schema(["a", "b"]))
 
     def test_default_loss(self):
         reg_output = mm.RegressionOutput()
@@ -91,7 +91,7 @@ class TestRegressionOutput:
 
     def test_custom_metrics(self):
         reg_output = mm.RegressionOutput(
-            metrics=(MeanAbsoluteError(), MeanAbsolutePercentageError())
+            metrics=[MeanAbsoluteError(), MeanAbsolutePercentageError()]
         )
         features = torch.randn(3, 2)
         targets = torch.randn(3, 1)

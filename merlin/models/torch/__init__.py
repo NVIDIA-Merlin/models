@@ -16,27 +16,54 @@
 
 from merlin.models.torch import schema
 from merlin.models.torch.batch import Batch, Sequence
-from merlin.models.torch.block import Block, ParallelBlock, ResidualBlock, ShortcutBlock
+from merlin.models.torch.block import (
+    BatchBlock,
+    Block,
+    ParallelBlock,
+    ResidualBlock,
+    ShortcutBlock,
+    repeat,
+    repeat_parallel,
+    repeat_parallel_like,
+)
+from merlin.models.torch.blocks.attention import CrossAttentionBlock
 from merlin.models.torch.blocks.dlrm import DLRMBlock
+from merlin.models.torch.blocks.experts import CGCBlock, MMOEBlock, PLEBlock
 from merlin.models.torch.blocks.mlp import MLPBlock
+from merlin.models.torch.functional import map, walk
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
 from merlin.models.torch.inputs.select import SelectFeatures, SelectKeys
-from merlin.models.torch.inputs.tabular import TabularInputBlock
-from merlin.models.torch.models.base import Model
-from merlin.models.torch.models.ranking import DLRMModel
+from merlin.models.torch.inputs.tabular import TabularInputBlock, stack_context
+from merlin.models.torch.models.base import Model, MultiLoader
+from merlin.models.torch.models.ranking import DCNModel, DLRMModel
 from merlin.models.torch.outputs.base import ModelOutput
-from merlin.models.torch.outputs.classification import BinaryOutput
+from merlin.models.torch.outputs.classification import (
+    BinaryOutput,
+    CategoricalOutput,
+    CategoricalTarget,
+    EmbeddingTablePrediction,
+)
 from merlin.models.torch.outputs.regression import RegressionOutput
 from merlin.models.torch.outputs.tabular import TabularOutputBlock
+from merlin.models.torch.predict import DaskEncoder, DaskPredictor, EncoderBlock
 from merlin.models.torch.router import RouterBlock
 from merlin.models.torch.transforms.agg import Concat, Stack
+from merlin.models.torch.transforms.sequences import BroadcastToSequence, TabularPadding
+
+input_schema = schema.input_schema
+output_schema = schema.output_schema
+target_schema = schema.target_schema
+feature_schema = schema.feature_schema
 
 __all__ = [
     "Batch",
     "BinaryOutput",
     "Block",
+    "BatchBlock",
+    "DLRMBlock",
     "MLPBlock",
     "Model",
+    "MultiLoader",
     "EmbeddingTable",
     "EmbeddingTables",
     "ParallelBlock",
@@ -55,6 +82,29 @@ __all__ = [
     "Concat",
     "Stack",
     "schema",
+    "repeat",
+    "repeat_parallel",
+    "repeat_parallel_like",
+    "CategoricalOutput",
+    "CategoricalTarget",
+    "EmbeddingTablePrediction",
+    "input_schema",
+    "output_schema",
+    "feature_schema",
+    "target_schema",
     "DLRMBlock",
     "DLRMModel",
+    "DCNModel",
+    "MMOEBlock",
+    "PLEBlock",
+    "CGCBlock",
+    "TabularPadding",
+    "BroadcastToSequence",
+    "EncoderBlock",
+    "DaskEncoder",
+    "DaskPredictor",
+    "stack_context",
+    "CrossAttentionBlock",
+    "map",
+    "walk",
 ]

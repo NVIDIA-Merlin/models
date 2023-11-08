@@ -44,13 +44,17 @@ class TestModel:
         model = mm.Model(mm.Block(), nn.Linear(10, 10))
         assert isinstance(model, mm.Model)
         assert len(model) == 2
-        assert model.optimizer is torch.optim.Adam
-        assert isinstance(model.configure_optimizers(), torch.optim.Adam)
+        assert isinstance(model.configure_optimizers()[0], torch.optim.Adam)
 
-    def test_init_optimizer(self):
-        optimizer = torch.optim.SGD
-        model = mm.Model(mm.Block(), mm.Block(), optimizer=optimizer)
-        assert model.optimizer is torch.optim.SGD
+    def test_init_optimizer_and_scheduler(self):
+        model = mm.Model(mm.MLPBlock([4, 4]))
+        model.initialize(mm.Batch(torch.rand(2, 2)))
+
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.99)
+        opt, sched = model.configure_optimizers(optimizer, scheduler)
+        assert opt == [optimizer]
+        assert sched == [scheduler]
 
     def test_pre_and_pre(self):
         inputs = torch.tensor([[1, 2], [3, 4]])
@@ -94,6 +98,9 @@ class TestModel:
         with pytest.raises(RuntimeError, match="Unexpected input type"):
             model.initialize(inputs)
 
+        with pytest.raises(ValueError):
+            mm.Model(mm.Block(), pre=mm.Block())
+
     def test_script(self):
         model = mm.Model(mm.Block(), mm.Block())
         inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
@@ -125,10 +132,10 @@ class TestModel:
         loss = model.training_step((features, targets), 0)
         (weights, bias) = model.parameters()
         expected_outputs = nn.Sigmoid()(torch.matmul(features["feature"], weights.T) + bias)
-        expected_loss = nn.BCEWithLogitsLoss()(expected_outputs, targets["target"])
+        expected_loss = nn.BCELoss()(expected_outputs, targets["target"])
         assert torch.allclose(loss, expected_loss)
 
-    def test_training_step_with_dataloader(self):
+    def test_step_with_dataloader(self):
         model = mm.Model(
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),
@@ -144,8 +151,11 @@ class TestModel:
 
         loss = model.training_step(batch, 0)
         assert loss > 0.0
+        assert torch.equal(
+            model.validation_step(batch, 0)["loss"], model.test_step(batch, 0)["loss"]
+        )
 
-    def test_training_step_with_batch(self):
+    def test_step_with_batch(self):
         model = mm.Model(
             mm.Concat(),
             mm.BinaryOutput(ColumnSchema("target")),
@@ -156,6 +166,9 @@ class TestModel:
         model.initialize(batch)
         loss = model.training_step(batch, 0)
         assert loss > 0.0
+        assert torch.equal(
+            model.validation_step(batch, 0)["loss"], model.test_step(batch, 0)["loss"]
+        )
 
     def test_training_step_missing_output(self):
         model = mm.Model(mm.Block())
@@ -191,7 +204,7 @@ class TestModel:
             "b": torch.tensor([[5.0, 6.0], [7.0, 8.0]]),
         }
         outputs = mm.schema.trace(model, inputs)
-        schema = mm.schema.output(model)
+        schema = mm.output_schema(model)
         for name in outputs:
             assert name in schema.column_names
             assert schema[name].dtype.name == str(outputs[name].dtype).split(".")[-1]
@@ -199,7 +212,7 @@ class TestModel:
     def test_no_output_schema(self):
         model = mm.Model(PlusOne())
         with pytest.raises(ValueError, match="Could not get output schema of PlusOne()"):
-            mm.schema.output(model)
+            mm.output_schema(model)
 
     def test_train_classification_with_lightning_trainer(self, music_streaming_data, batch_size=16):
         schema = music_streaming_data.schema.select_by_name(
@@ -214,10 +227,7 @@ class TestModel:
         )
 
         trainer = pl.Trainer(max_epochs=1, devices=1)
-
-        with Loader(music_streaming_data, batch_size=batch_size) as loader:
-            model.initialize(loader)
-            trainer.fit(model, loader)
+        trainer.fit(model, Loader(music_streaming_data, batch_size=batch_size))
 
         assert trainer.logged_metrics["train_loss"] > 0.0
         assert trainer.num_training_batches == 7  # 100 rows // 16 per batch + 1 for last batch
@@ -226,13 +236,38 @@ class TestModel:
         _ = module_utils.module_test(model, batch)
 
 
+class TestMultiLoader:
+    def test_train_dataset(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(music_streaming_data)
+        assert multi_loader.train_dataloader() is multi_loader.loader_train
+
+    def test_train_loader(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(Loader(music_streaming_data, 2))
+        assert multi_loader.train_dataloader() is multi_loader.loader_train
+
+    def test_valid_dataloader(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(music_streaming_data, music_streaming_data)
+        assert multi_loader.val_dataloader() is multi_loader.loader_valid
+
+    def test_test_dataloader(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(*([music_streaming_data] * 3))
+        assert multi_loader.test_dataloader() is multi_loader.loader_test
+
+    def test_teardown(self, music_streaming_data):
+        multi_loader = mm.MultiLoader(*([music_streaming_data] * 3))
+        multi_loader.teardown(None)
+        assert not hasattr(multi_loader, "loader_train")
+        assert not hasattr(multi_loader, "loader_valid")
+        assert not hasattr(multi_loader, "loader_test")
+
+
 class TestComputeLoss:
     def test_tensor_inputs(self):
-        predictions = torch.randn(2, 1)
+        predictions = torch.sigmoid(torch.randn(2, 1))
         targets = torch.randint(2, (2, 1), dtype=torch.float32)
         model_outputs = [mm.BinaryOutput(ColumnSchema("a"))]
         results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCEWithLogitsLoss()(predictions, targets)
+        expected_loss = nn.BCELoss()(predictions, targets)
         expected_auroc = AUROC(task="binary")(predictions, targets)
         expected_acc = Accuracy(task="binary")(predictions, targets)
         expected_prec = Precision(task="binary")(predictions, targets)
@@ -253,48 +288,49 @@ class TestComputeLoss:
         assert torch.allclose(results["binary_recall"], expected_rec)
 
     def test_no_metrics(self):
-        predictions = torch.randn(2, 1)
+        predictions = torch.sigmoid(torch.randn(2, 1))
         targets = torch.randint(2, (2, 1), dtype=torch.float32)
         model_outputs = [mm.BinaryOutput(ColumnSchema("a"))]
         results = compute_loss(predictions, targets, model_outputs, compute_metrics=False)
         assert sorted(results.keys()) == ["loss"]
 
     def test_dict_inputs(self):
-        predictions = {"a": torch.randn(2, 1)}
+        outputs = mm.ParallelBlock({"a": mm.BinaryOutput(ColumnSchema("a"))})
+        predictions = outputs(torch.randn(2, 1))
         targets = {"a": torch.randint(2, (2, 1), dtype=torch.float32)}
-        model_outputs = (mm.BinaryOutput(ColumnSchema("a")),)
-        results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCEWithLogitsLoss()(predictions["a"], targets["a"])
+
+        results = compute_loss(predictions, targets, outputs.find(mm.ModelOutput))
+        expected_loss = nn.BCELoss()(predictions["a"], targets["a"])
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_mixed_inputs(self):
         predictions = {"a": torch.randn(2, 1)}
         targets = torch.randint(2, (2, 1), dtype=torch.float32)
-        model_outputs = (mm.BinaryOutput(ColumnSchema("a")),)
+        model_outputs = (mm.RegressionOutput(ColumnSchema("a")),)
         results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCEWithLogitsLoss()(predictions["a"], targets)
+        expected_loss = nn.MSELoss()(predictions["a"], targets)
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_single_model_output(self):
         predictions = {"foo": torch.randn(2, 1)}
         targets = {"foo": torch.randint(2, (2, 1), dtype=torch.float32)}
-        model_outputs = [mm.BinaryOutput(ColumnSchema("foo"))]
+        model_outputs = [mm.RegressionOutput(ColumnSchema("foo"))]
         results = compute_loss(predictions, targets, model_outputs)
-        expected_loss = nn.BCEWithLogitsLoss()(predictions["foo"], targets["foo"])
+        expected_loss = nn.MSELoss()(predictions["foo"], targets["foo"])
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_tensor_input_no_targets(self):
         predictions = torch.randn(2, 1)
-        binary_output = mm.BinaryOutput(ColumnSchema("foo"))
+        binary_output = mm.RegressionOutput(ColumnSchema("foo"))
         results = compute_loss(predictions, None, (binary_output,))
-        expected_loss = nn.BCEWithLogitsLoss()(predictions, torch.zeros(2, 1))
+        expected_loss = nn.MSELoss()(predictions, torch.zeros(2, 1))
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_dict_input_no_targets(self):
         predictions = {"foo": torch.randn(2, 1)}
-        binary_output = mm.BinaryOutput(ColumnSchema("foo"))
+        binary_output = mm.RegressionOutput(ColumnSchema("foo"))
         results = compute_loss(predictions, None, (binary_output,))
-        expected_loss = nn.BCEWithLogitsLoss()(predictions["foo"], torch.zeros(2, 1))
+        expected_loss = nn.MSELoss()(predictions["foo"], torch.zeros(2, 1))
         assert torch.allclose(results["loss"], expected_loss)
 
     def test_no_target_raises_error(self):

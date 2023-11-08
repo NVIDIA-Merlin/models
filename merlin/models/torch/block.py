@@ -17,18 +17,26 @@
 import inspect
 import textwrap
 from copy import deepcopy
-from typing import Dict, Optional, Tuple, TypeVar, Union
+from typing import Dict, Optional, Protocol, Tuple, TypeVar, Union, runtime_checkable
 
 import torch
 from torch import nn
 
 from merlin.models.torch import schema
-from merlin.models.torch.batch import Batch
+from merlin.models.torch.batch import Batch, Sequence
 from merlin.models.torch.container import BlockContainer, BlockContainerDict
 from merlin.models.torch.registry import registry
 from merlin.models.torch.utils.traversal_utils import TraversableMixin
 from merlin.models.utils.registry import RegistryMixin
 from merlin.schema import Schema
+
+TensorOrDict = Union[torch.Tensor, Dict[str, torch.Tensor]]
+
+
+@runtime_checkable
+class HasKeys(Protocol):
+    def keys(self):
+        ...
 
 
 class Block(BlockContainer, RegistryMixin, TraversableMixin):
@@ -47,9 +55,7 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
     def __init__(self, *module: nn.Module, name: Optional[str] = None):
         super().__init__(*module, name=name)
 
-    def forward(
-        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
-    ):
+    def forward(self, inputs: TensorOrDict, batch: Optional[Batch] = None):
         """
         Forward pass through the block. Applies each contained module sequentially on the input.
 
@@ -87,15 +93,13 @@ class Block(BlockContainer, RegistryMixin, TraversableMixin):
         Block
             The new block created by repeating the current block `n` times.
         """
-        if not isinstance(n, int):
-            raise TypeError("n must be an integer")
+        return repeat(self, n, name=name)
 
-        if n < 1:
-            raise ValueError("n must be greater than 0")
+    def repeat_parallel(self, n: int = 1, name=None) -> "ParallelBlock":
+        return repeat_parallel(self, n, name=name)
 
-        repeats = [self.copy() for _ in range(n - 1)]
-
-        return Block(self, *repeats, name=name)
+    def repeat_parallel_like(self, like: HasKeys, agg=None) -> "ParallelBlock":
+        return repeat_parallel_like(self, like, agg=agg)
 
     def copy(self) -> "Block":
         """
@@ -163,9 +167,7 @@ class ParallelBlock(Block):
         self.branches = branches
         self.post = post
 
-    def forward(
-        self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]], batch: Optional[Batch] = None
-    ):
+    def forward(self, inputs: TensorOrDict, batch: Optional[Batch] = None):
         """Forward pass through the block.
 
         The steps are as follows:
@@ -206,6 +208,9 @@ class ParallelBlock(Block):
                         raise RuntimeError(f"Duplicate output name: {key}")
 
                 outputs.update(branch_out)
+            elif torch.jit.isinstance(branch_out, Batch):
+                _flattened_batch: Dict[str, torch.Tensor] = branch_out.flatten_as_dict(batch)
+                outputs.update(_flattened_batch)
             else:
                 raise TypeError(
                     f"Branch output must be a tensor or a dictionary of tensors. Got {_inputs}"
@@ -341,6 +346,9 @@ class ParallelBlock(Block):
         output.post = post if post is not None else self.post
 
         return output
+
+    def keys(self):
+        return self.branches.keys()
 
     def leaf(self) -> nn.Module:
         if self.pre:
@@ -567,6 +575,168 @@ class ShortcutBlock(Block):
         return to_return
 
 
+class BatchBlock(Block):
+    """
+    Class to use for `Batch` creation. We can use this class to create a `Batch` from
+        - a tensor or a dictionary of tensors
+        - a `Batch` object
+        - a tuple of features and targets
+
+    Example usage::
+        >>> batch = mm.BatchBlock()(torch.ones(1, 1))
+        >>> batch
+        Batch(features={"default": tensor([[1.]])})
+
+    """
+
+    def forward(
+        self,
+        inputs: Union[Batch, TensorOrDict],
+        targets: Optional[TensorOrDict] = None,
+        sequences: Optional[Sequence] = None,
+        batch: Optional[Batch] = None,
+    ) -> Batch:
+        """
+        Perform forward propagation on either a Batch object, or on inputs, targets and sequences
+        which are then packed into a Batch.
+
+        Parameters
+        ----------
+        inputs : Union[Batch, TensorOrDict]
+            Either a Batch object or a dictionary of tensors.
+
+        targets : Optional[TensorOrDict], optional
+            A dictionary of tensors, by default None
+
+        sequences : Optional[Sequence], optional
+            A sequence of tensors, by default None
+
+        batch : Optional[Batch], optional
+            A Batch object, by default None
+
+        Returns
+        -------
+        Batch
+            The resulting Batch after forward propagation.
+        """
+        if torch.jit.isinstance(batch, Batch):
+            return self.forward_batch(batch)
+        if torch.jit.isinstance(inputs, Batch):
+            return self.forward_batch(inputs)
+
+        return self.forward_batch(Batch(inputs, targets, sequences))
+
+    def forward_batch(self, batch: Batch) -> Batch:
+        """
+        Perform forward propagation on a Batch object.
+
+        For each module in the block, this method performs a forward pass with the
+        current output features and the original batch object.
+        - If a module returns a Batch object, this becomes the new output.
+        - If a module returns a dictionary of tensors, a new Batch object is created
+          from this dictionary and the original batch object. The new Batch replaces
+          the current output. This is useful when a module only modifies a subset of
+          the batch.
+
+
+        Parameters
+        ----------
+        batch : Batch
+            A Batch object.
+
+        Returns
+        -------
+        Batch
+            The resulting Batch after forward propagation.
+
+        Raises
+        ------
+        RuntimeError
+            When the output of a module is neither a Batch object nor a dictionary of tensors.
+        """
+        output = batch
+        for module in self.values:
+            module_out = module(output.features, batch=output)
+            if torch.jit.isinstance(module_out, Batch):
+                output = module_out
+            elif torch.jit.isinstance(module_out, Dict[str, torch.Tensor]):
+                output = Batch.from_partial_dict(module_out, batch)
+            else:
+                raise RuntimeError("Module must return a Batch or a dict of tensors")
+
+        return output
+
+
+def _validate_n(n: int) -> None:
+    if not isinstance(n, int):
+        raise TypeError("n must be an integer")
+
+    if n < 1:
+        raise ValueError("n must be greater than 0")
+
+
+def repeat(module: nn.Module, n: int = 1, name=None) -> Block:
+    """
+    Creates a new block by repeating the current block `n` times.
+    Each repetition is a deep copy of the current block.
+
+    Parameters
+    ----------
+    module: nn.Module
+        The module to be repeated.
+    n : int
+        The number of times to repeat the current block.
+    name : Optional[str], default = None
+        The name for the new block. If None, no name is assigned.
+
+    Returns
+    -------
+    Block
+        The new block created by repeating the current block `n` times.
+    """
+    _validate_n(n)
+
+    repeats = [module.copy() if hasattr(module, "copy") else deepcopy(module) for _ in range(n - 1)]
+
+    return Block(module, *repeats, name=name)
+
+
+def repeat_parallel(module: nn.Module, n: int = 1, agg=None) -> ParallelBlock:
+    _validate_n(n)
+
+    branches = {"0": module}
+    branches.update(
+        {str(n): module.copy() if hasattr(module, "copy") else deepcopy(module) for n in range(n)}
+    )
+
+    output = ParallelBlock(branches)
+    if agg:
+        output.append(Block.parse(agg))
+
+    return output
+
+
+def repeat_parallel_like(module: nn.Module, like: HasKeys, agg=None) -> ParallelBlock:
+    branches = {}
+
+    if isinstance(like, Schema):
+        keys = like.column_names
+    else:
+        keys = list(like.keys())
+
+    for i, key in enumerate(keys):
+        if i == 0:
+            branches[str(key)] = module
+        else:
+            branches[str(key)] = module.copy() if hasattr(module, "copy") else deepcopy(module)
+
+    output = ParallelBlock(branches)
+    if agg:
+        output.append(Block.parse(agg))
+
+    return output
+
+
 def get_pre(module: nn.Module) -> BlockContainer:
     if hasattr(module, "pre"):
         return module.pre
@@ -588,31 +758,31 @@ def set_pre(module: nn.Module, pre: BlockContainer):
         return set_pre(module[0], pre)
 
 
-@schema.input.register(BlockContainer)
+@schema.input_schema.register(BlockContainer)
 def _(module: BlockContainer, input: Schema):
-    return schema.input(module[0], input) if module else input
+    return schema.input_schema(module[0], input) if module else input
 
 
-@schema.input.register(ParallelBlock)
+@schema.input_schema.register(ParallelBlock)
 def _(module: ParallelBlock, input: Schema):
     if module.pre:
-        return schema.input(module.pre)
+        return schema.input_schema(module.pre)
 
     out_schema = Schema()
     for branch in module.branches.values():
-        out_schema += schema.input(branch, input)
+        out_schema += schema.input_schema(branch, input)
 
     return out_schema
 
 
-@schema.output.register(ParallelBlock)
+@schema.output_schema.register(ParallelBlock)
 def _(module: ParallelBlock, input: Schema):
     if module.post:
-        return schema.output(module.post, input)
+        return schema.output_schema(module.post, input)
 
     output = Schema()
     for name, branch in module.branches.items():
-        branch_schema = schema.output(branch, input)
+        branch_schema = schema.output_schema(branch, input)
 
         if len(branch_schema) == 1 and branch_schema.first.name == "output":
             branch_schema = Schema([branch_schema.first.with_name(name)])
@@ -622,9 +792,9 @@ def _(module: ParallelBlock, input: Schema):
     return output
 
 
-@schema.output.register(BlockContainer)
+@schema.output_schema.register(BlockContainer)
 def _(module: BlockContainer, input: Schema):
-    return schema.output(module[-1], input) if module else input
+    return schema.output_schema(module[-1], input) if module else input
 
 
 BlockT = TypeVar("BlockT", bound=BlockContainer)
@@ -720,13 +890,13 @@ def _extract_block(main, selection, route, name=None):
     if isinstance(main, ParallelBlock):
         return _extract_parallel(main, selection, route=route, name=name)
 
-    main_schema = schema.input(main)
-    route_schema = schema.input(route)
+    main_schema = schema.input_schema(main)
+    route_schema = schema.input_schema(route)
 
     if main_schema == route_schema:
         from merlin.models.torch.inputs.select import SelectFeatures
 
-        out_schema = schema.output(main, main_schema)
+        out_schema = schema.output_schema(main, main_schema)
         if len(out_schema) == 1 and out_schema.first.name == "output":
             out_schema = Schema([out_schema.first.with_name(name)])
 

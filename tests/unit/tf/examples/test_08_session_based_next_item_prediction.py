@@ -6,7 +6,7 @@ from tests.conftest import REPO_ROOT
 
 pytest.importorskip("transformers")
 
-p = "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.ipynb"
+p = "examples/08-Train-a-model-for-session-based-next-item-prediction.ipynb"
 
 
 @testbook(

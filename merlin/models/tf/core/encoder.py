@@ -27,10 +27,12 @@ from merlin.models.tf.core.base import NoOp
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.models.base import BaseModel, get_output_schema
 from merlin.models.tf.outputs.topk import TopKOutput
 from merlin.models.tf.transforms.features import PrepareFeatures
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.batch_utils import TFModelEncode
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -83,7 +85,7 @@ class Encoder(tf.keras.Model):
 
     def encode(
         self,
-        dataset: merlin.io.Dataset,
+        dataset: Union[merlin.io.Dataset, Loader],
         index: Union[str, ColumnSchema, Schema, Tags],
         batch_size: int,
         **kwargs,
@@ -92,7 +94,7 @@ class Encoder(tf.keras.Model):
 
         Parameters
         ----------
-        dataset: merlin.io.Dataset
+        dataset: Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]
             The dataset to encode.
         index: Union[str, ColumnSchema, Schema, Tags]
             The index to use for encoding.
@@ -126,7 +128,7 @@ class Encoder(tf.keras.Model):
 
     def batch_predict(
         self,
-        dataset: merlin.io.Dataset,
+        dataset: Union[merlin.io.Dataset, Loader],
         batch_size: int,
         output_schema: Optional[Schema] = None,
         index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
@@ -136,8 +138,8 @@ class Encoder(tf.keras.Model):
 
         Parameters
         ----------
-        dataset: merlin.io.Dataset
-            Dataset to predict on.
+        dataset: Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]
+            Dataset or Loader to predict on.
         batch_size: int
             Batch size to use for prediction.
 
@@ -160,24 +162,46 @@ class Encoder(tf.keras.Model):
                 raise ValueError("Only one column can be used as index")
             index = index.first.name
 
+        dataset_schema = None
         if hasattr(dataset, "schema"):
-            if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
+            dataset_schema = dataset.schema
+            data_output_schema = dataset_schema
+            if isinstance(dataset, Loader):
+                data_output_schema = dataset.output_schema
+            if not set(self.schema.column_names).issubset(set(data_output_schema.column_names)):
                 raise ValueError(
                     f"Model schema {self.schema.column_names} does not match dataset schema"
-                    + f" {dataset.schema.column_names}"
+                    + f" {data_output_schema.column_names}"
                 )
+
+        loader_transforms = None
+        if isinstance(dataset, Loader):
+            loader_transforms = dataset.transforms
+            batch_size = dataset.batch_size
+            dataset = dataset.dataset
 
         # Check if merlin-dataset is passed
         if hasattr(dataset, "to_ddf"):
             dataset = dataset.to_ddf()
 
-        from merlin.models.tf.utils.batch_utils import TFModelEncode
+        model_encode = TFModelEncode(
+            self,
+            batch_size=batch_size,
+            loader_transforms=loader_transforms,
+            schema=dataset_schema,
+            **kwargs,
+        )
 
-        model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
         encode_kwargs = {}
         if output_schema:
             encode_kwargs["filter_input_columns"] = output_schema.column_names
-        predictions = dataset.map_partitions(model_encode, **encode_kwargs)
+
+        # Processing a sample of the dataset with the model encoder
+        # to get the output dataframe dtypes
+        sample_output = model_encode(dataset.head(), **encode_kwargs)
+        output_dtypes = sample_output.dtypes.to_dict()
+
+        predictions = dataset.map_partitions(model_encode, meta=output_dtypes, **encode_kwargs)
         if index:
             predictions = predictions.set_index(index)
 
@@ -577,7 +601,7 @@ class TopKEncoder(Encoder, BaseModel):
 
     def batch_predict(
         self,
-        dataset: merlin.io.Dataset,
+        dataset: Union[merlin.io.Dataset, Loader],
         batch_size: int,
         output_schema: Optional[Schema] = None,
         **kwargs,
@@ -586,8 +610,8 @@ class TopKEncoder(Encoder, BaseModel):
 
         Parameters
         ----------
-        dataset : merlin.io.Dataset
-            Raw queries features dataset
+        dataset : Union[merlin.io.Dataset, merlin.models.tf.loader.Loader]
+            Raw queries features dataset or Loader
         batch_size : int
             The number of queries to process at each prediction step
         output_schema: Schema, optional
@@ -600,20 +624,34 @@ class TopKEncoder(Encoder, BaseModel):
         """
         from merlin.models.tf.utils.batch_utils import TFModelEncode
 
+        loader_transforms = None
+        if isinstance(dataset, Loader):
+            loader_transforms = dataset.transforms
+            batch_size = dataset.batch_size
+            dataset = dataset.dataset
+
+        dataset_schema = dataset.schema
+        dataset = dataset.to_ddf()
+
         model_encode = TFModelEncode(
             model=self,
             batch_size=batch_size,
+            loader_transforms=loader_transforms,
+            schema=dataset_schema,
             output_names=TopKPrediction.output_names(self.k),
             **kwargs,
         )
-
-        dataset = dataset.to_ddf()
 
         encode_kwargs = {}
         if output_schema:
             encode_kwargs["filter_input_columns"] = output_schema.column_names
 
-        predictions = dataset.map_partitions(model_encode, **encode_kwargs)
+        # Processing a sample of the dataset with the model encoder
+        # to get the output dataframe dtypes
+        sample_output = model_encode(dataset.head(), **encode_kwargs)
+        output_dtypes = sample_output.dtypes.to_dict()
+
+        predictions = dataset.map_partitions(model_encode, meta=output_dtypes, **encode_kwargs)
 
         return merlin.io.Dataset(predictions)
 

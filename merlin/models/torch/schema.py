@@ -21,11 +21,22 @@ import torch
 from torch import nn
 
 from merlin.dispatch.lazy import LazyDispatcher
+from merlin.models.torch.batch import Batch
+from merlin.models.torch.utils.module_utils import check_batch_arg
 from merlin.schema import ColumnSchema, Schema, Tags, TagSet
 
 Selection = Union[Schema, ColumnSchema, Callable[[Schema], Schema], Tags, TagSet, List[Tags]]
 ToSelectT = TypeVar("ToSelectT")
 NAMESPACE_TAGS = [Tags.CONTEXT, Tags.USER, Tags.ITEM, Tags.SESSION]
+
+
+class LazySchemaModuleMixin:
+    _initialized_from_schema = False
+
+    def initialize_from_schema(self, schema):
+        if self._initialized_from_schema:
+            raise RuntimeError("Already initialized this module from a schema")
+        self._initialized_from_schema = True
 
 
 def default_tag_propagation(inputs: Schema, outputs: Schema):
@@ -68,6 +79,7 @@ class _LazyDispatchPyTorch(LazyDispatcher):
     def get_schema(self, inputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema]) -> Schema:
         if isinstance(inputs, Schema):
             return inputs
+
         return self.tensors(inputs)
 
 
@@ -97,7 +109,7 @@ class _InputSchemaDispatch(_LazyDispatchPyTorch):
             return super().__call__(module, inputs)
         except NotImplementedError:
             raise ValueError(
-                f"Could not get output schema of {module} " "please call mm.trace_schema first."
+                f"Could not get output schema of {module} " "please call `mm.schema.trace` first."
             )
 
     def trace(
@@ -127,7 +139,7 @@ class _OutputSchemaDispatch(_LazyDispatchPyTorch):
 
     def __call__(self, module: nn.Module, inputs: Optional[Schema] = None) -> Schema:
         try:
-            _inputs = input(module)
+            _inputs = input_schema(module)
             inputs = _inputs
         except ValueError:
             pass
@@ -156,7 +168,7 @@ class _OutputSchemaDispatch(_LazyDispatchPyTorch):
             return super().__call__(module, inputs)
         except NotImplementedError:
             raise ValueError(
-                f"Could not get output schema of {module} " "please call mm.trace_schema first."
+                f"Could not get output schema of {module} " "please call `mm.schema.trace` first."
             )
 
     def trace(
@@ -165,7 +177,7 @@ class _OutputSchemaDispatch(_LazyDispatchPyTorch):
         inputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema],
         outputs: Union[torch.Tensor, Dict[str, torch.Tensor], Schema],
     ) -> Schema:
-        _input_schema = input.get_schema(inputs)
+        _input_schema = input_schema.get_schema(inputs)
         _output_schema = self.get_schema(outputs)
 
         try:
@@ -207,8 +219,8 @@ class _ExtractDispatch(LazyDispatcher):
         return fn(module, selection, route, name=name)
 
 
-input = _InputSchemaDispatch("input_schema")
-output = _OutputSchemaDispatch("output_schema")
+input_schema = _InputSchemaDispatch("input_schema")
+output_schema = _OutputSchemaDispatch("output_schema")
 select = _SelectDispatch("selection")
 extract = _ExtractDispatch("extract")
 
@@ -234,19 +246,40 @@ def trace(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]
     """
 
     hooks = []
+    batch = kwargs.get("batch")
 
     def _hook(mod: nn.Module, inputs: Tuple[torch.Tensor], outputs: torch.Tensor):
         if not hasattr(mod, "__input_schemas"):
             mod.__input_schemas = ()
             mod.__output_schemas = ()
+            mod.__feature_schema = None
 
-        _input_schema = input.trace(mod, inputs[0])
+        _input_schema = input_schema.trace(mod, inputs[0])
+        initialize_from_schema(mod, _input_schema)
+
         if _input_schema not in mod.__input_schemas:
             mod.__input_schemas += (_input_schema,)
-            mod.__output_schemas += (output.trace(mod, _input_schema, outputs),)
+            mod.__output_schemas += (output_schema.trace(mod, _input_schema, outputs),)
+
+        if not isinstance(mod, torch.jit.TracedModule):
+            accepts_batch, requires_batch = check_batch_arg(mod)
+
+            if requires_batch and batch is None:
+                raise ValueError(
+                    f"Found module f{mod} that requires a batch. "
+                    "`trace` was called without providing a batch. "
+                    "Please provide a batch argument to `trace`. "
+                )
+            if accepts_batch and hasattr(mod, "compute_feature_schema"):
+                feature_schema = input_schema.tensors(batch.features)
+                required_feature_schema = mod.compute_feature_schema(feature_schema)
+                mod.__feature_schema = required_feature_schema
+            elif requires_batch:
+                required_feature_schema = input_schema.tensors(batch.features)
+                mod.__feature_schema = required_feature_schema
 
     def add_hook(m):
-        custom_modules = list(output.dispatcher.registry.keys())
+        custom_modules = list(output_schema.dispatcher.registry.keys())
         if m and isinstance(m, tuple(custom_modules[1:])):
             return
 
@@ -261,7 +294,7 @@ def trace(module: nn.Module, inputs: Union[torch.Tensor, Dict[str, torch.Tensor]
     return module_out
 
 
-def features(module: nn.Module) -> Schema:
+def feature_schema(module: nn.Module) -> Schema:
     """Extract the feature schema from a PyTorch Module.
 
     This function operates by applying the `get_feature_schema` method
@@ -285,15 +318,15 @@ def features(module: nn.Module) -> Schema:
 
     def get_feature_schema(module):
         nonlocal feature_schema
-        if hasattr(module, "feature_schema"):
-            feature_schema += module.feature_schema
+        if hasattr(module, "__feature_schema"):
+            feature_schema += module.__feature_schema
 
     module.apply(get_feature_schema)
 
     return feature_schema
 
 
-def targets(module: nn.Module) -> Schema:
+def target_schema(module: nn.Module) -> Schema:
     """
     Extract the target schema from a PyTorch Module.
 
@@ -326,7 +359,7 @@ def targets(module: nn.Module) -> Schema:
     return target_schema
 
 
-def setup_schema(module: nn.Module, schema: Schema):
+def initialize_from_schema(module: nn.Module, schema: Schema):
     """
     Set up a schema for a given module.
 
@@ -340,15 +373,18 @@ def setup_schema(module: nn.Module, schema: Schema):
 
     from merlin.models.torch.block import BlockContainer, ParallelBlock
 
-    if hasattr(module, "setup_schema"):
-        module.setup_schema(schema)
+    if hasattr(module, "initialize_from_schema") and not getattr(
+        module, "_initialized_from_schema", False
+    ):
+        module.initialize_from_schema(schema)
+        module._initialized_from_schema = True
 
     elif isinstance(module, ParallelBlock):
         for branch in module.branches.values():
-            setup_schema(branch, schema)
+            initialize_from_schema(branch, schema)
 
     elif isinstance(module, BlockContainer) and module:
-        setup_schema(module[0], schema)
+        initialize_from_schema(module[0], schema)
 
 
 @select.register(Schema)
@@ -388,6 +424,9 @@ def select_schema(schema: Schema, selection: Selection) -> Schema:
     elif isinstance(selection, (Tags, TagSet)):
         selected = schema.select_by_tag(selection)
     elif isinstance(selection, str):
+        if selection == "*":
+            return schema
+
         selected = Schema([schema[selection]])
     elif isinstance(selection, (list, tuple)):
         if all(isinstance(s, str) for s in selection):
@@ -402,6 +441,35 @@ def select_schema(schema: Schema, selection: Selection) -> Schema:
         raise ValueError(f"Selection {selection} is not valid")
 
     return selected
+
+
+def select_union(*selections: Selection) -> Selection:
+    """
+    Combine selections into a single selection.
+
+    This function returns a new function `combined_select` that, when called,
+    will perform the union operation on all the input selections.
+
+    Parameters
+    ----------
+    *selections : Selection
+        Variable length argument list of Selection instances.
+
+    Returns
+    -------
+    Selection
+        A function that takes a Schema as input and returns a Schema which
+        is the union of all selections.
+    """
+
+    def combined_select(schema: Schema) -> Schema:
+        output = Schema()
+        for s in selections:
+            output += select(schema, s)
+
+        return output
+
+    return combined_select
 
 
 def selection_name(selection: Selection) -> str:
@@ -441,7 +509,7 @@ class Selectable:
     A mixin to allow to be selectable by schema.
     """
 
-    def setup_schema(self, schema: Schema):
+    def initialize_from_schema(self, schema: Schema):
         """
         Setup the schema for this selectable.
 
@@ -484,8 +552,11 @@ class Selectable:
         raise NotImplementedError()
 
 
-@output.register_tensor(torch.Tensor)
+@output_schema.register_tensor(torch.Tensor)
 def _tensor_to_schema(input, name="output"):
+    if input is None:
+        return Schema([ColumnSchema(name)])
+
     kwargs = dict(dims=input.shape[1:], dtype=input.dtype)
 
     if len(input.shape) > 1 and input.dtype != torch.int32:
@@ -494,29 +565,149 @@ def _tensor_to_schema(input, name="output"):
     return Schema([ColumnSchema(name, **kwargs)])
 
 
-@input.register_tensor(torch.Tensor)
+@input_schema.register_tensor(torch.Tensor)
 def _(input):
     return _tensor_to_schema(input, "input")
 
 
-@input.register_tensor(Dict[str, torch.Tensor])
-@output.register_tensor(Dict[str, torch.Tensor])
+@input_schema.register_tensor(Dict[str, torch.Tensor])
+@output_schema.register_tensor(Dict[str, torch.Tensor])
 def _(input):
     output = Schema()
     for k, v in sorted(input.items()):
-        output += _tensor_to_schema(v, k)
+        if k.endswith("__offsets"):
+            name = k[: -len("__offsets")]
+            kwargs = dict(dtype=input[f"{name}__values"].dtype)
+            output += Schema([ColumnSchema(name, **kwargs)])
+        elif k.endswith("__values"):
+            continue
+        else:
+            output += _tensor_to_schema(v, k)
 
     return output
 
 
-@input.register_tensor(Tuple[torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor])
-@input.register_tensor(Tuple[torch.Tensor, torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor, torch.Tensor])
-@input.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
-@input.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
-@output.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, Optional[torch.Tensor]])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor])
+@input_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
+@output_schema.register_tensor(Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor])
+@input_schema.register_tensor(
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+)
+@output_schema.register_tensor(
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+)
+@input_schema.register_tensor(
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+)
+@output_schema.register_tensor(
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+)
+@input_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
+@output_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
+@input_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
+@output_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
+@input_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
+@output_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
+@input_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
+@output_schema.register_tensor(
+    Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]
+)
 def _(input):
     output = Schema()
 
@@ -524,3 +715,12 @@ def _(input):
         output += _tensor_to_schema(v, str(i))
 
     return output
+
+
+@output_schema.register_tensor(Batch)
+def _(input):
+    schema = Schema()
+    schema += output_schema.tensors(input.features)
+    schema += output_schema.tensors(input.targets)
+
+    return schema

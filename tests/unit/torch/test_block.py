@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import pytest
 import torch
@@ -57,7 +57,7 @@ class TestBlock:
         outputs = module_utils.module_test(block, inputs, batch=Batch(inputs))
 
         assert torch.equal(inputs, outputs)
-        assert mm.schema.output(block) == mm.schema.output.tensors(inputs)
+        assert mm.output_schema(block) == mm.output_schema.tensors(inputs)
 
     def test_insertion(self):
         block = Block()
@@ -158,7 +158,7 @@ class TestParallelBlock:
 
         inputs = torch.randn(1, 3)
         outputs = mm.schema.trace(pb, inputs)
-        schema = mm.schema.output(pb)
+        schema = mm.output_schema(pb)
 
         for name in outputs:
             assert name in schema.column_names
@@ -258,9 +258,9 @@ class TestParallelBlock:
     def test_input_schema_pre(self):
         pb = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
         outputs = mm.schema.trace(pb, torch.randn(1, 3))
-        input_schema = mm.schema.input(pb)
+        input_schema = mm.input_schema(pb)
         assert len(input_schema) == 1
-        assert len(mm.schema.output(pb)) == 2
+        assert len(mm.output_schema(pb)) == 2
         assert len(outputs) == 2
 
         pb2 = ParallelBlock({"a": PlusOne(), "b": PlusOne()})
@@ -270,8 +270,8 @@ class TestParallelBlock:
         assert get_pre(pb2)[0] == pb
         pb2.append(pb)
 
-        assert input_schema == mm.schema.input(pb2)
-        assert mm.schema.output(pb2) == mm.schema.output(pb)
+        assert input_schema == mm.input_schema(pb2)
+        assert mm.output_schema(pb2) == mm.output_schema(pb)
 
     def test_leaf(self):
         block = ParallelBlock({"a": PlusOne()})
@@ -377,3 +377,60 @@ class TestShortcutBlock:
         shortcut_propagate = ShortcutBlock(PlusOneShortcutTuple(), propagate_shortcut=True)
         with pytest.raises(RuntimeError):
             module_utils.module_test(shortcut_propagate, torch.rand(5, 5))
+
+
+class TestBatchBlock:
+    def test_forward_with_batch(self):
+        batch = Batch(torch.tensor([1, 2]), torch.tensor([3, 4]))
+        outputs = mm.BatchBlock()(batch)
+
+        assert batch == outputs
+
+    def test_forward_with_features(self):
+        feat = torch.tensor([1, 2])
+        outputs = module_utils.module_test(mm.BatchBlock(), feat)
+        assert isinstance(outputs, mm.Batch)
+        assert torch.equal(outputs.feature(), feat)
+
+    def test_forward_with_tuple(self):
+        feat, target = torch.tensor([1, 2]), torch.tensor([3, 4])
+        outputs = module_utils.module_test(mm.BatchBlock(), feat, targets=target)
+
+        assert isinstance(outputs, mm.Batch)
+        assert torch.equal(outputs.feature(), feat)
+        assert torch.equal(outputs.target(), target)
+
+    def test_forward_exception(self):
+        with pytest.raises(
+            RuntimeError, match="Features must be a tensor or a dictionary of tensors"
+        ):
+            module_utils.module_test(mm.BatchBlock(), (torch.tensor([1, 2]), torch.tensor([1, 2])))
+
+    def test_nested(self):
+        feat, target = torch.tensor([1, 2]), torch.tensor([3, 4])
+        outputs = module_utils.module_test(mm.BatchBlock(mm.BatchBlock()), feat, targets=target)
+
+        assert isinstance(outputs, mm.Batch)
+        assert torch.equal(outputs.feature(), feat)
+        assert torch.equal(outputs.target(), target)
+
+    def test_in_parallel(self):
+        feat, target = torch.tensor([1, 2]), torch.tensor([3, 4])
+        outputs = module_utils.module_test(
+            mm.BatchBlock(mm.ParallelBlock({"a": mm.BatchBlock()})), feat, targets=target
+        )
+
+        assert isinstance(outputs, mm.Batch)
+        assert torch.equal(outputs.feature(), feat)
+        assert torch.equal(outputs.target(), target)
+
+    def test_exception(self):
+        class BatchToTuple(nn.Module):
+            def forward(
+                self, inputs: Dict[str, torch.Tensor], batch: Optional[Batch] = None
+            ) -> Tuple[torch.Tensor, torch.Tensor]:
+                return inputs["default"], inputs["default"]
+
+        feat, target = torch.tensor([1, 2]), torch.tensor([3, 4])
+        with pytest.raises(RuntimeError, match="Module must return a Batch"):
+            module_utils.module_test(mm.BatchBlock(BatchToTuple()), feat, targets=target)

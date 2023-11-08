@@ -52,10 +52,10 @@ class TestSelectKeys:
         assert select_user.select(ColumnSchema("user_id")).schema == user_id
         assert select_user.select(Tags.USER).schema == self.user_schema
 
-    def test_setup_schema(self):
+    def test_initialize_from_schema(self):
         select_user = mm.SelectKeys()
-        select_user.setup_schema(self.user_schema["user_id"])
-        assert select_user.schema == Schema([self.user_schema["user_id"]])
+        select_user.initialize_from_schema(self.user_schema[["user_id"]])
+        assert select_user.schema == self.user_schema[["user_id"]]
 
 
 class TestSelectFeatures:
@@ -72,8 +72,8 @@ class TestSelectFeatures:
 
         outputs = mm.schema.trace(block, self.batch.features["session_id"], batch=self.batch)
         assert len(outputs) == 5
-        assert mm.schema.input(block).column_names == ["input"]
-        assert mm.schema.features(block).column_names == [
+        assert mm.input_schema(block).column_names == ["input"]
+        assert mm.feature_schema(block).column_names == [
             "user_id",
             "country",
             "user_age",

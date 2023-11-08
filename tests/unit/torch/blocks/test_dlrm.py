@@ -84,7 +84,7 @@ class TestDLRMBlock:
         schema = self.schema.remove_by_tag(Tags.CATEGORICAL)
         embedding_dim = 32
 
-        with pytest.raises(ValueError, match="must have a categorical input"):
+        with pytest.raises(ValueError, match="not found in"):
             _ = mm.DLRMBlock(
                 schema,
                 dim=embedding_dim,

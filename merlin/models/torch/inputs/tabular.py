@@ -14,13 +14,15 @@
 # limitations under the License.
 #
 
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 from torch import nn
 
 from merlin.models.torch.block import Block
 from merlin.models.torch.inputs.embedding import EmbeddingTables
 from merlin.models.torch.router import RouterBlock
+from merlin.models.torch.schema import Selection, select, select_union
+from merlin.models.torch.transforms.sequences import BroadcastToSequence
 from merlin.models.utils.registry import Registry
 from merlin.schema import Schema, Tags
 
@@ -51,21 +53,25 @@ class TabularInputBlock(RouterBlock):
 
     def __init__(
         self,
-        schema: Schema,
+        schema: Optional[Schema] = None,
         init: Optional[Union[str, Initializer]] = None,
         agg: Optional[Union[str, nn.Module]] = None,
     ):
+        self.init = init
         super().__init__(schema)
-        self.schema: Schema = self.selectable.schema
-        if init:
-            if isinstance(init, str):
-                init = self.initializers.get(init)
-                if not init:
-                    raise ValueError(f"Initializer {init} not found.")
-
-            init(self)
         if agg:
             self.append(Block.parse(agg))
+
+    def initialize_from_schema(self, schema: Schema):
+        super().initialize_from_schema(schema)
+        self.schema: Schema = self.selectable.schema
+        if self.init:
+            if isinstance(self.init, str):
+                self.init = self.initializers.get(self.init)
+                if not self.init:
+                    raise ValueError(f"Initializer {self.init} not found.")
+
+            self.init(self)
 
     @classmethod
     def register_init(cls, name: str):
@@ -91,7 +97,7 @@ class TabularInputBlock(RouterBlock):
 
 
 @TabularInputBlock.register_init("defaults")
-def defaults(block: TabularInputBlock):
+def defaults(block: TabularInputBlock, seq_combiner="mean"):
     """
     Default initializer function for a TabularInputBlock.
 
@@ -101,5 +107,69 @@ def defaults(block: TabularInputBlock):
     Args:
         block (TabularInputBlock): The block to initialize.
     """
-    block.add_route(Tags.CONTINUOUS)
-    block.add_route(Tags.CATEGORICAL, EmbeddingTables(seq_combiner="mean"))
+    block.add_route(Tags.CONTINUOUS, required=False)
+    block.add_route(Tags.CATEGORICAL, EmbeddingTables(seq_combiner=seq_combiner))
+
+
+@TabularInputBlock.register_init("defaults-no-combiner")
+def defaults_no_combiner(block: TabularInputBlock):
+    return defaults(block, seq_combiner=None)
+
+
+@TabularInputBlock.register_init("broadcast-context")
+def defaults_broadcast_to_seq(
+    block: TabularInputBlock,
+    seq_selection: Selection = Tags.SEQUENCE,
+    feature_selection: Sequence[Selection] = (Tags.CATEGORICAL, Tags.CONTINUOUS),
+):
+    context_selection = _not_seq(seq_selection, feature_selection=feature_selection)
+    block.add_route(context_selection, TabularInputBlock(init="defaults"), name="context")
+    block.add_route(
+        seq_selection,
+        TabularInputBlock(init="defaults-no-combiner"),
+        name="sequence",
+    )
+    block.append(BroadcastToSequence(context_selection, seq_selection, block.schema))
+
+
+def stack_context(
+    model_dim: int,
+    seq_selection: Selection = Tags.SEQUENCE,
+    projection_activation=None,
+    feature_selection: Sequence[Selection] = (Tags.CATEGORICAL, Tags.CONTINUOUS),
+):
+    def init_stacked_context(block: TabularInputBlock):
+        import merlin.models.torch as mm
+
+        mlp_kwargs = {"units": [model_dim], "activation": projection_activation}
+        context_selection = _not_seq(seq_selection, feature_selection=feature_selection)
+        context = TabularInputBlock(select(block.schema, context_selection))
+        context.add_route(Tags.CATEGORICAL, EmbeddingTables(seq_combiner=None))
+        context.add_route(Tags.CONTINUOUS, mm.MLPBlock(**mlp_kwargs))
+        context["categorical"].append_for_each(mm.MLPBlock(**mlp_kwargs))
+        context.append(mm.Stack(dim=1))
+
+        block.add_route(context.schema, context, name="context")
+        block.add_route(
+            seq_selection,
+            TabularInputBlock(init="defaults-no-combiner", agg=mm.Concat(dim=2)),
+            name="sequence",
+        )
+
+    return init_stacked_context
+
+
+def _not_seq(
+    seq_selection: Sequence[Selection],
+    feature_selection: Sequence[Selection] = (Tags.CATEGORICAL, Tags.CONTINUOUS),
+) -> Selection:
+    if not isinstance(seq_selection, (tuple, list)):
+        seq_selection = (seq_selection,)
+
+    def select_non_seq(schema: Schema) -> Schema:
+        seq = select_union(*seq_selection)(schema)
+        features = select_union(*feature_selection)(schema)
+
+        return features - seq
+
+    return select_non_seq

@@ -110,7 +110,7 @@ class Concat(AggModule):
             _sorted_tensors = []
             for tensor in sorted_tensors:
                 if tensor.dim() < max_dims:
-                    _sorted_tensors.append(tensor.unsqueeze(1))
+                    _sorted_tensors.append(tensor.unsqueeze(-1))
                 else:
                     _sorted_tensors.append(tensor)
             sorted_tensors = _sorted_tensors
@@ -191,6 +191,53 @@ class Stack(AggModule):
             raise RuntimeError("Input tensor shapes don't match for stacking.")
 
         return torch.stack(sorted_tensors, dim=self.dim).float()
+
+
+@registry.register("element-wise-sum")
+class ElementWiseSum(AggModule):
+    """Element-wise sum of tensors.
+
+    The input dictionary will be sorted by name before concatenation.
+    The sum is computed along the first dimension (default for Stack class).
+
+    Example usage::
+        >>> ewsum = ElementWiseSum()
+        >>> feature1 = torch.tensor([[1, 2], [3, 4]])  # Shape: [batch_size, feature_dim]
+        >>> feature2 = torch.tensor([[5, 6], [7, 8]])  # Shape: [batch_size, feature_dim]
+        >>> input_dict = {"feature1": feature1, "feature2": feature2}
+        >>> output = ewsum(input_dict)
+        >>> print(output)
+        tensor([[ 6,  8],
+                [10, 12]])  # Shape: [batch_size, feature_dim]
+
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.stack = Stack(dim=0)
+
+    def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        """
+        Performs an element-wise sum of input tensors.
+
+        Parameters
+        ----------
+        inputs : Dict[str, torch.Tensor]
+            A dictionary where keys are the names of the tensors
+            and values are the tensors to be summed.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor that is the result of performing an element-wise sum
+            of the input tensors.
+
+        Raises
+        ------
+        RuntimeError
+            If the input tensor shapes don't match for stacking.
+        """
+        return self.stack(inputs).sum(dim=0)
 
 
 class MaybeAgg(BlockContainer):

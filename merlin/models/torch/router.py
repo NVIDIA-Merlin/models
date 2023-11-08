@@ -15,6 +15,7 @@
 #
 
 from copy import deepcopy
+from inspect import isclass
 from typing import Optional
 
 from torch import nn
@@ -48,19 +49,23 @@ class RouterBlock(ParallelBlock):
 
     def __init__(self, selectable: schema.Selectable, prepend_routing_module: bool = True):
         super().__init__()
-        if isinstance(selectable, Schema):
-            from merlin.models.torch.inputs.select import SelectKeys
-
-            selectable = SelectKeys(selectable)
-
-        self.selectable: schema.Selectable = selectable
         self.prepend_routing_module = prepend_routing_module
+        if isinstance(selectable, Schema):
+            self.initialize_from_schema(selectable)
+        else:
+            self.selectable: schema.Selectable = selectable
+
+    def initialize_from_schema(self, schema):
+        from merlin.models.torch.inputs.select import SelectKeys
+
+        self.selectable = SelectKeys(schema)
 
     def add_route(
         self,
         selection: schema.Selection,
         module: Optional[nn.Module] = None,
         name: Optional[str] = None,
+        required: bool = True,
     ) -> "RouterBlock":
         """Add a new routing path for a given selection.
 
@@ -80,6 +85,8 @@ class RouterBlock(ParallelBlock):
             The module to append to the branch after selection.
         name : str, optional
             The name of the branch. Default is the name of the selection.
+        required : bool, optional
+            Whether the route is required. Default is True.
 
         Returns
         -------
@@ -87,12 +94,18 @@ class RouterBlock(ParallelBlock):
             The router block with the new route added.
         """
 
+        if self.selectable is None:
+            raise ValueError(f"{self} has nothing to select from, so cannot add route.")
+
         routing_module = schema.select(self.selectable, selection)
         if not routing_module:
+            if required:
+                raise ValueError(f"Selection {selection} not found in {self.selectable}")
+
             return self
 
         if module is not None:
-            schema.setup_schema(module, routing_module.schema)
+            schema.initialize_from_schema(module, routing_module.schema)
 
             if self.prepend_routing_module:
                 if isinstance(module, ParallelBlock):
@@ -117,7 +130,11 @@ class RouterBlock(ParallelBlock):
         return self
 
     def add_route_for_each(
-        self, selection: schema.Selection, module: nn.Module, shared=False
+        self,
+        selection: schema.Selection,
+        module: nn.Module,
+        shared=False,
+        required: bool = True,
     ) -> "RouterBlock":
         """Add a new route for each column in a selection.
 
@@ -152,12 +169,14 @@ class RouterBlock(ParallelBlock):
             if shared:
                 col_module = module
             else:
-                if hasattr(module, "copy"):
+                if isclass(module):
+                    col_module = module(col)
+                elif hasattr(module, "copy"):
                     col_module = module.copy()
                 else:
                     col_module = deepcopy(module)
 
-            self.add_route(col, col_module, name=col.name)
+            self.add_route(col, col_module, name=col.name, required=required)
 
         return self
 

@@ -16,15 +16,16 @@
 
 from copy import deepcopy
 from functools import reduce
-from typing import Dict, Iterator, Optional, Union
+from typing import Dict, Iterable, Iterator, Optional, Sequence, Union
 
 from torch import nn
 from torch._jit_internal import _copy_to_script_wrapper
 
+from merlin.models.torch.functional import ContainerMixin, _TModule
 from merlin.models.torch.utils import torchscript_utils
 
 
-class BlockContainer(nn.Module):
+class BlockContainer(nn.Module, Iterable[_TModule], ContainerMixin):
     """A container class for PyTorch `nn.Module` that allows for manipulation and traversal
     of multiple sub-modules as if they were a list. The modules are automatically wrapped
     in a TorchScriptWrapper for TorchScript compatibility.
@@ -59,6 +60,23 @@ class BlockContainer(nn.Module):
         self
         """
         self.values.append(self.wrap_module(module))
+
+        return self
+
+    def extend(self, sequence: Sequence[nn.Module]):
+        """Extends the list by appending elements from the iterable.
+
+        Parameters
+        ----------
+        module : nn.Module
+            The PyTorch module to be appended.
+
+        Returns
+        -------
+        self
+        """
+        for m in sequence:
+            self.append(m)
 
         return self
 
@@ -140,12 +158,6 @@ class BlockContainer(nn.Module):
     def __delitem__(self, idx: Union[slice, int]) -> None:
         self.values.__delitem__(idx)
 
-    def __add__(self, other) -> "BlockContainer":
-        for module in other:
-            self.append(module)
-
-        return self
-
     def __bool__(self) -> bool:
         return bool(self.values)
 
@@ -187,7 +199,7 @@ class BlockContainerDict(nn.ModuleDict):
         self,
         *inputs: Union[nn.Module, Dict[str, nn.Module]],
         name: Optional[str] = None,
-        block_cls=BlockContainer
+        block_cls=BlockContainer,
     ) -> None:
         if not inputs:
             inputs = [{}]
