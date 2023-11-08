@@ -443,11 +443,6 @@ class BaseModel(tf.keras.Model):
                 "`prediction_tasks` is deprecated and will be removed in a future version.",
             )
 
-        if num_v1_blocks > 0:
-            self.output_names = [task.task_name for task in self.prediction_tasks]
-        else:
-            self.output_names = [block.full_name for block in self.model_outputs]
-
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
 
