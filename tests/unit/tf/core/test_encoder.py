@@ -122,7 +122,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
         loaded_topk_encoder = tf.keras.models.load_model(tmpdir)
     batch_output = loaded_topk_encoder(batch[0])
 
-    output_signature = loaded_topk_encoder.signatures["serving_default"].structured_output
+    output_signature = loaded_topk_encoder.signatures["serving_default"].structured_outputs
     assert len(output_signature) == 2
     assert output_signature["scores"] == tf.TensorSpec(
         shape=(None, TOP_K), dtype=tf.float32, name="scores"
