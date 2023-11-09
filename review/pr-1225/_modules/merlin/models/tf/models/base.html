@@ -508,6 +508,7 @@ document.write(`
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.base</span> <span class="kn">import</span> <span class="n">ModelOutput</span><span class="p">,</span> <span class="n">ModelOutputType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.classification</span> <span class="kn">import</span> <span class="n">CategoricalOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.contrastive</span> <span class="kn">import</span> <span class="n">ContrastiveOutput</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.outputs.topk</span> <span class="kn">import</span> <span class="n">TopKOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.features</span> <span class="kn">import</span> <span class="n">PrepareFeatures</span><span class="p">,</span> <span class="n">expected_input_cols_from_schema</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.sequence</span> <span class="kn">import</span> <span class="n">SequenceTransform</span>
@@ -761,6 +762,154 @@ document.write(`
             <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
             <span class="n">initial_value</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compile</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;rmsprop&quot;</span><span class="p">,</span>
+        <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Loss</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Loss</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span>
+                <span class="n">MetricType</span><span class="p">,</span>
+                <span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">],</span>
+                <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">]],</span>
+                <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MetricType</span><span class="p">],</span>
+                <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">]],</span>
+            <span class="p">]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">loss_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">weighted_metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span>
+                <span class="n">MetricType</span><span class="p">,</span>
+                <span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">],</span>
+                <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">]],</span>
+                <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MetricType</span><span class="p">],</span>
+                <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">]],</span>
+            <span class="p">]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">steps_per_execution</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">jit_compile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Configures the model for training.</span>
+<span class="sd">        Example:</span>
+<span class="sd">        ```python</span>
+<span class="sd">        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),</span>
+<span class="sd">                      loss=tf.keras.losses.BinaryCrossentropy(),</span>
+<span class="sd">                      metrics=[tf.keras.metrics.BinaryAccuracy(),</span>
+<span class="sd">                               tf.keras.metrics.FalseNegatives()])</span>
+<span class="sd">        ```</span>
+<span class="sd">        Args:</span>
+<span class="sd">            optimizer: String (name of optimizer) or optimizer instance. See</span>
+<span class="sd">              `tf.keras.optimizers`.</span>
+<span class="sd">            loss: Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]] = None</span>
+<span class="sd">              losses : Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]], optional</span>
+<span class="sd">              {LOSS_PARAMETERS_DOCSTRINGS}</span>
+<span class="sd">              See `tf.keras.losses`. A loss</span>
+<span class="sd">              function is any callable with the signature `loss = fn(y_true,</span>
+<span class="sd">              y_pred)`, where `y_true` are the ground truth values, and</span>
+<span class="sd">              `y_pred` are the model&#39;s predictions.</span>
+<span class="sd">              `y_true` should have shape</span>
+<span class="sd">              `(batch_size, d0, .. dN)` (except in the case of</span>
+<span class="sd">              sparse loss functions such as</span>
+<span class="sd">              sparse categorical crossentropy which expects integer arrays of shape</span>
+<span class="sd">              `(batch_size, d0, .. dN-1)`).</span>
+<span class="sd">              `y_pred` should have shape `(batch_size, d0, .. dN)`.</span>
+<span class="sd">              The loss function should return a float tensor.</span>
+<span class="sd">              If a custom `Loss` instance is</span>
+<span class="sd">              used and reduction is set to `None`, return value has shape</span>
+<span class="sd">              `(batch_size, d0, .. dN-1)` i.e. per-sample or per-timestep loss</span>
+<span class="sd">              values; otherwise, it is a scalar. If the model has multiple outputs,</span>
+<span class="sd">              you can use a different loss on each output by passing a dictionary</span>
+<span class="sd">              or a list of losses. The loss value that will be minimized by the</span>
+<span class="sd">              model will then be the sum of all individual losses, unless</span>
+<span class="sd">              `loss_weights` is specified.</span>
+<span class="sd">            loss_weights: Optional list or dictionary specifying scalar coefficients</span>
+<span class="sd">              (Python floats) to weight the loss contributions of different model</span>
+<span class="sd">              outputs. The loss value that will be minimized by the model will then</span>
+<span class="sd">              be the *weighted sum* of all individual losses, weighted by the</span>
+<span class="sd">              `loss_weights` coefficients.</span>
+<span class="sd">                If a list, it is expected to have a 1:1 mapping to the model&#39;s</span>
+<span class="sd">                  outputs (Keras sorts tasks by name).</span>
+<span class="sd">                  If a dict, it is expected to map output names (strings)</span>
+<span class="sd">                  to scalar coefficients.</span>
+<span class="sd">            metrics: Optional[ Union[ MetricType, Sequence[MetricType],</span>
+<span class="sd">                  Sequence[Sequence[MetricType]],</span>
+<span class="sd">                  Dict[str, MetricType], Dict[str, Sequence[MetricType]], ] ], optional</span>
+<span class="sd">                  {METRICS_PARAMETERS_DOCSTRING}</span>
+<span class="sd">            weighted_metrics: Optional[ Union[ MetricType, Sequence[MetricType],</span>
+<span class="sd">                  Sequence[Sequence[MetricType]],</span>
+<span class="sd">                  Dict[str, MetricType], Dict[str, Sequence[MetricType]], ] ], optional</span>
+<span class="sd">                  List of metrics to be evaluated and weighted by</span>
+<span class="sd">                 `sample_weight` or `class_weight` during training and testing.</span>
+<span class="sd">                 {METRICS_PARAMETERS_DOCSTRING}</span>
+<span class="sd">            run_eagerly: Bool. Defaults to `False`. If `True`, this `Model`&#39;s</span>
+<span class="sd">              logic will not be wrapped in a `tf.function`. Recommended to leave</span>
+<span class="sd">              this as `None` unless your `Model` cannot be run inside a</span>
+<span class="sd">              `tf.function`. `run_eagerly=True` is not supported when using</span>
+<span class="sd">              `tf.distribute.experimental.ParameterServerStrategy`.</span>
+<span class="sd">            steps_per_execution: Int. Defaults to 1. The number of batches to run</span>
+<span class="sd">              during each `tf.function` call. Running multiple batches inside a</span>
+<span class="sd">              single `tf.function` call can greatly improve performance on TPUs or</span>
+<span class="sd">              small models with a large Python overhead. At most, one full epoch</span>
+<span class="sd">              will be run each execution. If a number larger than the size of the</span>
+<span class="sd">              epoch is passed, the execution will be truncated to the size of the</span>
+<span class="sd">              epoch. Note that if `steps_per_execution` is set to `N`,</span>
+<span class="sd">              `Callback.on_batch_begin` and `Callback.on_batch_end` methods will</span>
+<span class="sd">              only be called every `N` batches (i.e. before/after each `tf.function`</span>
+<span class="sd">              execution).</span>
+<span class="sd">            jit_compile: If `True`, compile the model training step with XLA.</span>
+<span class="sd">              [XLA](https://www.tensorflow.org/xla) is an optimizing compiler for</span>
+<span class="sd">              machine learning.</span>
+<span class="sd">              `jit_compile` is not enabled for by default.</span>
+<span class="sd">              This option cannot be enabled with `run_eagerly=True`.</span>
+<span class="sd">              Note that `jit_compile=True` is</span>
+<span class="sd">              may not necessarily work for all models.</span>
+<span class="sd">              For more information on supported operations please refer to the</span>
+<span class="sd">              [XLA documentation](https://www.tensorflow.org/xla).</span>
+<span class="sd">              Also refer to</span>
+<span class="sd">              [known XLA issues](https://www.tensorflow.org/xla/known_issues) for</span>
+<span class="sd">              more details.</span>
+<span class="sd">            **kwargs: Arguments supported for backwards compatibility only.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">num_v1_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prediction_tasks</span><span class="p">)</span>
+        <span class="n">num_v2_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_outputs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_v1_blocks</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">num_v2_blocks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;You cannot use both `prediction_tasks` and `prediction_blocks` at the same time.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;`prediction_tasks` is deprecated and will be removed in a future version.&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_v1_blocks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">task_name</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_tasks</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">num_v2_blocks</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">TopKOutput</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">output_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">block</span><span class="o">.</span><span class="n">full_name</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_outputs</span><span class="p">]</span>
+
+        <span class="c1"># This flag will make Keras change the metric-names which is not needed in v2</span>
+        <span class="n">from_serialized</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;from_serialized&quot;</span><span class="p">,</span> <span class="n">num_v2_blocks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">hvd_installed</span> <span class="ow">and</span> <span class="n">hvd</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Horovod: Specify `experimental_run_tf_function=False` to ensure TensorFlow</span>
+            <span class="c1"># uses hvd.DistributedOptimizer() to compute gradients.</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;experimental_run_tf_function&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+            <span class="n">optimizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_optimizer</span><span class="p">(</span><span class="n">optimizer</span><span class="p">),</span>
+            <span class="n">loss</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_loss</span><span class="p">(</span><span class="n">loss</span><span class="p">),</span>
+            <span class="n">metrics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_metrics</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">weighted</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">weighted_metrics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_metrics</span><span class="p">(</span><span class="n">weighted_metrics</span><span class="p">,</span> <span class="n">weighted</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">run_eagerly</span><span class="o">=</span><span class="n">run_eagerly</span><span class="p">,</span>
+            <span class="n">loss_weights</span><span class="o">=</span><span class="n">loss_weights</span><span class="p">,</span>
+            <span class="n">steps_per_execution</span><span class="o">=</span><span class="n">steps_per_execution</span><span class="p">,</span>
+            <span class="n">jit_compile</span><span class="o">=</span><span class="n">jit_compile</span><span class="p">,</span>
+            <span class="n">from_serialized</span><span class="o">=</span><span class="n">from_serialized</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_create_optimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">):</span>
@@ -2054,151 +2203,6 @@ document.write(`
                     <span class="n">child</span><span class="o">.</span><span class="n">_feature_shapes</span> <span class="o">=</span> <span class="n">feature_shapes</span>
                     <span class="n">child</span><span class="o">.</span><span class="n">_feature_dtypes</span> <span class="o">=</span> <span class="n">feature_dtypes</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_maybe_build</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">compile</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;rmsprop&quot;</span><span class="p">,</span>
-        <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Loss</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Loss</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-            <span class="n">Union</span><span class="p">[</span>
-                <span class="n">MetricType</span><span class="p">,</span>
-                <span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">],</span>
-                <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">]],</span>
-                <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MetricType</span><span class="p">],</span>
-                <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">]],</span>
-            <span class="p">]</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">loss_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">weighted_metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-            <span class="n">Union</span><span class="p">[</span>
-                <span class="n">MetricType</span><span class="p">,</span>
-                <span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">],</span>
-                <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">]],</span>
-                <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MetricType</span><span class="p">],</span>
-                <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">MetricType</span><span class="p">]],</span>
-            <span class="p">]</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">steps_per_execution</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">jit_compile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-    <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Configures the model for training.</span>
-<span class="sd">        Example:</span>
-<span class="sd">        ```python</span>
-<span class="sd">        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),</span>
-<span class="sd">                      loss=tf.keras.losses.BinaryCrossentropy(),</span>
-<span class="sd">                      metrics=[tf.keras.metrics.BinaryAccuracy(),</span>
-<span class="sd">                               tf.keras.metrics.FalseNegatives()])</span>
-<span class="sd">        ```</span>
-<span class="sd">        Args:</span>
-<span class="sd">            optimizer: String (name of optimizer) or optimizer instance. See</span>
-<span class="sd">              `tf.keras.optimizers`.</span>
-<span class="sd">            loss: Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]] = None</span>
-<span class="sd">              losses : Optional[Union[str, Loss, Dict[str, Union[str, Loss]]]], optional</span>
-<span class="sd">              {LOSS_PARAMETERS_DOCSTRINGS}</span>
-<span class="sd">              See `tf.keras.losses`. A loss</span>
-<span class="sd">              function is any callable with the signature `loss = fn(y_true,</span>
-<span class="sd">              y_pred)`, where `y_true` are the ground truth values, and</span>
-<span class="sd">              `y_pred` are the model&#39;s predictions.</span>
-<span class="sd">              `y_true` should have shape</span>
-<span class="sd">              `(batch_size, d0, .. dN)` (except in the case of</span>
-<span class="sd">              sparse loss functions such as</span>
-<span class="sd">              sparse categorical crossentropy which expects integer arrays of shape</span>
-<span class="sd">              `(batch_size, d0, .. dN-1)`).</span>
-<span class="sd">              `y_pred` should have shape `(batch_size, d0, .. dN)`.</span>
-<span class="sd">              The loss function should return a float tensor.</span>
-<span class="sd">              If a custom `Loss` instance is</span>
-<span class="sd">              used and reduction is set to `None`, return value has shape</span>
-<span class="sd">              `(batch_size, d0, .. dN-1)` i.e. per-sample or per-timestep loss</span>
-<span class="sd">              values; otherwise, it is a scalar. If the model has multiple outputs,</span>
-<span class="sd">              you can use a different loss on each output by passing a dictionary</span>
-<span class="sd">              or a list of losses. The loss value that will be minimized by the</span>
-<span class="sd">              model will then be the sum of all individual losses, unless</span>
-<span class="sd">              `loss_weights` is specified.</span>
-<span class="sd">            loss_weights: Optional list or dictionary specifying scalar coefficients</span>
-<span class="sd">              (Python floats) to weight the loss contributions of different model</span>
-<span class="sd">              outputs. The loss value that will be minimized by the model will then</span>
-<span class="sd">              be the *weighted sum* of all individual losses, weighted by the</span>
-<span class="sd">              `loss_weights` coefficients.</span>
-<span class="sd">                If a list, it is expected to have a 1:1 mapping to the model&#39;s</span>
-<span class="sd">                  outputs (Keras sorts tasks by name).</span>
-<span class="sd">                  If a dict, it is expected to map output names (strings)</span>
-<span class="sd">                  to scalar coefficients.</span>
-<span class="sd">            metrics: Optional[ Union[ MetricType, Sequence[MetricType],</span>
-<span class="sd">                  Sequence[Sequence[MetricType]],</span>
-<span class="sd">                  Dict[str, MetricType], Dict[str, Sequence[MetricType]], ] ], optional</span>
-<span class="sd">                  {METRICS_PARAMETERS_DOCSTRING}</span>
-<span class="sd">            weighted_metrics: Optional[ Union[ MetricType, Sequence[MetricType],</span>
-<span class="sd">                  Sequence[Sequence[MetricType]],</span>
-<span class="sd">                  Dict[str, MetricType], Dict[str, Sequence[MetricType]], ] ], optional</span>
-<span class="sd">                  List of metrics to be evaluated and weighted by</span>
-<span class="sd">                 `sample_weight` or `class_weight` during training and testing.</span>
-<span class="sd">                 {METRICS_PARAMETERS_DOCSTRING}</span>
-<span class="sd">            run_eagerly: Bool. Defaults to `False`. If `True`, this `Model`&#39;s</span>
-<span class="sd">              logic will not be wrapped in a `tf.function`. Recommended to leave</span>
-<span class="sd">              this as `None` unless your `Model` cannot be run inside a</span>
-<span class="sd">              `tf.function`. `run_eagerly=True` is not supported when using</span>
-<span class="sd">              `tf.distribute.experimental.ParameterServerStrategy`.</span>
-<span class="sd">            steps_per_execution: Int. Defaults to 1. The number of batches to run</span>
-<span class="sd">              during each `tf.function` call. Running multiple batches inside a</span>
-<span class="sd">              single `tf.function` call can greatly improve performance on TPUs or</span>
-<span class="sd">              small models with a large Python overhead. At most, one full epoch</span>
-<span class="sd">              will be run each execution. If a number larger than the size of the</span>
-<span class="sd">              epoch is passed, the execution will be truncated to the size of the</span>
-<span class="sd">              epoch. Note that if `steps_per_execution` is set to `N`,</span>
-<span class="sd">              `Callback.on_batch_begin` and `Callback.on_batch_end` methods will</span>
-<span class="sd">              only be called every `N` batches (i.e. before/after each `tf.function`</span>
-<span class="sd">              execution).</span>
-<span class="sd">            jit_compile: If `True`, compile the model training step with XLA.</span>
-<span class="sd">              [XLA](https://www.tensorflow.org/xla) is an optimizing compiler for</span>
-<span class="sd">              machine learning.</span>
-<span class="sd">              `jit_compile` is not enabled for by default.</span>
-<span class="sd">              This option cannot be enabled with `run_eagerly=True`.</span>
-<span class="sd">              Note that `jit_compile=True` is</span>
-<span class="sd">              may not necessarily work for all models.</span>
-<span class="sd">              For more information on supported operations please refer to the</span>
-<span class="sd">              [XLA documentation](https://www.tensorflow.org/xla).</span>
-<span class="sd">              Also refer to</span>
-<span class="sd">              [known XLA issues](https://www.tensorflow.org/xla/known_issues) for</span>
-<span class="sd">              more details.</span>
-<span class="sd">            **kwargs: Arguments supported for backwards compatibility only.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">num_v1_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prediction_tasks</span><span class="p">)</span>
-        <span class="n">num_v2_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_outputs</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">num_v1_blocks</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">num_v2_blocks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;You cannot use both `prediction_tasks` and `prediction_blocks` at the same time.&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;`prediction_tasks` is deprecated and will be removed in a future version.&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">num_v1_blocks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">output_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">task_name</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_tasks</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">output_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">block</span><span class="o">.</span><span class="n">full_name</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_outputs</span><span class="p">]</span>
-
-        <span class="c1"># This flag will make Keras change the metric-names which is not needed in v2</span>
-        <span class="n">from_serialized</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;from_serialized&quot;</span><span class="p">,</span> <span class="n">num_v2_blocks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">hvd_installed</span> <span class="ow">and</span> <span class="n">hvd</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># Horovod: Specify `experimental_run_tf_function=False` to ensure TensorFlow</span>
-            <span class="c1"># uses hvd.DistributedOptimizer() to compute gradients.</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;experimental_run_tf_function&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
-
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="n">optimizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_optimizer</span><span class="p">(</span><span class="n">optimizer</span><span class="p">),</span>
-            <span class="n">loss</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_loss</span><span class="p">(</span><span class="n">loss</span><span class="p">),</span>
-            <span class="n">metrics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_metrics</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">weighted</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-            <span class="n">weighted_metrics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_metrics</span><span class="p">(</span><span class="n">weighted_metrics</span><span class="p">,</span> <span class="n">weighted</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-            <span class="n">run_eagerly</span><span class="o">=</span><span class="n">run_eagerly</span><span class="p">,</span>
-            <span class="n">loss_weights</span><span class="o">=</span><span class="n">loss_weights</span><span class="p">,</span>
-            <span class="n">steps_per_execution</span><span class="o">=</span><span class="n">steps_per_execution</span><span class="p">,</span>
-            <span class="n">jit_compile</span><span class="o">=</span><span class="n">jit_compile</span><span class="p">,</span>
-            <span class="n">from_serialized</span><span class="o">=</span><span class="n">from_serialized</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Builds the model</span>
