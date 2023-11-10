@@ -69,6 +69,7 @@ from merlin.models.tf.models.utils import parse_prediction_blocks
 from merlin.models.tf.outputs.base import ModelOutput, ModelOutputType
 from merlin.models.tf.outputs.classification import CategoricalOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
+from merlin.models.tf.outputs.topk import TopKOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.features import PrepareFeatures, expected_input_cols_from_schema
 from merlin.models.tf.transforms.sequence import SequenceTransform
@@ -446,7 +447,10 @@ class BaseModel(tf.keras.Model):
         if num_v1_blocks > 0:
             self.output_names = [task.task_name for task in self.prediction_tasks]
         else:
-            self.output_names = [block.full_name for block in self.model_outputs]
+            if num_v2_blocks == 1 and isinstance(self.model_outputs[0], TopKOutput):
+                pass
+            else:
+                self.output_names = [block.full_name for block in self.model_outputs]
 
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
