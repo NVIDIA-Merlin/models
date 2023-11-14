@@ -1,0 +1,609 @@
+
+
+<!DOCTYPE html>
+
+
+<html >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>merlin.models.tf.ContinuousProjection &#8212; NVIDIA Merlin Models</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/versions.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script src="../_static/js/rtd-version-switcher.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'generated/merlin.models.tf.ContinuousProjection';</script>
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/generated/merlin.models.tf.ContinuousProjection.html" />
+    <link rel="shortcut icon" href="../_static/favicon.png"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="merlin.models.tf.SequenceEmbeddingFeatures" href="merlin.models.tf.SequenceEmbeddingFeatures.html" />
+    <link rel="prev" title="merlin.models.tf.ContinuousEmbedding" href="merlin.models.tf.ContinuousEmbedding.html" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NVJ1Y1YJHK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-NVJ1Y1YJHK', {
+        'anonymize_ip': false,
+    });
+  </script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,300&display=swap" rel="stylesheet">
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">NVIDIA Merlin Models</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../examples/index.html">Example Notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/04-Exporting-ranking-models.html">Exporting Ranking Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/05-Retrieval-Model.html">Building a Retrieval Model with Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/06-Define-your-own-architecture-with-Merlin-Models.html">Taking the Next Step with Merlin Models: Define Your Own Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../api.html">API Documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.DCNModel.html">merlin.models.tf.DCNModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.DeepFMModel.html">merlin.models.tf.DeepFMModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.DLRMModel.html">merlin.models.tf.DLRMModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.WideAndDeepModel.html">merlin.models.tf.WideAndDeepModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.Encoder.html">merlin.models.tf.Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.EmbeddingEncoder.html">merlin.models.tf.EmbeddingEncoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ItemRetrievalScorer.html">merlin.models.tf.ItemRetrievalScorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.RetrievalModelV2.html">merlin.models.tf.RetrievalModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MatrixFactorizationModelV2.html">merlin.models.tf.MatrixFactorizationModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MatrixFactorizationModel.html">merlin.models.tf.MatrixFactorizationModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.TwoTowerModelV2.html">merlin.models.tf.TwoTowerModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.TwoTowerModel.html">merlin.models.tf.TwoTowerModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.YoutubeDNNRetrievalModelV2.html">merlin.models.tf.YoutubeDNNRetrievalModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.YoutubeDNNRetrievalModel.html">merlin.models.tf.YoutubeDNNRetrievalModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.Embeddings.html">merlin.models.tf.Embeddings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.EmbeddingTable.html">merlin.models.tf.EmbeddingTable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.AverageEmbeddingsByWeightFeature.html">merlin.models.tf.AverageEmbeddingsByWeightFeature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ReplaceMaskedEmbeddings.html">merlin.models.tf.ReplaceMaskedEmbeddings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.L2Norm.html">merlin.models.tf.L2Norm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.InputBlockV2.html">merlin.models.tf.InputBlockV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.InputBlock.html">merlin.models.tf.InputBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.Continuous.html">merlin.models.tf.Continuous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ContinuousFeatures.html">merlin.models.tf.ContinuousFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ContinuousEmbedding.html">merlin.models.tf.ContinuousEmbedding</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">merlin.models.tf.ContinuousProjection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.SequenceEmbeddingFeatures.html">merlin.models.tf.SequenceEmbeddingFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.DLRMBlock.html">merlin.models.tf.DLRMBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MLPBlock.html">merlin.models.tf.MLPBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.CrossBlock.html">merlin.models.tf.CrossBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.TwoTowerBlock.html">merlin.models.tf.TwoTowerBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MatrixFactorizationBlock.html">merlin.models.tf.MatrixFactorizationBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.DotProductInteraction.html">merlin.models.tf.DotProductInteraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.FMBlock.html">merlin.models.tf.FMBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.FMPairwiseInteraction.html">merlin.models.tf.FMPairwiseInteraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PredictionTasks.html">merlin.models.tf.PredictionTasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PredictionTask.html">merlin.models.tf.PredictionTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.BinaryClassificationTask.html">merlin.models.tf.BinaryClassificationTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MultiClassClassificationTask.html">merlin.models.tf.MultiClassClassificationTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.RegressionTask.html">merlin.models.tf.RegressionTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ItemRetrievalTask.html">merlin.models.tf.ItemRetrievalTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.OutputBlock.html">merlin.models.tf.OutputBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ModelOutput.html">merlin.models.tf.ModelOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.BinaryOutput.html">merlin.models.tf.BinaryOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.CategoricalOutput.html">merlin.models.tf.CategoricalOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ContrastiveOutput.html">merlin.models.tf.ContrastiveOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.RegressionOutput.html">merlin.models.tf.RegressionOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ColumnBasedSampleWeight.html">merlin.models.tf.ColumnBasedSampleWeight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.SequentialBlock.html">merlin.models.tf.SequentialBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ParallelBlock.html">merlin.models.tf.ParallelBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ParallelPredictionBlock.html">merlin.models.tf.ParallelPredictionBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.DenseResidualBlock.html">merlin.models.tf.DenseResidualBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.DualEncoderBlock.html">merlin.models.tf.DualEncoderBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ResidualBlock.html">merlin.models.tf.ResidualBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.TabularBlock.html">merlin.models.tf.TabularBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.Filter.html">merlin.models.tf.Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.Cond.html">merlin.models.tf.Cond</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.TopKEncoder.html">merlin.models.tf.TopKEncoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MultiOptimizer.html">merlin.models.tf.MultiOptimizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.LazyAdam.html">merlin.models.tf.LazyAdam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.OptimizerBlocks.html">merlin.models.tf.OptimizerBlocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ToTarget.html">merlin.models.tf.ToTarget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ToOneHot.html">merlin.models.tf.ToOneHot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.HashedCross.html">merlin.models.tf.HashedCross</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.HashedCrossAll.html">merlin.models.tf.HashedCrossAll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.BroadcastToSequence.html">merlin.models.tf.BroadcastToSequence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.SequencePredictNext.html">merlin.models.tf.SequencePredictNext</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.SequencePredictLast.html">merlin.models.tf.SequencePredictLast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.SequencePredictRandom.html">merlin.models.tf.SequencePredictRandom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.SequenceTargetAsInput.html">merlin.models.tf.SequenceTargetAsInput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.SequenceMaskLast.html">merlin.models.tf.SequenceMaskLast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.SequenceMaskRandom.html">merlin.models.tf.SequenceMaskRandom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ExpandDims.html">merlin.models.tf.ExpandDims</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.StochasticSwapNoise.html">merlin.models.tf.StochasticSwapNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.AsTabular.html">merlin.models.tf.AsTabular</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MMOEBlock.html">merlin.models.tf.MMOEBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.CGCBlock.html">merlin.models.tf.CGCBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PLEBlock.html">merlin.models.tf.PLEBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.Loader.html">merlin.models.tf.Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.AvgPrecisionAt.html">merlin.models.tf.AvgPrecisionAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.MRRAt.html">merlin.models.tf.MRRAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.NDCGAt.html">merlin.models.tf.NDCGAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PrecisionAt.html">merlin.models.tf.PrecisionAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.RecallAt.html">merlin.models.tf.RecallAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.TopKMetricsAggregator.html">merlin.models.tf.TopKMetricsAggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.ItemSampler.html">merlin.models.tf.ItemSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.InBatchSampler.html">merlin.models.tf.InBatchSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.PopularityBasedSampler.html">merlin.models.tf.PopularityBasedSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.CategoricalCrossEntropy.html">merlin.models.tf.losses.CategoricalCrossEntropy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.SparseCategoricalCrossEntropy.html">merlin.models.tf.losses.SparseCategoricalCrossEntropy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.BPRLoss.html">merlin.models.tf.losses.BPRLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.BPRmaxLoss.html">merlin.models.tf.losses.BPRmaxLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.HingeLoss.html">merlin.models.tf.losses.HingeLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.LogisticLoss.html">merlin.models.tf.losses.LogisticLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.TOP1Loss.html">merlin.models.tf.losses.TOP1Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.TOP1maxLoss.html">merlin.models.tf.losses.TOP1maxLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.losses.TOP1v2Loss.html">merlin.models.tf.losses.TOP1v2Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.select_targets.html">merlin.models.utils.schema_utils.select_targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.create_categorical_column.html">merlin.models.utils.schema_utils.create_categorical_column</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.create_continuous_column.html">merlin.models.utils.schema_utils.create_continuous_column</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.filter_dict_by_schema.html">merlin.models.utils.schema_utils.filter_dict_by_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.categorical_cardinalities.html">merlin.models.utils.schema_utils.categorical_cardinalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.categorical_domains.html">merlin.models.utils.schema_utils.categorical_domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.tf.TensorInitializer.html">merlin.models.tf.TensorInitializer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.filter_kwargs.html">merlin.models.utils.misc_utils.filter_kwargs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.safe_json.html">merlin.models.utils.misc_utils.safe_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.get_filenames.html">merlin.models.utils.misc_utils.get_filenames</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.get_label_feature_name.html">merlin.models.utils.misc_utils.get_label_feature_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.get_timestamp_feature_name.html">merlin.models.utils.misc_utils.get_timestamp_feature_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.get_parquet_files_names.html">merlin.models.utils.misc_utils.get_parquet_files_names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.Timing.html">merlin.models.utils.misc_utils.Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.get_object_size.html">merlin.models.utils.misc_utils.get_object_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.misc_utils.validate_dataset.html">merlin.models.utils.misc_utils.validate_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.registry.camelcase_to_snakecase.html">merlin.models.utils.registry.camelcase_to_snakecase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.registry.snakecase_to_camelcase.html">merlin.models.utils.registry.snakecase_to_camelcase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.registry.default_name.html">merlin.models.utils.registry.default_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.registry.default_object_name.html">merlin.models.utils.registry.default_object_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.registry.Registry.html">merlin.models.utils.registry.Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.registry.RegistryMixin.html">merlin.models.utils.registry.RegistryMixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merlin.models.utils.registry.display_list_by_prefix.html">merlin.models.utils.registry.display_list_by_prefix</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../additional_resources.html">Additional Resources</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../CONTRIBUTING.html">Contributing to Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/NVIDIA-Merlin/models">Github Repo</a></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+</nav></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-merlin-ecosystem-nav" aria-label="Merlin Ecosystem Nav">
+  <div class="bd-toc-item navbar-nav">
+    <p aria-level="2" class="caption" role="heading"><span class="caption-text">Ecosystem</span></p>
+    <ul class="nav bd-sidenav">
+      <li class="toctree-l1"><a class="reference external" href="/Merlin/v23.08.01">Merlin</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/core/v23.08.01">Core</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/systems/v23.08.01">Systems</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/NVTabular/v23.08.01">NVTabular</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/Transformers4Rec/v23.08.01">Transformers4Rec</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/dataloader/v23.08.01">Dataloader</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/HugetCTR/v23.08.01">HugeCTR</a></li>
+    </ul>
+  </div>
+</nav></div>
+        <div class="sidebar-primary-item">
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"></span>
+    v: v23.08.01
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../../v23.02.00/index.html">v23.02.00</a></dd>
+      <dd><a href="../../v23.04.00/index.html">v23.04.00</a></dd>
+      <dd><a href="../../v23.05.00/index.html">v23.05.00</a></dd>
+      <dd><a href="../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../v23.08.00/index.html">v23.08.00</a></dd>
+      <dd><a href="merlin.models.tf.ContinuousProjection.html">v23.08.01</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../main/index.html">main</a></dd>
+      <dd><a href="../../stable/index.html">stable</a></dd>
+    </dl>
+  </div>
+</div></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="https://github.com/NVIDIA-Merlin/models" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script>
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>merlin.models.tf.ContinuousProjection</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="merlin-models-tf-continuousprojection">
+<h1>merlin.models.tf.ContinuousProjection<a class="headerlink" href="#merlin-models-tf-continuousprojection" title="Permalink to this headline">#</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="merlin.models.tf.ContinuousProjection">
+<span class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></span><span class="sig-name descname"><span class="pre">ContinuousProjection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/generated/merlin.schema.Schema.html#merlin.schema.Schema" title="(in Merlin Core)"><span class="pre">merlin.schema.schema.Schema</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">keras.engine.base_layer.Layer</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock" title="merlin.models.tf.core.combinators.SequentialBlock"><span class="pre">merlin.models.tf.core.combinators.SequentialBlock</span></a></span></span><a class="reference internal" href="../_modules/merlin/models/tf/inputs/continuous.html#ContinuousProjection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ContinuousProjection" title="Permalink to this definition">#</a></dt>
+<dd><p>Concatenates the continuous features and combines them
+using a layer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema</strong> (<em>Schema</em>) – Schema that includes the continuous features</p></li>
+<li><p><strong>projection</strong> (<em>tf.keras.layers.Layer</em>) – Layer that will be used to combine the continuous features</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="merlin.models.tf.ContinuousEmbedding.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">merlin.models.tf.ContinuousEmbedding</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="merlin.models.tf.SequenceEmbeddingFeatures.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">merlin.models.tf.SequenceEmbeddingFeatures</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+  <p class="copyright">
+    
+      © Copyright 2023, NVIDIA.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

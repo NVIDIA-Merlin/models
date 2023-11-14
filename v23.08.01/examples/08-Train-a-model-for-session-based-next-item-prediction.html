@@ -1,0 +1,1972 @@
+
+
+<!DOCTYPE html>
+
+
+<html >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Session-Based Next Item Prediction for Fashion E-Commerce &#8212; NVIDIA Merlin Models</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/versions.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script src="../_static/js/rtd-version-switcher.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/08-Train-a-model-for-session-based-next-item-prediction';</script>
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/examples/08-Train-a-model-for-session-based-next-item-prediction.html" />
+    <link rel="shortcut icon" href="../_static/favicon.png"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NVJ1Y1YJHK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-NVJ1Y1YJHK', {
+        'anonymize_ip': false,
+    });
+  </script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,300&display=swap" rel="stylesheet">
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">NVIDIA Merlin Models</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="index.html">Example Notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="04-Exporting-ranking-models.html">Exporting Ranking Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="05-Retrieval-Model.html">Building a Retrieval Model with Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="06-Define-your-own-architecture-with-Merlin-Models.html">Taking the Next Step with Merlin Models: Define Your Own Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api.html">API Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DCNModel.html">merlin.models.tf.DCNModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DeepFMModel.html">merlin.models.tf.DeepFMModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DLRMModel.html">merlin.models.tf.DLRMModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.WideAndDeepModel.html">merlin.models.tf.WideAndDeepModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Encoder.html">merlin.models.tf.Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.EmbeddingEncoder.html">merlin.models.tf.EmbeddingEncoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ItemRetrievalScorer.html">merlin.models.tf.ItemRetrievalScorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.RetrievalModelV2.html">merlin.models.tf.RetrievalModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MatrixFactorizationModelV2.html">merlin.models.tf.MatrixFactorizationModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MatrixFactorizationModel.html">merlin.models.tf.MatrixFactorizationModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TwoTowerModelV2.html">merlin.models.tf.TwoTowerModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TwoTowerModel.html">merlin.models.tf.TwoTowerModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.YoutubeDNNRetrievalModelV2.html">merlin.models.tf.YoutubeDNNRetrievalModelV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.YoutubeDNNRetrievalModel.html">merlin.models.tf.YoutubeDNNRetrievalModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Embeddings.html">merlin.models.tf.Embeddings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.EmbeddingTable.html">merlin.models.tf.EmbeddingTable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.AverageEmbeddingsByWeightFeature.html">merlin.models.tf.AverageEmbeddingsByWeightFeature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ReplaceMaskedEmbeddings.html">merlin.models.tf.ReplaceMaskedEmbeddings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.L2Norm.html">merlin.models.tf.L2Norm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.InputBlockV2.html">merlin.models.tf.InputBlockV2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.InputBlock.html">merlin.models.tf.InputBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Continuous.html">merlin.models.tf.Continuous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ContinuousFeatures.html">merlin.models.tf.ContinuousFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ContinuousEmbedding.html">merlin.models.tf.ContinuousEmbedding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ContinuousProjection.html">merlin.models.tf.ContinuousProjection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequenceEmbeddingFeatures.html">merlin.models.tf.SequenceEmbeddingFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DLRMBlock.html">merlin.models.tf.DLRMBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MLPBlock.html">merlin.models.tf.MLPBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CrossBlock.html">merlin.models.tf.CrossBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TwoTowerBlock.html">merlin.models.tf.TwoTowerBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MatrixFactorizationBlock.html">merlin.models.tf.MatrixFactorizationBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DotProductInteraction.html">merlin.models.tf.DotProductInteraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.FMBlock.html">merlin.models.tf.FMBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.FMPairwiseInteraction.html">merlin.models.tf.FMPairwiseInteraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PredictionTasks.html">merlin.models.tf.PredictionTasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PredictionTask.html">merlin.models.tf.PredictionTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.BinaryClassificationTask.html">merlin.models.tf.BinaryClassificationTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MultiClassClassificationTask.html">merlin.models.tf.MultiClassClassificationTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.RegressionTask.html">merlin.models.tf.RegressionTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ItemRetrievalTask.html">merlin.models.tf.ItemRetrievalTask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.OutputBlock.html">merlin.models.tf.OutputBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ModelOutput.html">merlin.models.tf.ModelOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.BinaryOutput.html">merlin.models.tf.BinaryOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CategoricalOutput.html">merlin.models.tf.CategoricalOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ContrastiveOutput.html">merlin.models.tf.ContrastiveOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.RegressionOutput.html">merlin.models.tf.RegressionOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ColumnBasedSampleWeight.html">merlin.models.tf.ColumnBasedSampleWeight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequentialBlock.html">merlin.models.tf.SequentialBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ParallelBlock.html">merlin.models.tf.ParallelBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ParallelPredictionBlock.html">merlin.models.tf.ParallelPredictionBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DenseResidualBlock.html">merlin.models.tf.DenseResidualBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.DualEncoderBlock.html">merlin.models.tf.DualEncoderBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ResidualBlock.html">merlin.models.tf.ResidualBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TabularBlock.html">merlin.models.tf.TabularBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Filter.html">merlin.models.tf.Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Cond.html">merlin.models.tf.Cond</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TopKEncoder.html">merlin.models.tf.TopKEncoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MultiOptimizer.html">merlin.models.tf.MultiOptimizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.LazyAdam.html">merlin.models.tf.LazyAdam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.OptimizerBlocks.html">merlin.models.tf.OptimizerBlocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.split_embeddings_on_size.html">merlin.models.tf.split_embeddings_on_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CategoryEncoding.html">merlin.models.tf.CategoryEncoding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MapValues.html">merlin.models.tf.MapValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrepareListFeatures.html">merlin.models.tf.PrepareListFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrepareFeatures.html">merlin.models.tf.PrepareFeatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToSparse.html">merlin.models.tf.ToSparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToDense.html">merlin.models.tf.ToDense</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToTarget.html">merlin.models.tf.ToTarget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ToOneHot.html">merlin.models.tf.ToOneHot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.HashedCross.html">merlin.models.tf.HashedCross</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.HashedCrossAll.html">merlin.models.tf.HashedCrossAll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.BroadcastToSequence.html">merlin.models.tf.BroadcastToSequence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequencePredictNext.html">merlin.models.tf.SequencePredictNext</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequencePredictLast.html">merlin.models.tf.SequencePredictLast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequencePredictRandom.html">merlin.models.tf.SequencePredictRandom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequenceTargetAsInput.html">merlin.models.tf.SequenceTargetAsInput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequenceMaskLast.html">merlin.models.tf.SequenceMaskLast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.SequenceMaskRandom.html">merlin.models.tf.SequenceMaskRandom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ExpandDims.html">merlin.models.tf.ExpandDims</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.StochasticSwapNoise.html">merlin.models.tf.StochasticSwapNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.AsTabular.html">merlin.models.tf.AsTabular</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MMOEBlock.html">merlin.models.tf.MMOEBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.CGCBlock.html">merlin.models.tf.CGCBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PLEBlock.html">merlin.models.tf.PLEBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.Loader.html">merlin.models.tf.Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.AvgPrecisionAt.html">merlin.models.tf.AvgPrecisionAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.MRRAt.html">merlin.models.tf.MRRAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.NDCGAt.html">merlin.models.tf.NDCGAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PrecisionAt.html">merlin.models.tf.PrecisionAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.RecallAt.html">merlin.models.tf.RecallAt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TopKMetricsAggregator.html">merlin.models.tf.TopKMetricsAggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.ItemSampler.html">merlin.models.tf.ItemSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.InBatchSampler.html">merlin.models.tf.InBatchSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.PopularityBasedSampler.html">merlin.models.tf.PopularityBasedSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.CategoricalCrossEntropy.html">merlin.models.tf.losses.CategoricalCrossEntropy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.SparseCategoricalCrossEntropy.html">merlin.models.tf.losses.SparseCategoricalCrossEntropy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.BPRLoss.html">merlin.models.tf.losses.BPRLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.BPRmaxLoss.html">merlin.models.tf.losses.BPRmaxLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.HingeLoss.html">merlin.models.tf.losses.HingeLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.LogisticLoss.html">merlin.models.tf.losses.LogisticLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.TOP1Loss.html">merlin.models.tf.losses.TOP1Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.TOP1maxLoss.html">merlin.models.tf.losses.TOP1maxLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.losses.TOP1v2Loss.html">merlin.models.tf.losses.TOP1v2Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.select_targets.html">merlin.models.utils.schema_utils.select_targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.create_categorical_column.html">merlin.models.utils.schema_utils.create_categorical_column</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.create_continuous_column.html">merlin.models.utils.schema_utils.create_continuous_column</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html">merlin.models.utils.schema_utils.filter_dict_by_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.categorical_cardinalities.html">merlin.models.utils.schema_utils.categorical_cardinalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.categorical_domains.html">merlin.models.utils.schema_utils.categorical_domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.tf.TensorInitializer.html">merlin.models.tf.TensorInitializer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.filter_kwargs.html">merlin.models.utils.misc_utils.filter_kwargs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.safe_json.html">merlin.models.utils.misc_utils.safe_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_filenames.html">merlin.models.utils.misc_utils.get_filenames</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_label_feature_name.html">merlin.models.utils.misc_utils.get_label_feature_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_timestamp_feature_name.html">merlin.models.utils.misc_utils.get_timestamp_feature_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_parquet_files_names.html">merlin.models.utils.misc_utils.get_parquet_files_names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.Timing.html">merlin.models.utils.misc_utils.Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.get_object_size.html">merlin.models.utils.misc_utils.get_object_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.misc_utils.validate_dataset.html">merlin.models.utils.misc_utils.validate_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.camelcase_to_snakecase.html">merlin.models.utils.registry.camelcase_to_snakecase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.snakecase_to_camelcase.html">merlin.models.utils.registry.snakecase_to_camelcase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.default_name.html">merlin.models.utils.registry.default_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.default_object_name.html">merlin.models.utils.registry.default_object_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.Registry.html">merlin.models.utils.registry.Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.RegistryMixin.html">merlin.models.utils.registry.RegistryMixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generated/merlin.models.utils.registry.display_list_by_prefix.html">merlin.models.utils.registry.display_list_by_prefix</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../additional_resources.html">Additional Resources</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../CONTRIBUTING.html">Contributing to Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/NVIDIA-Merlin/models">Github Repo</a></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+</nav></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-merlin-ecosystem-nav" aria-label="Merlin Ecosystem Nav">
+  <div class="bd-toc-item navbar-nav">
+    <p aria-level="2" class="caption" role="heading"><span class="caption-text">Ecosystem</span></p>
+    <ul class="nav bd-sidenav">
+      <li class="toctree-l1"><a class="reference external" href="/Merlin/v23.08.01">Merlin</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/core/v23.08.01">Core</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/systems/v23.08.01">Systems</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/NVTabular/v23.08.01">NVTabular</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/Transformers4Rec/v23.08.01">Transformers4Rec</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/dataloader/v23.08.01">Dataloader</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/HugetCTR/v23.08.01">HugeCTR</a></li>
+    </ul>
+  </div>
+</nav></div>
+        <div class="sidebar-primary-item">
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"></span>
+    v: v23.08.01
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../../v23.02.00/index.html">v23.02.00</a></dd>
+      <dd><a href="../../v23.04.00/index.html">v23.04.00</a></dd>
+      <dd><a href="../../v23.05.00/index.html">v23.05.00</a></dd>
+      <dd><a href="../../v23.06.00/index.html">v23.06.00</a></dd>
+      <dd><a href="../../v23.08.00/index.html">v23.08.00</a></dd>
+      <dd><a href="08-Train-a-model-for-session-based-next-item-prediction.html">v23.08.01</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="../../main/index.html">main</a></dd>
+      <dd><a href="../../stable/index.html">stable</a></dd>
+    </dl>
+  </div>
+</div></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="https://github.com/NVIDIA-Merlin/models" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script>
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Session-Based Next Item Prediction for Fashion E-Commerce</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview">Overview</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#learning-objective">Learning Objective</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#brief-description-of-the-concepts">Brief Description of the Concepts</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#downloading-and-preparing-the-dataset">Downloading and preparing the dataset</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dressipi">Dressipi</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dataset">Dataset</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#feature-engineering-with-nvtabular">Feature Engineering with NVTabular</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#categorify">Categorify</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#groupby-the-data-by-sessions">GroupBy the data by sessions.</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#truncate-for-a-maximum-sequence-length">Truncate for a Maximum Sequence Length</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sort-the-training-dataset-by-time">Sort the Training Dataset by Time</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-an-mlp-with-sequential-input-with-merlin-models">Training an MLP with sequential input with Merlin Models</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dataloader">Dataloader</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hyperparameters">Hyperparameters</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#data-loader">Data loader</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#build-the-sequential-mlp-with-merlin-models">Build the Sequential MLP with Merlin Models</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fit-the-model">Fit the Model</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-a-bi-lstm-with-merlin-models">Training a Bi-LSTM with Merlin Models</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#build-bi-lstm-model">Build Bi-LSTM model</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Fit the Model</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-a-transformer-based-model">Training a Transformer-based Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#summary">Summary</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2021 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+
+<span class="c1"># Each user is responsible for checking the content of datasets and the</span>
+<span class="c1"># applicable licenses and determining if suitable for the intended use.</span>
+</pre></div>
+</div>
+</div>
+</div>
+<img alt="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_ecommerce-session-based-next-item-prediction-for-fashion/nvidia_logo.png" src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_ecommerce-session-based-next-item-prediction-for-fashion/nvidia_logo.png" />
+<section id="session-based-next-item-prediction-for-fashion-e-commerce">
+<h1>Session-Based Next Item Prediction for Fashion E-Commerce<a class="headerlink" href="#session-based-next-item-prediction-for-fashion-e-commerce" title="Permalink to this headline">#</a></h1>
+<p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">#</a></h2>
+<p>NVIDIA-Merlin team participated in <a class="reference external" href="http://www.recsyschallenge.com/2022/index.html">Recsys2022 challenge</a> and secured 3rd position. This notebook contains the various techniques used in the solution.</p>
+<p>In this notebook we train several different architectures with the last one being a transformer model. We only cover training. If you would be interested also in putting your model in production and serving predictions using the industry standard Triton Inference Server, please consult <a class="reference external" href="https://github.com/NVIDIA-Merlin/Merlin/blob/main/examples/Next-Item-Prediction-with-Transformers/tf/transformers-next-item-prediction.ipynb">this notebook</a>.</p>
+<section id="learning-objective">
+<h3>Learning Objective<a class="headerlink" href="#learning-objective" title="Permalink to this headline">#</a></h3>
+<p>In this notebook, we will apply important concepts that improve recommender systems. We leveraged them for our RecSys solution:</p>
+<ul class="simple">
+<li><p>MultiClass next item prediction head with Merlin Models</p></li>
+<li><p>Sequential input features representing user sessions</p></li>
+<li><p>Label Smoothing</p></li>
+<li><p>Temperature Scaling</p></li>
+<li><p>Weight Tying</p></li>
+<li><p>Learning Rate Scheduler</p></li>
+</ul>
+</section>
+<section id="brief-description-of-the-concepts">
+<h3>Brief Description of the Concepts<a class="headerlink" href="#brief-description-of-the-concepts" title="Permalink to this headline">#</a></h3>
+<p><strong>Label smoothing</strong></p>
+<p>In recommender systems, we often have noisy datasets. A user cannot view all items to make the best decision. Noisy examples can result in high gradients and confuse the model. Label smoothing addresses the problem of noisy examples by smoothing the porbabilities to avoid high confident predictions.</p>
+<p>$$  \begin{array}{l}
+y_{l} \ =\ ( 1\ -\ \alpha \ ) \ *\ y_{o} \ +\ ( \alpha \ /\ L)\
+\alpha :\ Label\ smoothing\ hyper-parameter\ ( 0 \leq \alpha \leq 1 ) \
+L:\ Total\ number\ of\ label\ classes\
+y_{o} :\ One-hot\ encoded\ label\ vector
+\end{array}
+$$</p>
+<p>When α is 0, we have the original one-hot encoded labels, and as α increases, we move towards smoothed labels. Read <a class="reference external" href="https://arxiv.org/abs/1906.02629">this</a> paper to learn more about it.</p>
+<p><strong>Temperature Scaling</strong></p>
+<p>Similar to Label Smoothing, Temperature Scaling is done to reduce the overconfidence of a model. In this, we divide the logits (inputs to the softmax function) by a scalar parameter (T) . For more information on Temperature Scaling read <a class="reference external" href="https://arxiv.org/pdf/1706.04599.pdf">this</a> paper.
+$$ softmax\ =\ \frac{e\ ^{( z_{i} \ /\ \ T)}}{\sum <em>{j} \ e^{( z</em>{j} \ /\ T)} \ } $$</p>
+<p><strong>Weight-tying</strong></p>
+<p>Weight-tying can be applied for Multi-Class Classification problems, when we try to predict items and have previous viewed items as an input. The final output layer (without activation function) is multiplied with the same item embeddings table to represent the input items, resulting in a vector with a logit for each item id. The advantage is that the gradients flow to the item embeddings are short. For more information read <a class="reference external" href="https://arxiv.org/pdf/1608.05859v3.pdf">this</a> paper.</p>
+</section>
+</section>
+<section id="downloading-and-preparing-the-dataset">
+<h2>Downloading and preparing the dataset<a class="headerlink" href="#downloading-and-preparing-the-dataset" title="Permalink to this headline">#</a></h2>
+<p>We will import the required libraries.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;CUDA_VISIBLE_DEVICES&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;0&quot;</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TF_GPU_ALLOCATOR&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;cuda_malloc_async&quot;</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+
+<span class="kn">import</span> <span class="nn">nvtabular</span> <span class="k">as</span> <span class="nn">nvt</span>
+<span class="kn">from</span> <span class="nn">merlin.io</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
+<span class="kn">from</span> <span class="nn">nvtabular.ops</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AddMetadata</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.keras</span> <span class="kn">import</span> <span class="n">regularizers</span>
+
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf</span> <span class="kn">import</span> <span class="n">InputBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">Model</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.transforms.bias</span> <span class="kn">import</span> <span class="n">LogitsTemperatureScaler</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.next_item</span> <span class="kn">import</span> <span class="n">ItemsPredictionWeightTying</span>
+
+<span class="kn">from</span> <span class="nn">merlin.core.dispatch</span> <span class="kn">import</span> <span class="n">get_lib</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (1.26.12) or chardet (3.0.4) doesn&#39;t match a supported version!
+  warnings.warn(&quot;urllib3 ({}) or chardet ({}) doesn&#39;t match a supported &quot;
+/usr/local/lib/python3.8/dist-packages/tqdm/auto.py:22: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+2022-12-14 18:31:08.508511: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2022-12-14 18:31:09.698802: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:222] Using CUDA malloc Async allocator for GPU: 0
+2022-12-14 18:31:09.698899: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+</pre></div>
+</div>
+</div>
+</div>
+<section id="dressipi">
+<h3>Dressipi<a class="headerlink" href="#dressipi" title="Permalink to this headline">#</a></h3>
+<p><a class="reference external" href="http://www.recsyschallenge.com/2022/dataset.html">Dressipi</a> hosted the <a class="reference external" href="http://www.recsyschallenge.com/2022/index.html">Recsys2022 challenge</a> and provided an anonymized dataset. It contains 1.1 M online retail sessions that resulted in a purchase. It provides details about items that were viewed in a session, the item purchased at the end of the session and numerous features of those items. The item features are categorical IDs and are not interpretable.</p>
+<p>The task of this competition was, given a sequence of items predict which item will be purchased at the end of a session.</p>
+<img alt="dressipi_dataset" src="http://www.recsyschallenge.com/2022/images/session_purchase_data.jpeg" />
+</section>
+<section id="dataset">
+<h3>Dataset<a class="headerlink" href="#dataset" title="Permalink to this headline">#</a></h3>
+<p>We provide a function <code class="docutils literal notranslate"><span class="pre">get_dressipi2022</span></code> which preprocess the dataset. Currently, we can’t download this dataset automatically so this needs to be downloaded manually. To use this function, prepare the data by following these 3 steps:</p>
+<ol class="arabic simple">
+<li><p>Sign up and download the data from <a class="reference external" href="https://www.dressipi-recsys2022.com/">dressipi-recsys2022.com</a>.</p></li>
+<li><p>Unzip the raw data to a directory.</p></li>
+<li><p>Define <code class="docutils literal notranslate"><span class="pre">DATA_FOLDER</span></code> to the directory</p></li>
+</ol>
+<p>In case you do not want to use this dataset to run our examples, you can also opt for synthetic data. Synthetic data can be generated by running::</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;dressipi2022-preprocessed&quot;</span><span class="p">,</span> <span class="n">num_rows</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.datasets.ecommerce</span> <span class="kn">import</span> <span class="n">get_dressipi2022</span>
+
+<span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> 
+    <span class="s1">&#39;/workspace/data/dressipi_recsys2022&#39;</span>
+<span class="p">)</span>
+
+<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_dressipi2022</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The dataset contains:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">session_id</span></code>, id of a session, in which a user viewed and purchased an item.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">item_id</span></code> which was viewed at a given <code class="docutils literal notranslate"><span class="pre">timestamp</span></code> in a session</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">purchase_id</span></code> which is the id of item bought at the end of the session</p></li>
+</ul>
+<p>In addition to <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, we have <code class="docutils literal notranslate"><span class="pre">day</span></code> and <code class="docutils literal notranslate"><span class="pre">date</span></code> features for representing the chronological order in which items were viewed.</p>
+<p>The items in the Dresspi dataset had a many features out of which we took 22 most important features, namely
+<code class="docutils literal notranslate"><span class="pre">f_3</span> <span class="pre">,f_4</span> <span class="pre">,f_5</span> <span class="pre">,f_7</span> <span class="pre">,f_17</span> <span class="pre">,f_24</span> <span class="pre">,f_30</span> <span class="pre">,f_45</span> <span class="pre">,f_46</span> <span class="pre">,f_47</span> <span class="pre">,f_50</span> <span class="pre">,f_53</span> <span class="pre">,f_55</span> <span class="pre">,f_56</span> <span class="pre">,f_58</span> <span class="pre">,f_61</span> <span class="pre">,f_63</span> <span class="pre">,f_65</span> <span class="pre">,f_68</span> <span class="pre">,f_69</span> <span class="pre">,f_72</span> <span class="pre">,f_73</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>session_id</th>
+      <th>item_id</th>
+      <th>date</th>
+      <th>f_3</th>
+      <th>f_5</th>
+      <th>f_7</th>
+      <th>f_17</th>
+      <th>f_24</th>
+      <th>f_45</th>
+      <th>f_47</th>
+      <th>...</th>
+      <th>f_61</th>
+      <th>f_63</th>
+      <th>f_65</th>
+      <th>f_68</th>
+      <th>f_69</th>
+      <th>f_72</th>
+      <th>f_73</th>
+      <th>timestamp</th>
+      <th>day</th>
+      <th>purchase_id</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>24094</td>
+      <td>142</td>
+      <td>2021-01-07 15:20:55.857</td>
+      <td>793</td>
+      <td>605</td>
+      <td>798</td>
+      <td>378</td>
+      <td>-1</td>
+      <td>559</td>
+      <td>549</td>
+      <td>...</td>
+      <td>706</td>
+      <td>861</td>
+      <td>521</td>
+      <td>745</td>
+      <td>740</td>
+      <td>75</td>
+      <td>544</td>
+      <td>1610032855857</td>
+      <td>372</td>
+      <td>15000</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>24094</td>
+      <td>15986</td>
+      <td>2021-01-07 15:21:23.399</td>
+      <td>793</td>
+      <td>605</td>
+      <td>798</td>
+      <td>378</td>
+      <td>-1</td>
+      <td>559</td>
+      <td>549</td>
+      <td>...</td>
+      <td>706</td>
+      <td>861</td>
+      <td>521</td>
+      <td>14</td>
+      <td>805</td>
+      <td>75</td>
+      <td>544</td>
+      <td>1610032883399</td>
+      <td>372</td>
+      <td>15000</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>24094</td>
+      <td>27843</td>
+      <td>2021-01-07 15:21:38.885</td>
+      <td>793</td>
+      <td>605</td>
+      <td>798</td>
+      <td>378</td>
+      <td>-1</td>
+      <td>559</td>
+      <td>218</td>
+      <td>...</td>
+      <td>706</td>
+      <td>599</td>
+      <td>521</td>
+      <td>745</td>
+      <td>805</td>
+      <td>75</td>
+      <td>544</td>
+      <td>1610032898885</td>
+      <td>372</td>
+      <td>15000</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>24094</td>
+      <td>14493</td>
+      <td>2021-01-07 15:21:41.367</td>
+      <td>793</td>
+      <td>605</td>
+      <td>2</td>
+      <td>378</td>
+      <td>-1</td>
+      <td>559</td>
+      <td>549</td>
+      <td>...</td>
+      <td>462</td>
+      <td>861</td>
+      <td>521</td>
+      <td>702</td>
+      <td>538</td>
+      <td>748</td>
+      <td>544</td>
+      <td>1610032901367</td>
+      <td>372</td>
+      <td>15000</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24094</td>
+      <td>14493</td>
+      <td>2021-01-07 15:21:42.928</td>
+      <td>793</td>
+      <td>605</td>
+      <td>2</td>
+      <td>378</td>
+      <td>-1</td>
+      <td>559</td>
+      <td>549</td>
+      <td>...</td>
+      <td>462</td>
+      <td>861</td>
+      <td>521</td>
+      <td>702</td>
+      <td>538</td>
+      <td>748</td>
+      <td>544</td>
+      <td>1610032902928</td>
+      <td>372</td>
+      <td>15000</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 24 columns</p>
+</div></div></div>
+</div>
+</section>
+</section>
+<section id="feature-engineering-with-nvtabular">
+<h2>Feature Engineering with NVTabular<a class="headerlink" href="#feature-engineering-with-nvtabular" title="Permalink to this headline">#</a></h2>
+<p>We use NVTabular for Feature Engineering. If you want to learn more about NVTabular, we recommend the <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/tree/stable/examples">examples in the NVTabular GitHub Repository</a>.</p>
+<section id="categorify">
+<h3>Categorify<a class="headerlink" href="#categorify" title="Permalink to this headline">#</a></h3>
+<p>We want to use embedding layers for our categorical features. First, we need to Categorify them, that they are contiguous integers.</p>
+<p>The features <code class="docutils literal notranslate"><span class="pre">item_id</span></code> and <code class="docutils literal notranslate"><span class="pre">purchase_id</span></code> belongs to the same category. If <code class="docutils literal notranslate"><span class="pre">item_id</span></code> is 8432 and <code class="docutils literal notranslate"><span class="pre">purchase_id</span></code> is 8432, they are the same item. When we want to apply Categorify, we want to keep the connection. We can achieve this by encoding them jointly by providing them as a list in the list <code class="docutils literal notranslate"><span class="pre">[['item_id',</span> <span class="pre">'purchase_id']]</span></code>.</p>
+<p>We will use only 2 of the categorical item features in this example.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">item_features_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;f_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">47</span><span class="p">,</span> <span class="mi">68</span><span class="p">]]</span>
+<span class="n">cat_features</span> <span class="o">=</span> <span class="p">[[</span><span class="s1">&#39;item_id&#39;</span><span class="p">,</span> <span class="s1">&#39;purchase_id&#39;</span><span class="p">]]</span> <span class="o">+</span> <span class="n">item_features_names</span> <span class="o">&gt;&gt;</span> <span class="n">nvt</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">Categorify</span><span class="p">()</span>
+
+<span class="n">features</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;session_id&#39;</span><span class="p">,</span> <span class="s1">&#39;timestamp&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">cat_features</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 97 µs, sys: 35 µs, total: 132 µs
+Wall time: 135 µs
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="groupby-the-data-by-sessions">
+<h3>GroupBy the data by sessions.<a class="headerlink" href="#groupby-the-data-by-sessions" title="Permalink to this headline">#</a></h3>
+<p>Currently, every row is a viewed item in the dataset. Our goal is to predict the item purchased after the last view in a session. Therefore, we groupby the dataset by <code class="docutils literal notranslate"><span class="pre">session_id</span></code> to have one row for each prediction.</p>
+<p>Each row will have a sequence of encoded items ids with which a user interacted. The last item of a session has special importance as it is closer to the user’s intention. We will keep the viewed item as a separate feature.</p>
+<p>The NVTabular <code class="docutils literal notranslate"><span class="pre">GroupBy</span></code> op enables the transformation.</p>
+<p>First, we define how the different columns should be aggregates:</p>
+<ul class="simple">
+<li><p>Keep the first occurrence of <code class="docutils literal notranslate"><span class="pre">timestamp</span></code></p></li>
+<li><p>Keep the last item and concatenate all items to a list (results are 2 features)</p></li>
+<li><p>Keep the first occurrence of <code class="docutils literal notranslate"><span class="pre">purchase_id</span></code> (purchase_id should be the same for all rows of one session)</p></li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">to_aggregate</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">to_aggregate</span><span class="p">[</span><span class="s1">&#39;timestamp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;first&quot;</span><span class="p">]</span>
+<span class="n">to_aggregate</span><span class="p">[</span><span class="s1">&#39;item_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;last&quot;</span><span class="p">,</span> <span class="s2">&quot;list&quot;</span><span class="p">]</span>
+<span class="n">to_aggregate</span><span class="p">[</span><span class="s1">&#39;purchase_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;first&quot;</span><span class="p">]</span>   
+</pre></div>
+</div>
+</div>
+</div>
+<p>In addition, we concatenate each item features to a list.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">item_features_names</span><span class="p">:</span> 
+    <span class="n">to_aggregate</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;list&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">to_aggregate</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;timestamp&#39;: [&#39;first&#39;],
+ &#39;item_id&#39;: [&#39;last&#39;, &#39;list&#39;],
+ &#39;purchase_id&#39;: [&#39;first&#39;],
+ &#39;f_47&#39;: [&#39;list&#39;],
+ &#39;f_68&#39;: [&#39;list&#39;]}
+</pre></div>
+</div>
+</div>
+</div>
+<p>We want to sort the dataframe by <code class="docutils literal notranslate"><span class="pre">timestamp</span></code> and groupby the columns by <code class="docutils literal notranslate"><span class="pre">session_id</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">groupby_features</span> <span class="o">=</span> <span class="n">features</span> <span class="o">&gt;&gt;</span> <span class="n">nvt</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">Groupby</span><span class="p">(</span>
+    <span class="n">groupby_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">],</span> 
+    <span class="n">sort_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">],</span>
+    <span class="n">aggs</span><span class="o">=</span> <span class="n">to_aggregate</span><span class="p">,</span>
+    <span class="n">name_sep</span><span class="o">=</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Merlin Models can infer the neural network architecture from the dataset schema. We will Tag the columns accordingly based on the type of each column. If you want to learn more, we recommend our <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/examples/02-Merlin-Models-and-NVTabular-integration.ipynb">Dataset Schema Example</a>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_last</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">groupby_features</span><span class="p">[</span><span class="s1">&#39;item_id_last&#39;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> 
+    <span class="n">AddMetadata</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="n">item_list</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">groupby_features</span><span class="p">[</span><span class="s1">&#39;item_id_list&#39;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> 
+    <span class="n">AddMetadata</span><span class="p">(</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">LIST</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">]</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">feature_list</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">groupby_features</span><span class="p">[[</span><span class="n">name</span><span class="o">+</span><span class="s1">&#39;_list&#39;</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">item_features_names</span><span class="p">]]</span> <span class="o">&gt;&gt;</span> 
+    <span class="n">AddMetadata</span><span class="p">(</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">LIST</span><span class="p">]</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">other_features</span> <span class="o">=</span> <span class="n">groupby_features</span><span class="p">[</span><span class="s1">&#39;session_id&#39;</span><span class="p">,</span> <span class="s1">&#39;timestamp_first&#39;</span><span class="p">]</span>
+
+<span class="n">groupby_features</span> <span class="o">=</span> <span class="n">item_last</span> <span class="o">+</span> <span class="n">item_list</span> <span class="o">+</span> <span class="n">feature_list</span> <span class="o">+</span> <span class="n">other_features</span> <span class="o">+</span>  <span class="n">groupby_features</span><span class="p">[</span><span class="s1">&#39;purchase_id_first&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="truncate-for-a-maximum-sequence-length">
+<h3>Truncate for a Maximum Sequence Length<a class="headerlink" href="#truncate-for-a-maximum-sequence-length" title="Permalink to this headline">#</a></h3>
+<p>We want to truncate and pad the sequential features. We define the columns, which are sequential features and the non-sequential ones. We truncate the sequence by keeping the last 3 elements.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">list_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="o">+</span><span class="s1">&#39;_list&#39;</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">item_features_names</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;item_id_list&#39;</span><span class="p">]</span>
+<span class="n">nonlist_features</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;session_id&#39;</span><span class="p">,</span> <span class="s1">&#39;timestamp_first&#39;</span><span class="p">,</span> <span class="s1">&#39;item_id_last&#39;</span><span class="p">,</span> <span class="s1">&#39;purchase_id_first&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">SESSIONS_MAX_LENGTH</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">truncated_features</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">groupby_features</span><span class="p">[</span><span class="n">list_features</span><span class="p">]</span> 
+    <span class="o">&gt;&gt;</span> <span class="n">nvt</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">ListSlice</span><span class="p">(</span><span class="o">-</span><span class="n">SESSIONS_MAX_LENGTH</span><span class="p">)</span> 
+    <span class="o">&gt;&gt;</span> <span class="n">nvt</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">Rename</span><span class="p">(</span><span class="n">postfix</span> <span class="o">=</span> <span class="s1">&#39;_seq&#39;</span><span class="p">)</span>
+    <span class="o">&gt;&gt;</span> <span class="n">nvt</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">ValueCount</span><span class="p">()</span>
+<span class="p">)</span>
+
+<span class="n">final_features</span> <span class="o">=</span> <span class="n">groupby_features</span><span class="p">[</span><span class="n">nonlist_features</span><span class="p">]</span> <span class="o">+</span> <span class="n">truncated_features</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We initialize our NVTabular workflow.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">workflow</span> <span class="o">=</span> <span class="n">nvt</span><span class="o">.</span><span class="n">Workflow</span><span class="p">(</span><span class="n">final_features</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We call fit and transform similar to the scikit learn API.</p>
+<p>Categorify will map item_ids (and purchase_ids), which does not occur in the train dataset, to a special category <code class="docutils literal notranslate"><span class="pre">0</span></code> in the validation dataset. This can bias the validation metrics. In our example, almost all item_ids in validation are available in train and we neglect it.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># fit data</span>
+<span class="n">workflow</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+
+<span class="c1"># transform and save data</span>
+<span class="n">workflow</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">train</span><span class="p">)</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train/&quot;</span><span class="p">),</span> <span class="n">output_files</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">workflow</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid/&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="sort-the-training-dataset-by-time">
+<h3>Sort the Training Dataset by Time<a class="headerlink" href="#sort-the-training-dataset-by-time" title="Permalink to this headline">#</a></h3>
+<p>The train dataset contains the data from Jan 2020 to April 2021 and the validation dataset is May 2021. As the data is split by time, we noticed that we achieve higher validation scores, when we sort the training data by time and do not apply shuffling.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">get_lib</span><span class="p">()</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span>
+    <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train/*.parquet&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s1">&#39;timestamp_first&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train_sorted.parquet&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s review the transformed dataset.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>session_id</th>
+      <th>timestamp_first</th>
+      <th>item_id_last</th>
+      <th>purchase_id_first</th>
+      <th>f_47_list_seq</th>
+      <th>f_68_list_seq</th>
+      <th>item_id_list_seq</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>3747794</td>
+      <td>1577836801359</td>
+      <td>7920</td>
+      <td>13757</td>
+      <td>[3, 6, 14]</td>
+      <td>[2, 10, 8]</td>
+      <td>[538, 4177, 7920]</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>3458777</td>
+      <td>1577836821440</td>
+      <td>11594</td>
+      <td>17900</td>
+      <td>[2, 2, 2]</td>
+      <td>[10, 45, 7]</td>
+      <td>[14809, 7840, 11594]</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>4350716</td>
+      <td>1577836848505</td>
+      <td>5192</td>
+      <td>14217</td>
+      <td>[14]</td>
+      <td>[9]</td>
+      <td>[5192]</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2579761</td>
+      <td>1577837197801</td>
+      <td>9675</td>
+      <td>12251</td>
+      <td>[9, 8, 9]</td>
+      <td>[15, 4, 4]</td>
+      <td>[19431, 16369, 9675]</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2048031</td>
+      <td>1577837299297</td>
+      <td>14877</td>
+      <td>12751</td>
+      <td>[2, 6, 2]</td>
+      <td>[6, 2, 10]</td>
+      <td>[779, 15326, 14877]</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+</section>
+<section id="training-an-mlp-with-sequential-input-with-merlin-models">
+<h2>Training an MLP with sequential input with Merlin Models<a class="headerlink" href="#training-an-mlp-with-sequential-input-with-merlin-models" title="Permalink to this headline">#</a></h2>
+<p>We train a Sequential-Multi-Layer Perceptron model, which averages the sequential input features (e.g. <code class="docutils literal notranslate"><span class="pre">item_id_list_seq</span></code>) and concatenate the resulting embeddings with the categorical embeddings (e.g. <code class="docutils literal notranslate"><span class="pre">item_id_last</span></code>). We visualize the architecture in the figure below.</p>
+<a class="reference internal image-reference" href="../_images/mlp_ecommerce.png"><img alt="../_images/mlp_ecommerce.png" src="../_images/mlp_ecommerce.png" style="width: 30%;" /></a>
+<section id="dataloader">
+<h3>Dataloader<a class="headerlink" href="#dataloader" title="Permalink to this headline">#</a></h3>
+<p>We initialize the dataloaders to train the neural network models. First, we define NVTabular dataset.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s1">&#39;train_sorted.parquet&#39;</span><span class="p">))</span>
+<span class="n">valid</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s1">&#39;valid/*.parquet&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<p>As we loaded, sorted and saved the train dataset without using NVTabular, the parquet file doesn’t contain a schema, anymore. We can copy the schema from valid to train.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">valid</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">valid</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span>
+    <span class="p">[</span><span class="s1">&#39;item_id_list_seq&#39;</span><span class="p">,</span> <span class="s1">&#39;item_id_last&#39;</span><span class="p">,</span><span class="s1">&#39;f_47_list_seq&#39;</span><span class="p">,</span> <span class="s1">&#39;f_68_list_seq&#39;</span><span class="p">,</span> <span class="s1">&#39;purchase_id_first&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">valid</span><span class="o">.</span><span class="n">schema</span>
+<span class="n">schema_model</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span>
+        <span class="p">[</span><span class="s1">&#39;item_id_list_seq&#39;</span><span class="p">,</span> <span class="s1">&#39;item_id_last&#39;</span><span class="p">,</span><span class="s1">&#39;f_47_list_seq&#39;</span><span class="p">,</span> <span class="s1">&#39;f_68_list_seq&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="hyperparameters">
+<h4>Hyperparameters<a class="headerlink" href="#hyperparameters" title="Permalink to this headline">#</a></h4>
+<p>We use the following hyperparameters that we found during experimentations.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">EPOCHS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="s2">&quot;EPOCHS&quot;</span><span class="p">,</span> 
+    <span class="s1">&#39;3&#39;</span>
+<span class="p">))</span>
+
+<span class="n">dmodel</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="s2">&quot;dmodel&quot;</span><span class="p">,</span> 
+    <span class="s1">&#39;256&#39;</span>
+<span class="p">))</span>
+
+<span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="mi">1024</span>
+<span class="n">LEARNING_RATE</span> <span class="o">=</span> <span class="mf">0.005</span>
+<span class="n">DROPOUT</span> <span class="o">=</span> <span class="mf">0.2</span> 
+<span class="n">LABEL_SMOOTHING</span> <span class="o">=</span> <span class="mf">0.2</span>
+<span class="n">TEMPERATURE_SCALING</span> <span class="o">=</span> <span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="data-loader">
+<h4>Data loader<a class="headerlink" href="#data-loader" title="Permalink to this headline">#</a></h4>
+<p>The default dataloader does shuffle by default. We will initialize the Loader for the training dataset, and set the shuffle to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">Loader</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">mm</span><span class="o">.</span><span class="n">ToTarget</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="s2">&quot;purchase_id_first&quot;</span><span class="p">,</span> <span class="n">one_hot</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="n">val_loader</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">Loader</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">mm</span><span class="o">.</span><span class="n">ToTarget</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="s2">&quot;purchase_id_first&quot;</span><span class="p">,</span> <span class="n">one_hot</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="build-the-sequential-mlp-with-merlin-models">
+<h3>Build the Sequential MLP with Merlin Models<a class="headerlink" href="#build-the-sequential-mlp-with-merlin-models" title="Permalink to this headline">#</a></h3>
+<p>Now we will create an InputBlock which takes sequential features, concatenate them and return the sequence of interaction embeddings. Note that we define the embedding dimensions, manually.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">manual_dims</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;item_id_list_seq&#39;</span><span class="p">:</span> <span class="n">dmodel</span><span class="p">,</span> 
+    <span class="s1">&#39;item_id_last&#39;</span><span class="p">:</span> <span class="n">dmodel</span><span class="p">,</span>
+    <span class="s1">&#39;f_47_list_seq&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="s1">&#39;f_68_list_seq&#39;</span><span class="p">:</span> <span class="mi">16</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span>
+        <span class="n">schema_model</span><span class="p">,</span>
+        <span class="n">categorical</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span><span class="n">schema_model</span><span class="p">,</span>
+                                 <span class="n">dim</span><span class="o">=</span><span class="n">manual_dims</span>
+                                <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Before the loss is calculated, we want to transform the model output:</p>
+<ol class="arabic simple">
+<li><p>We apply <code class="docutils literal notranslate"><span class="pre">weight-tying</span></code> and multiply the model output with the embedding weights from ITEM_ID. The embedding dimensions and the model output dimensions have to be the same (256 in our example).</p></li>
+<li><p>We transform the ground truth into OneHot representation</p></li>
+<li><p>We apply Temperature Scaling</p></li>
+</ol>
+<p>Now, we will build a model with a 2-layer MLPBlock, <code class="docutils literal notranslate"><span class="pre">input_block</span></code> as the input and <code class="docutils literal notranslate"><span class="pre">prediction_task</span></code> as the task. The output dimension of MLPBlock should match with the embedding dimension of the <code class="docutils literal notranslate"><span class="pre">item_id_list_seq</span></code> since we are using weight tying technique.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mlp_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">(</span>
+        <span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="n">dmodel</span><span class="p">],</span> 
+        <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+        <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_id_name</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;domain&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+<span class="n">item_id_name</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;item_id_purchase_id&#39;
+</pre></div>
+</div>
+</div>
+</div>
+<p>Next, we define the prediction task. Our objective is multi-class classification - which is the item purchased at the end of the session. Therefore, this is a multi-class classification task, and the default_loss in the <code class="docutils literal notranslate"><span class="pre">CategoricalOutput</span></code> class is  “categorical_crossentropy”. <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/merlin/models/tf/outputs/classification.py#L112">CategoricalOutput</a> class has the functionality to do <code class="docutils literal notranslate"><span class="pre">weight-tying</span></code>, when we provide the <code class="docutils literal notranslate"><span class="pre">EmbeddingTable</span></code> related to the target feature in the <code class="docutils literal notranslate"><span class="pre">to_call</span></code> method. Note that in our example we feed the embedding table for the <code class="docutils literal notranslate"><span class="pre">item_id_purchase_id</span></code> domain name, since it reflects the fact that the <code class="docutils literal notranslate"><span class="pre">item_id_list_seq</span></code> and <code class="docutils literal notranslate"><span class="pre">item_id_last</span></code> input columns were jointly encoded and they share the same embedding table.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prediction_task</span><span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">CategoricalOutput</span><span class="p">(</span>
+        <span class="n">to_call</span><span class="o">=</span><span class="n">input_block</span><span class="p">[</span><span class="s2">&quot;categorical&quot;</span><span class="p">][</span><span class="n">item_id_name</span><span class="p">],</span>
+        <span class="n">logits_temperature</span><span class="o">=</span><span class="n">TEMPERATURE_SCALING</span><span class="p">,</span>
+        <span class="n">target</span><span class="o">=</span><span class="s1">&#39;purchase_id_first&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_mlp</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">input_block</span><span class="p">,</span> <span class="n">mlp_block</span><span class="p">,</span> <span class="n">prediction_task</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="fit-the-model">
+<h3>Fit the Model<a class="headerlink" href="#fit-the-model" title="Permalink to this headline">#</a></h3>
+<p>We initialize the optimizer with <code class="docutils literal notranslate"><span class="pre">ExponentialDecay</span></code> learning rate scheduler and compile the model - similar to other TensorFlow Keras API. The competition was evaluated based on MRR&#64;100.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">initial_learning_rate</span> <span class="o">=</span> <span class="n">LEARNING_RATE</span>
+
+<span class="n">exp_decay_lr_scheduler</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">schedules</span><span class="o">.</span><span class="n">ExponentialDecay</span><span class="p">(</span>
+    <span class="n">initial_learning_rate</span><span class="p">,</span>
+    <span class="n">decay_steps</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+    <span class="n">decay_rate</span><span class="o">=</span><span class="mf">0.96</span><span class="p">,</span>
+    <span class="n">staircase</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span>
+    <span class="n">learning_rate</span><span class="o">=</span><span class="n">exp_decay_lr_scheduler</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">model_mlp</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">loss</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">CategoricalCrossentropy</span><span class="p">(</span>
+        <span class="n">from_logits</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+        <span class="n">label_smoothing</span><span class="o">=</span><span class="n">LABEL_SMOOTHING</span>
+    <span class="p">),</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">TopKMetricsAggregator</span><span class="o">.</span><span class="n">default_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span><span class="p">])</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We call <code class="docutils literal notranslate"><span class="pre">.fit</span></code> to train the model.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">history</span> <span class="o">=</span> <span class="n">model_mlp</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">loader</span><span class="p">,</span>
+    <span class="n">validation_data</span><span class="o">=</span><span class="n">val_loader</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="n">EPOCHS</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 1/3
+900/900 [==============================] - 172s 181ms/step - loss: 7.9477 - recall_at_100: 0.3383 - mrr_at_100: 0.0690 - ndcg_at_100: 0.1192 - map_at_100: 0.0690 - precision_at_100: 0.0034 - regularization_loss: 0.0000e+00 - loss_batch: 7.9465 - val_loss: 7.8318 - val_recall_at_100: 0.5073 - val_mrr_at_100: 0.1207 - val_ndcg_at_100: 0.1950 - val_map_at_100: 0.1207 - val_precision_at_100: 0.0051 - val_regularization_loss: 0.0000e+00 - val_loss_batch: 7.6509
+Epoch 2/3
+900/900 [==============================] - 161s 177ms/step - loss: 7.4508 - recall_at_100: 0.4886 - mrr_at_100: 0.1221 - ndcg_at_100: 0.1925 - map_at_100: 0.1221 - precision_at_100: 0.0049 - regularization_loss: 0.0000e+00 - loss_batch: 7.4495 - val_loss: 7.8267 - val_recall_at_100: 0.5003 - val_mrr_at_100: 0.1250 - val_ndcg_at_100: 0.1973 - val_map_at_100: 0.1250 - val_precision_at_100: 0.0050 - val_regularization_loss: 0.0000e+00 - val_loss_batch: 7.6584
+Epoch 3/3
+900/900 [==============================] - 160s 176ms/step - loss: 7.3057 - recall_at_100: 0.5503 - mrr_at_100: 0.1466 - ndcg_at_100: 0.2246 - map_at_100: 0.1466 - precision_at_100: 0.0055 - regularization_loss: 0.0000e+00 - loss_batch: 7.3038 - val_loss: 7.8918 - val_recall_at_100: 0.4900 - val_mrr_at_100: 0.1227 - val_ndcg_at_100: 0.1932 - val_map_at_100: 0.1227 - val_precision_at_100: 0.0049 - val_regularization_loss: 0.0000e+00 - val_loss_batch: 7.7488
+CPU times: user 6min 14s, sys: 3min 59s, total: 10min 14s
+Wall time: 8min 15s
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can evaluate the model.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_mlp</span> <span class="o">=</span> <span class="n">model_mlp</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">val_loader</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics_mlp</span><span class="p">[</span><span class="s1">&#39;mrr_at_100&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>78/78 [==============================] - 13s 157ms/step - loss: 7.8918 - recall_at_100: 0.4901 - mrr_at_100: 0.1223 - ndcg_at_100: 0.1929 - map_at_100: 0.1223 - precision_at_100: 0.0049 - regularization_loss: 0.0000e+00 - loss_batch: 7.8888
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>0.12273602932691574
+</pre></div>
+</div>
+</div>
+</div>
+<p>Note that final score <code class="docutils literal notranslate"><span class="pre">mrr_at_100</span></code> we printed out above is the average over all steps (batches), whereas the value we get from progress bar shows the score of the last batch.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">del</span> <span class="n">model_mlp</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>133
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="training-a-bi-lstm-with-merlin-models">
+<h2>Training a Bi-LSTM with Merlin Models<a class="headerlink" href="#training-a-bi-lstm-with-merlin-models" title="Permalink to this headline">#</a></h2>
+<p>In this section, we train a Bi-LSTM model, an extension of traditional LSTMs, which enables straight (past) and reverse traversal of input (future) sequence to be used. The input block concatenates the embedding vectors for all sequential features (<code class="docutils literal notranslate"><span class="pre">item_id_list_seq</span></code>, <code class="docutils literal notranslate"><span class="pre">f_47_list_seq</span></code>, <code class="docutils literal notranslate"><span class="pre">f_68_list_seq</span></code>) per step (e.g. here 3). The concatenated vectors are processed by a BiLSTM architecture. The hidden state of the BiLSTM is concatenated with the embedding vectors of the categorical features (<code class="docutils literal notranslate"><span class="pre">item_id_last</span></code>). Then we connect it with a Multi-Layer Perceptron Block. We visualize the architecture in the figure below.</p>
+<a class="reference internal image-reference" href="../_images/bi-lstm_ecommerce.png"><img alt="../_images/bi-lstm_ecommerce.png" src="../_images/bi-lstm_ecommerce.png" style="width: 30%;" /></a>
+<section id="build-bi-lstm-model">
+<h3>Build Bi-LSTM model<a class="headerlink" href="#build-bi-lstm-model" title="Permalink to this headline">#</a></h3>
+<p>Now we will create a Bi-LSTM model by using <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/layers/Bidirectional">tf.keras.layers.Bidirectional</a> api. We connect the sequence input block for sequential features with <code class="docutils literal notranslate"><span class="pre">BiLSTM</span></code> block via <code class="docutils literal notranslate"><span class="pre">connect</span></code> method. First, we  create two input blocks which takes sequential and categorical features, respectively, concatenate them and return the interaction embeddings.</p>
+<p>We define the embedding dimensions, manually.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">seq_inputs</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span>
+        <span class="n">schema_model</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">),</span>
+        <span class="n">categorical</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span>
+            <span class="n">schema_model</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">),</span>
+            <span class="n">sequence_combiner</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">dim</span><span class="o">=</span><span class="n">manual_dims</span>                 
+        <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">cat_inputs</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span>
+        <span class="n">schema_model</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">([</span><span class="s1">&#39;item_id_last&#39;</span><span class="p">]),</span>
+        <span class="n">categorical</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span>
+            <span class="n">schema_model</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">([</span><span class="s1">&#39;item_id_last&#39;</span><span class="p">]),</span>
+            <span class="n">dim</span><span class="o">=</span><span class="n">manual_dims</span>                        
+        <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The argument <code class="docutils literal notranslate"><span class="pre">sequence_combiner</span></code> is used  for combining embeddings of each positions of the same input feature. In other words, it is a string specifying how to combine embedding results for each entry. Here we set it to None, since, we do not want to combine the embeddings for each position in a given sequence.</p>
+<p>Connect the sequential input block to the BiLSTM model. We leverage <code class="docutils literal notranslate"><span class="pre">tf.keras.layers.Bidirectional</span></code> api.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dense_block</span> <span class="o">=</span><span class="n">seq_inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Bidirectional</span><span class="p">(</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span>
+        <span class="n">return_sequences</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">dropout</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">kernel_regularizer</span><span class="o">=</span><span class="n">regularizers</span><span class="o">.</span><span class="n">l2</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">),</span>
+    <span class="p">)</span>
+<span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Now, we combine dense block with input block of categorical features by concatenating them.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">concats</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">ParallelBlock</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;dense_block&#39;</span><span class="p">:</span> <span class="n">dense_block</span><span class="p">,</span> 
+     <span class="s1">&#39;cat_inputs&#39;</span><span class="p">:</span> <span class="n">cat_inputs</span><span class="p">},</span>
+    <span class="n">aggregation</span><span class="o">=</span><span class="s1">&#39;concat&#39;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Next, we build a 2-layer MLPBlock which is used as a projection layer.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mlp_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">128</span><span class="p">,</span><span class="n">dmodel</span><span class="p">],</span>
+                <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span>
+                <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">DROPOUT</span><span class="p">,</span>
+            <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Now, we define the prediction task. As we saw above in our MLP implementation, our objective is multi-class classification.</p>
+<p>Before the loss is calculated, we want to transform the model output:</p>
+<ul class="simple">
+<li><p>We apply  <code class="docutils literal notranslate"><span class="pre">weight-tying</span></code> (see in the beginning) and multiply the model output with the embedding weights from ITEM_ID. The embedding dimensions and the model output dimensions have to be the same (256 in our example).</p></li>
+<li><p>We transform the ground truth into OneHot representation</p></li>
+<li><p>We apply Temperature Scaling</p></li>
+</ul>
+<p>The pipeline is executed before the loss is calculated.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_id_name</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;domain&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prediction_task</span><span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">CategoricalOutput</span><span class="p">(</span>
+    <span class="n">to_call</span><span class="o">=</span><span class="n">seq_inputs</span><span class="p">[</span><span class="s2">&quot;categorical&quot;</span><span class="p">][</span><span class="n">item_id_name</span><span class="p">],</span>
+    <span class="n">logits_temperature</span><span class="o">=</span><span class="n">TEMPERATURE_SCALING</span><span class="p">,</span>
+    <span class="n">target</span><span class="o">=</span><span class="s1">&#39;purchase_id_first&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Now, we will build a model by chaining the <code class="docutils literal notranslate"><span class="pre">concats</span></code>, the <code class="docutils literal notranslate"><span class="pre">mlp_block</span></code> and the <code class="docutils literal notranslate"><span class="pre">prediction_task</span></code> layers.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_bi_lstm</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">concats</span><span class="p">,</span> <span class="n">mlp_block</span><span class="p">,</span> <span class="n">prediction_task</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="id1">
+<h3>Fit the Model<a class="headerlink" href="#id1" title="Permalink to this headline">#</a></h3>
+<p>We initialize the optimizer and compile the model - similar to other TensorFlow Keras API. The competition was evaluated based on MRR&#64;100.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span>
+    <span class="n">learning_rate</span><span class="o">=</span><span class="n">LEARNING_RATE</span>
+<span class="p">)</span>
+
+<span class="n">model_bi_lstm</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">loss</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">CategoricalCrossentropy</span><span class="p">(</span>
+        <span class="n">from_logits</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+        <span class="n">label_smoothing</span><span class="o">=</span><span class="n">LABEL_SMOOTHING</span>
+    <span class="p">),</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">TopKMetricsAggregator</span><span class="o">.</span><span class="n">default_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span><span class="p">])</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Now, we train the model</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">history</span> <span class="o">=</span> <span class="n">model_bi_lstm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">loader</span><span class="p">,</span>
+    <span class="n">validation_data</span><span class="o">=</span><span class="n">val_loader</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="n">EPOCHS</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-12-14 18:39:55.579998: I tensorflow/stream_executor/cuda/cuda_dnn.cc:424] Loaded cuDNN version 8500
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 1/3
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/tensorflow/python/framework/indexed_slices.py:444: UserWarning: Converting sparse IndexedSlices(IndexedSlices(indices=Tensor(&quot;Adam/gradients/concat_1:0&quot;, shape=(None,), dtype=int32), values=Tensor(&quot;gradient_tape/model_1/parallel_block_3/sequential_block_4/concat_features_1/RaggedConcat/Slice_1:0&quot;, shape=(None, None), dtype=float32), dense_shape=Tensor(&quot;gradient_tape/model_1/parallel_block_3/sequential_block_4/concat_features_1/RaggedConcat/Shape:0&quot;, shape=(2,), dtype=int32))) to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  warnings.warn(
+/usr/local/lib/python3.8/dist-packages/tensorflow/python/framework/indexed_slices.py:444: UserWarning: Converting sparse IndexedSlices(IndexedSlices(indices=Tensor(&quot;Adam/gradients/concat_1:0&quot;, shape=(None,), dtype=int32), values=Tensor(&quot;gradient_tape/model_1/parallel_block_3/sequential_block_4/concat_features_1/RaggedConcat/Slice_3:0&quot;, shape=(None, None), dtype=float32), dense_shape=Tensor(&quot;gradient_tape/model_1/parallel_block_3/sequential_block_4/concat_features_1/RaggedConcat/Shape_1:0&quot;, shape=(2,), dtype=int32))) to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  warnings.warn(
+/usr/local/lib/python3.8/dist-packages/tensorflow/python/framework/indexed_slices.py:444: UserWarning: Converting sparse IndexedSlices(IndexedSlices(indices=Tensor(&quot;Adam/gradients/concat_1:0&quot;, shape=(None,), dtype=int32), values=Tensor(&quot;gradient_tape/model_1/parallel_block_3/sequential_block_4/concat_features_1/RaggedConcat/Slice_5:0&quot;, shape=(None, None), dtype=float32), dense_shape=Tensor(&quot;gradient_tape/model_1/parallel_block_3/sequential_block_4/concat_features_1/RaggedConcat/Shape_2:0&quot;, shape=(2,), dtype=int32))) to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  warnings.warn(
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>900/900 [==============================] - 177s 186ms/step - loss: 7.9891 - recall_at_100: 0.3269 - mrr_at_100: 0.0705 - ndcg_at_100: 0.1183 - map_at_100: 0.0705 - precision_at_100: 0.0033 - regularization_loss: 0.0175 - loss_batch: 7.9880 - val_loss: 7.8680 - val_recall_at_100: 0.5002 - val_mrr_at_100: 0.1195 - val_ndcg_at_100: 0.1924 - val_map_at_100: 0.1195 - val_precision_at_100: 0.0050 - val_regularization_loss: 0.0226 - val_loss_batch: 7.6988
+Epoch 2/3
+900/900 [==============================] - 165s 182ms/step - loss: 7.4564 - recall_at_100: 0.4776 - mrr_at_100: 0.1221 - ndcg_at_100: 0.1903 - map_at_100: 0.1221 - precision_at_100: 0.0048 - regularization_loss: 0.0195 - loss_batch: 7.4549 - val_loss: 7.8788 - val_recall_at_100: 0.4914 - val_mrr_at_100: 0.1292 - val_ndcg_at_100: 0.1990 - val_map_at_100: 0.1292 - val_precision_at_100: 0.0049 - val_regularization_loss: 0.0204 - val_loss_batch: 7.6964
+Epoch 3/3
+900/900 [==============================] - 165s 182ms/step - loss: 7.2698 - recall_at_100: 0.5502 - mrr_at_100: 0.1489 - ndcg_at_100: 0.2264 - map_at_100: 0.1489 - precision_at_100: 0.0055 - regularization_loss: 0.0204 - loss_batch: 7.2677 - val_loss: 7.9789 - val_recall_at_100: 0.4848 - val_mrr_at_100: 0.1253 - val_ndcg_at_100: 0.1943 - val_map_at_100: 0.1253 - val_precision_at_100: 0.0048 - val_regularization_loss: 0.0200 - val_loss_batch: 7.7853
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can evaluate the model</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_bi_lstm</span> <span class="o">=</span> <span class="n">model_bi_lstm</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">val_loader</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics_bi_lstm</span><span class="p">[</span><span class="s1">&#39;mrr_at_100&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>78/78 [==============================] - 12s 154ms/step - loss: 7.9789 - recall_at_100: 0.4841 - mrr_at_100: 0.1246 - ndcg_at_100: 0.1937 - map_at_100: 0.1246 - precision_at_100: 0.0048 - regularization_loss: 0.0200 - loss_batch: 7.9748
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>0.12525714933872223
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">del</span> <span class="n">model_bi_lstm</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>89887
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="training-a-transformer-based-model">
+<h2>Training a Transformer-based Model<a class="headerlink" href="#training-a-transformer-based-model" title="Permalink to this headline">#</a></h2>
+<p>In recent years, several deep learning-based algorithms have been proposed for recommendation systems while its adoption in industry deployments have been steeply growing. In particular, NLP inspired approaches have been successfully adapted for sequential and session-based recommendation problems, which are important for many domains like e-commerce, news and streaming media. Session-Based Recommender Systems (SBRS) have been proposed to model the sequence of interactions within the current user session, where a session is a short sequence of user interactions typically bounded by user inactivity. They have recently gained popularity due to their ability to capture short-term or contextual user preferences towards items.</p>
+<p>The field of NLP has evolved significantly within the last decade, particularly due to the increased usage of deep learning. As a result, state of the art NLP approaches have inspired RecSys practitioners and researchers to adapt those architectures, especially for sequential and session-based recommendation problems. Here, we use one of the state-of-the-art Transformer-based architecture, <a class="reference external" href="https://arxiv.org/abs/1906.08237">XLNet</a> with Causal Language Modeling (CLM) training technique for multi-class classification task. For this, we leverage the popular HuggingFace’s Transformers NLP library and make it possible to experiment with cutting-edge implementation of such architectures for sequential and session-based recommendation problems.</p>
+<p>Now, we replace the BiLSTM model with a transformer-based architecture. We train an <code class="docutils literal notranslate"><span class="pre">XLNet</span></code> model which concatenates the embedding vectors for all sequential features (<code class="docutils literal notranslate"><span class="pre">item_id_list_seq</span></code>, <code class="docutils literal notranslate"><span class="pre">f_47_list_seq</span></code>, <code class="docutils literal notranslate"><span class="pre">f_68_list_seq</span></code>) per step in the sequential input block, and uses self-attention mechanism. To learn more about the self-attention mechanism you can take a look at this <a class="reference external" href="https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf">paper</a> and this <a class="reference external" href="https://ai.googleblog.com/2017/08/transformer-novel-neural-network.html">post</a>.</p>
+<a class="reference internal image-reference" href="images/XLNet_ecommerce.png"><img alt="images/XLNet_ecommerce.png" src="images/XLNet_ecommerce.png" style="width: 30%;" /></a>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_id_name</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;domain&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">seq_inputs</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span>
+        <span class="n">schema_model</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">),</span>
+        <span class="n">categorical</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span>
+            <span class="n">schema_model</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">),</span>
+            <span class="n">sequence_combiner</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">dim</span><span class="o">=</span><span class="n">manual_dims</span>                 
+        <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">cat_inputs</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span>
+        <span class="n">schema_model</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span>
+            <span class="p">[</span><span class="s1">&#39;item_id_last&#39;</span><span class="p">]</span>
+        <span class="p">),</span>
+        <span class="n">categorical</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span>
+            <span class="n">schema_model</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span>
+            <span class="p">[</span><span class="s1">&#39;item_id_last&#39;</span><span class="p">]</span>
+        <span class="p">),</span>
+            <span class="n">dim</span><span class="o">=</span><span class="n">manual_dims</span>
+                                
+        <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can check the output from the sequential input block and its dimension. We obtain a 3-D sequence representation (batch_size, sequence_length, sum_of_emb_dim_of_features).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">batch</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">sample_batch</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">include_targets</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">prepare_features</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">seq_inputs</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>TensorShape([128, None, 288])
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cat_inputs</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>TensorShape([128, 256])
+</pre></div>
+</div>
+</div>
+</div>
+<p>The sequence_length dimension is printed out as None, because it is a variable length given a batch. That’s why we get the sequence_length dim printed as <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>Let’s create a sequential block where we connect sequential inputs block (i.e., a SequentialLayer represents a sequence of Keras layers) with MLPBlock and then XLNetBlock. MLPBlock is used as a projection block to match the output dimensions of the seq_inputs block with the transformer block. In otherwords, due to residual connection in the Transformer model, we add an MLPBlock in the model pipeline. The output dim of the input block should match with the hidden dimension (d_model) of the XLNetBlock.</p>
+<p>Let’s set the hidden dimension of the XLNet. This is a hyper parameter that user can decide the value of it. Please note that we did not do hyper-parameter optimization (HPO) for the models used here. We recommend users to perform HPO when they adopt these architectures with their custom datasets at their end.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mlp_block1</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">128</span><span class="p">,</span><span class="n">dmodel</span><span class="p">],</span>
+                <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span>
+                <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">DROPOUT</span><span class="p">,</span>
+            <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dense_block</span> <span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">SequentialBlock</span><span class="p">(</span>
+    <span class="n">seq_inputs</span><span class="p">,</span>
+    <span class="n">mlp_block1</span><span class="p">,</span>
+    <span class="n">mm</span><span class="o">.</span><span class="n">XLNetBlock</span><span class="p">(</span>
+        <span class="n">d_model</span><span class="o">=</span><span class="n">dmodel</span><span class="p">,</span>
+        <span class="n">n_head</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">n_layer</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">post</span><span class="o">=</span><span class="s1">&#39;sequence_mean&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The output of XLNetBlock is a 2D tensor <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">d_model)</span></code>, and it is then fed to final output layer.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dense_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>TensorShape([128, 256])
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s concatenate the output of transformer block with the output of the categorical block.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">concats</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">ParallelBlock</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;dense_block&#39;</span><span class="p">:</span> <span class="n">dense_block</span><span class="p">,</span> 
+     <span class="s1">&#39;cat_inputs&#39;</span><span class="p">:</span> <span class="n">cat_inputs</span><span class="p">},</span>
+    <span class="n">aggregation</span><span class="o">=</span><span class="s1">&#39;concat&#39;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The concat layer shape would be the total output dimension (256 + 256) of two layers that are concatenated.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">concats</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>TensorShape([128, 512])
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mlp_block2</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">128</span><span class="p">,</span><span class="n">dmodel</span><span class="p">],</span>
+                <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span>
+                <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">DROPOUT</span><span class="p">,</span>
+            <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prediction_task</span><span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">CategoricalOutput</span><span class="p">(</span>
+    <span class="n">to_call</span><span class="o">=</span><span class="n">seq_inputs</span><span class="p">[</span><span class="s2">&quot;categorical&quot;</span><span class="p">][</span><span class="n">item_id_name</span><span class="p">],</span>
+    <span class="n">logits_temperature</span><span class="o">=</span><span class="n">TEMPERATURE_SCALING</span><span class="p">,</span>
+    <span class="n">target</span><span class="o">=</span><span class="s1">&#39;purchase_id_first&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_transformer</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">concats</span><span class="p">,</span> <span class="n">mlp_block2</span><span class="p">,</span> <span class="n">prediction_task</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We train the model</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span>
+    <span class="n">learning_rate</span><span class="o">=</span><span class="n">LEARNING_RATE</span>
+<span class="p">)</span>
+
+<span class="n">model_transformer</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">loss</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">CategoricalCrossentropy</span><span class="p">(</span>
+        <span class="n">from_logits</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+        <span class="n">label_smoothing</span><span class="o">=</span><span class="n">LABEL_SMOOTHING</span>
+    <span class="p">),</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">TopKMetricsAggregator</span><span class="o">.</span><span class="n">default_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span><span class="p">])</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_transformer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> 
+                      <span class="n">validation_data</span><span class="o">=</span><span class="n">val_loader</span><span class="p">,</span>
+                      <span class="n">epochs</span><span class="o">=</span><span class="n">EPOCHS</span>
+                     <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 1/3
+WARNING:tensorflow:Gradients do not exist for variables [&#39;model_2/mask_emb:0&#39;, &#39;transformer/layer_._0/rel_attn/r_s_bias:0&#39;, &#39;transformer/layer_._0/rel_attn/seg_embed:0&#39;, &#39;transformer/layer_._1/rel_attn/r_s_bias:0&#39;, &#39;transformer/layer_._1/rel_attn/seg_embed:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/tensorflow/python/framework/indexed_slices.py:444: UserWarning: Converting sparse IndexedSlices(IndexedSlices(indices=Tensor(&quot;gradient_tape/model_2/parallel_block_6/sequential_block_7/xl_net_block/prepare_transformer_inputs_4/RaggedToTensor/boolean_mask_1/GatherV2:0&quot;, shape=(None,), dtype=int32), values=Tensor(&quot;gradient_tape/model_2/parallel_block_6/sequential_block_7/xl_net_block/prepare_transformer_inputs_4/RaggedToTensor/boolean_mask/GatherV2:0&quot;, shape=(None, 256), dtype=float32), dense_shape=Tensor(&quot;gradient_tape/model_2/parallel_block_6/sequential_block_7/xl_net_block/prepare_transformer_inputs_4/RaggedToTensor/Shape:0&quot;, shape=(2,), dtype=int32))) to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  warnings.warn(
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:Gradients do not exist for variables [&#39;model_2/mask_emb:0&#39;, &#39;transformer/layer_._0/rel_attn/r_s_bias:0&#39;, &#39;transformer/layer_._0/rel_attn/seg_embed:0&#39;, &#39;transformer/layer_._1/rel_attn/r_s_bias:0&#39;, &#39;transformer/layer_._1/rel_attn/seg_embed:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
+900/900 [==============================] - 188s 200ms/step - loss: 8.2095 - recall_at_100: 0.2764 - mrr_at_100: 0.0520 - ndcg_at_100: 0.0932 - map_at_100: 0.0520 - precision_at_100: 0.0028 - regularization_loss: 0.0000e+00 - loss_batch: 8.2083 - val_loss: 8.0752 - val_recall_at_100: 0.4398 - val_mrr_at_100: 0.1011 - val_ndcg_at_100: 0.1656 - val_map_at_100: 0.1011 - val_precision_at_100: 0.0044 - val_regularization_loss: 0.0000e+00 - val_loss_batch: 7.8628
+Epoch 2/3
+900/900 [==============================] - 178s 196ms/step - loss: 7.6697 - recall_at_100: 0.4114 - mrr_at_100: 0.0995 - ndcg_at_100: 0.1588 - map_at_100: 0.0995 - precision_at_100: 0.0041 - regularization_loss: 0.0000e+00 - loss_batch: 7.6682 - val_loss: 8.0399 - val_recall_at_100: 0.4532 - val_mrr_at_100: 0.1148 - val_ndcg_at_100: 0.1799 - val_map_at_100: 0.1148 - val_precision_at_100: 0.0045 - val_regularization_loss: 0.0000e+00 - val_loss_batch: 7.8145
+Epoch 3/3
+900/900 [==============================] - 178s 196ms/step - loss: 7.4710 - recall_at_100: 0.4847 - mrr_at_100: 0.1263 - ndcg_at_100: 0.1949 - map_at_100: 0.1263 - precision_at_100: 0.0048 - regularization_loss: 0.0000e+00 - loss_batch: 7.4690 - val_loss: 8.1183 - val_recall_at_100: 0.4502 - val_mrr_at_100: 0.1155 - val_ndcg_at_100: 0.1799 - val_map_at_100: 0.1155 - val_precision_at_100: 0.0045 - val_regularization_loss: 0.0000e+00 - val_loss_batch: 7.9078
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7fb68d532700&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<p>We evaluate the model</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_transformer</span> <span class="o">=</span> <span class="n">model_transformer</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">val_loader</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics_transformer</span><span class="p">[</span><span class="s1">&#39;mrr_at_100&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>78/78 [==============================] - 13s 167ms/step - loss: 8.1183 - recall_at_100: 0.4508 - mrr_at_100: 0.1146 - ndcg_at_100: 0.1792 - map_at_100: 0.1146 - precision_at_100: 0.0045 - regularization_loss: 0.0000e+00 - loss_batch: 8.1138
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>0.11548776179552078
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">del</span> <span class="n">model_transformer</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>134
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">#</a></h2>
+<p>In this example, we focused on concepts which are relevant for a broad range of recommender system use cases- session-based recommendation task. If you compare the MRR to the ACM RecSys’22 competition, you will notice, that the MRR can be much higher. Following are additional techniques that can be applied to improve the MRR:</p>
+<ul class="simple">
+<li><p>Data Augmentations - in the RecSys’22 challenge, we used a lot of different techniques to increase the training dataset. The techniques are specific to the dataset and we did not include it in the example:</p></li>
+<li><p>Additional item features - we focused on only a few item features</p></li>
+<li><p>Stacking - we stacked 17 models with a two-step approach</p></li>
+<li><p>Ensemble - we ensembled 3 different stacked models</p></li>
+<li><p>Hyperparameter Search - we ran multiple HPO jobs to find the best hyperparameters</p></li>
+</ul>
+<p>In addition, the MRR on the June month (test data) was in general higher than in May (validation)</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview">Overview</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#learning-objective">Learning Objective</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#brief-description-of-the-concepts">Brief Description of the Concepts</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#downloading-and-preparing-the-dataset">Downloading and preparing the dataset</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dressipi">Dressipi</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dataset">Dataset</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#feature-engineering-with-nvtabular">Feature Engineering with NVTabular</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#categorify">Categorify</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#groupby-the-data-by-sessions">GroupBy the data by sessions.</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#truncate-for-a-maximum-sequence-length">Truncate for a Maximum Sequence Length</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sort-the-training-dataset-by-time">Sort the Training Dataset by Time</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-an-mlp-with-sequential-input-with-merlin-models">Training an MLP with sequential input with Merlin Models</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dataloader">Dataloader</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hyperparameters">Hyperparameters</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#data-loader">Data loader</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#build-the-sequential-mlp-with-merlin-models">Build the Sequential MLP with Merlin Models</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fit-the-model">Fit the Model</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-a-bi-lstm-with-merlin-models">Training a Bi-LSTM with Merlin Models</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#build-bi-lstm-model">Build Bi-LSTM model</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Fit the Model</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-a-transformer-based-model">Training a Transformer-based Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#summary">Summary</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+  <p class="copyright">
+    
+      © Copyright 2023, NVIDIA.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
