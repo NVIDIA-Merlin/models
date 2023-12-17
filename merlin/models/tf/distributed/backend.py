@@ -22,7 +22,7 @@ if hvd_installed:
 
 if HAS_GPU:
     try:
-        from sparse_operation_kit import experiment as sok  # noqa: F401
+        from sparse_operation_kit import sparse_operation_kit as sok  # noqa: F401
 
         sok_installed = True
     except (ImportError, tf.errors.NotFoundError):
