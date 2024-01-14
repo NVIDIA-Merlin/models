@@ -4,8 +4,11 @@ import torch
 from torch import nn
 
 from merlin.models.torch.block import Block
+from merlin.models.torch.blocks.attention import _TRANSFORMER_REF
 from merlin.models.torch.schema import Schema, output_schema
 from merlin.models.torch.transforms.agg import Concat, MaybeAgg
+from merlin.models.torch.utils.llama_utils import find_multiple
+from merlin.models.utils.doc_utils import docstring_parameter
 
 
 class MLPBlock(Block):
@@ -84,8 +87,42 @@ class MLPBlock(Block):
         super().__init__(*modules)
 
 
+@docstring_parameter(transformer_ref=_TRANSFORMER_REF)
+class PositionwiseFeedForward(nn.Module):
+    """Position-wise Feed-Forward network as proposed in Section 3.3 of [1].
+
+    References
+    ----------
+    {transformer_ref}
+    """
+
+    def __init__(
+        self,
+        embedding_dim: int,
+        intermediate_dim: Optional[int] = None,
+        bias: bool = False,
+        activation=nn.ReLU,
+    ):
+        super().__init__()
+
+        if intermediate_dim is None:
+            hidden_dim = 4 * embedding_dim
+            intermediate_dim = int(2 * hidden_dim / 3)
+            intermediate_dim = find_multiple(intermediate_dim, 256)
+
+        self.weights_1 = nn.Linear(embedding_dim, intermediate_dim, bias=bias)
+        self.weights_2 = nn.Linear(embedding_dim, intermediate_dim, bias=bias)
+        self.projection = nn.Linear(intermediate_dim, embedding_dim, bias=bias)
+        self.activation = activation if isinstance(activation, nn.Module) else activation()
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        outputs = self.projection(self.activation(self.weights_1(inputs)) * self.weights_2(inputs))
+        return outputs
+
+
 @output_schema.register(nn.LazyLinear)
 @output_schema.register(nn.Linear)
 @output_schema.register(MLPBlock)
+@output_schema.register(PositionwiseFeedForward)
 def _output_schema_block(module: nn.LazyLinear, inputs: Schema):
     return output_schema.tensors(torch.ones((1, module.out_features), dtype=float))

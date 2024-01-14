@@ -29,6 +29,7 @@ from merlin.models.torch.block import (
 from merlin.models.torch.blocks.attention import CrossAttentionBlock
 from merlin.models.torch.blocks.dlrm import DLRMBlock
 from merlin.models.torch.blocks.experts import CGCBlock, MMOEBlock, PLEBlock
+from merlin.models.torch.blocks.llama import LlamaBlock, LlamaConfig
 from merlin.models.torch.blocks.mlp import MLPBlock
 from merlin.models.torch.functional import map, walk
 from merlin.models.torch.inputs.embedding import EmbeddingTable, EmbeddingTables
@@ -107,4 +108,6 @@ __all__ = [
     "CrossAttentionBlock",
     "map",
     "walk",
+    "LlamaBlock",
+    "LlamaConfig",
 ]
