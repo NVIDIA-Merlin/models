@@ -1,0 +1,627 @@
+
+
+<!DOCTYPE html>
+
+
+<html >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Contributing to Merlin Models &#8212; NVIDIA Merlin Models</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/versions.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script src="_static/js/rtd-version-switcher.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'CONTRIBUTING';</script>
+    <link rel="canonical" href="https://nvidia-merlin.github.io/models/stable/CONTRIBUTING.html" />
+    <link rel="shortcut icon" href="_static/favicon.png"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Additional Resources" href="additional_resources.html" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NVJ1Y1YJHK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-NVJ1Y1YJHK', {
+        'anonymize_ip': false,
+    });
+  </script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,300&display=swap" rel="stylesheet">
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">NVIDIA Merlin Models</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="examples/index.html">Example Notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/04-Exporting-ranking-models.html">Exporting Ranking Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/05-Retrieval-Model.html">Building a Retrieval Model with Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/06-Define-your-own-architecture-with-Merlin-Models.html">Taking the Next Step with Merlin Models: Define Your Own Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api.html">API Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html">merlin.models.utils.schema_utils.select_targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html">merlin.models.utils.schema_utils.create_categorical_column</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html">merlin.models.utils.schema_utils.create_continuous_column</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html">merlin.models.utils.schema_utils.filter_dict_by_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html">merlin.models.utils.schema_utils.categorical_cardinalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html">merlin.models.utils.schema_utils.categorical_domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.filter_kwargs.html">merlin.models.utils.misc_utils.filter_kwargs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.safe_json.html">merlin.models.utils.misc_utils.safe_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_filenames.html">merlin.models.utils.misc_utils.get_filenames</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_label_feature_name.html">merlin.models.utils.misc_utils.get_label_feature_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_timestamp_feature_name.html">merlin.models.utils.misc_utils.get_timestamp_feature_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_parquet_files_names.html">merlin.models.utils.misc_utils.get_parquet_files_names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.Timing.html">merlin.models.utils.misc_utils.Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_object_size.html">merlin.models.utils.misc_utils.get_object_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.validate_dataset.html">merlin.models.utils.misc_utils.validate_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.registry.camelcase_to_snakecase.html">merlin.models.utils.registry.camelcase_to_snakecase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.registry.snakecase_to_camelcase.html">merlin.models.utils.registry.snakecase_to_camelcase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.registry.default_name.html">merlin.models.utils.registry.default_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.registry.default_object_name.html">merlin.models.utils.registry.default_object_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.registry.Registry.html">merlin.models.utils.registry.Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.registry.RegistryMixin.html">merlin.models.utils.registry.RegistryMixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/merlin.models.utils.registry.display_list_by_prefix.html">merlin.models.utils.registry.display_list_by_prefix</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="additional_resources.html">Additional Resources</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Contributing to Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/NVIDIA-Merlin/models">Github Repo</a></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+</nav></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-merlin-ecosystem-nav" aria-label="Merlin Ecosystem Nav">
+  <div class="bd-toc-item navbar-nav">
+    <p aria-level="2" class="caption" role="heading"><span class="caption-text">Ecosystem</span></p>
+    <ul class="nav bd-sidenav">
+      <li class="toctree-l1"><a class="reference external" href="/Merlin/">Merlin</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/core/">Core</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/systems/">Systems</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/NVTabular/">NVTabular</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/Transformers4Rec/">Transformers4Rec</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/dataloader/">Dataloader</a></li>
+      <li class="toctree-l1"><a class="reference external" href="/HugetCTR/">HugeCTR</a></li>
+    </ul>
+  </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="https://github.com/NVIDIA-Merlin/models" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.md</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script>
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Contributing to Merlin Models</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-contributions">Code contributions</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#your-first-issue">Your first issue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#seasoned-developers">Seasoned developers</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#label-your-prs">Label your PRs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#adding-classes-methods-and-so-on">Adding classes, methods, and so on</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attribution">Attribution</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="contributing-to-merlin-models">
+<h1>Contributing to Merlin Models<a class="headerlink" href="#contributing-to-merlin-models" title="Permalink to this headline">#</a></h1>
+<p>If you are interested in contributing to Merlin Models, your contributions will fall
+into three categories:</p>
+<ol class="arabic simple">
+<li><p>You want to report a bug, feature request, or documentation issue:</p>
+<ul class="simple">
+<li><p>File an <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/issues/new/choose">issue</a>
+and describe what you encountered or what you want to see changed.</p></li>
+<li><p>The NVIDIA-Merlin team evaluates the issues and triages them, scheduling
+them for a release. If you believe the issue needs priority attention,
+comment on the issue to notify the team.</p></li>
+</ul>
+</li>
+<li><p>You want to propose a new feature and implement it:</p>
+<ul class="simple">
+<li><p>Post about your intended feature to discuss the design and
+implementation with the NVIDIA-Merlin team.</p></li>
+<li><p>Once we agree that the plan looks good, go ahead and implement it, using
+the <a class="reference internal" href="#code-contributions"><span class="std std-doc">code contributions</span></a> guide below.</p></li>
+</ul>
+</li>
+<li><p>You want to implement a feature or bug-fix for an outstanding issue:</p>
+<ul class="simple">
+<li><p>Follow the <a class="reference internal" href="#code-contributions"><span class="std std-doc">code contributions</span></a> guide below.</p></li>
+<li><p>If you need more context on a particular issue, please ask and the
+NVIDIA-Merlin team will provide the context.</p></li>
+</ul>
+</li>
+</ol>
+<section id="code-contributions">
+<h2>Code contributions<a class="headerlink" href="#code-contributions" title="Permalink to this headline">#</a></h2>
+<section id="your-first-issue">
+<h3>Your first issue<a class="headerlink" href="#your-first-issue" title="Permalink to this headline">#</a></h3>
+<ol class="arabic simple">
+<li><p>Read the project’s <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/stable/README.md">README.md</a>
+to learn how to setup the development environment.</p></li>
+<li><p>Find an issue to work on. The best way is to look for the <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">good first issue</a>
+or <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22">help wanted</a> labels.</p></li>
+<li><p>Comment on the issue to say that you are going to work on it.</p></li>
+<li><p>Code! Make sure to update unit tests!</p></li>
+<li><p>When done, <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/compare">create your pull request</a>.</p></li>
+<li><p>Verify that CI passes all <a class="reference external" href="https://help.github.com/articles/about-status-checks/">status checks</a>. Fix if needed.</p></li>
+<li><p>Wait for other developers to review your code and update code as needed.</p></li>
+<li><p>After your pull request is reviewed and approved, an NVIDIA-Merlin team member merges it.</p></li>
+</ol>
+<p>Remember, if you are unsure about anything, don’t hesitate to comment on issues
+and ask for clarifications!</p>
+</section>
+<section id="seasoned-developers">
+<h3>Seasoned developers<a class="headerlink" href="#seasoned-developers" title="Permalink to this headline">#</a></h3>
+<p>After you have your feet wet and are comfortable with the code, you
+can look at the prioritized issues of our next release in our <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/projects">project boards</a>.</p>
+<blockquote>
+<div><p><strong>Pro Tip:</strong> Always look at the release board with the highest number for
+issues to work on. This is where the NVIDIA-Merlin developers also focus their efforts.</p>
+</div></blockquote>
+<p>Look at the unassigned issues, and find an issue you are comfortable with
+contributing to. Start with <em>Step 3</em> from above, commenting on the issue to let
+others know that you are working on it. If you have any questions related to the
+implementation of the issue, ask them in the issue instead of the PR.</p>
+</section>
+</section>
+<section id="label-your-prs">
+<h2>Label your PRs<a class="headerlink" href="#label-your-prs" title="Permalink to this headline">#</a></h2>
+<p>This repository uses the release-drafter action to draft and create our change log.</p>
+<p>Please add one of the following labels to your PR to specify the type of contribution
+and help categorize the PR in our change log:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">breaking</span></code> – The PR creates a breaking change to the API.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bug</span></code> – The PR fixes a problem with the code.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">feature</span></code> or <code class="docutils literal notranslate"><span class="pre">enhancement</span></code> – The PR introduces a backward-compatible feature.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">documentation</span></code> or <code class="docutils literal notranslate"><span class="pre">examples</span></code> – The PR is an addition or update to documentation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">build</span></code>, <code class="docutils literal notranslate"><span class="pre">dependencies</span></code>, <code class="docutils literal notranslate"><span class="pre">chore</span></code>, or <code class="docutils literal notranslate"><span class="pre">ci</span></code> – The PR is related to maintaining the
+repository or the project.</p></li>
+</ul>
+<p>By default, an unlabeled PR is listed at the top of the change log and is not
+grouped under a heading like <em>Features</em> that groups similar PRs.
+Labeling the PRs so we can categorize them is preferred.</p>
+<p>If, for some reason, you do not believe your PR should be included in the change
+log, you can add the <code class="docutils literal notranslate"><span class="pre">skip-changelog</span></code> label.
+This label excludes the PR from the change log.</p>
+<p>For more information, see <code class="docutils literal notranslate"><span class="pre">.github/release-drafter.yml</span></code> in the repository
+or go to <a class="github reference external" href="https://github.com/release-drafter/release-drafter">release-drafter/release-drafter</a>.</p>
+</section>
+<section id="adding-classes-methods-and-so-on">
+<h2>Adding classes, methods, and so on<a class="headerlink" href="#adding-classes-methods-and-so-on" title="Permalink to this headline">#</a></h2>
+<p>If you add a class, method, or function, make an update to <code class="docutils literal notranslate"><span class="pre">docs/source/api.rst</span></code>
+to reference your change. If you remove one of these items, please also remove
+it from the same <code class="docutils literal notranslate"><span class="pre">api.rst</span></code> file.</p>
+<blockquote>
+<div><p>In this second case, you probably want to mark your PR with the <code class="docutils literal notranslate"><span class="pre">breaking</span></code>
+label when you open the PR.</p>
+</div></blockquote>
+<p>Please make sure to build the documentation by following the guidance in
+<code class="docutils literal notranslate"><span class="pre">docs/README.md</span></code> and check that you do not introduce any build errors or warnings.</p>
+<p>The following line is an example of a warning. Check that the specified class,
+<code class="docutils literal notranslate"><span class="pre">CachedCrossBatchSampler</span></code> is still part of the software or remove it from
+<code class="docutils literal notranslate"><span class="pre">api.rst</span></code> and label your PR with the <code class="docutils literal notranslate"><span class="pre">breaking</span></code> label.</p>
+<div class="highlight-terminal notranslate"><div class="highlight"><pre><span></span>WARNING: [autosummary] failed to import &#39;merlin.models.tf.CachedCrossBatchSampler&#39;: no module named merlin.models.tf.CachedCrossBatchSampler
+</pre></div>
+</div>
+<p>Also look for warnings that report mistakes with formatting docstrings:</p>
+<div class="highlight-terminal notranslate"><div class="highlight"><pre><span></span>merlin/models/merlin/models/tf/blocks/retrieval/base.py:docstring of merlin.models.tf.blocks.retrieval.base.DualEncoderBlock.__ini
+t__:11: WARNING: Unexpected indentation.
+</pre></div>
+</div>
+<p><strong>TIP</strong>: To add a link from a docstring to class documentation in the
+Merlin Core repository, specify the fully qualified class name and prefix it
+with a tilde like the following example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>Parameters
+----------
+schema : ~merlin.schema.Schema
+    The `Schema` with the input features
+deep_block: Block
+    Block (structure) of deep model.
+</pre></div>
+</div>
+<p>The <a class="reference external" href="https://docs.readthedocs.io/en/stable/guides/intersphinx.html">Intersphinx</a>
+extension truncates the text to <a class="reference external" href="https://nvidia-merlin.github.io/core/stable/api/merlin.schema.html">Schema</a>
+and makes it a link.</p>
+</section>
+<section id="attribution">
+<h2>Attribution<a class="headerlink" href="#attribution" title="Permalink to this headline">#</a></h2>
+<p>Portions adopted from <a class="github reference external" href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">pytorch/pytorch</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="additional_resources.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Additional Resources</p>
+      </div>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-contributions">Code contributions</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#your-first-issue">Your first issue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#seasoned-developers">Seasoned developers</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#label-your-prs">Label your PRs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#adding-classes-methods-and-so-on">Adding classes, methods, and so on</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attribution">Attribution</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+  <p class="copyright">
+    
+      © Copyright 2023, NVIDIA.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p>
+<a href="https://www.nvidia.com/en-us/about-nvidia/privacy-policy/" target="_blank">Privacy Policy</a> |
+<a href="https://www.nvidia.com/en-us/about-nvidia/privacy-center/" target="_blank">Manage My Privacy</a> |
+<a href="https://www.nvidia.com/en-us/preferences/start/" target="_blank">Do Not Sell or Share My Data</a> |
+<a href="https://www.nvidia.com/en-us/about-nvidia/terms-of-service/" target="_blank">Terms of Service</a> |
+<a href="https://www.nvidia.com/en-us/about-nvidia/accessibility/" target="_blank">Accessibility</a> |
+<a href="https://www.nvidia.com/en-us/about-nvidia/company-policies/" target="_blank">Corporate Policies</a> |
+<a href="https://www.nvidia.com/en-us/product-security/" target="_blank">Product Security</a> |
+<a href="https://www.nvidia.com/en-us/contact/" target="_blank">Contact</a>
+</p>
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
