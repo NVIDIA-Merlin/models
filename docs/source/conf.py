@@ -101,8 +101,7 @@ html_favicon = "_static/favicon.png"
 html_theme_options = {
     "repository_url": "https://github.com/NVIDIA-Merlin/models",
     "use_repository_button": True,
-    "footer_content_items": ["copyright.html", "last-updated.html"],
-    "extra_footer": "",
+    "footer_content_items": ["copyright.html", "footer.html"],
     "logo": {"text": "NVIDIA Merlin Models", "alt_text": "NVIDIA Merlin Models"},
 }
 html_sidebars = {
