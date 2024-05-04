@@ -445,6 +445,6 @@ def _convert_data(
                 current = []
 
     tmp_files = glob(os.path.join(tmp_dir, f"{data_type}_*.parquet"))
-    dtypes = {f.name: "int32" for f in _Features().features}
+    dtypes = {f.name: "Int32" for f in _Features().features}
     merlin.io.Dataset(tmp_files, dtypes=dtypes).to_parquet(out_dir)
     shutil.rmtree(tmp_dir)
