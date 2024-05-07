@@ -1,5 +1,6 @@
 -r dev.txt
 -r pytorch.txt
 -r tensorflow.txt
+-r transformers.txt
 
 numpy<1.24
