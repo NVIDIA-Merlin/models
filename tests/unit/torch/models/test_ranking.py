@@ -20,7 +20,7 @@ class TestDLRMModel:
 
         model = mm.DLRMModel(
             schema,
-            dim=dim,
+            embedding_dim=dim,
             bottom_block=mm.MLPBlock([4, 2]),
             top_block=mm.MLPBlock([4, 2]),
             output_block=output_block,

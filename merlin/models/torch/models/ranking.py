@@ -23,8 +23,8 @@ class DLRMModel(Model):
     ----------
     schema : Schema
         The schema to use for selection.
-    dim : int
-        The dimensionality of the output vectors.
+    embedding_dim : int
+        The dimensionality of the embedding vectors for CONTINUOUS and CATEGORICAL features.
     bottom_block : Block
         Block to pass the continuous features to.
         Note that, the output dimensionality of this block must be equal to ``dim``.
@@ -46,7 +46,7 @@ class DLRMModel(Model):
     -------------
     >>> model = mm.DLRMModel(
     ...    schema,
-    ...    dim=64,
+    ...    embedding_dim=64,
     ...    bottom_block=mm.MLPBlock([256, 64]),
     ...    output_block=mm.BinaryOutput(ColumnSchema("target")),
     ... )
@@ -59,7 +59,7 @@ class DLRMModel(Model):
     def __init__(
         self,
         schema: Schema,
-        dim: int,
+        embedding_dim: int,
         bottom_block: Block,
         top_block: Optional[Block] = None,
         interaction: Optional[nn.Module] = None,
@@ -70,7 +70,7 @@ class DLRMModel(Model):
 
         dlrm_body = DLRMBlock(
             schema,
-            dim,
+            embedding_dim,
             bottom_block,
             top_block=top_block,
             interaction=interaction,
