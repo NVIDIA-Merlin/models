@@ -2,7 +2,11 @@ import pytest
 import torch
 from torch import nn
 
-from merlin.models.torch.blocks.attention import CrossAttentionBlock
+from merlin.models.torch.blocks.attention import (
+    CausalSelfAttention,
+    CrossAttentionBlock,
+    RotaryEmbeddings,
+)
 from merlin.models.torch.utils import module_utils
 
 
@@ -48,3 +52,29 @@ class TestCrossAttentionBlock:
             cross.get_seq(
                 {"context": torch.randn(1, 10), "0": torch.randn(1, 10), "1": torch.randn(1, 10)}
             )
+
+
+class TestRotaryEmbeddings:
+    def test_forward(self):
+        batch_size, seq_length, num_heads, embedding_dim = 1, 6, 2, 8
+        rotary_embeds = RotaryEmbeddings(embedding_dim // num_heads, seq_length)
+        inputs = torch.randint(
+            0,
+            10_000,
+            size=(batch_size, seq_length, num_heads, embedding_dim // num_heads),
+        ).float()
+        outputs = rotary_embeds(inputs)
+        assert inputs.size() == outputs.size()
+
+
+class TestCausalSelfAttention:
+    def test_forward(self):
+        batch_size, seq_length, num_heads, embedding_dim = 1, 6, 2, 8
+        attention = CausalSelfAttention(num_heads, embedding_dim, seq_length)
+        inputs = torch.randint(
+            0,
+            10_000,
+            size=(batch_size, seq_length, embedding_dim),
+        ).float()
+        outputs = attention(inputs)
+        assert inputs.size() == outputs.size()
